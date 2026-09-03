@@ -780,7 +780,7 @@
     "ordinal": 31,
     "slug": "map-mounts-and-devices",
     "title": "Map a pathname to its mount and storage source",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "beginner",
     "tags": [
       "mounts",
@@ -806,7 +806,7 @@
     "ordinal": 32,
     "slug": "compare-df-and-du",
     "title": "Contrast named usage with allocated filesystem space",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "intermediate",
     "tags": [
       "storage",
@@ -833,7 +833,7 @@
     "ordinal": 33,
     "slug": "sparse-file-allocation",
     "title": "Separate logical size from physical allocation",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "beginner",
     "tags": [
       "storage",
@@ -858,7 +858,7 @@
     "ordinal": 34,
     "slug": "tmpfs-uses-memory",
     "title": "Observe a bounded tmpfs backed by memory",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "intermediate",
     "tags": [
       "mounts",
@@ -885,7 +885,7 @@
     "ordinal": 35,
     "slug": "bounded-filesystem-full",
     "title": "Contain ENOSPC inside a small filesystem",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "intermediate",
     "tags": [
       "mounts",
@@ -912,7 +912,7 @@
     "ordinal": 36,
     "slug": "recover-filesystem-space",
     "title": "Recover image space only after the last holder closes",
-    "category": "mounts-and-storage",
+    "category": "mounts-and-storage-paths",
     "difficulty": "advanced",
     "tags": [
       "mounts",
@@ -1405,6 +1405,494 @@
     "sessions": 1,
     "minVersion": "5.1",
     "estimatedMinutes": 18,
+    "revision": 1
+  },
+  {
+    "ordinal": 55,
+    "slug": "create-listening-socket",
+    "title": "Create and observe a loopback listening socket",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "beginner",
+    "tags": [
+      "sockets",
+      "tcp",
+      "processes"
+    ],
+    "prerequisites": [
+      6
+    ],
+    "overview": "Bind a short-lived Python server to loopback port 0 and let the kernel choose an unused port. The port file and ss output connect the listening endpoint to a real process while keeping all traffic on this machine.",
+    "syntaxBreakdown": "Python socket.bind and listen create a TCP endpoint; port 0 requests ephemeral allocation; ss -ltn filters TCP listeners; trap and kill clean up the exact server PID.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"\nRUN_ID=$$; PORT_FILE=$LAB/socket-port-$UID-$RUN_ID; READY=$LAB/socket-ready-$UID-$RUN_ID; server_pid=\nrm -f \"$PORT_FILE\" \"$READY\"\ntrap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; rm -f \"$PORT_FILE\" \"$READY\"' EXIT\nPORT_FILE=\"$PORT_FILE\" READY=\"$READY\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(4); open(os.environ[\"PORT_FILE\"],\"w\").write(str(s.getsockname()[1])); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\"); time.sleep(4); s.close()' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$PORT_FILE\" ] && break; sleep .05; done\nport=$(cat \"$PORT_FILE\" 2>/dev/null || true); listener=$(ss -ltn 2>/dev/null | grep -E \":$port([[:space:]]|$)\" || true)\nprintf 'server_pid=%s\\nloopback_port=%s\\nlistener_ready=%s\\nss_listener_seen=%s\\n' \"$server_pid\" \"$port\" \"$(test -s \"$PORT_FILE\" && echo yes || echo no)\" \"$(test -n \"$listener\" && echo yes || echo no)\"\nif [ -n \"$port\" ] && [ -n \"$listener\" ]; then printf 'listening_socket=observed\\n'; else printf 'listening_socket=not-observed\\n'; fi\nkill \"$server_pid\" 2>/dev/null || true; wait \"$server_pid\" 2>/dev/null || true; server_pid=; rm -f \"$PORT_FILE\" \"$READY\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "listener_ready=yes, loopback_port is a nonzero ephemeral port, ss_listener_seen=yes, and listening_socket=observed. The PID, port, and path vary; cleanup=done proves the exact listener was removed.",
+    "systemsLens": "bind and listen give a process a kernel endpoint plus an admission queue. The same ownership relationship appears in local services, sidecars, and a node's per-namespace port table.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 56,
+    "slug": "map-port-to-process",
+    "title": "Map a listening port back to its process and descriptor",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "intermediate",
+    "tags": [
+      "sockets",
+      "tcp",
+      "file-descriptors",
+      "procfs"
+    ],
+    "prerequisites": [
+      55
+    ],
+    "overview": "Start a listener and correlate three views of the same resource: ss names the port and PID, lsof names the process and socket, and /proc exposes the owning descriptor. This turns a port symptom into an actionable owner.",
+    "syntaxBreakdown": "ss -ltnp shows listening TCP ownership; lsof -nP -a -p restricts inspection to one PID; readlink /proc/PID/fd resolves descriptor targets; grep scopes observations to this port.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; PORT=$LAB/map-port-$UID-$RUN_ID; server_pid=\nrm -f \"$PORT\"; trap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; rm -f \"$PORT\"' EXIT\nPORT=\"$PORT\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(2); open(os.environ[\"PORT\"],\"w\").write(str(s.getsockname()[1])); time.sleep(4)' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$PORT\" ] && break; sleep .05; done; port=$(cat \"$PORT\" 2>/dev/null || true)\nss_line=$(ss -ltnp 2>/dev/null | grep -E \":$port([[:space:]]|$)\" || true); lsof_line=$(lsof -nP -a -p \"$server_pid\" -iTCP:\"$port\" -sTCP:LISTEN 2>/dev/null | tail -n +2 || true); fd_line=$(find \"/proc/$server_pid/fd\" -maxdepth 1 -type l -printf '%f %l\\n' 2>/dev/null | grep socket: | head -n 1 || true)\nprintf 'map_pid=%s\\nmap_port=%s\\nss_owner_seen=%s\\nlsof_owner_seen=%s\\nproc_socket_fd_seen=%s\\n' \"$server_pid\" \"$port\" \"$(test -n \"$ss_line\" && echo yes || echo no)\" \"$(test -n \"$lsof_line\" && echo yes || echo no)\" \"$(test -n \"$fd_line\" && echo yes || echo no)\"\nif [ -n \"$ss_line\" ] && [ -n \"$fd_line\" ]; then printf 'port_owner_correlation=observed\\n'; else printf 'port_owner_correlation=partial\\n'; fi\nkill \"$server_pid\" 2>/dev/null || true; wait \"$server_pid\" 2>/dev/null || true; server_pid=; rm -f \"$PORT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "ss_owner_seen=yes, proc_socket_fd_seen=yes, and port_owner_correlation=observed for the exact server PID and ephemeral port. lsof_owner_seen is normally yes but can be no on restricted hosts.",
+    "systemsLens": "A socket is owned through a process descriptor, while ss indexes the network endpoint. Incident diagnosis joins these two namespaces of identity instead of treating a port as an anonymous number.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 57,
+    "slug": "tcp-connection-lifecycle",
+    "title": "Observe a loopback TCP connection transition",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "intermediate",
+    "tags": [
+      "sockets",
+      "tcp",
+      "processes"
+    ],
+    "prerequisites": [
+      55
+    ],
+    "overview": "Keep one loopback client connected while a server has accepted it, then inspect ss from the client session. The endpoint tuple and ESTAB state show that TCP state belongs to a connection, not merely to the listening process.",
+    "syntaxBreakdown": "Python accept and connect create endpoints; ss -tn lists TCP state; readiness files coordinate sessions; wait and exact-PID traps bound the server lifetime.",
+    "code": "# Session A (blocks until Session B connects)\nLAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; PORT=$LAB/tcp-port-$UID-$RUN_ID; READY=$LAB/tcp-ready-$UID-$RUN_ID; ACCEPTED=$LAB/tcp-accepted-$UID-$RUN_ID; server_pid=\nrm -f \"$PORT\" \"$READY\" \"$ACCEPTED\"; trap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; rm -f \"$PORT\" \"$READY\" \"$ACCEPTED\"' EXIT\nPORT=\"$PORT\" READY=\"$READY\" ACCEPTED=\"$ACCEPTED\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(2); open(os.environ[\"PORT\"],\"w\").write(str(s.getsockname()[1])); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\"); c,a=s.accept(); open(os.environ[\"ACCEPTED\"],\"w\").write(a[0]); time.sleep(1); c.recv(32); c.close(); s.close()' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$PORT\" ] && break; sleep .05; done; port=$(cat \"$PORT\" 2>/dev/null || true); printf 'server_pid=%s\\ntcp_port=%s\\nserver_ready=yes\\n' \"$server_pid\" \"$port\"; wait \"$server_pid\" 2>/dev/null; server_status=$?; printf 'server_status=%s\\naccepted_connection=%s\\n' \"$server_status\" \"$(test -s \"$ACCEPTED\" && echo yes || echo no)\"; server_pid=; rm -f \"$PORT\" \"$READY\" \"$ACCEPTED\"; trap - EXIT; printf 'session_a_cleanup=done\\n'\n\n# Session B\nLAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; port_file=; for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do port_file=$(find \"$LAB\" -maxdepth 1 -name \"tcp-port-$UID-*\" -type f -print -quit); [ -n \"$port_file\" ] && [ -s \"$port_file\" ] && break; sleep .05; done; port=$(test -n \"$port_file\" && cat \"$port_file\" 2>/dev/null || true); LOG=$LAB/tcp-client-$UID-$$.log\npython3 -u -c 'import socket,time,sys\ns=socket.socket(); s.settimeout(2); s.connect((\"127.0.0.1\",int(sys.argv[1]))); time.sleep(.35); print(\"client_connected=yes\",flush=True); time.sleep(.35); s.sendall(b\"done\"); s.close()' \"$port\" >\"$LOG\" 2>&1 & client_pid=$!; sleep .15; state=$(ss -tn 2>/dev/null | grep -E \":$port([[:space:]]|$).*ESTAB|ESTAB.*:$port([[:space:]]|$)\" || true); printf 'client_port=%s\\nestablished_seen=%s\\n' \"$port\" \"$(test -n \"$state\" && echo yes || echo no)\"; wait \"$client_pid\" 2>/dev/null; cat \"$LOG\"; rm -f \"$LOG\"; printf 'session_b_cleanup=done\\n'",
+    "expectedResult": "Session A prints server_ready=yes, server_status=0, and accepted_connection=yes. Session B prints client_connected=yes and usually established_seen=yes; timing can make that sample no, but accepted_connection and clean exits must remain.",
+    "systemsLens": "TCP maintains a state machine over a four-tuple of local and remote addresses and ports. A listener creates future connections; each accepted connection has its own state and descriptor lifecycle.",
+    "caution": "Run Session A first. Its wait is intentional: Session B supplies the client connection that lets the server finish. Both sessions must share LINUX_LAB.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 2,
+    "minVersion": "5.1",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 58,
+    "slug": "unix-domain-socket",
+    "title": "Exchange bytes through a pathname UNIX socket",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "intermediate",
+    "tags": [
+      "sockets",
+      "file-descriptors",
+      "filesystem"
+    ],
+    "prerequisites": [
+      55
+    ],
+    "overview": "Create a UNIX stream socket at a unique path below the lab, exchange one message, and inspect its filesystem type and ss's UNIX view. Local IPC keeps socket semantics without IP routing.",
+    "syntaxBreakdown": "AF_UNIX and bind create a pathname socket; test -S identifies its filesystem entry; ss -xl lists UNIX listeners; connect and accept exchange a bounded payload.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; SOCK=$LAB/unix-$UID-$$.sock; READY=$LAB/unix-ready-$UID-$$; RESULT=$LAB/unix-result-$UID-$$; server_pid=; rm -f \"$SOCK\" \"$READY\" \"$RESULT\"\ntrap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; rm -f \"$SOCK\" \"$READY\" \"$RESULT\"' EXIT\nSOCK=\"$SOCK\" READY=\"$READY\" RESULT=\"$RESULT\" python3 -u -c 'import os,socket\ns=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.bind(os.environ[\"SOCK\"]); s.listen(1); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\"); c,_=s.accept(); open(os.environ[\"RESULT\"],\"w\").write(c.recv(64).decode()); c.close(); s.close()' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -e \"$READY\" ] && break; sleep .05; done; ss_unix=$(ss -xl 2>/dev/null | grep -F \"$SOCK\" || true)\nprintf 'unix_path=%s\\nunix_file_type=%s\\nunix_socket_entry=%s\\nss_unix_seen=%s\\n' \"$SOCK\" \"$(stat -c %F \"$SOCK\" 2>/dev/null || echo missing)\" \"$(test -S \"$SOCK\" && echo yes || echo no)\" \"$(test -n \"$ss_unix\" && echo yes || echo no)\"\nSOCK=\"$SOCK\" python3 -c 'import os,socket\ns=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM); s.connect(os.environ[\"SOCK\"]); s.sendall(b\"unix-ping\"); s.close()'; wait \"$server_pid\" 2>/dev/null; printf 'received=%s\\n' \"$(cat \"$RESULT\" 2>/dev/null || true)\"; if [ \"$(cat \"$RESULT\" 2>/dev/null || true)\" = unix-ping ]; then printf 'unix_exchange=complete\\n'; else printf 'unix_exchange=incomplete\\n'; fi; server_pid=; rm -f \"$SOCK\" \"$READY\" \"$RESULT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "unix_file_type=socket, unix_socket_entry=yes, received=unix-ping, unix_exchange=complete, and cleanup=done. ss_unix_seen is normally yes but pathname display can be truncated by the host; the unique socket path is always removed.",
+    "systemsLens": "UNIX sockets use descriptor and queue machinery without IP routing. A local agent or supervisor can communicate through a filesystem rendezvous while remaining inside one host boundary.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 59,
+    "slug": "socket-is-a-file-descriptor",
+    "title": "Correlate a socket descriptor with procfs TCP records",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "advanced",
+    "tags": [
+      "sockets",
+      "tcp",
+      "file-descriptors",
+      "procfs"
+    ],
+    "prerequisites": [
+      56
+    ],
+    "overview": "Have the server publish its socket descriptor and socket inode shown by /proc/self/fd. From the parent, match that inode to /proc/net/tcp and match the descriptor back to the server PID.",
+    "syntaxBreakdown": "os.readlink resolves a descriptor link; socket.fileno returns its number; printf converts the port to hexadecimal; /proc/net/tcp stores hexadecimal local endpoints.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; META=$LAB/socket-fd-meta-$UID-$$; server_pid=; rm -f \"$META\"; trap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; rm -f \"$META\"' EXIT\nMETA=\"$META\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(1); fd=s.fileno(); link=os.readlink(\"/proc/self/fd/%d\"%fd); inode=link.split(\"[\")[-1].rstrip(\"]\"); open(os.environ[\"META\"],\"w\").write(\"fd=%d\\nport=%d\\nlink=%s\\ninode=%s\\n\"%(fd,s.getsockname()[1],link,inode)); time.sleep(4)' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$META\" ] && break; sleep .05; done; fd=$(awk -F= '$1==\"fd\"{print $2}' \"$META\"); port=$(awk -F= '$1==\"port\"{print $2}' \"$META\"); link=$(awk -F= '$1==\"link\"{print $2}' \"$META\"); inode=$(awk -F= '$1==\"inode\"{print $2}' \"$META\"); port_hex=$(printf '%04X' \"$port\"); proc_link=$(readlink \"/proc/$server_pid/fd/$fd\" 2>/dev/null || true); tcp_row=$(awk -v p=\":$port_hex\" '$2 ~ p {print; exit}' /proc/net/tcp 2>/dev/null || true)\nprintf 'socket_pid=%s\\nsocket_fd=%s\\nsocket_inode=%s\\nproc_fd_link=%s\\nproc_tcp_row_seen=%s\\n' \"$server_pid\" \"$fd\" \"$inode\" \"$proc_link\" \"$(test -n \"$tcp_row\" && echo yes || echo no)\"; if [ \"$proc_link\" = \"$link\" ] && [ -n \"$inode\" ] && [ -n \"$tcp_row\" ]; then printf 'descriptor_inode_correlation=observed\\n'; else printf 'descriptor_inode_correlation=partial\\n'; fi; kill \"$server_pid\" 2>/dev/null || true; wait \"$server_pid\" 2>/dev/null || true; server_pid=; rm -f \"$META\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "proc_fd_link matches socket:[inode], proc_tcp_row_seen=yes, and descriptor_inode_correlation=observed. Descriptor, inode, port, and PID values vary per run.",
+    "systemsLens": "Sockets enter the same per-process descriptor table as files and pipes. The inode-like handle in procfs is the join key between a task's open reference and the kernel's network table.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 14,
+    "revision": 1
+  },
+  {
+    "ordinal": 60,
+    "slug": "saturate-listen-backlog",
+    "title": "Turn a small listen backlog into bounded admission pressure",
+    "category": "sockets-and-basic-networking",
+    "difficulty": "advanced",
+    "tags": [
+      "sockets",
+      "tcp",
+      "troubleshooting"
+    ],
+    "prerequisites": [
+      57
+    ],
+    "overview": "Listen with backlog 1, delay accept, and launch at most eight loopback clients with short timeouts. The bounded burst makes queue pressure visible in ss without changing sysctls or contacting another interface.",
+    "syntaxBreakdown": "listen(1) sets a small admission queue; socket.settimeout bounds each client; ss -ltn exposes Recv-Q; wait joins exact PIDs; trap removes this run's files.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; PORT=$LAB/backlog-port-$UID-$RUN_ID; READY=$LAB/backlog-ready-$UID-$RUN_ID; RESULTS=$LAB/backlog-results-$UID-$RUN_ID; server_pid=; client_pids=; rm -f \"$PORT\" \"$READY\" \"$RESULTS\"-*\ntrap 'test -n \"$server_pid\" && kill \"$server_pid\" 2>/dev/null || true; test -n \"$server_pid\" && wait \"$server_pid\" 2>/dev/null || true; for p in $client_pids; do kill \"$p\" 2>/dev/null || true; wait \"$p\" 2>/dev/null || true; done; rm -f \"$PORT\" \"$READY\" \"$RESULTS\"-*' EXIT\nPORT=\"$PORT\" READY=\"$READY\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(1); open(os.environ[\"PORT\"],\"w\").write(str(s.getsockname()[1])); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\"); time.sleep(1.2); s.settimeout(.1)\nfor _ in range(8):\n try: c,_=s.accept(); c.close()\n except Exception: pass\ns.close()' &\nserver_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$PORT\" ] && break; sleep .05; done; port=$(cat \"$PORT\" 2>/dev/null || true); printf 'backlog_port=%s\\nlistener_before_clients=%s\\n' \"$port\" \"$(ss -ltn 2>/dev/null | grep -q -E \":$port([[:space:]]|$)\" && echo yes || echo no)\"\nfor n in 1 2 3 4 5 6 7 8; do RESULT=\"$RESULTS-$n\" python3 -u -c 'import os,socket,sys,time\ntry:\n s=socket.socket(); s.settimeout(.25); s.connect((\"127.0.0.1\",int(sys.argv[1]))); open(os.environ[\"RESULT\"],\"w\").write(\"admitted\\n\"); time.sleep(.2); s.close()\nexcept Exception: open(os.environ[\"RESULT\"],\"w\").write(\"timeout-or-refused\\n\")' \"$port\" & client_pids=\"$client_pids $!\"; done; sleep .2; queue=$(ss -ltn 2>/dev/null | awk -v p=\":$port\" '$0 ~ p {print $2; exit}'); if [ -z \"$queue\" ]; then queue=unavailable; fi; printf 'backlog_recvq_sample=%s\\n' \"$queue\"; for p in $client_pids; do wait \"$p\" 2>/dev/null || true; done; admitted=$(grep -h -c '^admitted' \"$RESULTS\"-* 2>/dev/null | awk '{s+=$1} END{print s+0}'); rejected=$(grep -h -c '^timeout-or-refused' \"$RESULTS\"-* 2>/dev/null | awk '{s+=$1} END{print s+0}'); printf 'clients_total=8\\nclients_admitted=%s\\nclients_timeout_or_refused=%s\\n' \"$admitted\" \"$rejected\"; if [ $((admitted + rejected)) -eq 8 ]; then printf 'bounded_backlog_probe=complete\\n'; else printf 'bounded_backlog_probe=incomplete\\n'; fi; wait \"$server_pid\" 2>/dev/null || true; server_pid=; rm -f \"$PORT\" \"$READY\" \"$RESULTS\"-*; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "clients_total=8 and clients_admitted plus clients_timeout_or_refused equals 8. listener_before_clients=yes and bounded_backlog_probe=complete are required; queue depth and the admitted/refused split vary by kernel.",
+    "systemsLens": "A listen backlog is an admission queue with finite capacity. Under a burst, the queue turns excess demand into waiting, timeout, or refusal—the same backpressure shape seen at service boundaries.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 16,
+    "revision": 1
+  },
+  {
+    "ordinal": 61,
+    "slug": "inspect-namespace-membership",
+    "title": "Compare namespace memberships of related processes",
+    "category": "namespaces-and-isolation",
+    "difficulty": "intermediate",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "procfs"
+    ],
+    "prerequisites": [
+      9
+    ],
+    "overview": "Compare namespace links of this shell and an exact child, then ask lsns for the same membership. Shared inode identities make namespace membership observable without changing host state.",
+    "syntaxBreakdown": "readlink /proc/PID/ns resolves namespace handles; stat -Lc extracts inode identities; lsns -p scopes the listing to one PID; wait bounds the child.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; READY=$LAB/ns-membership-ready-$UID-$$; child_pid=; rm -f \"$READY\"; trap 'test -n \"$child_pid\" && kill \"$child_pid\" 2>/dev/null || true; test -n \"$child_pid\" && wait \"$child_pid\" 2>/dev/null || true; rm -f \"$READY\"' EXIT\nREADY=\"$READY\" bash -c 'touch \"$READY\"; sleep 2' & child_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -e \"$READY\" ] && break; sleep .05; done; same_count=0\nfor ns in cgroup ipc mnt net pid time user uts; do parent_id=$(stat -Lc '%i' \"/proc/$$/ns/$ns\" 2>/dev/null || echo missing); child_id=$(stat -Lc '%i' \"/proc/$child_pid/ns/$ns\" 2>/dev/null || echo missing); printf 'namespace_%s_parent=%s child=%s\\n' \"$ns\" \"$parent_id\" \"$child_id\"; [ \"$parent_id\" = \"$child_id\" ] && same_count=$((same_count + 1)); done\nlsns_rows=$(lsns -p \"$child_pid\" -o NS,TYPE,PATH 2>/dev/null | tail -n +2 | sed '/^$/d' | wc -l); printf 'shared_namespace_types=%s\\nlsns_rows=%s\\n' \"$same_count\" \"$lsns_rows\"; if [ \"$same_count\" -ge 1 ]; then printf 'namespace_membership_observed=yes\\n'; else printf 'namespace_membership_observed=no\\n'; fi; wait \"$child_pid\" 2>/dev/null || true; child_pid=; rm -f \"$READY\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "At least one namespace_* parent and child identity matches, shared_namespace_types is at least 1, and namespace_membership_observed=yes. lsns_rows is host-dependent; no namespace is created or modified.",
+    "systemsLens": "A namespace is a kernel-selected view used by syscalls. Inode-like handles provide a join key for deciding whether tasks see the same processes, mounts, users, or interfaces.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 62,
+    "slug": "isolate-pid-namespace",
+    "title": "Virtualize process identity with a PID namespace",
+    "category": "namespaces-and-isolation",
+    "difficulty": "advanced",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "processes"
+    ],
+    "prerequisites": [
+      61
+    ],
+    "overview": "Ask unshare to create a private PID namespace and proc view, then compare inner PID 1 with the outer shell. If the disposable VM policy disallows it, record the bounded skip instead of weakening host isolation.",
+    "syntaxBreakdown": "unshare --pid --fork --mount-proc creates a child PID view; timeout bounds it; /proc/self/status supplies identity; the if branch labels policy denial.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; OUT=$LAB/pid-namespace-$UID-$$.out; trap 'rm -f \"$OUT\"' EXIT; outer_pid=$$; set +e; timeout 5s unshare --pid --fork --mount-proc bash -c 'printf \"inner_pid=%s\\n\" \"$$\"; printf \"inner_ns=%s\\n\" \"$(readlink /proc/self/ns/pid)\"; sleep .2' >\"$OUT\" 2>&1; status=$?; set -e; printf 'outer_pid=%s\\nunshare_status=%s\\n' \"$outer_pid\" \"$status\"\nif [ \"$status\" -eq 0 ] && grep -q '^inner_pid=1$' \"$OUT\"; then printf 'inner_pid=1\\npid_namespace_isolated=yes\\n'; else printf 'pid_namespace_isolated=skipped-host-policy\\nskip_reason=%s\\n' \"$(head -n 1 \"$OUT\" | cut -c1-120)\"; fi; rm -f \"$OUT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "On a permitted VM, unshare_status=0, inner_pid=1, and pid_namespace_isolated=yes while outer_pid differs. On a restricted host, pid_namespace_isolated=skipped-host-policy is valid and cleanup=done must appear.",
+    "systemsLens": "PID namespaces virtualize task identity and ancestry. A process can be PID 1 inside while having an unrelated outer PID, the basis for process isolation and container init behavior.",
+    "caution": "Run only on the dedicated disposable VM. The command is bounded and creates no persistent process; never replace it with a host-wide process kill.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 14,
+    "revision": 1
+  },
+  {
+    "ordinal": 63,
+    "slug": "isolate-mount-namespace",
+    "title": "Mount a private tmpfs visible only inside a namespace",
+    "category": "namespaces-and-isolation",
+    "difficulty": "advanced",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "mounts"
+    ],
+    "prerequisites": [
+      61
+    ],
+    "overview": "Create a private mount namespace, mount a one-megabyte tmpfs below the lab, and compare findmnt inside and outside. The inner shell unmounts in an EXIT trap, so no mount remains.",
+    "syntaxBreakdown": "unshare --mount makes a private VFS topology; mount -t tmpfs allocates bounded storage; findmnt -T resolves a filesystem; umount in a trap removes it.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; MOUNTPOINT=$LAB/ns-mount-$UID-$$; OUT=$LAB/ns-mount-result-$UID-$$; rm -rf \"$MOUNTPOINT\" \"$OUT\"; mkdir -p \"$MOUNTPOINT\"; trap 'rm -rf \"$MOUNTPOINT\" \"$OUT\"' EXIT; set +e\ntimeout 6s unshare --mount --fork bash -c \"mount -t tmpfs -o size=1M tmpfs '$MOUNTPOINT'; trap \\\"umount '$MOUNTPOINT' 2>/dev/null || true\\\" EXIT; printf 'inside_mount=%s\\\\n' \\\"\\$(findmnt -n -o FSTYPE -T '$MOUNTPOINT')\\\" > '$OUT'; umount '$MOUNTPOINT'\"; status=$?; set -e; inside=$(cat \"$OUT\" 2>/dev/null | cut -d= -f2); outside=$(findmnt -n -o FSTYPE -T \"$MOUNTPOINT\" 2>/dev/null || true); if [ -z \"$outside\" ]; then outside=none; fi; printf 'unshare_status=%s\\ninside_mount=%s\\noutside_mount_type=%s\\n' \"$status\" \"$inside\" \"$outside\"; if [ \"$status\" -eq 0 ] && [ \"$inside\" = tmpfs ] && [ \"$outside\" != tmpfs ]; then printf 'mount_namespace_isolated=yes\\n'; else printf 'mount_namespace_isolated=skipped-or-unexpected\\n'; fi; rm -rf \"$MOUNTPOINT\" \"$OUT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "On a permitted VM, unshare_status=0, inside_mount=tmpfs, outside_mount_type is not tmpfs, and mount_namespace_isolated=yes. Denial is recorded as skipped-or-unexpected; cleanup=done and an empty mountpoint are mandatory.",
+    "systemsLens": "Mount namespaces isolate the VFS topology consulted by path lookup. A mount can be usable to one process tree while absent from another, a core filesystem isolation primitive.",
+    "caution": "Privileged: run only in the disposable VM. The private tmpfs is size-bounded, mounted below LINUX_LAB, and explicitly unmounted before exit.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 16,
+    "revision": 1
+  },
+  {
+    "ordinal": 64,
+    "slug": "map-user-namespace",
+    "title": "Observe credential remapping in a user namespace",
+    "category": "namespaces-and-isolation",
+    "difficulty": "advanced",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "processes"
+    ],
+    "prerequisites": [
+      61
+    ],
+    "overview": "Use map-root-user mode to compare outer and inner UIDs and uid_map. The experiment demonstrates credential translation rather than changing the host account, with a clear skip if disabled.",
+    "syntaxBreakdown": "unshare --user --map-root-user creates a mapped root; id -u reports active credentials; /proc/self/uid_map shows mapping; timeout bounds the child.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; OUT=$LAB/user-namespace-$UID-$$.out; trap 'rm -f \"$OUT\"' EXIT; outer_uid=$(id -u); set +e; timeout 5s unshare --user --map-root-user bash -c 'printf \"inner_uid=%s\\n\" \"$(id -u)\"; printf \"uid_map=\"; tr \"\\\\n\" \";\" < /proc/self/uid_map' >\"$OUT\" 2>&1; status=$?; set -e; printf 'outer_uid=%s\\nunshare_status=%s\\n' \"$outer_uid\" \"$status\"; if [ \"$status\" -eq 0 ] && grep -q 'inner_uid=0' \"$OUT\"; then printf 'inner_uid=0\\nuid_map_seen=%s\\nuser_namespace_remapped=yes\\n' \"$(grep -o 'uid_map=.*' \"$OUT\" | head -n 1)\"; else printf 'user_namespace_remapped=skipped-host-policy\\nskip_reason=%s\\n' \"$(head -n 1 \"$OUT\" | cut -c1-120)\"; fi; rm -f \"$OUT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "On a VM allowing user namespaces, unshare_status=0, inner_uid=0, uid_map_seen contains a mapping beginning at outer_uid, and user_namespace_remapped=yes. A policy denial is a valid skipped-host-policy result; no host UID changes.",
+    "systemsLens": "User namespaces give a process a translated credential view. Namespace root is not automatically host root; capability checks use the mapped user namespace context.",
+    "caution": "Use only the disposable VM and retain the skip branch. Do not grant extra host capabilities or write outside the lab.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 13,
+    "revision": 1
+  },
+  {
+    "ordinal": 65,
+    "slug": "isolate-network-namespace",
+    "title": "Create a loopback-only network namespace",
+    "category": "namespaces-and-isolation",
+    "difficulty": "advanced",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "sockets"
+    ],
+    "prerequisites": [
+      61
+    ],
+    "overview": "Create a private network namespace without veth pairs or external traffic, bring up only loopback, and compare interface counts with the host. Teardown removes the view when the exact child exits.",
+    "syntaxBreakdown": "unshare --net --fork creates a private network view; ip -o link show inventories interfaces; ip link set lo up enables loopback; timeout bounds teardown.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; OUT=$LAB/net-namespace-$UID-$$.out; trap 'rm -f \"$OUT\"' EXIT; host_ifaces=$(ip -o link show 2>/dev/null | wc -l); set +e; timeout 5s unshare --net --fork bash -c 'ip link set lo up 2>/dev/null; printf \"inner_ifaces=%s\\n\" \"$(ip -o link show 2>/dev/null | wc -l)\"; printf \"inner_links=\"; ip -o link show 2>/dev/null | cut -d: -f2 | tr -d \" \" | tr \"\\n\" \",\"' >\"$OUT\" 2>&1; status=$?; set -e; printf 'host_ifaces=%s\\nunshare_status=%s\\n' \"$host_ifaces\" \"$status\"; if [ \"$status\" -eq 0 ] && grep -q '^inner_ifaces=' \"$OUT\"; then inner=$(awk -F= '$1==\"inner_ifaces\"{print $2}' \"$OUT\"); only_loopback=$(grep -q '^inner_links=lo,$' \"$OUT\" && echo yes || echo no); printf 'inner_ifaces=%s\\ninner_only_loopback=%s\\n' \"$inner\" \"$only_loopback\"; if [ \"$only_loopback\" = yes ]; then printf 'network_namespace_isolated=yes\\n'; else printf 'network_namespace_isolated=partial\\n'; fi; else printf 'network_namespace_isolated=skipped-host-policy\\nskip_reason=%s\\n' \"$(head -n 1 \"$OUT\" | cut -c1-120)\"; fi; rm -f \"$OUT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "On a permitted VM, network_namespace_isolated=yes, inner_only_loopback=yes, and inner_ifaces is no greater than host_ifaces. Denied unshare is skipped-host-policy; no veth, route, or external packet is created.",
+    "systemsLens": "Network namespaces isolate interfaces, routes, sockets, and port spaces. Keeping only loopback makes the boundary visible while preserving zero external traffic.",
+    "caution": "Run only in the disposable VM. This lesson avoids veth creation and external traffic; do not add either.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 66,
+    "slug": "enter-existing-namespace",
+    "title": "Enter an existing private mount namespace by exact PID",
+    "category": "namespaces-and-isolation",
+    "difficulty": "advanced",
+    "tags": [
+      "namespaces",
+      "isolation",
+      "mounts",
+      "troubleshooting"
+    ],
+    "prerequisites": [
+      63
+    ],
+    "overview": "Hold a private mount namespace with a uniquely recorded PID, use nsenter to inspect its tmpfs, and prove the host shell cannot see its private file. The holder has an EXIT trap that unmounts before exit.",
+    "syntaxBreakdown": "nsenter -t PID -m joins a target mount view; unshare --mount creates it; findmnt and test compare inside and outside; a readiness file and timeout bound the holder.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; MOUNTPOINT=$LAB/enter-mount-$UID-$RUN_ID; READY=$LAB/enter-ready-$UID-$RUN_ID; PIDFILE=$LAB/enter-pid-$UID-$RUN_ID; PRIVATE=$MOUNTPOINT/private-token; holder_pid=; target_pid=; rm -rf \"$MOUNTPOINT\" \"$READY\" \"$PIDFILE\"; mkdir -p \"$MOUNTPOINT\"; trap 'test -n \"$holder_pid\" && kill \"$holder_pid\" 2>/dev/null || true; test -n \"$holder_pid\" && wait \"$holder_pid\" 2>/dev/null || true; rm -rf \"$MOUNTPOINT\" \"$READY\" \"$PIDFILE\"' EXIT; set +e\ntimeout 6s unshare --mount --fork bash -c \"printf '%s' \\\"\\$\\$\\\" > '$PIDFILE'; mount -t tmpfs -o size=1M tmpfs '$MOUNTPOINT'; printf private-token > '$PRIVATE'; : > '$READY'; trap \\\"umount '$MOUNTPOINT' 2>/dev/null || true\\\" EXIT; sleep 4\" & holder_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do [ -e \"$READY\" ] && [ -s \"$PIDFILE\" ] && break; sleep .05; done; target_pid=$(cat \"$PIDFILE\" 2>/dev/null || true); if [ -e \"$READY\" ] && [ -n \"$target_pid\" ]; then private_fs=$(nsenter -t \"$target_pid\" -m -- findmnt -n -o FSTYPE -T \"$MOUNTPOINT\" 2>/dev/null || true); private_file=$(nsenter -t \"$target_pid\" -m -- test -f \"$PRIVATE\" && echo yes || echo no); host_file=$(test -f \"$PRIVATE\" && echo yes || echo no); printf 'holder_pid=%s\\ntarget_pid=%s\\nnsenter_mount_type=%s\\nprivate_file_inside=%s\\nprivate_file_outside=%s\\n' \"$holder_pid\" \"$target_pid\" \"$private_fs\" \"$private_file\" \"$host_file\"; if [ \"$private_fs\" = tmpfs ] && [ \"$private_file\" = yes ] && [ \"$host_file\" = no ]; then printf 'namespace_entry_observed=yes\\n'; else printf 'namespace_entry_observed=partial\\n'; fi; else printf 'namespace_entry_observed=skipped-host-policy\\n'; fi; kill \"$holder_pid\" 2>/dev/null || true; wait \"$holder_pid\" 2>/dev/null || true; holder_pid=; set -e; rm -rf \"$MOUNTPOINT\" \"$READY\" \"$PIDFILE\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "On a permitted VM, nsenter_mount_type=tmpfs, private_file_inside=yes, private_file_outside=no, and namespace_entry_observed=yes. Denied creation is skipped-host-policy; cleanup=done and no mountpoint remain.",
+    "systemsLens": "Namespace handles let diagnostics join another process's view. This is how an operator inspects an isolated service while retaining exact ownership and cleanup boundaries.",
+    "caution": "Privileged. The holder PID is recorded and killed exactly; tmpfs is one megabyte below LINUX_LAB and removed by both traps.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 17,
+    "revision": 1
+  },
+  {
+    "ordinal": 67,
+    "slug": "triage-cpu-saturation",
+    "title": "Triage bounded CPU saturation",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "scheduling",
+      "processes"
+    ],
+    "prerequisites": [
+      46,
+      47
+    ],
+    "overview": "Launch two exact, bounded CPU workers and correlate process CPU time, runnable counts, and load evidence before stopping them. The incident is local to this shell and lasts only long enough to make demand visible.",
+    "syntaxBreakdown": "ps -o pid,pcpu,time reports task consumption; /proc/loadavg supplies runnable/total counts; vmstat samples run-queue evidence; kill and wait stop only recorded workers.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; PIDS=$LAB/cpu-pids-$UID-$$; worker_pids=; rm -f \"$PIDS\"; trap 'for p in $worker_pids; do kill \"$p\" 2>/dev/null || true; wait \"$p\" 2>/dev/null || true; done; rm -f \"$PIDS\"' EXIT\nfor n in 1 2; do (while :; do :; done) & worker_pids=\"$worker_pids $!\"; printf '%s\\n' \"$!\" >> \"$PIDS\"; done; sleep .6; printf 'workers_started=2\\nworker_pids=%s\\n' \"$(tr '\\n' ' ' < \"$PIDS\")\"; ps -o pid=,pcpu=,time=,comm= -p $(tr '\\n' ',' < \"$PIDS\" | sed 's/,$//') 2>/dev/null | sed 's/^/ps_worker=/'; runnable=$(awk '{print $4}' /proc/loadavg | cut -d/ -f1); printf 'runnable_count=%s\\nloadavg_1m=%s\\n' \"$runnable\" \"$(awk '{print $1}' /proc/loadavg)\"; printf 'vmstat_sample=%s\\n' \"$(vmstat 1 2 2>/dev/null | tail -n 1 || true)\"; cpu_time_sample=$(ps -o time= -p $(head -n 1 \"$PIDS\") 2>/dev/null | tr -d ' '); printf 'cpu_time_sample=%s\\n' \"$cpu_time_sample\"; if [ -n \"$cpu_time_sample\" ] && [ -n \"$runnable\" ]; then printf 'cpu_saturation_evidence=correlated\\n'; else printf 'cpu_saturation_evidence=partial\\n'; fi; for p in $worker_pids; do kill \"$p\" 2>/dev/null || true; done; for p in $worker_pids; do wait \"$p\" 2>/dev/null || true; done; worker_pids=; printf 'workers_after_stop=%s\\n' \"$(for p in $(cat \"$PIDS\"); do test -d \"/proc/$p\" && echo surviving || true; done | wc -l)\"; rm -f \"$PIDS\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "workers_started=2, worker_pids lists two exact PIDs, ps_worker lines and runnable_count are present, and cpu_saturation_evidence=correlated. workers_after_stop=0 and cleanup=done prove recovery; load and CPU time vary.",
+    "systemsLens": "CPU incidents require correlating demand, per-task service time, and queueing. Identify owners before changing scheduling or capacity.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 16,
+    "revision": 1
+  },
+  {
+    "ordinal": 68,
+    "slug": "triage-memory-growth",
+    "title": "Triage bounded anonymous memory growth",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "virtual-memory",
+      "resource-limits"
+    ],
+    "prerequisites": [
+      39,
+      54
+    ],
+    "overview": "Grow one helper's anonymous memory to 64 MiB in page-touching steps, then compare free memory, pmap, procfs RSS, and the cgroup current counter. Bounded growth demonstrates how to localize ownership before remediation.",
+    "syntaxBreakdown": "Python bytearray and page writes allocate anonymous pages; free -b reports memory; pmap -x summarizes mappings; /proc/PID/status and memory.current expose process and cgroup views.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; READY=$LAB/memory-ready-$UID-$RUN_ID; STATUS=$LAB/memory-status-$UID-$RUN_ID; memory_pid=; rm -f \"$READY\" \"$STATUS\"; trap 'test -n \"$memory_pid\" && kill \"$memory_pid\" 2>/dev/null || true; test -n \"$memory_pid\" && wait \"$memory_pid\" 2>/dev/null || true; rm -f \"$READY\" \"$STATUS\"' EXIT\nREADY=\"$READY\" STATUS=\"$STATUS\" python3 -u -c 'import os,time\nbuf=[]; open(os.environ[\"READY\"],\"w\").write(\"ready\\n\")\nfor step in range(1,5):\n b=bytearray(16*1024*1024)\n for i in range(0,len(b),4096): b[i]=1\n buf.append(b); open(os.environ[\"STATUS\"],\"w\").write(\"allocated_mib=%d\\n\"%(step*16)); time.sleep(.12)\ntime.sleep(4)' & memory_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do [ -s \"$STATUS\" ] && grep -q 'allocated_mib=64' \"$STATUS\" && break; sleep .1; done; rss=$(awk '/VmRSS:/{print $2\" \"$3}' \"/proc/$memory_pid/status\" 2>/dev/null || true); vsz=$(awk '/VmSize:/{print $2\" \"$3}' \"/proc/$memory_pid/status\" 2>/dev/null || true); pmap_total=$(pmap -x \"$memory_pid\" 2>/dev/null | grep '^total' || true); printf 'memory_pid=%s\\nallocation=%s\\nproc_rss=%s\\nproc_vsz=%s\\nfree_available=%s\\npmap_total_seen=%s\\n' \"$memory_pid\" \"$(cat \"$STATUS\" 2>/dev/null || echo unavailable)\" \"$rss\" \"$vsz\" \"$(free -b | awk '/Mem:/{print $7}' 2>/dev/null || echo unavailable)\" \"$(test -n \"$pmap_total\" && echo yes || echo no)\"; cgroup_mount=$(findmnt -n -t cgroup2 -o TARGET 2>/dev/null | head -n 1); cgroup_rel=$(awk -F: '$1==\"0\"{print $3}' \"/proc/$memory_pid/cgroup\" 2>/dev/null); cgroup_current=$cgroup_mount$cgroup_rel/memory.current; if [ -r \"$cgroup_current\" ]; then printf 'cgroup_memory_current=%s\\n' \"$(cat \"$cgroup_current\")\"; else printf 'cgroup_memory_current=unavailable\\n'; fi; if grep -q 'allocated_mib=64' \"$STATUS\" && [ -n \"$rss\" ] && [ -n \"$vsz\" ]; then printf 'memory_growth_correlated=yes\\n'; else printf 'memory_growth_correlated=partial\\n'; fi; kill \"$memory_pid\" 2>/dev/null || true; wait \"$memory_pid\" 2>/dev/null || true; memory_pid=; rm -f \"$READY\" \"$STATUS\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "allocation=allocated_mib=64, proc_rss and proc_vsz are present, pmap_total_seen=yes on normal procfs, and memory_growth_correlated=yes. free and cgroup values vary; cleanup=done proves the helper stopped.",
+    "systemsLens": "Memory diagnosis needs multiple accounting layers: a process owns RSS and mappings, while host and cgroup account availability and charges. Correlation separates local growth from global pressure.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 17,
+    "revision": 1
+  },
+  {
+    "ordinal": 69,
+    "slug": "triage-fd-leak",
+    "title": "Triage a bounded file-descriptor leak",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "file-descriptors",
+      "procfs"
+    ],
+    "prerequisites": [
+      21,
+      49
+    ],
+    "overview": "Have one helper open 48 lab files and hold them, then compare the /proc descriptor count with lsof output. Exact PID and file naming expose ownership without approaching the host limit.",
+    "syntaxBreakdown": "Python open keeps descriptors live; find /proc/PID/fd counts them; lsof -p lists ownership; a bounded loop creates only 48 files and an exact-PID trap reaps the helper.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; PREFIX=$LAB/fd-leak-$UID-$RUN_ID; READY=$LAB/fd-leak-ready-$UID-$RUN_ID; COUNT=$LAB/fd-leak-count-$UID-$RUN_ID; leak_pid=; rm -f \"$READY\" \"$COUNT\"; trap 'test -n \"$leak_pid\" && kill \"$leak_pid\" 2>/dev/null || true; test -n \"$leak_pid\" && wait \"$leak_pid\" 2>/dev/null || true; for n in $(seq 1 48); do rm -f \"$PREFIX-$n\"; done; rm -f \"$READY\" \"$COUNT\"' EXIT\nPREFIX=\"$PREFIX\" READY=\"$READY\" COUNT=\"$COUNT\" python3 -u -c 'import os,time\nfiles=[]; open(os.environ[\"READY\"],\"w\").write(\"ready\\n\")\nfor n in range(1,49):\n f=open(os.environ[\"PREFIX\"]+\"-%d\"%n,\"w\"); f.write(\"fd-%d\\n\"%n); f.flush(); files.append(f)\nopen(os.environ[\"COUNT\"],\"w\").write(\"open_count=48\\n\"); time.sleep(4)' & leak_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$COUNT\" ] && break; sleep .05; done; proc_count=$(find \"/proc/$leak_pid/fd\" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l); lsof_count=$(lsof -nP -p \"$leak_pid\" 2>/dev/null | tail -n +2 | wc -l); printf 'leak_pid=%s\\ndeclared_open_count=%s\\nproc_fd_count=%s\\nlsof_fd_rows=%s\\n' \"$leak_pid\" \"$(cat \"$COUNT\" 2>/dev/null || echo unavailable)\" \"$proc_count\" \"$lsof_count\"; if [ \"$proc_count\" -ge 48 ] && [ \"$lsof_count\" -ge 48 ]; then printf 'fd_leak_correlated=yes\\n'; else printf 'fd_leak_correlated=partial\\n'; fi; kill \"$leak_pid\" 2>/dev/null || true; wait \"$leak_pid\" 2>/dev/null || true; leak_pid=; for n in $(seq 1 48); do rm -f \"$PREFIX-$n\"; done; rm -f \"$READY\" \"$COUNT\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "declared_open_count=open_count=48, proc_fd_count and lsof_fd_rows are at least 48, and fd_leak_correlated=yes. Standard descriptors add a small offset; no fd-leak files remain after cleanup=done.",
+    "systemsLens": "A descriptor leak is resource ownership with a measurable slope. Joining procfs cardinality to lsof path names identifies the leaking task before a per-process limit is reached.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 70,
+    "slug": "triage-deleted-file-space",
+    "title": "Reconcile hidden disk space held by a deleted file",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "filesystem",
+      "storage"
+    ],
+    "prerequisites": [
+      32,
+      30
+    ],
+    "overview": "Create a 16 MiB lab log, hold it open in a helper, unlink its pathname, and reconcile du with lsof +L1. Stopping the exact holder closes the invisible reference and makes the space reclaimable.",
+    "syntaxBreakdown": "dd creates bounded bytes; rm unlinks a directory entry; lsof +L1 finds open files with link count below one; df and du expose different accounting layers.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; FILE=$LAB/deleted-log-$UID-$RUN_ID.log; READY=$LAB/deleted-ready-$UID-$RUN_ID; holder_pid=; rm -f \"$FILE\" \"$READY\"; trap 'test -n \"$holder_pid\" && kill \"$holder_pid\" 2>/dev/null || true; test -n \"$holder_pid\" && wait \"$holder_pid\" 2>/dev/null || true; rm -f \"$FILE\" \"$READY\"' EXIT; dd if=/dev/zero of=\"$FILE\" bs=1M count=16 status=none; df_before=$(df -k \"$LAB\" | awk 'NR==2{print $4}'); du_before=$(du -sk \"$LAB\" | awk '{print $1}'); FILE=\"$FILE\" READY=\"$READY\" python3 -u -c 'import os,time\nf=open(os.environ[\"FILE\"],\"rb\"); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\"); time.sleep(4)' & holder_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -e \"$READY\" ] && break; sleep .05; done; rm \"$FILE\"; du_after=$(du -sk \"$LAB\" | awk '{print $1}'); deleted_line=$(lsof -nP +L1 2>/dev/null | grep -F \"$FILE\" | grep -F '(deleted)' || true); printf 'holder_pid=%s\\nallocated_kib_before=%s\\ndf_available_kib_before=%s\\ndu_visible_after_unlink_kib=%s\\ndeleted_open_seen=%s\\n' \"$holder_pid\" \"$((du_before - du_after))\" \"$df_before\" \"$du_after\" \"$(test -n \"$deleted_line\" && echo yes || echo no)\"; if [ -n \"$deleted_line\" ]; then printf 'hidden_space_incident=observed\\n'; else printf 'hidden_space_incident=partial\\n'; fi; kill \"$holder_pid\" 2>/dev/null || true; wait \"$holder_pid\" 2>/dev/null || true; holder_pid=; rm -f \"$FILE\" \"$READY\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "allocated_kib_before is positive, du_visible_after_unlink_kib omits the open file, deleted_open_seen=yes on a normal host, and hidden_space_incident=observed. Free-space deltas vary; cleanup=done follows exact holder termination.",
+    "systemsLens": "Unlink removes a name, not an open file description. Disk tools walk different namespaces—directory trees versus blocks held by live descriptors—so cross-layer evidence is needed during log rotation incidents.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 16,
+    "revision": 1
+  },
+  {
+    "ordinal": 71,
+    "slug": "triage-port-collision",
+    "title": "Diagnose and clear a loopback port collision",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "sockets",
+      "tcp"
+    ],
+    "prerequisites": [
+      56
+    ],
+    "overview": "Occupy an ephemeral loopback port, capture the second bind's EADDRINUSE, map the owner with ss and lsof, then stop that exact owner and prove rebind. No other interface is contacted.",
+    "syntaxBreakdown": "socket.bind reserves a port; errno EADDRINUSE identifies collision; ss and lsof map endpoint ownership; a second bind after exact cleanup proves remediation.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; META=$LAB/collision-meta-$UID-$RUN_ID; owner_pid=; rm -f \"$META\"; trap 'test -n \"$owner_pid\" && kill \"$owner_pid\" 2>/dev/null || true; test -n \"$owner_pid\" && wait \"$owner_pid\" 2>/dev/null || true; rm -f \"$META\"' EXIT; META=\"$META\" python3 -u -c 'import os,socket,time\ns=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(1); open(os.environ[\"META\"],\"w\").write(str(s.getsockname()[1])); time.sleep(4)' & owner_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10; do [ -s \"$META\" ] && break; sleep .05; done; port=$(cat \"$META\" 2>/dev/null || true); set +e; collision=$(python3 -c 'import socket,sys\ns=socket.socket()\ntry: s.bind((\"127.0.0.1\",int(sys.argv[1]))); print(\"unexpected-bind\")\nexcept OSError as e: print(\"error=\"+str(e.errno)); print(\"text=\"+str(e))\nfinally: s.close()' \"$port\" 2>&1); set -e; printf 'collision_port=%s\\nsecond_bind_result=%s\\neaddrinuse_seen=%s\\n' \"$port\" \"$(printf '%s\\n' \"$collision\" | head -n 1)\" \"$(printf '%s\\n' \"$collision\" | grep -q 'error=98\\|Address already in use' && echo yes || echo no)\"; ss_owner=$(ss -ltnp 2>/dev/null | grep -E \":$port([[:space:]]|$)\" || true); lsof_owner=$(lsof -nP -a -p \"$owner_pid\" -iTCP:\"$port\" -sTCP:LISTEN 2>/dev/null | tail -n +2 || true); printf 'ss_owner_seen=%s\\nlsof_owner_seen=%s\\n' \"$(test -n \"$ss_owner\" && echo yes || echo no)\" \"$(test -n \"$lsof_owner\" && echo yes || echo no)\"; kill \"$owner_pid\" 2>/dev/null || true; wait \"$owner_pid\" 2>/dev/null || true; owner_pid=; rebind=$(python3 -c 'import socket,sys\ns=socket.socket(); s.bind((\"127.0.0.1\",int(sys.argv[1]))); print(\"rebind=success\"); s.close()' \"$port\" 2>&1 || true); printf '%s\\n' \"$rebind\"; if printf '%s\\n' \"$collision\" | grep -q 'error=98\\|Address already in use' && printf '%s\\n' \"$rebind\" | grep -q 'rebind=success'; then printf 'port_collision_remediated=yes\\n'; else printf 'port_collision_remediated=partial\\n'; fi; rm -f \"$META\"; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "second_bind_result reports error=98 or Address already in use, eaddrinuse_seen=yes, rebind=success after the exact owner stops, and port_collision_remediated=yes. ss_owner_seen should be yes; lsof permissions vary.",
+    "systemsLens": "A resource error becomes actionable when identity maps to an owner. Port collision response follows the same observe, join, remediate, and verify pattern as leaked files or mounts.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 72,
+    "slug": "capstone-service-outage",
+    "title": "Diagnose and recover a multi-symptom lab service",
+    "category": "troubleshooting-capstones",
+    "difficulty": "advanced",
+    "tags": [
+      "troubleshooting",
+      "sockets",
+      "file-descriptors",
+      "processes",
+      "filesystem"
+    ],
+    "prerequisites": [
+      67,
+      68,
+      69,
+      70,
+      71
+    ],
+    "overview": "Start one bounded lab service that burns CPU, holds growing file descriptors, keeps a deleted log open, and listens on loopback. Correlate each symptom to the exact PID, send SIGTERM, and verify every resource is clean.",
+    "syntaxBreakdown": "ps identifies CPU ownership; ss maps the listener; find /proc/PID/fd and lsof expose descriptors and deleted files; kill -TERM requests graceful shutdown; wait and post-checks verify recovery.",
+    "code": "LAB=$LINUX_LAB; if [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p \"$LAB\"; RUN_ID=$$; META=$LAB/capstone-meta-$UID-$RUN_ID; LOG=$LAB/capstone-log-$UID-$RUN_ID.log; READY=$LAB/capstone-ready-$UID-$RUN_ID; service_pid=; rm -f \"$META\" \"$LOG\" \"$READY\"; trap 'test -n \"$service_pid\" && kill \"$service_pid\" 2>/dev/null || true; test -n \"$service_pid\" && wait \"$service_pid\" 2>/dev/null || true; rm -f \"$META\" \"$LOG\" \"$READY\" \"$LAB\"/capstone-fd-$UID-$RUN_ID-*' EXIT\nMETA=\"$META\" LOG=\"$LOG\" READY=\"$READY\" LAB=\"$LAB\" RUN_ID=\"$RUN_ID\" python3 -u -c 'import os,socket,signal,time,threading\nstop=[False]\ndef halt(_sig,_frame): stop[0]=True\nsignal.signal(signal.SIGTERM,halt); handles=[]\nfor n in range(1,13): handles.append(open(os.path.join(os.environ[\"LAB\"],\"capstone-fd-%s-%s-%d\"%(os.getuid(),os.environ[\"RUN_ID\"],n)),\"w\"))\nlog=open(os.environ[\"LOG\"],\"w\"); log.write(\"service-log\\n\"); log.flush(); os.unlink(os.environ[\"LOG\"]); s=socket.socket(); s.bind((\"127.0.0.1\",0)); s.listen(2); s.settimeout(.1); open(os.environ[\"META\"],\"w\").write(\"port=%d\\nfd=%d\\n\"%(s.getsockname()[1],s.fileno())); open(os.environ[\"READY\"],\"w\").write(\"ready\\n\")\ndef burn():\n x=0\n while not stop[0]: x=(x+1)%1000003\nt=threading.Thread(target=burn); t.start()\ntry:\n while not stop[0]:\n  try: c,_=s.accept(); c.close()\n  except socket.timeout: pass\nfinally:\n stop[0]=True; t.join(timeout=1); s.close(); log.close()\n for f in handles: f.close()\n for f in handles:\n  try: os.unlink(f.name)\n  except FileNotFoundError: pass' & service_pid=$!; for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do [ -e \"$READY\" ] && break; sleep .1; done; port=$(awk -F= '$1==\"port\"{print $2}' \"$META\" 2>/dev/null || true); printf 'service_pid=%s\\ncheck_cpu_owner=%s\\ncheck_listening_socket=%s\\n' \"$service_pid\" \"$(ps -o pid=,pcpu=,comm= -p \"$service_pid\" 2>/dev/null | sed 's/^/ps=/')\" \"$(ss -ltnp 2>/dev/null | grep -E \":$port([[:space:]]|$)\" | head -n 1 || echo absent)\"; fd_count=$(find \"/proc/$service_pid/fd\" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l); deleted=$(lsof -nP +L1 -p \"$service_pid\" 2>/dev/null | grep -F '(deleted)' || true); printf 'check_fd_count=%s\\ncheck_deleted_log=%s\\ncheck_lsof_rows=%s\\n' \"$fd_count\" \"$(test -n \"$deleted\" && echo yes || echo no)\" \"$(lsof -nP -p \"$service_pid\" 2>/dev/null | tail -n +2 | wc -l)\"; if [ -n \"$port\" ] && [ \"$fd_count\" -ge 12 ] && [ -n \"$deleted\" ]; then printf 'incident_checklist=all-symptoms-found\\n'; else printf 'incident_checklist=partial\\n'; fi; kill -TERM \"$service_pid\" 2>/dev/null || true; wait \"$service_pid\" 2>/dev/null; service_status=$?; printf 'graceful_exit_status=%s\\n' \"$service_status\"; service_pid=; remaining_files=$(find \"$LAB\" -maxdepth 1 -name \"capstone-fd-$UID-$RUN_ID-*\" -type f 2>/dev/null | wc -l); remaining_socket=$(ss -ltn 2>/dev/null | grep -E \":$port([[:space:]]|$)\" || true); printf 'remaining_service_files=%s\\nremaining_listener=%s\\n' \"$remaining_files\" \"$(test -n \"$remaining_socket\" && echo yes || echo no)\"; if [ \"$remaining_files\" -eq 0 ] && [ -z \"$remaining_socket\" ] && [ \"$service_status\" -eq 0 ]; then printf 'service_recovered=clean\\n'; else printf 'service_recovered=partial\\n'; fi; rm -f \"$META\" \"$LOG\" \"$READY\" \"$LAB\"/capstone-fd-$UID-$RUN_ID-*; trap - EXIT; printf 'cleanup=done\\n'",
+    "expectedResult": "The checklist prints a service PID, a CPU owner, a loopback listener, fd_count at least 12, check_deleted_log=yes, and incident_checklist=all-symptoms-found. After SIGTERM, graceful_exit_status=0, remaining_service_files=0, remaining_listener=no, service_recovered=clean, and cleanup=done.",
+    "systemsLens": "Incident response correlates scheduling demand, descriptor ownership, filesystem link counts, and socket endpoints through one task identity. Recovery is incomplete until every observed resource is released.",
+    "caution": "The service uses only loopback, 12 tiny lab files, and one deleted log. Its CPU thread and descriptors stop via exact SIGTERM and an EXIT trap; never generalize cleanup to unrelated PIDs.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 22,
     "revision": 1
   }
 ]

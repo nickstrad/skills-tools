@@ -1,7 +1,7 @@
 import { code, type Module } from "../../../src/types.ts";
 
 export const MOUNTS: Module = {
-  category: "mounts-and-storage",
+  category: "mounts-and-storage-paths",
   title: "Relate pathname mounts to allocation and reclamation",
   lessons: [
     {
