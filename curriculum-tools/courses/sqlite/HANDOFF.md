@@ -29,6 +29,17 @@ and a scoped git commit that includes this handoff file.
     process remained alive for 30.19 seconds;
   - after the fix the same real lesson exits in 0.33 seconds;
   - `deno check tools/validate.ts` and all 9 `deno task test` tests pass.
+- Modules 04-06 (17 lessons: concurrency, WAL, backup/recovery) completed their author correction
+  and independent review passes:
+  - all safe lessons passed the harness against fresh databases, including deferred/immediate lock
+    races, busy timeouts, compare-and-swap, idempotency, WAL snapshots, checkpoint starvation,
+    online backup, `VACUUM INTO`, foreign-key/integrity triage, and recovery;
+  - dangerous live-copy lesson 30 proved the main-file-only copy remained at one committed row
+    while the WAL-backed source reached two rows;
+  - damaged-copy lesson 34 now records the advertised-but-unavailable `.recover` capability
+    (`sqlite_dbpage` is missing), falls back to partial `.dump` salvage, and validates both the
+    recovered copy and unchanged source;
+  - final `deno fmt --check`, `deno check`, and `git diff --check` pass on the three module files.
 
 ## In progress
 
@@ -36,9 +47,8 @@ and a scoped git commit that includes this handoff file.
 - Modules 01-03 are in runtime correction after validation found SQLite has no `.close` command; the
   lesson must switch to `:memory:` before inspecting the closed file. Safe lessons 2-13 otherwise
   produced the planned page, B-tree, overflow, freelist, journal, and isolation evidence.
-- Modules 04-06 passed all safe harness runs. Their final correction is capability-aware recovery:
-  this SQLite build advertises `.recover` but reports `no such table: sqlite_dbpage`; the lesson now
-  records that fact and falls back to partial `.dump` salvage. Dangerous rerun is pending.
+- Modules 04-06 are ready for their scoped checkpoint commit; its hash should be added here in the
+  next handoff update.
 - Modules 07-09 are in correction after independent review found the WAL incident did not actually
   grow the WAL and the offline capstone did not yet prove two-replica convergence.
 - Nine-file module topology and `curriculum/mod.ts` registration exist in the working tree but are
