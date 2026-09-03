@@ -1258,6 +1258,188 @@
   },
   {
     "ordinal": 46,
+    "slug": "checkpoint-anatomy",
+    "title": "What a checkpoint actually does",
+    "category": "checkpointing",
+    "difficulty": "intermediate",
+    "tags": [
+      "checkpoints",
+      "wal",
+      "buffer-cache",
+      "durability"
+    ],
+    "prerequisites": [
+      10,
+      39
+    ],
+    "overview": "The previous module ended on an uncomfortable fact: after a crash, the server replays every WAL\nrecord written since the last checkpoint's redo point, and that distance is your recovery time. A\ncheckpoint is the operation that resets that distance to zero. It writes every dirty buffer in\nshared memory out to the data files, fsyncs them, and then records in pg_control \"everything\nbefore this LSN is already on disk in the heap; replay may start here\".\n\nIn this lesson you dirty a few thousand buffers, watch the gap between the redo point and the\ncurrent LSN open up, run CHECKPOINT by hand, and watch the gap slam shut. Then you read the\nserver's own accounting of the work: the pg_stat_bgwriter counters and the \"checkpoint complete:\nwrote N buffers\" line in the log, which is the single most useful line in a PostgreSQL log file\nwhen you are trying to explain an I/O spike.",
+    "syntaxBreakdown": "CHECKPOINT is a SQL command (superuser or the pg_checkpoint role) that forces an immediate\ncheckpoint and does not return until it has finished. pg_control_checkpoint() reads the control\nfile: checkpoint_lsn is where the last checkpoint record sits, redo_lsn is the redo point where\nreplay would start, and checkpoint_time is when it happened. pg_wal_lsn_diff(a, b) turns two LSNs\ninto a byte count, so pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn) is literally \"how much WAL\nwould I have to replay if the machine lost power right now\". pg_buffercache (from the extension)\nhas one row per shared buffer with isdirty, relfilenode and usagecount. pg_stat_bgwriter counts\ncheckpoints_timed (triggered by checkpoint_timeout), checkpoints_req (triggered by max_wal_size or\nby a CHECKPOINT command), buffers_checkpoint (pages the checkpointer wrote), buffers_clean (pages\nthe background writer wrote) and buffers_backend (pages an ordinary backend had to write itself,\nbecause it wanted a buffer and every candidate was dirty). In PostgreSQL 16 these all live in\npg_stat_bgwriter; PostgreSQL 17 splits the checkpoint columns out into a separate\npg_stat_checkpointer view. log_checkpoints is on in this lab, so every checkpoint prints a\nstarting and a complete line; the query below reads the tail of the log with pg_read_file(), whose\nrelative paths resolve inside the data directory, so you never have to leave psql.",
+    "setup": "drop table if exists ckpt_anatomy;\ncreate table ckpt_anatomy(id int primary key, pad text);",
+    "code": "-- Start from a clean slate so the numbers below are only about this experiment.\ncheckpoint;\n\nselect checkpoint_lsn, redo_lsn, checkpoint_time,\n       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn)) as wal_to_replay\nfrom pg_control_checkpoint();\n\nselect checkpoints_timed, checkpoints_req, buffers_checkpoint, buffers_clean, buffers_backend,\n       (checkpoint_write_time/1000.0)::numeric(10,2) as write_s,\n       (checkpoint_sync_time/1000.0)::numeric(10,2) as sync_s\nfrom pg_stat_bgwriter;\n\n-- Dirty a few thousand buffers. Nothing here touches the table's data file: the\n-- rows are in shared buffers, the changes are in WAL, and that is all.\ninsert into ckpt_anatomy select g, repeat('p', 200) from generate_series(1, 100000) g;\n\nselect count(*) filter (where isdirty) as dirty_buffers,\n       count(*) filter (where isdirty\n             and relfilenode = pg_relation_filenode('ckpt_anatomy')) as dirty_for_our_table,\n       (select setting::int from pg_settings where name = 'shared_buffers') as total_buffers\nfrom pg_buffercache where relfilenode is not null;\n\n-- The redo point has not moved, so the recovery bill has been growing.\nselect redo_lsn, pg_current_wal_lsn() as now_lsn,\n       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn)) as wal_to_replay\nfrom pg_control_checkpoint();\n\n-- Pay it.\ncheckpoint;\n\nselect checkpoint_lsn, redo_lsn, checkpoint_time,\n       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn)) as wal_to_replay\nfrom pg_control_checkpoint();\n\nselect count(*) filter (where isdirty) as dirty_buffers_after\nfrom pg_buffercache where relfilenode is not null;\n\nselect checkpoints_timed, checkpoints_req, buffers_checkpoint, buffers_clean, buffers_backend,\n       (checkpoint_write_time/1000.0)::numeric(10,2) as write_s,\n       (checkpoint_sync_time/1000.0)::numeric(10,2) as sync_s\nfrom pg_stat_bgwriter;\n\n-- The server's own account of what it just did: the last 20 KB of the log file.\nselect l from regexp_split_to_table(\n         pg_read_file('log/postgresql.log',\n                      greatest((pg_stat_file('log/postgresql.log')).size - 20000, 0), 20000),\n         chr(10)) with ordinality as t(l, n)\nwhere l like '%LOG:  checkpoint%'\norder by n desc limit 2;",
+    "expectedResult": "After the first CHECKPOINT the redo point is right at the end of the log, so wal_to_replay is\n176 bytes -- the size of the checkpoint record itself:\n\n  checkpoint_lsn |  redo_lsn  |    checkpoint_time     | wal_to_replay\n  0/A50390F8     | 0/A50390C0 | 2026-09-03 01:49:22+00 | 176 bytes\n\nThe counters start wherever your lab left them; only the deltas matter. In this run:\n\n  checkpoints_timed | checkpoints_req | buffers_checkpoint | buffers_clean | buffers_backend\n                  2 |               5 |               8670 |             0 |            8398\n\ncheckpoints_req dwarfs checkpoints_timed because almost nothing in this lab is ever idle for a\nwhole checkpoint_timeout (5 minutes); nearly every checkpoint so far was requested by a CHECKPOINT\ncommand or forced by WAL volume. buffers_clean is 0: the background writer has had nothing to do,\nbecause the checkpointer and the backends have been doing all the writing.\n\nThe INSERT of 100k rows leaves about 3200 buffers dirty, almost all of them ours:\n\n  dirty_buffers | dirty_for_our_table | total_buffers\n           3226 |                2943 |         16384\n\n(total_buffers is shared_buffers in 8 kB units: 128 MB = 16384 buffers.) The redo point has not\nbudged, so the recovery bill is now:\n\n  redo_lsn   |  now_lsn   | wal_to_replay\n  0/A50390C0 | 0/A6FD7370 | 32 MB\n\nThat is the number that matters: if the machine lost power at this instant, startup would have to\nreplay 32 MB of WAL before accepting connections. The second CHECKPOINT resets it to 176 bytes,\ndrops dirty_buffers_after to 0, and moves checkpoints_req 5 -> 6 with buffers_checkpoint\n8670 -> 11896, a delta of 3226 -- exactly the dirty buffers you counted a moment earlier.\n\nThe log lines say the same thing in the server's own words:\n\n  LOG:  checkpoint starting: immediate force wait\n  LOG:  checkpoint complete: wrote 3228 buffers (19.7%); 0 WAL file(s) added, 0 removed,\n        1 recycled; write=0.071 s, sync=0.010 s, total=0.094 s; sync files=10, longest=0.004 s,\n        average=0.001 s; distance=32376 kB, estimate=36098 kB; lsn=0/A6FD73A8, redo lsn=0/A6FD7370\n\nRead that line field by field, because you will read it again during an incident. \"3228 buffers\n(19.7%)\" is how much of shared_buffers was dirty (two more than pg_buffercache reported, because\nthe query itself ran a moment earlier). \"distance=32376 kB\" is the WAL written since the previous\ncheckpoint -- the same 32 MB the LSN arithmetic gave you. \"estimate=36098 kB\" is the\nserver's smoothed prediction of the next distance, which is what it uses to pace a non-immediate\ncheckpoint. \"sync files=8, longest=0.020 s\" is the fsync phase, the part that hurts on a busy\nsystem. \"immediate force wait\" is the reason code: immediate = do not pace it, force = write one\neven if nothing changed, wait = the caller is blocked until it finishes. A timed checkpoint says\n\"checkpoint starting: time\" instead, and a WAL-pressure one says \"checkpoint starting: wal\", which\nis the next lesson but one.\n\nYour absolute numbers will differ. What must hold: wal_to_replay grows during the INSERT and\ncollapses after CHECKPOINT, dirty_buffers_after is 0, and the buffers_checkpoint delta equals the\ndirty buffer count.",
+    "systemsLens": "A checkpoint is a fuzzy, non-blocking snapshot of a cache, and every system with a log and a cache\nneeds one. The log alone is enough for correctness -- redo can rebuild any page -- but replay time\ngrows without bound, so you periodically flush the cache and write down \"you may forget everything\nbefore here\". Redis calls it a BGSAVE plus an AOF rewrite, RocksDB calls it a memtable flush plus\na manifest update, Kafka calls it advancing the log start offset, Raft implementations call it a\nsnapshot plus log truncation. Same shape: the log bounds durability, the checkpoint bounds\nrecovery, and truncating the log is only safe up to the checkpoint.\n\nThe trade-off is a real one, and it is a latency-versus-recovery-time dial. Frequent checkpoints\nkeep recovery short but turn one logical page change into many physical writes (a page dirtied ten\ntimes between checkpoints costs one write; dirtied once per checkpoint it costs ten) and, worse,\nthey re-arm full-page writes: the first change to a page after a checkpoint puts the whole 8 kB\ninto the WAL. Rare checkpoints amortise those writes but leave a long replay and a big pile of\ndirty buffers that has to be flushed eventually anyway, usually in a burst. You are choosing where\nto spend I/O, not whether to spend it.\n\nNotice also what a checkpoint is not: it is not a consistent point-in-time snapshot of the\ndatabase. Ordinary transactions keep committing while the checkpointer walks the buffer pool, so\nthe data files after a checkpoint are a smear of states. It is the redo point plus the WAL after\nit that makes them meaningful again. That is exactly why a base backup, three lessons from now,\nhas to ship both.",
+    "challenge": "Run the INSERT again and watch pg_stat_bgwriter.buffers_backend before and after. If it moves, an\nordinary backend had to write out a dirty page itself because it could not find a clean buffer to\nreuse -- checkpoint work landing on the latency path of a user query. Then try to make it move a\nlot: insert 500k rows and see whether buffers_backend or buffers_checkpoint absorbs more of the\nwrites, and why 128 MB of shared_buffers is the reason.",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 47,
+    "slug": "redo-point-bounds-recovery",
+    "title": "Crash twice: the redo point is your RTO",
+    "category": "checkpointing",
+    "difficulty": "advanced",
+    "tags": [
+      "checkpoints",
+      "recovery",
+      "wal",
+      "durability"
+    ],
+    "prerequisites": [
+      46,
+      43
+    ],
+    "overview": "The last lesson claimed that the distance from the redo point to the end of the log is your\nrecovery time. This lesson proves it by running the same crash twice with exactly one difference.\n\nRound one: write 38 MB of WAL after a checkpoint, then kill the server with SIGQUIT. Round two:\nwrite another 38 MB, run CHECKPOINT, then kill it the same way. Both crashes lose the same\nprocesses, both leave the cluster marked \"in production\", and both recover every committed row.\nThe only thing that changes is how far \"redo starts at\" is from \"redo done at\", and how long the\nserver takes to get between them -- 38 MB and 0.31 s versus 56 bytes and 0.00 s.",
+    "syntaxBreakdown": "pg_ctl -D DIR stop -m immediate sends SIGQUIT to every process: no shutdown checkpoint is written\nand dirty buffers are simply abandoned. pg_controldata -D DIR prints the control file without a\nrunning server; \"Database cluster state: in production\" on a stopped cluster is the marker of an\nunclean shutdown, and \"Latest checkpoint's REDO location\" is where replay will begin. On restart\nthe log prints \"database system was not properly shut down; automatic recovery in progress\",\n\"redo starts at LSN\", and \"redo done at LSN system usage: ... elapsed: N s\". The distance between\nthose two LSNs is pg_wal_lsn_diff of the two numbers, and the elapsed time is your RTO. Recovery\nfinishes with an end-of-recovery checkpoint, which is why the redo point is fresh again\nafterwards, and pg_stat_bgwriter's counters are reset by a crash, because the statistics file is\nnot crash-safe.",
+    "setup": "drop table if exists ckpt_redo;\ncreate table ckpt_redo(id int primary key, pad text);",
+    "code": "-- ROUND 1: crash with a stale redo point.\n-- Fix the redo point, then write a lot of WAL and do NOT checkpoint.\ncheckpoint;\nselect redo_lsn as redo_point_before_writes from pg_control_checkpoint();\n\ninsert into ckpt_redo select g, repeat('r', 200) from generate_series(1, 120000) g;\nselect count(*) as committed_rows from ckpt_redo;\n\nselect redo_lsn, pg_current_wal_lsn() as now_lsn,\n       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn)) as wal_to_replay\nfrom pg_control_checkpoint();\nselect count(*) filter (where isdirty) as dirty_buffers\nfrom pg_buffercache where relfilenode is not null;\n\n-- ==========================================================================\n-- SHELL, as the postgres OS user, in another terminal. Run these by hand: no\n-- lesson runner can follow the server across a restart. The redo location\n-- pg_controldata prints must equal redo_point_before_writes above.\n--\n--   export PATH=/usr/lib/postgresql/16/bin:$PATH\n--   PGLAB=$HOME/pglab\n--\n--   pg_ctl -D \"$PGLAB/primary\" stop -m immediate\n--   pg_controldata -D \"$PGLAB/primary\" | grep -E 'cluster state|REDO location'\n--   time pg_ctl -D \"$PGLAB/primary\" -l \"$PGLAB/primary.log\" start -w\n--   grep -E 'not properly|redo (starts|done)' \"$PGLAB/primary/log/postgresql.log\" | tail -3\n--\n-- ==========================================================================\n\n-- ROUND 2: the same crash, but checkpoint first. Reconnect (the old connection\n-- died with the server) and repeat, this time ending with CHECKPOINT so the\n-- redo point sits at the end of the log.\nselect count(*) as rows_after_crash_1 from ckpt_redo;\n\ninsert into ckpt_redo select g, repeat('r', 200) from generate_series(120001, 240000) g;\ncheckpoint;\n\nselect redo_lsn, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn)) as wal_to_replay\nfrom pg_control_checkpoint();\n\n-- ==========================================================================\n-- SHELL again, byte for byte the same commands:\n--\n--   pg_ctl -D \"$PGLAB/primary\" stop -m immediate\n--   time pg_ctl -D \"$PGLAB/primary\" -l \"$PGLAB/primary.log\" start -w\n--   grep -E 'not properly|redo (starts|done)' \"$PGLAB/primary/log/postgresql.log\" | tail -3\n--\n-- ==========================================================================\n\n-- Reconnect once more. Both crashes were fully durable.\nselect count(*) as rows_after_crash_2 from ckpt_redo;\nselect timeline_id, redo_lsn from pg_control_checkpoint();",
+    "expectedResult": "ROUND 1. After the CHECKPOINT the redo point is 0/95CE81D0. The INSERT of 120k rows moves the\ncurrent LSN to 0/982D0FF0 and leaves 3864 buffers dirty:\n\n  redo_lsn   |  now_lsn   | wal_to_replay\n  0/95CE81D0 | 0/982D0FF0 | 38 MB\n\npg_controldata on the stopped cluster confirms both the unclean shutdown and the redo point:\n\n  Database cluster state:               in production\n  Latest checkpoint's REDO location:    0/95CE81D0\n\nand the restart takes about a second of wall clock, of which 0.31 s is replay:\n\n  LOG:  database system was not properly shut down; automatic recovery in progress\n  LOG:  redo starts at 0/95CE81D0\n  LOG:  redo done at 0/982D0FC0 system usage: CPU: user: 0.26 s, system: 0.04 s, elapsed: 0.31 s\n\n\"redo starts at 0/95CE81D0\" is the redo point, to the byte. \"redo done at 0/982D0FC0\" is the last\ncomplete record in the log, 48 bytes short of the 0/982D0FF0 your session reported, because that\nfinal record was still in a memory buffer when the process died. 38 MB replayed, 0.31 s.\n\nROUND 2. The same 120k-row INSERT, then CHECKPOINT, and the redo point has caught up:\n\n  redo_lsn   | wal_to_replay\n  0/9C41DB80 | 176 bytes\n\nThe identical crash now produces:\n\n  LOG:  database system was not properly shut down; automatic recovery in progress\n  LOG:  redo starts at 0/9C41DB80\n  LOG:  redo done at 0/9C41DBB8 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s\n\n0/9C41DBB8 - 0/9C41DB80 = 0x38 = 56 bytes replayed, in 0.00 s. Two orders of magnitude of WAL and\na measurable startup delay, gone, because a checkpoint had already pushed those pages to disk.\n\nCorrectness is identical in both rounds: rows_after_crash_1 is 120000 and rows_after_crash_2 is\n240000. Nothing committed was ever at risk -- the log guaranteed that. The checkpoint bought time,\nnot safety. Afterwards timeline_id is still 1: a crash recovery stays on the same timeline, unlike\nthe point-in-time recovery three lessons from now.",
+    "systemsLens": "This is the cleanest possible separation of two properties people constantly conflate. Durability\ncomes from the log and from fsync at commit: both rounds lost zero committed rows. Availability\nafter a failure -- RTO -- comes from the checkpoint, and it is proportional to unflushed log, not\nto database size. A 10 TB database that checkpointed a second ago recovers instantly; a 10 GB\ndatabase with a twenty-minute-old redo point and a heavy write rate does not.\n\nThat gives you a real operational dial and a rough formula. Worst-case replay is about\nmin(max_wal_size, WAL written in one checkpoint_timeout), and replay is single-threaded,\nsequential, and roughly as expensive as the original writes were. If you need an RTO of 30\nseconds, you are saying \"no more than about 30 seconds of WAL may ever be outstanding\", and you\nset max_wal_size and checkpoint_timeout to enforce it -- paying in write amplification and in\ncheckpoint I/O spikes.\n\nEvery replicated-log system makes the same bargain, which is why snapshotting is not optional in\nRaft or ZooKeeper: a follower that must replay the whole log from the beginning to rejoin is a\nfollower that never rejoins. The interesting corollary is that this is also why a hot standby\nbeats a fast restart. Replay on a standby happens continuously, in the background, so at failover\ntime there is nothing left to replay and the RTO is a promotion, not a recovery. That is module\n09.",
+    "challenge": "Make recovery slow on purpose. Set checkpoint_timeout high and max_wal_size to 4GB, run a few\nminutes of pgbench, and crash. How long does startup take, and does \"redo done at\" imply the same\nthroughput as the original writes? Then measure the other direction: how much extra WAL does a\n30-second checkpoint_timeout generate for the same workload, and where do the extra bytes come\nfrom? (Hint: full_page_writes, and the previous module's full-page-writes lesson.)",
+    "caution": "This lesson crashes the lab cluster twice. Only ever run it against $PGLAB, never against a\ncluster you care about and never against the packaged system cluster on port 5432. Your psql\nsession loses its connection each time; reconnect and carry on. Leave the server running when you\nare done.",
+    "safetyLevel": "dangerous",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 48,
+    "slug": "max-wal-size-forces-checkpoints",
+    "title": "Back-pressure: max_wal_size forces a checkpoint",
+    "category": "checkpointing",
+    "difficulty": "intermediate",
+    "tags": [
+      "checkpoints",
+      "wal",
+      "capacity",
+      "configuration"
+    ],
+    "prerequisites": [
+      46,
+      42
+    ],
+    "overview": "So far every checkpoint in this module happened because you asked for one. In production almost\nnone of them do. Checkpoints fire either on a timer (checkpoint_timeout, default 5 minutes) or\nbecause the log has grown past max_wal_size since the last one -- and the second kind is a\nback-pressure signal, not a schedule.\n\nIn this lesson you shrink max_wal_size to 64 MB, write about 80 MB of WAL in one statement, and\ncatch the server triggering its own checkpoints in the middle of it. The log says \"checkpoint\nstarting: wal\", and it also says \"checkpoints are occurring too frequently\", which is PostgreSQL\ntelling you in plain English that the write rate has outrun the flush rate. Then you put the\nsetting back and prove postgresql.auto.conf is clean again.",
+    "syntaxBreakdown": "ALTER SYSTEM SET writes a setting into postgresql.auto.conf, which is read after postgresql.conf\nand therefore wins; ALTER SYSTEM RESET removes it again. Neither takes effect until the server\nrereads its configuration: pg_reload_conf() does that for settings whose context is \"sighup\"\n(max_wal_size is one), while \"postmaster\" settings need a restart. SHOW reports what the server\nactually believes. max_wal_size is a soft target for how much WAL may accumulate between\ncheckpoints, not a hard cap: pg_wal can and does exceed it, because a checkpoint takes time and\nbecause checkpoint_completion_target (0.9) deliberately paces the writes across most of the\ninterval. The log distinguishes why a checkpoint started: \"time\" (checkpoint_timeout), \"wal\"\n(max_wal_size), \"immediate force wait\" (a CHECKPOINT command), \"end-of-recovery\", \"shutdown\".\ncheckpoint_warning (30 s) is what produces the \"occurring too frequently\" hint. pg_ls_waldir()\nlists pg_wal from SQL, and psql's \\gset captures a query result into a variable you can splice\ninto a later statement with a colon.",
+    "setup": "drop table if exists ckpt_pressure;\ncreate table ckpt_pressure(id int, pad text);",
+    "code": "show max_wal_size;\nselect checkpoints_timed, checkpoints_req from pg_stat_bgwriter;\nselect count(*) as wal_segments, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\n\n-- Remember where the log ends, so we read back only the lines this experiment writes.\nselect (pg_stat_file('log/postgresql.log')).size as log_size_before \\gset\n\n-- Shrink the budget. max_wal_size is a sighup setting, so a reload is enough.\nalter system set max_wal_size = '64MB';\nselect pg_reload_conf();\nselect pg_sleep(1);\nshow max_wal_size;\n\n-- Write about 80 MB of WAL in one statement: more than the budget allows.\ninsert into ckpt_pressure select g, repeat('w', 300) from generate_series(1, 200000) g;\n\n-- Give the checkpointer a moment to finish the last one it started.\nselect pg_sleep(5);\n\nselect checkpoints_timed, checkpoints_req from pg_stat_bgwriter;\n\nselect l from regexp_split_to_table(\n         pg_read_file('log/postgresql.log', :log_size_before, 200000), chr(10))\n         with ordinality as t(l, n)\nwhere l like '%LOG:  checkpoint%'\norder by n;\n\nselect count(*) as wal_segments, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\n\n-- Put it back, in this same session, and prove postgresql.auto.conf is clean.\nalter system reset max_wal_size;\nselect pg_reload_conf();\nselect pg_sleep(1);\nshow max_wal_size;\nselect pg_read_file('postgresql.auto.conf') as auto_conf;\n\ndrop table ckpt_pressure;",
+    "expectedResult": "max_wal_size starts at 1GB and pg_wal holds 7 segments = 96 MB. After the ALTER SYSTEM and\npg_reload_conf(), SHOW max_wal_size returns 64MB -- no restart, no dropped connections.\n\nThe INSERT then trips the checkpointer twice without anybody asking. checkpoints_req goes 6 -> 8\nwhile checkpoints_timed does not move, and the log lines written during the statement are:\n\n  LOG:  checkpoint starting: wal\n  LOG:  checkpoint complete: wrote 5159 buffers (31.5%); 0 WAL file(s) added, 3 removed,\n        0 recycled; write=0.583 s, sync=0.685 s, total=1.508 s; sync files=28, longest=0.272 s,\n        average=0.025 s; distance=37907 kB, estimate=37907 kB; lsn=0/AC400058,\n        redo lsn=0/A94DC030\n  LOG:  checkpoints are occurring too frequently (1 second apart)\n  LOG:  checkpoint starting: wal\n\n\"checkpoint starting: wal\" is the whole point: reason code \"wal\", not \"time\" and not\n\"immediate force wait\". Nobody ran CHECKPOINT; the log crossed the budget and the server flushed\nto protect its own recovery time. The hint \"checkpoints are occurring too frequently (1 second\napart)\" appears when a WAL-triggered checkpoint starts less than checkpoint_warning (30 s) after\nthe previous one, and it is the server advising you to raise max_wal_size. Seeing that line during\na bulk load in production is the signal that your write burst is being throttled by flush I/O.\n\nNote the completed checkpoint's \"distance=37907 kB\": the WAL written since the previous\ncheckpoint, well under max_wal_size, because the trigger fires at a fraction of the budget rather\nthan at the budget itself, leaving room for the checkpoint to finish while writes continue. Its\nsync phase (sync=0.685 s, longest=0.272 s) is also an order of magnitude slower than the sync in\nthe first lesson: 28 files instead of 10, flushed while the INSERT was still writing.\n\n(The last \"checkpoint starting: wal\" may or may not have a matching \"complete\" line inside the\nwindow you read, depending on how fast your disk is; that is fine. An earlier run on the same lab\nalso printed a \"checkpoints are occurring too frequently (16 seconds apart)\" line before the first\n\"checkpoint starting: wal\".)\n\npg_wal ends up at 64 MB in 5 segments, down from 96 MB, because the checkpoints let the server\nremove segments it no longer needs -- and it hovers at, not below, the new target, which is the\nconcrete proof that max_wal_size is a target and not a cap.\n\nThe cleanup is silent and complete: SHOW max_wal_size returns 1GB again and\npg_read_file('postgresql.auto.conf') prints only\n\n  # Do not edit this file manually!\n  # It will be overwritten by the ALTER SYSTEM command.\n\nIf your run shows only one \"checkpoint starting: wal\", raise the row count a little; if it shows\nfive, your disk flushed slower than mine. Either way it is the same phenomenon.",
+    "systemsLens": "This is back-pressure implemented as a feedback loop between a log and a cache, and the shape is\nuniversal. The producer (transactions appending WAL) and the consumer (the checkpointer flushing\ndirty pages) are decoupled by a buffer. When the buffer -- here the WAL between the redo point and\nthe head -- exceeds a threshold, the system does not block the producer outright; it accelerates\nthe consumer. Only if the consumer still cannot keep up do the costs start landing on the\nproducer, as backends stalling on buffer allocation and on WAL segment creation.\n\nThe failure mode is the interesting part. Set max_wal_size too small and you get exactly what the\nlog warned about: a checkpoint storm, where the same hot pages are written on every checkpoint and\nevery first-touch-after-checkpoint write emits a full page image into the WAL -- so shrinking the\nWAL budget makes the system write more WAL. That is a positive feedback loop, and it is the same\none you get from an undersized memtable in an LSM tree (write stalls and compaction storms), from\ntoo aggressive a flush interval in a log-structured broker, or from a JVM heap that is too small\nfor its allocation rate. Set it too large and you trade that for a long recovery and a bigger,\nspikier flush.\n\nThe general lesson: when a system exposes a \"how much unflushed work may accumulate\" knob, it is\nnever really a memory knob. It is simultaneously a recovery-time knob, a write-amplification knob,\nand a latency-jitter knob, and you cannot optimise all three at once.",
+    "challenge": "Predict, then measure. With max_wal_size at 64MB, how much WAL does the same 200k-row INSERT\nwrite, compared with the default 1GB? Bracket the statement with pg_current_wal_lsn() and take the\ndifference under both settings. The extra bytes are full-page images re-emitted because each\ncheckpoint re-arms full_page_writes on every page -- the write amplification this lesson's systems\nlens claims, in bytes you measured yourself.",
+    "caution": "This lesson changes a cluster-wide setting with ALTER SYSTEM and reloads the configuration. It\nresets the setting at the end of the same script; if you stop halfway, run\nALTER SYSTEM RESET max_wal_size; SELECT pg_reload_conf(); before moving on, and check that\npostgresql.auto.conf is back to its two comment lines.",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 49,
+    "slug": "base-backup",
+    "title": "Take a base backup and see why it needs WAL",
+    "category": "checkpointing",
+    "difficulty": "intermediate",
+    "tags": [
+      "backup",
+      "checkpoints",
+      "wal",
+      "durability"
+    ],
+    "prerequisites": [
+      46,
+      42
+    ],
+    "overview": "A checkpoint bounds recovery from a crash. It does nothing for a lost disk, a dropped table, or a\nbad migration. For those you need a copy of the data files somewhere else, plus enough WAL to make\nthat copy mean something -- and \"plus enough WAL\" is the part people get wrong.\n\npg_basebackup copies the whole data directory of a running server over the replication protocol.\nIt cannot take an atomic snapshot: files are read one at a time while transactions keep\ncommitting, so the copy is a smear of states, torn pages and all. What makes it usable is the pair\nof LSNs it records in backup_label. Replay every WAL record between them and the smear resolves\ninto a consistent database. In this lesson you take that backup, read backup_label, verify it with\npg_verifybackup, and break it on purpose to watch verification catch it. The backup you make here\nis the input to the next lesson.",
+    "syntaxBreakdown": "pg_basebackup -D DIR takes a physical backup. -c fast forces an immediate checkpoint before\nstarting instead of waiting for a paced one (fast is right for a lab, spread is right for a busy\nproduction server you do not want to hit with an I/O spike). -X stream opens a second connection\nthat streams WAL concurrently with the file copy, so every record the backup needs ends up inside\nthe backup's own pg_wal and it is self-contained; -X none would make it depend on the archive. -P\nshows progress and -v is verbose. backup_label is written into the backup (never into the live\ndata directory in this mode) and records START WAL LOCATION, CHECKPOINT LOCATION, BACKUP FROM and\nSTART TIMELINE; its presence is what tells a starting server \"you are restoring a backup, begin\nredo at this LSN, not at the one in pg_control\". backup_manifest lists every file with a CRC32C\nchecksum, and pg_verifybackup DIR rechecks them. The lab cluster already allows local replication\nconnections under trust, which is why no extra role or pg_hba entry is needed.",
+    "code": "# Run all of this as the postgres OS user, in a shell:  su - postgres\nexport PATH=/usr/lib/postgresql/16/bin:$PATH\nPGLAB=$HOME/pglab\n\ndf -h /var/lib/postgresql\ndu -sh \"$PGLAB/primary\"\n\n# Take the backup. Delete any previous attempt first: pg_basebackup refuses to\n# write into a non-empty directory.\nrm -rf \"$PGLAB/backup1\"\ntime pg_basebackup -h /tmp -p 5440 -D \"$PGLAB/backup1\" -c fast -X stream -P -v\n\ndu -sh \"$PGLAB/backup1\"\n\n# The two LSNs that make the smeared file copy usable.\ncat \"$PGLAB/backup1/backup_label\"\n\n# It is a whole data directory, minus the things that must not be copied\n# (postmaster.pid, temporary files, the contents of pg_replslot).\nls \"$PGLAB/backup1\"\n\n# -X stream put the WAL the backup needs inside the backup itself.\nls \"$PGLAB/backup1/pg_wal\"\n\n# Every file, with a checksum.\nhead -c 400 \"$PGLAB/backup1/backup_manifest\"; echo\npg_verifybackup \"$PGLAB/backup1\"\n\n# Break one file on purpose and watch verification catch it, then undo it.\necho \"corruption\" >> \"$PGLAB/backup1/PG_VERSION\"\npg_verifybackup \"$PGLAB/backup1\"\nprintf '16\\n' > \"$PGLAB/backup1/PG_VERSION\"\npg_verifybackup \"$PGLAB/backup1\"\n\ndf -h /var/lib/postgresql",
+    "expectedResult": "pg_basebackup narrates its own algorithm:\n\n  pg_basebackup: initiating base backup, waiting for checkpoint to complete\n  pg_basebackup: checkpoint completed\n  pg_basebackup: write-ahead log start point: 0/A30000D8 on timeline 1\n  pg_basebackup: starting background WAL receiver\n  pg_basebackup: created temporary replication slot \"pg_basebackup_15121\"\n   34394/322750 kB (10%), 0/1 tablespace\n  322760/322760 kB (100%), 1/1 tablespace\n  pg_basebackup: write-ahead log end point: 0/A30001B0\n  pg_basebackup: waiting for background process to finish streaming ...\n  pg_basebackup: syncing data to disk ...\n  pg_basebackup: base backup completed\n\nRead the order: a checkpoint first (that is what -c fast forced), then a start LSN, then the copy,\nthen an end LSN. 330 MB in about five seconds on this lab:\n\n  real  0m5.094s\n\nbackup_label is seven lines and is the entire contract:\n\n  START WAL LOCATION: 0/A30000D8 (file 0000000100000000000000A3)\n  CHECKPOINT LOCATION: 0/A3000110\n  BACKUP METHOD: streamed\n  BACKUP FROM: primary\n  START TIME: 2026-09-03 01:38:30 UTC\n  LABEL: pg_basebackup base backup\n  START TIMELINE: 1\n\nA server that finds this file at startup ignores the redo point in pg_control (which is stale --\nit was copied mid-backup) and begins redo at START WAL LOCATION instead. It refuses to accept\nconnections until it has replayed past the backup end LSN, because before that point the files are\nnot yet mutually consistent. That is the \"consistent recovery state reached\" line you will see in\nthe next lesson.\n\nThe directory is a data directory: PG_VERSION, base, global, pg_wal, pg_xact, postgresql.conf,\npostgresql.auto.conf, backup_label, backup_manifest. Note that postmaster.pid is absent --\npg_basebackup excludes it, so the copy can be started without pretending to be the original\nserver. Because of -X stream, pg_wal already contains the one segment spanning the start and end\nLSNs:\n\n  0000000100000000000000A3\n  archive_status\n\nThe manifest is JSON, one entry per file:\n\n  { \"Path\": \"backup_label\", \"Size\": 227, \"Last-Modified\": \"2026-09-03 01:38:30 GMT\",\n    \"Checksum-Algorithm\": \"CRC32C\", \"Checksum\": \"a28534be\" },\n\nand verification passes:\n\n  backup successfully verified\n\nAfter appending a line to PG_VERSION, pg_verifybackup fails loudly and names the file:\n\n  pg_verifybackup: error: \"PG_VERSION\" has size 14 on disk but size 3 in the manifest\n\nRestoring the file makes it print \"backup successfully verified\" again. Free space drops by about\n330 MB (8.3 G used before, 8.7 G after, still 15 G available here).",
+    "systemsLens": "The important idea is that a backup of a system with a log is not a copy of the state. It is a\ncopy of the state at some unknown, smeared instant, plus a range of the log that pins it to a\nknowable one. The copy alone is worthless; the pair is exact. Once you see that, a lot of\ndistributed-systems machinery reads the same way: a Raft snapshot is meaningless without its\nlast-included-index, an LSM tree's SSTables are meaningless without the manifest that says which\nof them form a version, a broker's segments are meaningless without its log-end offset. State plus\na position in a log, always.\n\nThis is also why a file-level copy of a running database taken with rsync or cp is not a backup,\nwhile a filesystem or volume snapshot IS one: the snapshot is atomic across all files, so it is\nexactly equivalent to a crash, and PostgreSQL already knows how to recover from a crash.\nNon-atomic copies are equivalent to nothing at all, unless you tell the database you are taking\none -- which is what the replication protocol behind pg_basebackup, or the\npg_backup_start/pg_backup_stop pair, is for.\n\nThe last piece is verification. A backup you have never restored is a hypothesis, and\nbackup_manifest plus pg_verifybackup only upgrades it to a checksummed hypothesis: it proves the\nbytes are the bytes that were copied, not that they make a working database. The only test that\ncounts is a restore, which is the next lesson.",
+    "challenge": "Take a second backup with -X none instead of -X stream and compare the two pg_wal directories. The\nsecond is empty, which means that backup is restorable only while $PGLAB/archive still holds every\nsegment from its START WAL LOCATION onwards. Then work out the retention rule this implies: how\nfar back must your archive reach for your oldest backup to still be restorable, and what happens\nto that rule the day archive_command starts failing silently?",
+    "caution": "This lesson writes about 330 MB into $PGLAB/backup1; check free space first. Leave the backup in\nplace when you are finished: the next lesson restores from it, and module 09 may reuse it to seed\na standby.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 50,
+    "slug": "point-in-time-recovery",
+    "title": "Undo a dropped table by restoring to a moment in time",
+    "category": "checkpointing",
+    "difficulty": "advanced",
+    "tags": [
+      "pitr",
+      "recovery",
+      "backup",
+      "timelines"
+    ],
+    "prerequisites": [
+      49,
+      47
+    ],
+    "overview": "Now put the pieces together. You have a base backup (a smeared file copy plus two LSNs) and an\narchive holding every WAL segment the cluster has ever sealed. Between them they let you\nreconstruct the database as it was at any instant the archive covers -- including the instant one\nsecond before somebody dropped a table.\n\nYou will drop a table on purpose, having first recorded the timestamp of a moment you know was\nsafe. Then you restore backup1 into a second data directory, tell it to replay the archive up to\nthat timestamp and stop there, and start it on port 5441 alongside the untouched original. The\nrestored server replays forward, announces \"recovery stopping before commit of transaction NNN\",\npromotes itself onto a new timeline, and the table is there. The original on 5440 never notices.",
+    "syntaxBreakdown": "Recovery is configured with ordinary GUCs plus a signal file. recovery.signal (an empty file in\nthe data directory) puts the server into archive recovery; without it the settings are ignored.\nrestore_command is a shell command with %f (the segment name wanted) and %p (where to put it),\nused to pull segments from the archive; it must exit 0 on success and non-zero when the file does\nnot exist, which is how the server discovers the end of the archive. recovery_target_time is the\nstopping point, and it means \"stop before the first transaction that commits after this time\" --\nrecovery is transaction-granular, not statement-granular. The alternatives are recovery_target_lsn,\nrecovery_target_xid, recovery_target_name (set beforehand with pg_create_restore_point) and\nrecovery_target = 'immediate', which stops as soon as the backup is consistent.\nrecovery_target_inclusive (default on) decides whether the target transaction itself is applied.\nrecovery_target_action decides what happens on arrival: promote (finish recovery, pick a new\ntimeline, accept writes), pause (stay read-only so you can look before committing to it) or\nshutdown. Promotion always allocates a new timeline ID, so the branch you just created can never\nbe confused with the history you branched from. For the timestamp itself, a timestamptz cast to\ntext -- '2026-09-03 01:39:22.432813+00' -- carries its UTC offset and can be pasted straight into\nthe config file; clock_timestamp() gives the real wall clock at that instant, where now() would\ngive the transaction's start time.",
+    "setup": "drop table if exists ckpt_pitr_marks;\ncreate table ckpt_pitr_marks(mark text primary key, at timestamptz, lsn pg_lsn);",
+    "code": "-- Session A, on port 5440. Create something valuable, mark a safe moment, then\n-- have the accident. ckpt_pitr_marks is the notebook: it survives the accident\n-- and holds the timestamp you will recover to.\ndrop table if exists ckpt_pitr;\ncreate table ckpt_pitr(id int, note text);\ninsert into ckpt_pitr select g, 'important row ' || g from generate_series(1,5) g;\nselect count(*) as rows_before_accident from ckpt_pitr;\n\n-- The mark. clock_timestamp() is the real wall clock at this instant, and\n-- pg_current_wal_lsn() is the same moment expressed as a log position (which is\n-- what recovery_target_lsn would take instead).\ninsert into ckpt_pitr_marks values ('safe', clock_timestamp(), pg_current_wal_lsn());\n\nselect pg_sleep(3);\n\n-- The accident.\ndrop table ckpt_pitr;\ninsert into ckpt_pitr_marks values ('after_drop', clock_timestamp(), pg_current_wal_lsn());\n\n-- Seal the segment holding the DROP so the archiver ships it. Without this you\n-- would wait up to archive_timeout for a segment that is nowhere near full.\nselect pg_switch_wal();\n\nselect * from ckpt_pitr_marks order by at;\n\n-- This is the string you paste into recovery_target_time: one second after the\n-- safe mark, still two seconds before the DROP committed. Copy the output.\nselect (at + interval '1 second')::text as recovery_target_time\nfrom ckpt_pitr_marks where mark = 'safe';\n\n-- ==========================================================================\n-- SHELL, as the postgres OS user. Run by hand; no lesson runner can start a\n-- second server. Paste the timestamp you just copied as TARGET.\n--\n--   export PATH=/usr/lib/postgresql/16/bin:$PATH\n--   PGLAB=$HOME/pglab\n--   TARGET='2026-09-03 01:39:22.432813+00'\n--\n--   rm -rf \"$PGLAB/pitr\"\n--   cp -a \"$PGLAB/backup1\" \"$PGLAB/pitr\"\n--   rm -f \"$PGLAB/pitr/log/postgresql.log\"   # the copied log is the primary's\n--\n--   cat >> \"$PGLAB/pitr/postgresql.conf\" <<CONF\n--\n--   # --- point-in-time recovery (module 08) ---\n--   port = 5441\n--   cluster_name = 'lab-pitr'\n--   restore_command = 'cp /var/lib/postgresql/pglab/archive/%f %p'\n--   recovery_target_time = '$TARGET'\n--   recovery_target_action = 'promote'\n--   CONF\n--\n--   touch \"$PGLAB/pitr/recovery.signal\"\n--   pg_ctl -D \"$PGLAB/pitr\" -l \"$PGLAB/pitr.log\" start -w\n--\n--   grep -E 'point-in-time|redo (starts|done)|consistent recovery|recovery stopping|last completed transaction|new timeline|ready to accept' \"$PGLAB/pitr/log/postgresql.log\"\n--\n-- ==========================================================================\n\n-- Session A again, still on 5440: the original is untouched, still on timeline\n-- 1, and the table is still gone here.\nselect timeline_id from pg_control_checkpoint();\nselect to_regclass('ckpt_pitr') as ckpt_pitr_on_the_primary;\n\n-- ==========================================================================\n-- SHELL: connect to the RESTORED server on 5441 and collect the evidence.\n--\n--   psql -h /tmp -p 5441 -d lab -c 'select count(*) as rescued_rows from ckpt_pitr'\n--   psql -h /tmp -p 5441 -d lab -c 'select * from ckpt_pitr order by id limit 3'\n--   psql -h /tmp -p 5441 -d lab -c 'select * from ckpt_pitr_marks order by at'\n--   psql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\n--   psql -h /tmp -p 5441 -d lab -c 'select pg_walfile_name(pg_current_wal_lsn())'\n--\n-- Then tear it down. backup1 stays; only the restored instance goes away.\n--\n--   pg_ctl -D \"$PGLAB/pitr\" stop -m fast -w\n--   rm -rf \"$PGLAB/pitr\" \"$PGLAB/pitr.log\"\n--   ls \"$PGLAB\"                     # archive, backup1, primary, primary.log\n--   ss -ltn | grep -E '5440|5441'   # only 5440 remains\n--\n-- ==========================================================================\n\n-- Session A, last check: the lab is exactly as it was, one dropped table poorer.\nselect timeline_id, redo_lsn from pg_control_checkpoint();",
+    "expectedResult": "On 5440 the notebook reads:\n\n  mark       |              at               |    lsn\n  safe       | 2026-09-03 01:39:21.432813+00 | 0/A402CE48\n  after_drop | 2026-09-03 01:39:24.453604+00 | 0/A4030698\n\nso the target string is 2026-09-03 01:39:22.432813+00, comfortably between them.\n\nThe restored server starts in about six seconds and its log is the whole story, in order:\n\n  LOG:  starting point-in-time recovery to 2026-09-03 01:39:22.432813+00\n  LOG:  restored log file \"0000000100000000000000A3\" from archive\n  LOG:  redo starts at 0/A30000D8\n  LOG:  restored log file \"0000000100000000000000A4\" from archive\n  LOG:  consistent recovery state reached at 0/A30001B0\n  LOG:  database system is ready to accept read-only connections\n  LOG:  recovery stopping before commit of transaction 88511, time 2026-09-03 01:39:24.451439+00\n  LOG:  redo done at 0/A4030270 system usage: CPU: user: 0.00 s, system: 0.01 s, elapsed: 0.12 s\n  LOG:  last completed transaction was at log time 2026-09-03 01:39:21.433128+00\n  LOG:  restored log file \"0000000100000000000000A4\" from archive\n  LOG:  selected new timeline ID: 2\n  LOG:  database system is ready to accept connections\n\nEvery line is worth a sentence. \"redo starts at 0/A30000D8\" is backup_label's START WAL LOCATION,\nnot pg_control's stale redo point. \"consistent recovery state reached at 0/A30001B0\" is the backup\nend LSN: only there do the smeared files become a database, and only there does it accept\nread-only connections. \"recovery stopping before commit of transaction 88511, time\n2026-09-03 01:39:24.451439+00\" is the DROP TABLE -- replay walked right up to it and refused to\napply it, which is what \"transaction-granular\" means and why your target only has to land in the\ngap, not on a precise instant. \"last completed transaction was at log time 01:39:21.433128\" is the\nINSERT of the 'safe' mark. Then promotion: \"selected new timeline ID: 2\".\n\nConnecting to 5441 shows the rescued table:\n\n  rescued_rows = 5\n\n   id |      note\n    1 | important row 1\n    2 | important row 2\n    3 | important row 3\n\nand a notebook that stops exactly where recovery did -- 'safe' is present, 'after_drop' is not,\nbecause its transaction committed after the target:\n\n  mark | at                            | lsn\n  safe | 2026-09-03 01:39:21.432813+00 | 0/A402CE48\n\n  pg_is_in_recovery | timeline_id           ->  f | 2\n  pg_walfile_name(pg_current_wal_lsn())     ->  0000000200000000000000A4\n\npg_is_in_recovery() is false because recovery_target_action = promote finished the job, the\ncontrol file says timeline 2, and the WAL file names now begin 00000002. Meanwhile on 5440,\ntimeline_id is still 1 and to_regclass('ckpt_pitr') is NULL: the primary was never involved.\n\nTeardown prints \"server stopped\", and afterwards $PGLAB contains archive, backup1, primary and\nprimary.log, with only 5440 in the ss output. The one lasting trace is in the archive, put there\nby the promoted instance before you deleted it -- 00000002.history and one timeline-2 segment.\nThat is the next lesson.",
+    "systemsLens": "Point-in-time recovery is the payoff for treating the log as the system of record. Because every\nchange was written to an ordered, replayable stream before it touched a page, any prefix of that\nstream is a valid database state, and a backup is just a cheap starting point so you do not have\nto replay from the beginning of time. Event-sourced systems sell this as a feature; PostgreSQL has\nit as a side effect of crash safety. The same property is why a stream processor can rebuild a\nstate store from an offset, and why an LSM tree can rebuild a memtable from a WAL prefix.\n\nTwo design details are worth stealing. First, the stopping point is a transaction boundary, not a\nclock reading: replaying half a transaction would produce a state no observer ever saw, so the\nsystem stops before a commit instead. Prefixes of a log are only safe if the log's units are\natomic. Second, promotion allocates a new timeline. The moment you recover to a point in the past\nand start accepting writes, you have created a branch, and the future you branched away from still\nexists in the archive. Giving that branch an identity -- baked into every WAL file name from then\non -- means a server can never accidentally replay records from the wrong history. That is exactly\nthe problem term numbers solve in Raft and epoch numbers solve in a fencing token: a monotonically\nincreasing identity that makes divergent histories detectably different instead of silently\ninterleaved.\n\nAnd the operational moral: this restore took six seconds because the database is 330 MB and the\narchive is on the same disk. Your RTO for a PITR is copy-the-backup plus replay-the-archive, and\nboth scale with size and with how old your newest backup is. That is a number you should measure\nbefore you need it, not during.",
+    "challenge": "Redo the restore twice more with different targets. First recovery_target = 'immediate', which\nstops the moment the backup is consistent: does ckpt_pitr exist? Second, use\nrecovery_target_action = 'pause' instead of 'promote' and connect while the server is still in\nrecovery -- pg_is_in_recovery() is true, writes are rejected, and you can inspect the state before\ncommitting to it, then continue with pg_wal_replay_resume(). Which of the two would you actually\nuse at 3 a.m. during a real incident, and why?",
+    "caution": "This lesson drops a table in the lab database on purpose and starts a SECOND PostgreSQL instance\non port 5441. Nothing here touches the 5440 server's data directory. The final block stops and\ndeletes $PGLAB/pitr so the lab is back to its module-01 layout -- do not skip it. $PGLAB/backup1\nstays where it is: module 09 may reuse it. Note that the restored instance inherits\narchive_mode = on from the copied postgresql.conf, so when it promotes it writes 00000002.history\ninto $PGLAB/archive. That is deliberate; the next lesson reads it.",
+    "safetyLevel": "dangerous",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 40,
+    "revision": 1
+  },
+  {
+    "ordinal": 51,
+    "slug": "timeline-history",
+    "title": "Timelines: the archive remembers both histories",
+    "category": "checkpointing",
+    "difficulty": "intermediate",
+    "tags": [
+      "timelines",
+      "recovery",
+      "pitr",
+      "replicated-log"
+    ],
+    "prerequisites": [
+      50,
+      42
+    ],
+    "overview": "The restored server is gone, but it left a fossil. When it promoted it allocated timeline 2 and\nwrote a history file into the shared archive recording exactly where it branched off timeline 1.\nThat eight-hex-digit prefix on every WAL segment name -- the one you have been ignoring since\nmodule 07 -- is what keeps two divergent histories of the same cluster from being mistaken for\neach other.\n\nThis lesson is short and read-only: look at the history file, count the segments per timeline in\nthe archive, and reason out the consequence that sets up the whole replication module. A server\nthat has diverged onto its own timeline cannot follow a server on another one, because their logs\nagree on a prefix and then disagree, and there is no way to apply one on top of the other.",
+    "syntaxBreakdown": "A WAL segment file name is 24 hex characters: 8 for the timeline ID, 8 for the high half of the\nLSN, 8 for the segment number. pg_walfile_name(lsn) builds that name for the current timeline.\nWhen a server promotes it picks the lowest unused timeline ID and writes TTTTTTTT.history into\npg_wal and, with archive_mode on, into the archive; the file holds one tab-separated line per\nancestor -- parent timeline, the LSN where the branch happened, and the reason. A server\nrecovering from an archive reads the history files to learn which timelines to follow;\nrecovery_target_timeline defaults to 'latest', which is how a new standby finds its way onto the\ncurrent branch. pg_control_checkpoint() reports the local timeline_id: a crash recovery keeps it,\na promotion increments it. psql's \\! runs a shell command, and $PGLAB is exported by the lab\nenvironment from module 01.",
+    "code": "-- The fossil left by the promoted PITR instance, straight out of the archive.\n\\! ls -l $PGLAB/archive/*.history\n\\! cat $PGLAB/archive/00000002.history\n\n-- One tab-separated line: parent timeline, branch LSN, reason. Compare that LSN\n-- with the \"redo done at\" line in the previous lesson's recovery log.\n\n-- Both histories sit in the archive side by side, distinguishable only by the\n-- first eight characters of the file name.\n\\! ls -1 $PGLAB/archive | grep -E '^[0-9A-F]{24}$' | cut -c1-8 | sort | uniq -c\n\n-- The living cluster is still on timeline 1 and keeps writing 00000001... files.\nselect timeline_id, redo_lsn from pg_control_checkpoint();\nselect pg_current_wal_lsn() as lsn,\n       pg_walfile_name(pg_current_wal_lsn()) as current_segment;\n\n-- The same history file, parsed, so the branch point becomes a real LSN and the\n-- last segment the two timelines share becomes a real file name. A superuser may\n-- read an absolute path with pg_read_file().\nselect split_part(line, chr(9), 1)::int as parent_timeline,\n       split_part(line, chr(9), 2)::pg_lsn as branch_lsn,\n       pg_walfile_name(split_part(line, chr(9), 2)::pg_lsn) as last_shared_segment,\n       split_part(line, chr(9), 3) as reason\nfrom regexp_split_to_table(\n       pg_read_file('/var/lib/postgresql/pglab/archive/00000002.history'), chr(10)) line\nwhere line <> '';\n\n-- Everything the archiver has shipped, and the fact that nothing ever prunes it.\nselect archived_count, last_archived_wal, last_archived_time, failed_count\nfrom pg_stat_archiver;\n\\! du -sh $PGLAB/archive",
+    "expectedResult": "The history file is 51 bytes and says everything:\n\n  -rw------- 1 postgres postgres 51 Sep  3 01:40 /var/lib/postgresql/pglab/archive/00000002.history\n\n  1\t0/A4030270\tbefore 2026-09-03 01:39:24.451439+00\n\nTimeline 2's parent is timeline 1; the branch is at 0/A4030270, which is precisely the \"redo done\nat 0/A4030270\" from the PITR log; and the reason is \"before\" the commit time of the DROP. Any\nserver that later reads this archive can reconstruct the family tree from these files alone.\n\nSegment counts by timeline prefix:\n\n    171 00000001\n      1 00000002\n\n171 segments of the original history and one segment of the branch -- the promoted server only\nlived long enough to write 0000000200000000000000A4 before you shut it down. Note that the branch\nand its parent both have a segment numbered ...A4: two files covering overlapping LSN ranges with\ndifferent contents, which is exactly the divergence the timeline prefix exists to keep apart.\n(Your timeline-1 count will be larger than mine; nothing in this lab ever deletes an archived\nsegment.)\n\nThe living cluster is unchanged, and still writing timeline-1 files:\n\n  timeline_id |  redo_lsn\n            1 | 0/A94DC030\n\n  lsn        | current_segment\n  0/ACDCDEB8 | 0000000100000000000000AC\n\nParsing the history file turns the fossil into three usable facts:\n\n  parent_timeline | branch_lsn |   last_shared_segment    |          reason\n                1 | 0/A4030270 | 0000000100000000000000A4 | before 2026-09-03 01:39:24.451439+00\n\npg_stat_archiver shows a small archived_count (17) because its counters were reset by the crash in\nlesson 2, failed_count 0, and last_archived_wal keeping pace with the current segment. The\ndirectory itself has never been pruned and is around 2.7 GB.\n\nThe thing to take away: the primary on 5440 and the now-deleted PITR instance both wrote WAL\ncovering LSNs after 0/A4030270, and both sets of files sit in the same directory without\ncolliding, because their names differ in the first eight characters.",
+    "systemsLens": "A timeline ID is a fencing token for history itself. Two servers that both accepted writes after\nthe same LSN have produced logs that are byte-identical up to a point and then irreconcilable, and\nthe only safe thing to do is make that fact loud. PostgreSQL makes it loud by putting the branch\nidentity in every file name, so a replay can never even open the wrong file by accident, and by\nwriting a history file so any newcomer can work out the ancestry without asking anyone.\n\nThis is the same problem Raft solves with terms, ZooKeeper with epochs, and a lease-based system\nwith fencing tokens: a monotonically increasing number attached to every decision, so a\nparticipant that was out of the loop can detect that it was out of the loop. The alternative --\ncomparing contents, or trusting wall-clock timestamps -- fails exactly when you need it most,\nduring a partition or a botched failover.\n\nThe operational consequence is the reason module 09 exists. If you promote a standby to primary\nand the old primary comes back, the old primary is on timeline 1, the new one is on timeline 2,\nand they diverged at some LSN. The old primary cannot simply start streaming: it may hold WAL\nafter the divergence point that the new primary never saw, so applying the new primary's log on\ntop of its files would produce a database that never existed. Your choices are to rebuild it from\na fresh base backup, or to run pg_rewind, which reads the divergence LSN out of the history file\nand copies back only the blocks that changed since then. \"Split brain\" is not mainly about two\nservers accepting writes; it is about what you can prove afterwards, and a timeline is the proof.",
+    "challenge": "Work out how a new standby would find its way here. If you restored backup1 again with\nrecovery_target_timeline = 'latest' and no recovery_target_time, which timeline would it end up\non, and which segments would it need from the archive? Then read 00000002.history once more and\nstate the rule precisely: below 0/A4030270 read timeline 1 files, at or above it read timeline 2.\nThat rule is all pg_rewind and every archive-based standby need to know.",
+    "safetyLevel": "read-only",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 52,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -1288,7 +1470,7 @@
     "revision": 1
   },
   {
-    "ordinal": 47,
+    "ordinal": 53,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -1301,7 +1483,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      46
+      52
     ],
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
     "syntaxBreakdown": "pg_replication_slots.confirmed_flush_lsn is the position the consumer has acknowledged;\nrestart_lsn is the oldest WAL the server must keep for this slot. catalog_xmin is the oldest\ntransaction whose catalog rows vacuum may not remove, so the decoder can still resolve column\ntypes. pg_replication_slot_advance(name, lsn) moves the offset forward without reading, i.e. skips\ndata. pg_current_wal_lsn() minus an LSN is a bytes value (pg_lsn subtraction returns numeric).",
@@ -1318,7 +1500,7 @@
     "revision": 1
   },
   {
-    "ordinal": 48,
+    "ordinal": 54,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -1330,7 +1512,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      47
+      53
     ],
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
     "syntaxBreakdown": "CREATE PUBLICATION names a set of tables and which operations to publish. CREATE SUBSCRIPTION\nstores a connection string and a publication name, creates a replication slot on the publisher, and\nstarts an apply worker. WITH (create_slot = false, slot_name = ...) tells it to use a slot you\nalready created, and WITH (copy_data = true) (the default) copies the existing rows first.\npg_stat_replication shows the walsender feeding a subscriber; pg_stat_subscription shows the apply\nworker on the other side. In psql, \\gset captures a query result into a variable, \\set builds a\nstring out of several pieces, and :'var' interpolates it as a quoted literal.",
@@ -1348,7 +1530,7 @@
     "revision": 1
   },
   {
-    "ordinal": 49,
+    "ordinal": 55,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -1360,7 +1542,7 @@
       "consistency"
     ],
     "prerequisites": [
-      48
+      54
     ],
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
     "syntaxBreakdown": "ALTER PUBLICATION ... ADD TABLE changes the publisher's table set; the subscriber only notices when\nyou run ALTER SUBSCRIPTION ... REFRESH PUBLICATION. pg_subscription_rel.srsubstate is the per-table\nstate: i = initialize, d = data is being copied, f = finished the copy, s = synchronized with the\napply worker, r = ready (streaming normally). srsublsn is the LSN at which the table's copy ended\nand streaming took over. Each table sync uses its own temporary slot and its own snapshot, so it\nneeds a consistent snapshot on the publisher before it can start copying.",
@@ -1377,7 +1559,7 @@
     "revision": 1
   },
   {
-    "ordinal": 50,
+    "ordinal": 56,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -1389,7 +1571,7 @@
       "observability"
     ],
     "prerequisites": [
-      49
+      55
     ],
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
     "syntaxBreakdown": "pg_stat_subscription_stats has one row per subscription with apply_error_count and\nsync_error_count, both cumulative since stats_reset. pg_stat_subscription.pid is null while the\napply worker is dead. The server log records the failing statement with a CONTEXT line naming the\nreplication origin, the message type, and the transaction's finish LSN, which is the information\nyou need to skip it. ALTER SUBSCRIPTION ... SKIP (lsn = ...) and pg_replication_origin_advance()\ndiscard the stuck transaction; deleting the offending local row instead lets it apply.",
@@ -1406,7 +1588,7 @@
     "revision": 1
   },
   {
-    "ordinal": 51,
+    "ordinal": 57,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -1419,7 +1601,7 @@
       "observability"
     ],
     "prerequisites": [
-      50
+      56
     ],
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
     "syntaxBreakdown": "ALTER SUBSCRIPTION ... DISABLE stops the apply worker, which disconnects the walsender and makes\nthe slot inactive; the slot itself survives. pg_replication_slots.restart_lsn is the oldest WAL\nbyte the slot needs and pg_walfile_name(restart_lsn) turns it into a file name in pg_wal.\nwal_status is reserved / extended / unreserved / lost, and safe_wal_size is how much more WAL can\nbe written before this slot starts losing data -- both are governed by max_slot_wal_keep_size,\nwhich is -1 (unlimited retention) by default. pg_ls_waldir() lists the segment files.\nDropping cleanly: DISABLE, SET (slot_name = none), DROP SUBSCRIPTION, then drop the slot yourself.",
@@ -1436,7 +1618,7 @@
     "revision": 1
   },
   {
-    "ordinal": 52,
+    "ordinal": 58,
     "slug": "explain-analyze-buffers",
     "title": "Read a plan: estimate vs actual, cost vs time, buffers vs rows",
     "category": "query-planning",
@@ -1467,7 +1649,7 @@
     "revision": 1
   },
   {
-    "ordinal": 53,
+    "ordinal": 59,
     "slug": "statistics-drive-plans",
     "title": "Where row estimates come from, and three ways they go wrong",
     "category": "query-planning",
@@ -1478,7 +1660,7 @@
       "explain"
     ],
     "prerequisites": [
-      52
+      58
     ],
     "overview": "The planner never looks at your data; it looks at a sampled summary of your data in pg_statistic.\nThis lesson makes that summary visible and then breaks it three ways: a table that has never been\nanalyzed (default selectivity constants), a table whose statistics are stale (a snapshot of a\npopulation that has changed), and two columns that are correlated (the independence assumption).\nThe third one is the failure mode that ruins real production plans.",
     "syntaxBreakdown": "ANALYZE samples default_statistics_target * 300 = 30000 rows and stores per-column stats.\npg_stats is the readable view over pg_statistic: null_frac, avg_width, n_distinct (a count, or a\nnegative fraction of the row count when distinctness scales with size), most_common_vals /\nmost_common_freqs (the MCV list), histogram_bounds (equal-frequency buckets for everything not in\nthe MCV list), and correlation (how well physical order matches logical order, -1..1).\npg_class.relpages / reltuples are the table-level counters; reltuples = -1 means \"never analyzed\".\nCREATE STATISTICS ... (dependencies, ndistinct) ON a, b FROM t builds a multi-column statistics\nobject, read back from pg_statistic_ext_data.",
@@ -1495,7 +1677,7 @@
     "revision": 1
   },
   {
-    "ordinal": 54,
+    "ordinal": 60,
     "slug": "index-scan-vs-seq-scan-crossover",
     "title": "The crossover: when an index stops being worth it",
     "category": "query-planning",
@@ -1507,7 +1689,7 @@
       "explain"
     ],
     "prerequisites": [
-      53
+      59
     ],
     "overview": "An index is not \"faster\". It is a random-access strategy that wins below some selectivity and loses\nabove it, and the crossover point is a function of how many rows match, how well the heap is\nordered, and what the planner believes about your disks. Here you sweep the selectivity of one\npredicate from 0.1% to 80%, watch the plan change shape, force the losing plan to see what it would\nhave cost, and then move the crossover by changing a single hardware constant.",
     "syntaxBreakdown": "An Index Scan walks the btree and fetches each matching heap tuple immediately: one random page per\nrow, in index order. A Bitmap Index Scan collects all matching TIDs into a bitmap first, then the\nBitmap Heap Scan visits the heap in physical order, once per page - \"Heap Blocks: exact=N\" counts\nthose pages, and \"Recheck Cond\" is re-applied because a lossy bitmap may only remember pages. A Seq\nScan reads every page and filters. enable_seqscan, enable_bitmapscan and enable_indexscan are\nper-session switches that add a huge penalty to a path rather than truly removing it; they are\ndebugging tools, not tuning. random_page_cost is the planner's belief about the cost of a random\npage relative to a sequential one (default 4.0; on SSDs people set 1.1).",
@@ -1524,7 +1706,7 @@
     "revision": 1
   },
   {
-    "ordinal": 55,
+    "ordinal": 61,
     "slug": "join-strategies",
     "title": "Three ways to join, and the memory that decides between them",
     "category": "query-planning",
@@ -1537,7 +1719,7 @@
       "query-planning"
     ],
     "prerequisites": [
-      54
+      60
     ],
     "overview": "PostgreSQL has exactly three join algorithms and they are the same three every database has: nested\nloop (probe the inner side once per outer row), hash join (build a hash table on the smaller side,\nstream the larger through it), merge join (consume both sides in sorted order and zip). Which one\nwins depends on the row estimates from lesson 2 and on work_mem. Here you force all three over the\nsame two tables, read the per-node evidence for each, and then shrink work_mem until the hash table\nno longer fits and the join splits into batches.",
     "syntaxBreakdown": "\"loops=N\" on a node means the node was executed N times, and its \"actual rows\" and \"actual time\"\nare PER LOOP averages - always multiply. A Hash node reports \"Buckets: N  Batches: M  Memory\nUsage: kB\"; Batches > 1 means the build side did not fit in work_mem and both inputs were\npartitioned to temporary files, which show up as \"temp read=/written=\" blocks. Memoize is a cache\nin front of a nested loop's inner side, reporting Hits/Misses/Evictions. enable_nestloop,\nenable_hashjoin, enable_mergejoin and enable_memoize let you force a shape. work_mem is per node\nper execution, not per query and not per backend.",
@@ -1554,7 +1736,7 @@
     "revision": 1
   },
   {
-    "ordinal": 56,
+    "ordinal": 62,
     "slug": "work-mem-spills-to-disk",
     "title": "work_mem: quicksort, top-N heapsort, external merge, and hash spill",
     "category": "query-planning",
@@ -1566,7 +1748,7 @@
       "capacity"
     ],
     "prerequisites": [
-      55
+      61
     ],
     "overview": "work_mem is the single most misunderstood PostgreSQL setting: it is a limit per plan node per\nexecution, not per query and not per connection, and crossing it does not fail - it silently\nswitches the algorithm and starts writing temporary files. Here you run the same sort at three\nmemory sizes, watch it move between three different algorithms, do the same for a hash aggregate,\nand then find the evidence a DBA would actually see: temp_files in pg_stat_database and a line in\nthe server log.",
     "syntaxBreakdown": "\"Sort Method: quicksort  Memory: NkB\" means it all fit. \"top-N heapsort\" is the LIMIT special case:\nonly the best N rows are ever kept, so a huge sort can run in kilobytes. \"external merge  Disk:\nNkB\" means the input was cut into sorted runs written to temporary files and merged. A HashAggregate\nreports \"Planned Partitions: N  Batches: M  Memory Usage: kB  Disk Usage: kB\" when it spills.\ntemp read=/written= in BUFFERS counts 8 kB temp blocks. pg_stat_database.temp_files and temp_bytes\nare cumulative counters per database; log_temp_files = 0 logs every temporary file the session\ncreates, and pg_current_logfile() plus pg_read_file() read the log back without leaving psql.",
@@ -1583,7 +1765,7 @@
     "revision": 1
   },
   {
-    "ordinal": 57,
+    "ordinal": 63,
     "slug": "parallel-query",
     "title": "Parallel query: Gather, workers planned vs launched, and when it hurts",
     "category": "query-planning",
@@ -1596,7 +1778,7 @@
     ],
     "prerequisites": [
       4,
-      52
+      58
     ],
     "overview": "A parallel plan is scatter-gather inside one query: the leader starts N background worker\nprocesses, each scans a disjoint slice of the same table, and a Gather node merges their output.\nThree separate limits decide how many workers you actually get, and the plan tells you when each\none bit. On this single-CPU lab you will also see the honest result: the workers launch, do their\nshare, and the query gets SLOWER.",
     "syntaxBreakdown": "A Gather node collects rows from workers in arrival order; Gather Merge keeps them sorted. \"Workers\nPlanned\" is what the planner asked for, \"Workers Launched\" is what the worker pool actually gave.\nUnder a Gather, loops = launched workers + 1 because the leader also runs the subplan, and actual\nrows is the PER LOOP average. max_parallel_workers_per_gather caps one Gather (0 disables\nparallelism), max_parallel_workers is the cluster-wide pool, max_worker_processes is the hard slot\nlimit fixed at startup. min_parallel_table_scan_size (8MB) is the size below which a scan is not\nworth splitting; parallel_setup_cost (1000) and parallel_tuple_cost (0.1) are the modelled price of\nstarting workers and shipping rows through the queue. A function declared PARALLEL UNSAFE forbids\nparallelism for any query that calls it.",
@@ -1614,7 +1796,7 @@
     "revision": 1
   },
   {
-    "ordinal": 58,
+    "ordinal": 64,
     "slug": "pg-stat-statements-as-tracing",
     "title": "pg_stat_statements: normalized queries as aggregate tracing",
     "category": "query-planning",
@@ -1627,7 +1809,7 @@
     ],
     "prerequisites": [
       3,
-      52
+      58
     ],
     "overview": "EXPLAIN tells you about one query you already suspect. pg_stat_statements tells you which query to\nsuspect. It normalizes every statement into a fingerprint - literals replaced by $1, $2 - and keeps\nrunning totals per fingerprint: calls, total and mean and stddev execution time, rows, and the\nshared-buffer hit and read counts. In this lesson you reset it, run a small workload, rank it, and\nthen find the two ways an aggregate view lies to you: means that hide bimodal distributions, and\nfingerprints that split when they should not.",
     "syntaxBreakdown": "pg_stat_statements requires shared_preload_libraries (already set in this lab) and CREATE EXTENSION.\npg_stat_statements_reset(userid, dbid, queryid) zeroes counters; passing 0 for a parameter means\n\"all\", so reset(0, <this database oid>, 0) leaves other databases alone. Columns: queryid (the\nfingerprint hash), calls, total_exec_time / mean_exec_time / min_exec_time / max_exec_time /\nstddev_exec_time in ms, rows (total rows returned across all calls), shared_blks_hit and\nshared_blks_read, temp_blks_read/written, and total_plan_time (zero unless\npg_stat_statements.track_planning is on). The view holds pg_stat_statements.max entries and evicts\nthe least-used, so a workload with unbounded distinct query texts can push out the entries you\ncare about.",
@@ -1645,7 +1827,7 @@
     "revision": 1
   },
   {
-    "ordinal": 59,
+    "ordinal": 65,
     "slug": "btree-page-anatomy",
     "title": "Open a B-tree: metapage, root, internal pages, leaves",
     "category": "indexes",
@@ -1675,7 +1857,7 @@
     "revision": 1
   },
   {
-    "ordinal": 60,
+    "ordinal": 66,
     "slug": "index-only-scan-needs-visibility-map",
     "title": "Index-only scans: covering the columns is only half of it",
     "category": "indexes",
@@ -1688,7 +1870,7 @@
       "vacuum"
     ],
     "prerequisites": [
-      59,
+      65,
       21
     ],
     "overview": "An index-only scan needs two independent things to be true: the index must contain every column the\nquery touches, and the heap pages behind the entries must be marked all-visible. Break either one\nand the executor goes to the heap. Here you will watch the same 2000-row query cost 8 buffers, then\n1340 buffers when you add a column the index does not carry, then 144 buffers when a plain INSERT\nleaves fresh pages unmarked - three very different queries that all say \"index\" in the plan.",
@@ -1706,7 +1888,7 @@
     "revision": 1
   },
   {
-    "ordinal": 61,
+    "ordinal": 67,
     "slug": "create-index-concurrently-and-invalid-indexes",
     "title": "CREATE INDEX CONCURRENTLY: build, wait, validate, flip",
     "category": "indexes",
@@ -1719,7 +1901,7 @@
       "btree"
     ],
     "prerequisites": [
-      59,
+      65,
       35
     ],
     "overview": "CREATE INDEX takes a lock that blocks every writer for the whole build, so production migrations use\nCREATE INDEX CONCURRENTLY instead. The price is that CIC is not one operation but a small protocol:\ncreate the catalog entry, wait, build, wait, validate, then mark valid. Every one of those waits is\na wait for other people's transactions - and if the statement dies in the middle, the half-built\nindex survives in the catalog with indisvalid = false. In this lesson Session B holds a snapshot\nopen and you watch Session A's build park in \"waiting for old snapshots\" with the index already\nbuilt but not yet usable; then you make a build fail outright and inspect the wreckage.",
@@ -1738,7 +1920,7 @@
     "revision": 1
   },
   {
-    "ordinal": 62,
+    "ordinal": 68,
     "slug": "partial-and-covering-indexes",
     "title": "Index less, or index more: partial and covering indexes",
     "category": "indexes",
@@ -1750,7 +1932,7 @@
       "btree"
     ],
     "prerequisites": [
-      60
+      66
     ],
     "overview": "Two ways to change what an index costs. A partial index stores only the rows matching a predicate -\nhere 1% of the table, for 1/43 of the bytes - but the planner may only use it when it can prove your\nWHERE clause implies that predicate. A covering index (INCLUDE) stores extra columns in the leaf\nentries so the heap never has to be visited, and charges you for them on every insert. You will\nmeasure both: sizes in bytes, and the same query at 1003 buffers and at 6.",
     "syntaxBreakdown": "CREATE INDEX ... WHERE predicate builds a partial index; the planner uses it only if it can prove\nthe query's restrictions imply the predicate (the proof is syntactic, so status = 'pending' implies\nit and status <> 'done' does not). When the proof succeeds the predicate is dropped from the plan,\nso the Index Cond line may disappear entirely.\nCREATE INDEX ... INCLUDE (cols) adds non-key payload columns to leaf tuples only: they cannot be\nsearched or used for ordering, but they can satisfy an index-only scan. Non-key columns do not\nappear on internal pages, so they do not cost fanout.",
@@ -1767,7 +1949,7 @@
     "revision": 1
   },
   {
-    "ordinal": 63,
+    "ordinal": 69,
     "slug": "index-bloat-from-churn",
     "title": "Index bloat is a steady state, and REINDEX is how you leave it",
     "category": "indexes",
@@ -1780,7 +1962,7 @@
       "write-amplification"
     ],
     "prerequisites": [
-      59,
+      65,
       18
     ],
     "overview": "Update an indexed column and the B-tree cannot update in place either: it inserts a new entry, and\nthe old one stays until VACUUM removes it, by which point the page has split. Here you churn the\nsame 100000 rows twice and watch the index double in size while its leaf pages end up less than\nhalf full, then watch the second round of exactly the same churn cost nothing more - bloat\nconverges instead of growing without bound. Then REINDEX CONCURRENTLY packs it back down, into a\nnew file.",
@@ -1798,7 +1980,7 @@
     "revision": 1
   },
   {
-    "ordinal": 64,
+    "ordinal": 70,
     "slug": "unique-index-enforcement-under-concurrency",
     "title": "Uniqueness is a B-tree property: a partial unique index as a lease",
     "category": "indexes",
@@ -1812,7 +1994,7 @@
     ],
     "prerequisites": [
       38,
-      62
+      68
     ],
     "overview": "A UNIQUE constraint has no storage of its own: it is a row in pg_constraint pointing at a unique\nB-tree index, and the index is what actually decides. Because the decision lives in the index, it\ncan be scoped by a predicate - a partial unique index enforces \"at most one active row per\nresource\", which is a single-holder lease. Here two sessions both check that a shard is free, both\ntry to claim it, and the index - not the check - is what stops the second one.",
     "syntaxBreakdown": "pg_constraint.conindid is the index that implements a unique or primary key constraint;\npg_index.indisunique marks the index itself, and pg_get_expr(indpred, indrelid) prints a partial\nindex's predicate. A unique index without a constraint enforces exactly the same rule; only the\ncatalog bookkeeping differs. CREATE UNIQUE INDEX ... WHERE predicate makes the rule conditional:\nrows outside the predicate are not in the index and are not constrained by it.\nGENERATED ALWAYS AS IDENTITY draws from a sequence, which is not transactional.",

@@ -1,6 +1,6 @@
 # Handoff: PostgreSQL systems curriculum + general tutor engine
 
-Last updated: 2026-09-03 01:38 UTC. **Update this file after every module and before any risky
+Last updated: 2026-09-03 01:58 UTC. **Update this file after every module and before any risky
 step.**
 
 ## What the user asked for
@@ -49,9 +49,11 @@ su - postgres -c 'bash /tmp/lesson1.sh'
 cd /root/Software/skills-tools/curriculum-tools && deno run -A tools/validate.ts postgres 3   # reinstalls extensions
 ```
 
-Machine limits: 1 CPU, ~960 MB RAM, ~18 GB disk free. Keep tables small (<= 200k rows), run at most
-2 validation runs concurrently, and give each parallel module its own database
-(`PGDATABASE=lab_<module>` overrides the harness env; lessons themselves still say `lab`).
+Machine limits: was 1 CPU / ~960 MB RAM when modules 01-07 were written; on 2026-09-03 01:45 the
+droplet reports 4 CPUs, 8 GB RAM, ~15 GB disk free (Docker was installed for scripts/docker tests).
+Keep tables small (<= 200k rows), run at most 2 validation runs concurrently, and give each parallel
+module its own database (`PGDATABASE=lab_<module>` overrides the harness env; lessons themselves
+still say `lab`).
 
 ## Process per module (repeat until the status table is all done)
 
@@ -98,12 +100,12 @@ changed from the spec and why.
 | 05 | 05-isolation.ts     | transactions & isolation anomalies                          | 7       | DONE, subagent-validated, Fable re-ran write-skew/serializable-ssi/repeatable-read-blocks-then-fails OK (23:32)                                                                           |
 | 06 | 06-locking.ts       | locks, queues, deadlocks, DDL                               | 8       | DONE, subagent-validated, Fable re-ran deadlock/lock-queue/ddl-behind-long-query OK (23:45)                                                                                               |
 | 07 | 07-wal.ts           | WAL records, durability, crash redo                         | 7       | DONE; Fable re-ran 4 harness lessons OK 01:35 (crash/pg_waldump/pgbench lessons validated by hand by the subagent; crash lesson needs Session B commit to force the ghost record to disk) |
-| 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | 6       | IN PROGRESS (opus subagent, cluster-level, started 01:38)                                                                                                                                 |
+| 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | 6       | DONE; Fable re-ran anatomy/max-wal-size/timeline OK 01:55. Leaves $PGLAB/backup1 (330 MB) for module 09; archive is 2.7 GB and growing (archive_mode on), watch `df`                      |
 | 09 | 09-replication.ts   | physical streaming replication, failover                    | ~8      | TODO (cluster-level, serial)                                                                                                                                                              |
 | 10 | 10-logical.ts       | logical decoding, CDC, pub/sub                              | 6       | DONE; Fable re-ran decode/pubsub/slot-lag OK 01:05 (lesson 6 switched to lg_orders so it does not depend on lesson 4 state)                                                               |
 | 11 | 11-planner.ts       | planner, statistics, execution                              | 7       | DONE; Fable re-ran stats/spill/parallel OK 01:02                                                                                                                                          |
 | 12 | 12-indexes.ts       | btree internals, concurrent builds, bloat                   | 6       | DONE; Fable re-ran cic/bloat OK 01:00 (lesson 3 uses 3 sessions: RR snapshot cannot see the new pg_index row)                                                                             |
-| 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | ~6      | TODO                                                                                                                                                                                      |
+| 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | 6       | IN PROGRESS (opus subagent, needs a max_connections restart, started 01:58)                                                                                                               |
 | 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | ~7      | TODO                                                                                                                                                                                      |
 | 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | ~5      | TODO (cluster-level, serial)                                                                                                                                                              |
 
