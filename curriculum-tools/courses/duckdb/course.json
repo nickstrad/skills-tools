@@ -1,0 +1,17 @@
+{
+  "id": "duckdb",
+  "name": "DuckDB Systems",
+  "description": "Columnar analytics engine internals: vectorized execution, storage, and out-of-core processing",
+  "tool": "duckdb",
+  "minVersion": "1.1",
+  "revision": 1,
+  "repl": {
+    "command": [
+      "duckdb",
+      "-batch"
+    ],
+    "echo": ".print {marker}",
+    "quit": ".quit",
+    "env": {}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "sqlite",
+  "name": "SQLite Systems",
+  "description": "Embedded database internals: pager, journaling modes, locking, and WAL",
+  "tool": "sqlite3",
+  "minVersion": "3.45",
+  "revision": 1,
+  "repl": {
+    "command": [
+      "sqlite3",
+      "-batch"
+    ],
+    "echo": ".print {marker}",
+    "quit": ".quit",
+    "env": {}
+  }
+}

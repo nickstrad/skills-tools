@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "pgtutor": "deno run --allow-read --allow-write src/main.ts",
+    "check": "deno fmt --check && deno lint && deno check src/main.ts tests/main_test.ts",
+    "test": "deno test --allow-read --allow-write"
+  },
+  "fmt": {
+    "lineWidth": 100
+  }
+}

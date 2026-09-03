@@ -1,0 +1,3 @@
+courses/*/progress.sqlite
+courses/*/progress.sqlite-shm
+courses/*/progress.sqlite-wal

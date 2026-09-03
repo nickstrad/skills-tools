@@ -1,0 +1,14 @@
+{
+  "id": "{{id}}",
+  "name": "{{name}}",
+  "description": "{{description}}",
+  "tool": "{{tool}}",
+  "minVersion": "{{minVersion}}",
+  "revision": 1,
+  "repl": {
+    "command": ["{{tool}}"],
+    "echo": ".print {marker}",
+    "quit": ".quit",
+    "env": {}
+  }
+}

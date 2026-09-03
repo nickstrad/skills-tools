@@ -1,0 +1,7 @@
+interface:
+  display_name: "{{name}} Tutor"
+  short_description: "Hands-on {{name}} experiments with tracked progress"
+  default_prompt: "Use ${{id}}-tutor to show my next unfinished {{name}} lesson."
+
+policy:
+  allow_implicit_invocation: true

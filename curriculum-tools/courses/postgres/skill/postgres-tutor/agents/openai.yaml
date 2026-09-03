@@ -1,0 +1,7 @@
+interface:
+  display_name: "PostgreSQL Systems Tutor"
+  short_description: "Hands-on PostgreSQL Systems experiments with tracked progress"
+  default_prompt: "Use $postgres-tutor to show my next unfinished PostgreSQL Systems lesson."
+
+policy:
+  allow_implicit_invocation: true

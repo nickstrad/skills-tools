@@ -1,0 +1,28 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime state (curriculum content is stored in lessons.json)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+
+# Logs, coverage, and temporary output
+*.log
+coverage/
+.coverage/
+tmp/
+temp/

@@ -1,0 +1,11 @@
+#!/bin/sh
+# Launcher: resolves its own location so the checkout can live anywhere.
+set -eu
+SELF=$(readlink -f "$0")
+TOOL_DIR=$(dirname "$(dirname "$SELF")")
+if [ -n "${DENO_BIN:-}" ]; then DENO="$DENO_BIN"
+elif command -v deno >/dev/null 2>&1; then DENO=deno
+elif [ -x "$HOME/.deno/bin/deno" ]; then DENO="$HOME/.deno/bin/deno"
+elif [ -x /root/.deno/bin/deno ]; then DENO=/root/.deno/bin/deno
+else echo "tutor: deno not found (set DENO_BIN)" >&2; exit 127; fi
+exec "$DENO" run --allow-read --allow-write "$TOOL_DIR/src/main.ts" "$@"

@@ -1,0 +1,22 @@
+[
+  {
+    "ordinal": 1,
+    "slug": "build-lab",
+    "title": "Build a disposable SQLite Systems lab you can break",
+    "category": "lab-setup",
+    "difficulty": "beginner",
+    "prerequisites": [],
+    "overview": "Create the scratch environment every later experiment assumes: a directory you can delete, a\nknown sqlite3 version, and a way to open two sessions against the same data.",
+    "syntaxBreakdown": "Describe each command or flag the learner meets for the first time, one sentence each.",
+    "code": "export TUTOR_LAB=$HOME/sqlite-lab\nmkdir -p \"$TUTOR_LAB\"\nsqlite3 --version",
+    "expectedResult": "Say exactly what success looks like (a version string, a file that now exists, a row count) so the\nlearner can tell a working setup from a broken one.",
+    "systemsLens": "Name the systems idea this makes concrete. Every lesson must earn its place by teaching something\nabout how storage, concurrency, durability, replication, or query execution really works.",
+    "challenge": "Offer one prediction to make or variation to try before moving on.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 10,
+    "revision": 1
+  }
+]

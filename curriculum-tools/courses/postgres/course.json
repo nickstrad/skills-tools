@@ -1,0 +1,28 @@
+{
+  "id": "postgres",
+  "name": "PostgreSQL Systems",
+  "description": "PostgreSQL internals as hands-on experiments for systems and distributed-systems engineers",
+  "tool": "psql",
+  "minVersion": "16",
+  "revision": 1,
+  "repl": {
+    "command": [
+      "psql",
+      "-X",
+      "-q",
+      "-v",
+      "ON_ERROR_STOP=0",
+      "-P",
+      "pager=off"
+    ],
+    "echo": "\\echo {marker}",
+    "quit": "\\q",
+    "env": {
+      "PGHOST": "/tmp",
+      "PGPORT": "5440",
+      "PGUSER": "postgres",
+      "PGDATABASE": "lab",
+      "PGLAB": "/var/lib/postgresql/pglab"
+    }
+  }
+}
