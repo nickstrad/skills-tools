@@ -4,7 +4,7 @@
     "build": "deno run --allow-read --allow-write src/build.ts",
     "new-course": "deno run --allow-read --allow-write src/new_course.ts",
     "check": "deno fmt --check && deno lint && deno check src/*.ts tests/*.ts courses/*/curriculum/*.ts",
-    "test": "deno test --allow-read --allow-write"
+    "test": "deno test --allow-read --allow-write --allow-run"
   },
   "fmt": {
     "lineWidth": 100,

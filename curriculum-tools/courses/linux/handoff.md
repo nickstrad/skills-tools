@@ -24,7 +24,7 @@
 | Workstream | Owner | Status | Files |
 | --- | --- | --- | --- |
 | Bootstrap and Docker safety | Luna/high `linux_bootstrap` + primary review | verified static; runtime blocked by host | `scripts/*` |
-| Shell validator | Luna/high `shell_validator` | active | validator, tests, docs |
+| Shell validator | Luna/high `shell_validator` + primary review | verified | validator, tests, docs |
 | Scaffold and fixed-slug plan | primary | active | `courses/linux/*` |
 | Modules 1-12 | unassigned | pending | one file per module |
 
@@ -38,6 +38,9 @@
   Ubuntu 24.04 image build/runtime test could not run in this workspace. No test builder, container,
   or image was created. Run the command below on the dedicated VM before declaring runtime acceptance.
 - Builds, checks, tests, lesson validation, leak checks, and CLI smoke tests: pending.
+- Shell validator: focused suite passed `6 passed | 0 failed`; targeted `deno fmt --check`,
+  `deno lint`, and `deno check` passed. A real legacy smoke selection of PostgreSQL
+  `build-lab-cluster` printed the manual-shell skip and exited 0.
 
 ## Active lab resources
 
@@ -52,7 +55,7 @@
 
 ## Commits and pushes
 
-- None yet for Linux course work.
+- `4521813` — bootstrap/Docker safety; pushed to `origin/main`.
 
 ## Next resume command
 

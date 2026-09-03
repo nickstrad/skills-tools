@@ -21,8 +21,13 @@ waits, serialization failures, deadlocks) run exactly as a learner would run the
    timeouts; a lesson that prints the wrong thing, or an `ERROR:` line, still "passes", so grep the
    output for `ERROR` and read it. Fix the lesson (or the expectation) until the text describes what
    really happens, then rebuild with `deno task build postgres` and rerun.
-5. Shell lessons (`runIn: "shell"`) are listed and skipped. Run those by hand as the lab OS user and
-   paste the real output into `expectedResult`.
+5. Shell lessons (`runIn: "shell"`) are listed and skipped for the default tool-mode REPL. A
+   shell-based course can opt in with
+   `"repl": { "mode": "shell", "command": ["bash",
+   "--noprofile", "--norc"], ... }`; those
+   lessons then run in one persistent Bash process per session. The harness adds a marker containing
+   the preceding command's exit status, so a nonzero assertion fails validation. Run privileged
+   shell lessons only in the dedicated lab VM.
 
 ## Conventions the harness relies on
 
@@ -40,4 +45,7 @@ waits, serialization failures, deadlocks) run exactly as a learner would run the
 ## Adding a course
 
 Add a `repl` block to the course's `course.json` (`command`, `echo` with `{marker}`, `quit`,
-optional `env`). SQL REPLs with `.print` (duckdb, sqlite3) and psql's `\echo` both work.
+optional `env`). SQL REPLs with `.print` (duckdb, sqlite3) and psql's `\echo` both work. The
+optional `mode` is `"tool"` (the default) or `"shell"`; shell mode uses persistent Bash sessions and
+reports each command's exit status in its marker. Existing database courses should leave the mode
+unset, which preserves skipping their shell lessons.
