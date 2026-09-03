@@ -26,7 +26,10 @@ What it installs:
   `taskset`, `ionice`), coreutils, findutils, strace, lsof, htop, perf,
   bpftrace, tcpdump, socat, netcat, sysstat (`iostat`), iproute2 (`ip`, `ss`),
   ripgrep, fzf, fd, bat, jq, tree, hyperfine, HTTPie, build-essential,
-  bubblewrap, curl, wget, zip/unzip, DNS and networking utilities.
+  bubblewrap, curl, wget, zip/unzip, DNS and networking utilities, plus the
+  Linux course's helpers: `python3`, GNU `time` (`/usr/bin/time`), `e2fsprogs`
+  (`mkfs.ext4`), and `sudo`. Droplet images preinstall most of these; the bare
+  `ubuntu:24.04` image does not, so the script names them explicitly.
 - **Shell config**: a marked block appended once to `~/.bashrc` with the PATH
   entries for Go, Deno, DuckDB, Claude Code, and NVM, plus `fd`/`bat` aliases
   for the Ubuntu package names.

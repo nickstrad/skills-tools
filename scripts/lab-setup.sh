@@ -69,9 +69,13 @@ $SUDO apt-get install -y \
     wget \
     gnupg \
     git \
+    sudo \
     tmux \
     mosh \
     sqlite3 \
+    python3 \
+    time \
+    e2fsprogs \
     build-essential \
     bubblewrap \
     jq \

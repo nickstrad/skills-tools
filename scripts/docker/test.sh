@@ -156,10 +156,6 @@ cleanup() {
             fi
         done
         docker image rm -f "${IMAGE}" >/dev/null 2>&1 || true
-        if [[ "${BUILDKIT_IMAGE_WAS_PRESENT}" -eq 0 ]]; then
-            docker image rm -f "${BUILDKIT_IMAGE}" >/dev/null 2>&1 || true
-        fi
-
         if [[ "${BUILDER_CREATED}" -eq 1 ]]; then
             # Clear the builder's private cache before removing its metadata.
             docker buildx prune --builder "${BUILDER}" --all --force \
@@ -190,6 +186,13 @@ cleanup() {
                 docker volume rm -f "${resource}" >/dev/null 2>&1 || true
             fi
         done
+
+        # The builder container uses this image, so remove the image only
+        # after the builder and its fallback container/volume cleanup. A
+        # pre-existing helper image belongs to the host and is preserved.
+        if [[ "${BUILDKIT_IMAGE_WAS_PRESENT}" -eq 0 ]]; then
+            docker image rm -f "${BUILDKIT_IMAGE}" >/dev/null 2>&1 || true
+        fi
 
         # Verify every exact name and run label. A cleanup that cannot prove
         # absence is a failure, since BuildKit state can consume disk space.

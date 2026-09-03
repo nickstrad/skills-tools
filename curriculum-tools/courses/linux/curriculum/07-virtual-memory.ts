@@ -218,12 +218,15 @@ printf 'cleanup=done\n'
       safetyLevel: "privileged",
       runIn: "shell",
       estimatedMinutes: 18,
+      revision: 2,
       overview:
         code`Create one uniquely named child cgroup with a 96 MiB memory ceiling, move a helper into it, and grow only 64 MiB of anonymous memory. Reading memory.current, memory.events, and vmstat makes accounting and reclaim feedback visible while the host remains outside the budget.`,
       syntaxBreakdown:
-        code`findmnt locates cgroup2; memory.max sets one group's bound; cgroup.procs moves an exact PID; memory.current and memory.events report usage and events; vmstat samples system counters.`,
+        code`findmnt locates cgroup2; the as_root helper runs a command directly as root or through sudo -n, and cg_write pipes one value through as_root tee because cgroup files are root-owned; memory.max sets one group's bound; cgroup.procs moves an exact PID; memory.current and memory.events report usage and events; vmstat samples system counters.`,
       code: code`
 (
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi; }
+cg_write() { printf '%s' "$2" | as_root tee "$1" >/dev/null; }
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 mkdir -p "$LAB"
@@ -235,18 +238,18 @@ child_pid=
 cleanup_reclaim() {
   test -n "$child_pid" && kill "$child_pid" 2>/dev/null || true
   test -n "$child_pid" && wait "$child_pid" 2>/dev/null || true
-  test -f "$CG/cgroup.kill" && printf 1 > "$CG/cgroup.kill" 2>/dev/null || true
-  test -d "$CG" && rmdir "$CG" 2>/dev/null || true
+  test -f "$CG/cgroup.kill" && cg_write "$CG/cgroup.kill" 1 2>/dev/null || true
+  test -d "$CG" && as_root rmdir "$CG" 2>/dev/null || true
   rm -f "$READY" "$GO"
 }
 trap cleanup_reclaim EXIT
 mountpoint=$(findmnt -t cgroup2 -n -o TARGET 2>/dev/null)
-if [ -z "$mountpoint" ] || [ ! -w "$mountpoint" ]; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
+if [ -z "$mountpoint" ] || ! as_root test -w "$mountpoint"; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
 CG=$mountpoint/linux-tutor-$UID-$BASHPID-$RANDOM
-if ! mkdir "$CG" 2>/dev/null; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
-printf 100663296 > "$CG/memory.max"
-printf 50331648 > "$CG/memory.high"
-printf 0 > "$CG/memory.swap.max" 2>/dev/null || true
+if ! as_root mkdir "$CG" 2>/dev/null; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
+cg_write "$CG/memory.max" 100663296
+cg_write "$CG/memory.high" 50331648
+cg_write "$CG/memory.swap.max" 0 2>/dev/null || true
 high_before=$(awk '$1=="high"{print $2}' "$CG/memory.events")
 export READY GO
 python3 -c 'import mmap, os, time; open(os.environ["READY"], "w").close();
@@ -257,7 +260,7 @@ for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
   [ -e "$READY" ] && break
   sleep 0.05
 done
-if ! printf '%s\n' "$child_pid" > "$CG/cgroup.procs" 2>/dev/null; then printf 'cgroup_move=unavailable\n'; exit 0; fi
+if ! cg_write "$CG/cgroup.procs" "$child_pid" 2>/dev/null; then printf 'cgroup_move=unavailable\n'; exit 0; fi
 touch "$GO"
 for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40; do
   current=$(cat "$CG/memory.current")
@@ -300,12 +303,15 @@ printf 'cleanup=cgroup-removed\n'
       safetyLevel: "dangerous",
       runIn: "shell",
       estimatedMinutes: 16,
+      revision: 2,
       overview:
         code`Give one uniquely named child cgroup a 64 MiB memory ceiling and let an exact helper attempt a bounded 128 MiB allocation. The helper may be killed by the cgroup OOM policy, while the parent remains alive to read the group's oom_kill counter and prove failure was localized.`,
       syntaxBreakdown:
-        code`memory.max establishes the cap; cgroup.procs moves only the helper; memory.events records oom_kill; wait captures the helper's signal-derived status; rmdir removes the empty cgroup after exact cleanup.`,
+        code`memory.max establishes the cap and cg_write (as_root tee) is how a sudo-capable learner writes it; cgroup.procs moves only the helper; memory.events records oom_kill; wait captures the helper's signal-derived status; as_root rmdir removes the empty cgroup after exact cleanup.`,
       code: code`
 (
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi; }
+cg_write() { printf '%s' "$2" | as_root tee "$1" >/dev/null; }
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 mkdir -p "$LAB"
@@ -318,17 +324,17 @@ child_pid=
 cleanup_oom() {
   test -n "$child_pid" && kill "$child_pid" 2>/dev/null || true
   test -n "$child_pid" && wait "$child_pid" 2>/dev/null || true
-  test -f "$CG/cgroup.kill" && printf 1 > "$CG/cgroup.kill" 2>/dev/null || true
-  test -d "$CG" && rmdir "$CG" 2>/dev/null || true
+  test -f "$CG/cgroup.kill" && cg_write "$CG/cgroup.kill" 1 2>/dev/null || true
+  test -d "$CG" && as_root rmdir "$CG" 2>/dev/null || true
   rm -f "$RESULT" "$READY" "$GO"
 }
 trap cleanup_oom EXIT
 mountpoint=$(findmnt -t cgroup2 -n -o TARGET 2>/dev/null)
-if [ -z "$mountpoint" ] || [ ! -w "$mountpoint" ]; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
+if [ -z "$mountpoint" ] || ! as_root test -w "$mountpoint"; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
 CG=$mountpoint/linux-tutor-$UID-$BASHPID-$RANDOM
-if ! mkdir "$CG" 2>/dev/null; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
-printf 67108864 > "$CG/memory.max"
-printf 0 > "$CG/memory.swap.max" 2>/dev/null || true
+if ! as_root mkdir "$CG" 2>/dev/null; then printf 'cgroup_setup=unavailable\n'; exit 0; fi
+cg_write "$CG/memory.max" 67108864
+cg_write "$CG/memory.swap.max" 0 2>/dev/null || true
 before=$(awk '$1=="oom_kill"{print $2}' "$CG/memory.events")
 export RESULT READY GO
 python3 -c 'import os, time; open(os.environ["READY"], "w").close();
@@ -339,7 +345,7 @@ for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
   [ -e "$READY" ] && break
   sleep 0.05
 done
-if ! printf '%s\n' "$child_pid" > "$CG/cgroup.procs" 2>/dev/null; then printf 'cgroup_move=unavailable\n'; exit 0; fi
+if ! cg_write "$CG/cgroup.procs" "$child_pid" 2>/dev/null; then printf 'cgroup_move=unavailable\n'; exit 0; fi
 touch "$GO"
 if wait "$child_pid"; then child_status=0; else child_status=$?; fi
 child_pid=

@@ -12,14 +12,16 @@ export const LAB: Module = {
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
+      revision: 2,
       overview:
         code`Create the bounded directory that every later experiment owns, then label the Bash, kernel, and OS versions used for the observation. A named failure domain makes cleanup and reproduction possible on a disposable VM.`,
       syntaxBreakdown:
-        code`The LINUX_LAB environment variable selects the lab root; mkdir -p is idempotent; readlink -f canonicalizes a path; bash --version, uname, and /etc/os-release identify the execution layers.`,
+        code`The LINUX_LAB environment variable selects the lab root; mkdir -p is idempotent; export LC_ALL=C pins collation and message text for every later observation; readlink -f canonicalizes a path; bash --version, uname, and /etc/os-release identify the execution layers.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 mkdir -p "$LAB"
+export LC_ALL=C
 printf 'lab_path=%s\n' "$(readlink -f "$LAB")"
 printf 'lab_writable=%s\n' "$(test -w "$LAB" && echo yes || echo no)"
 printf 'bash_version=%s\n' "$(bash --version | sed -n '1p')"
@@ -28,7 +30,7 @@ printf 'os_name=%s\n' "$(awk -F= '/^PRETTY_NAME=/{gsub(/"/, "", $2); print $2}' 
 printf 'locale=%s\n' "$LC_ALL"
 `,
       expectedResult:
-        code`The output contains an absolute lab_path ending in linux-systems-lab (unless LINUX_LAB was supplied), lab_writable=yes, a Bash 5.1-or-newer version line, a Linux kernel release, an OS name, and locale=C from the course environment. Only the selected lab directory is created.`,
+        code`The output contains an absolute lab_path ending in linux-systems-lab (unless LINUX_LAB was supplied), lab_writable=yes, a Bash 5.1-or-newer version line, a Linux kernel release, an OS name, and locale=C. Only the selected lab directory is created. Run export LC_ALL=C in every terminal you open for this course; the lessons assume it.`,
       systemsLens:
         code`A reproducible experiment starts by naming its failure domain and recording the independent kernel and userspace versions. This is the same discipline used for a service's scratch volume, deployment image, and incident timeline.`,
       caution:
@@ -69,14 +71,15 @@ if grep -q "$(uname -r)" /proc/version; then printf 'kernel_release_consistent=y
       safetyLevel: "read-only",
       runIn: "shell",
       estimatedMinutes: 8,
+      revision: 2,
       overview:
-        code`Probe the command surface before an incident exercise starts. A zero-missing inventory distinguishes a missing capability from a kernel or application failure.`,
+        code`Probe the command surface before an incident exercise starts. The list is every external program the 72 lessons invoke, plus two tools probed by absolute path because command -v cannot see them the same way: /usr/bin/time (the bash keyword time would answer instead) and mkfs.ext4 (which lives in /usr/sbin, sometimes off an unprivileged PATH). A zero-missing inventory distinguishes a missing capability from a kernel or application failure.`,
       syntaxBreakdown:
-        code`A Bash array stores command names; command -v resolves an executable without running it; arithmetic increments a counter; printf gives machine-readable labels.`,
+        code`A for loop walks the sorted command names; command -v resolves an executable or builtin without running it; test -x checks an absolute path directly; type -t reports whether a name is still a bash builtin or has been shadowed by a function or alias; arithmetic increments counters; printf gives machine-readable labels.`,
       code: code`
 missing=0
 required_command_count=0
-for command_name in bash awk cat chmod cp cut date dd df du env find findmnt free grep head hostname ip ionice iostat kill locale lsof lsblk lsns mkdir mkfifo mount mv nice nsenter pgrep pmap printf ps pstree python3 read readlink rm sed sleep sort stat sync taskset test timeout tr true uname umask unshare vmstat wait wc; do
+for command_name in awk basename bash cat chmod cmp cut date dd df du env find findmnt free grep head id ionice ip ln locale ls lsblk lsns lsof mkdir mkfifo mount mv nice nproc nsenter pgrep pmap ps pstree python3 readlink rm rmdir sed seq sleep sort ss stat sudo tail taskset tee timeout touch tr truncate umount uname unshare vmstat wc; do
   required_command_count=$((required_command_count + 1))
   if command -v "$command_name" >/dev/null 2>&1; then
     printf 'command=%s status=present\n' "$command_name"
@@ -85,12 +88,29 @@ for command_name in bash awk cat chmod cp cut date dd df du env find findmnt fre
     missing=$((missing + 1))
   fi
 done
+for tool_path in /usr/bin/time /usr/sbin/mkfs.ext4; do
+  required_command_count=$((required_command_count + 1))
+  if [ -x "$tool_path" ]; then
+    printf 'command=%s status=present\n' "$tool_path"
+  else
+    printf 'command=%s status=missing\n' "$tool_path"
+    missing=$((missing + 1))
+  fi
+done
+shadowed=0
+for builtin_name in command echo exec exit export jobs kill printf read set test trap true ulimit umask wait; do
+  if [ "$(type -t "$builtin_name")" != builtin ]; then
+    printf 'builtin=%s status=shadowed-by-%s\n' "$builtin_name" "$(type -t "$builtin_name" || echo nothing)"
+    shadowed=$((shadowed + 1))
+  fi
+done
 printf 'required_command_count=%s\n' "$required_command_count"
 printf 'missing_command_count=%s\n' "$missing"
-if [ "$missing" -eq 0 ]; then printf 'inventory_ok=yes\n'; else printf 'inventory_ok=no\n'; fi
+printf 'shadowed_builtin_count=%s\n' "$shadowed"
+if [ "$missing" -eq 0 ] && [ "$shadowed" -eq 0 ]; then printf 'inventory_ok=yes\n'; else printf 'inventory_ok=no\n'; fi
 `,
       expectedResult:
-        code`Each listed command prints status=present, required_command_count is greater than 0, missing_command_count=0, and inventory_ok=yes on the prepared Ubuntu VM. If a tool is absent, its name is explicit rather than being mistaken for a later lesson failure.`,
+        code`Every command= line prints status=present, no builtin= line appears, required_command_count=62, missing_command_count=0, shadowed_builtin_count=0, and inventory_ok=yes on the prepared Ubuntu VM. If a tool is absent, its name is explicit rather than being mistaken for a later lesson failure; /usr/bin/time needs the time package and mkfs.ext4 needs e2fsprogs.`,
       systemsLens:
         code`Capability discovery is an observability prerequisite: the same symptom can mean a missing binary, a permission boundary, or a kernel feature. Operators first establish which measurement tools are actually available.`,
     },
@@ -117,7 +137,7 @@ LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 ORDER_FILE=$LAB/locale-order.txt
 printf 'b\nA\na\nB\n' > "$ORDER_FILE"
-printf 'active_locale=%s\n' "$LC_ALL"
+if [ -z "$LC_ALL" ]; then printf 'active_locale=unset\n'; else printf 'active_locale=%s\n' "$LC_ALL"; fi
 printf 'active_charmap=%s\n' "$(locale charmap)"
 printf 'raw_order='; sort "$ORDER_FILE" | tr '\n' ','; printf '\n'
 printf 'stable_locale=C\n'
@@ -127,7 +147,7 @@ rm -f "$ORDER_FILE"
 printf 'cleanup=order_file_absent:%s\n' "$(test ! -e "$ORDER_FILE" && echo yes || echo no)"
 `,
       expectedResult:
-        code`active_locale is C in the validator, stable_locale=C, and stable_order is A,B,a,b,. epoch_seconds is a changing numeric timestamp, while the locale and ordering labels are stable. cleanup=order_file_absent:yes proves the only artifact was removed.`,
+        code`active_locale is C when LC_ALL was exported as lesson 1 asks (unset otherwise), stable_locale=C, and stable_order is A,B,a,b,. epoch_seconds is a changing numeric timestamp, while the locale and ordering labels are stable. cleanup=order_file_absent:yes proves the only artifact was removed.`,
       systemsLens:
         code`Measurements are part of the experiment's control plane. LC_ALL=C fixes collation and diagnostics so diffs represent kernel behavior rather than a machine's language configuration.`,
     },
@@ -192,31 +212,38 @@ printf 'session_b=unblocked\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
+      revision: 2,
       overview:
         code`Start one uniquely identified child and one lab record inside a subshell, then leave the subshell normally. Its EXIT trap kills and reaps the exact child and removes the record, proving that cleanup runs at the boundary where resources were acquired.`,
       syntaxBreakdown:
-        code`trap attaches cleanup to EXIT; sleep creates a bounded child; kill sends a signal to one recorded PID; wait reaps that child; test -e checks the resulting filesystem state.`,
+        code`trap attaches cleanup to EXIT; sleep creates a bounded child; kill sends a signal to one recorded PID and kill -0 probes a PID without signalling it; wait reaps that child; test -e checks the resulting filesystem state. The parent keeps its own record of the PID so it can verify the trap's work after the file the trap owns is gone.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 mkdir -p "$LAB"
 PID_FILE=$LAB/trap-child-$UID.pid
-trap_child_pid=
+RECORD=$LAB/trap-record-$UID.pid
+rm -f "$PID_FILE" "$RECORD"
 (
+  trap_child_pid=
   trap 'kill "$trap_child_pid" 2>/dev/null || true; wait "$trap_child_pid" 2>/dev/null || true; rm -f "$PID_FILE"' EXIT
   sleep 30 & trap_child_pid=$!
   printf '%s\n' "$trap_child_pid" > "$PID_FILE"
+  printf '%s\n' "$trap_child_pid" > "$RECORD"
   printf 'inside_child_pid=%s\n' "$trap_child_pid"
+  printf 'inside_child_alive=%s\n' "$(kill -0 "$trap_child_pid" 2>/dev/null && echo yes || echo no)"
   printf 'inside_pid_file=%s\n' "$(test -e "$PID_FILE" && echo present || echo absent)"
 )
-recorded_pid=$(cat "$PID_FILE" 2>/dev/null || true)
-if [ -n "$recorded_pid" ] && kill -0 "$recorded_pid" 2>/dev/null; then child_after_subshell=alive; else child_after_subshell=gone; fi
+recorded_pid=$(cat "$RECORD")
+printf 'recorded_pid=%s\n' "$recorded_pid"
+if kill -0 "$recorded_pid" 2>/dev/null; then child_after_subshell=alive; else child_after_subshell=gone; fi
 printf 'child_after_subshell=%s\n' "$child_after_subshell"
 printf 'pid_file_after_subshell=%s\n' "$(test ! -e "$PID_FILE" && echo absent || echo present)"
-rm -f "$PID_FILE"
+rm -f "$RECORD"
+printf 'cleanup=record_removed\n'
 `,
       expectedResult:
-        code`inside_pid_file=present identifies one sleep child. After the subshell exits, child_after_subshell=gone and pid_file_after_subshell=absent. The PID is exact and temporary; no unrelated process is signalled.`,
+        code`inside_child_alive=yes and inside_pid_file=present identify one live sleep child. After the subshell exits, recorded_pid equals inside_child_pid, child_after_subshell=gone (the trap killed and reaped that exact PID), pid_file_after_subshell=absent, and cleanup=record_removed. No unrelated process is signalled.`,
       systemsLens:
         code`Resource ownership is a control-flow property: the process that acquires a child and a file should register their release immediately. This is the shell analogue of finally blocks, lease expiry, and service shutdown hooks.`,
     },

@@ -152,7 +152,7 @@ printf 'cleanup=done\n'
       overview:
         code`Start a producer writing a bounded eight-megabyte stream to a FIFO with no reader. Its write side blocks when the kernel pipe buffer fills; starting a consumer releases the producer and lets the exact byte count complete.`,
       syntaxBreakdown:
-        code`mkfifo creates a named pipe; exec 7<> keeps both FIFO endpoints open without draining bytes; dd emits fixed-size blocks; ps -o stat observes a task state; wc -c counts bytes; wait joins both producer and consumer; trap removes exact lab resources.`,
+        code`mkfifo creates a named pipe; exec 7<> keeps both FIFO endpoints open without draining bytes; dd emits fixed-size blocks and iflag=fullblock makes the consumer count whole blocks even when a pipe read returns short; ps -o stat observes a task state; wc -c counts bytes; wait joins both producer and consumer; trap removes exact lab resources.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -173,7 +173,7 @@ if [ "$producer_state" = S ] || [ "$producer_state" = D ]; then producer_blocked
 printf 'producer_pid=%s\n' "$producer_pid"
 printf 'producer_state=%s\n' "$producer_state"
 printf 'producer_blocked=%s\n' "$producer_blocked"
-dd if="$FIFO" of="$DRAIN" bs=65536 count=128 status=none &
+dd if="$FIFO" of="$DRAIN" bs=65536 count=128 iflag=fullblock status=none &
 consumer_pid=$!
 wait "$producer_pid"
 producer_status=$?
@@ -254,10 +254,11 @@ printf 'session_b=sent\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Lower the open-file limit only inside a subshell and open descriptors until Bash reports EMFILE. The parent limit remains unchanged, showing that a resource boundary belongs to one process context and its descendants.`,
       syntaxBreakdown:
-        code`ulimit -n reads or sets the soft descriptor limit; eval constructs a bounded exec redirection; an if statement captures the expected nonzero open attempt; the subshell exit closes all descriptors.`,
+        code`ulimit -n reads or sets the soft descriptor limit; exec {fd}>>file asks Bash to open the file on the lowest free descriptor number and store it in fd, the same path a program takes through open(2); a while loop keeps opening until that call fails; the subshell exit closes all descriptors. A numbered redirection such as exec 40>>file fails earlier with EBADF because 40 is not below the limit, which is a different error from exhaustion.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -272,19 +273,17 @@ trap 'rm -f "$FILE" "$ERRORS"' EXIT
   ulimit -n 32
   subshell_limit=$(ulimit -n)
   opened=0
-  failed_fd=
-  for fd in $(seq 10 80); do
-    if eval "exec $fd>>\"$FILE\"" 2>>"$ERRORS"; then
-      opened=$((opened + 1))
-    else
-      failed_fd=$fd
-      break
-    fi
+  last_fd=
+  while exec {fd}>>"$FILE" 2>"$ERRORS"; do
+    opened=$((opened + 1))
+    last_fd=$fd
   done
   printf 'subshell_limit=%s\n' "$subshell_limit"
   printf 'opened_before_failure=%s\n' "$opened"
-  printf 'failed_fd=%s\n' "$failed_fd"
-  if [ -n "$failed_fd" ]; then printf 'descriptor_error=too-many-open-files\n'; printf 'descriptor_boundary=observed\n'; else printf 'descriptor_boundary=unexpected\n'; fi
+  printf 'last_descriptor_opened=%s\n' "$last_fd"
+  printf 'open_descriptors_now=%s\n' "$(ls /proc/self/fd | wc -l)"
+  printf 'descriptor_error=%s\n' "$(sed -n '1s/.*: //p' "$ERRORS")"
+  if [ -n "$last_fd" ] && [ "$last_fd" -lt "$subshell_limit" ] && grep -q 'Too many open files' "$ERRORS"; then printf 'descriptor_boundary=observed\n'; else printf 'descriptor_boundary=unexpected\n'; fi
 )
 printf 'parent_limit=%s\n' "$parent_limit"
 printf 'parent_limit_unchanged=%s\n' "$(test "$(ulimit -n)" = "$parent_limit" && echo yes || echo no)"
@@ -292,7 +291,7 @@ rm -f "$FILE" "$ERRORS"
 trap - EXIT
 `,
       expectedResult:
-        code`subshell_limit=32, opened_before_failure is positive, failed_fd is reported, and descriptor_boundary=observed. parent_limit_unchanged=yes proves the parent soft limit was not changed; the exact first failing descriptor depends on inherited descriptors.`,
+        code`subshell_limit=32, opened_before_failure is positive, last_descriptor_opened=31 (the highest number below the limit), opened_before_failure=22 when only the standard streams were inherited (Bash allocates from 10 upward, so 3-9 stay free), open_descriptors_now counts the resulting table, descriptor_error=Too many open files (EMFILE), and descriptor_boundary=observed. parent_limit_unchanged=yes proves the parent soft limit was not changed; the exact count depends on inherited descriptors.`,
       systemsLens:
         code`Descriptor limits cap kernel references held by one process, preventing an FD leak from consuming the whole host. The same per-process boundary protects web servers, proxies, and file watchers.`,
     },

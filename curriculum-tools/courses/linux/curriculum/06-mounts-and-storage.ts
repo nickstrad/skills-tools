@@ -148,24 +148,27 @@ trap - EXIT
       safetyLevel: "privileged",
       runIn: "shell",
       estimatedMinutes: 15,
+      revision: 2,
       overview:
         code`On the dedicated disposable VM, mount a uniquely named 32-megabyte tmpfs below the lab and write eight megabytes into it. findmnt identifies the memory-backed filesystem while df measures its quota; free provides a noisy host-memory observation.`,
       syntaxBreakdown:
-        code`sudo -n mount -t tmpfs creates a bounded memory-backed mount without prompting; findmnt -T resolves it; df -B1 reports the tmpfs capacity; sudo -n umount releases the exact mount.`,
+        code`The as_root helper runs a command directly when the shell is already root and through sudo -n (no password prompt) otherwise, so the lesson works on a root VM and for a sudo-capable user; the whole experiment runs in a subshell so a failed mount ends the experiment rather than your terminal. as_root mount -t tmpfs creates a bounded memory-backed mount; findmnt -T resolves it; df -B1 reports the tmpfs capacity; as_root umount releases the exact mount.`,
       code: code`
+(
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi; }
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 MOUNT=$LAB/tmpfs-$UID
 FILE=$MOUNT/payload.bin
 mkdir -p "$MOUNT"
 mounted=no
-trap 'if [ "$mounted" = yes ]; then sudo -n umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$FILE"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
-if ! sudo -n mount -t tmpfs -o size=32m "linux-tutor-$UID-tmpfs" "$MOUNT"; then
+trap 'if [ "$mounted" = yes ]; then as_root umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$FILE"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
+if ! as_root mount -t tmpfs -o size=32m "linux-tutor-$UID-tmpfs" "$MOUNT"; then
   printf 'mount_status=unavailable\n'
   exit 1
 fi
 mounted=yes
-sudo -n dd if=/dev/zero of="$FILE" bs=1048576 count=8 status=none
+as_root dd if=/dev/zero of="$FILE" bs=1048576 count=8 status=none
 record=$(findmnt -T "$FILE" -o TARGET,SOURCE,FSTYPE -n)
 tmpfs_size=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $2}')
 tmpfs_used=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $3}')
@@ -176,12 +179,13 @@ printf 'tmpfs_size_bytes=%s\n' "$tmpfs_size"
 printf 'tmpfs_used_bytes=%s\n' "$tmpfs_used"
 printf 'memory_available_bytes=%s\n' "$memory_available"
 if printf '%s' "$record" | grep -q 'tmpfs' && [ "$tmpfs_used" -ge 8388608 ] && [ "$tmpfs_size" -ge 33554432 ]; then printf 'tmpfs_memory_backed=yes\n'; else printf 'tmpfs_memory_backed=no\n'; fi
-sudo -n umount "$MOUNT"
+as_root umount "$MOUNT"
 mounted=no
 rm -f "$FILE"
 rmdir "$MOUNT" 2>/dev/null || true
 trap - EXIT
 printf 'cleanup=unmounted\n'
+)
 `,
       expectedResult:
         code`On a VM with passwordless sudo, mount_status=mounted, findmnt_record names tmpfs, tmpfs_size_bytes is at least 33554432, tmpfs_used_bytes is at least 8388608, tmpfs_memory_backed=yes, and cleanup=unmounted. The memory_available value varies.`,
@@ -199,11 +203,14 @@ printf 'cleanup=unmounted\n'
       safetyLevel: "privileged",
       runIn: "shell",
       estimatedMinutes: 18,
+      revision: 2,
       overview:
         code`On the disposable VM, format a uniquely named 32-megabyte image, loop-mount it below the lab, and write a bounded stream until the filesystem returns ENOSPC. The host remains available because the capacity boundary is the mounted image.`,
       syntaxBreakdown:
-        code`truncate creates a fixed image; mkfs.ext4 formats it; sudo -n mount -o loop attaches one loop mount; dd captures its nonzero full-disk result; df reports the inner filesystem.`,
+        code`truncate creates a fixed image; mkfs.ext4 formats it; as_root (root directly, sudo -n otherwise) mount -o loop attaches one loop mount inside a subshell; the || fill_status=$? idiom records dd's nonzero full-disk result without set -e; df reports the inner filesystem.`,
       code: code`
+(
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi; }
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 IMAGE=$LAB/full-image-$UID.img
@@ -211,31 +218,30 @@ MOUNT=$LAB/full-mount-$UID
 ERROR=$LAB/full-error-$UID
 mkdir -p "$MOUNT"
 mounted=no
-trap 'if [ "$mounted" = yes ]; then sudo -n umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$IMAGE" "$ERROR"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
+trap 'if [ "$mounted" = yes ]; then as_root umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$IMAGE" "$ERROR"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
 rm -f "$IMAGE" "$ERROR"
 truncate -s 33554432 "$IMAGE"
 mkfs.ext4 -q -F "$IMAGE"
-if ! sudo -n mount -o loop "$IMAGE" "$MOUNT"; then
+if ! as_root mount -o loop "$IMAGE" "$MOUNT"; then
   printf 'mount_status=unavailable\n'
   exit 1
 fi
 mounted=yes
-set +e
-sudo -n dd if=/dev/zero of="$MOUNT/fill.bin" bs=1048576 count=64 status=none 2>"$ERROR"
-fill_status=$?
-set -e
+fill_status=0
+as_root dd if=/dev/zero of="$MOUNT/fill.bin" bs=1048576 count=64 status=none 2>"$ERROR" || fill_status=$?
 inner_free=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $4}')
 printf 'mount_status=mounted\n'
 printf 'fill_status=%s\n' "$fill_status"
 printf 'inner_free_bytes=%s\n' "$inner_free"
 printf 'enospc_text=%s\n' "$(grep -qi 'no space left on device' "$ERROR" && echo present || echo absent)"
 if [ "$fill_status" -ne 0 ] && grep -qi 'no space left on device' "$ERROR" && [ "$inner_free" -lt 1048576 ]; then printf 'bounded_enospc=observed\n'; else printf 'bounded_enospc=unexpected\n'; fi
-sudo -n umount "$MOUNT"
+as_root umount "$MOUNT"
 mounted=no
 rm -f "$IMAGE" "$ERROR"
 rmdir "$MOUNT" 2>/dev/null || true
 trap - EXIT
 printf 'cleanup=image-and-mount-removed\n'
+)
 `,
       expectedResult:
         code`On the disposable VM, mount_status=mounted, fill_status is nonzero, enospc_text=present, inner_free_bytes is below one MiB, bounded_enospc=observed, and cleanup=image-and-mount-removed. The exact free count depends on ext4 metadata and reserved blocks.`,
@@ -253,11 +259,14 @@ printf 'cleanup=image-and-mount-removed\n'
       safetyLevel: "privileged",
       runIn: "shell",
       estimatedMinutes: 18,
+      revision: 2,
       overview:
         code`Create a fresh bounded ext4 image, hold a 12-megabyte file open, unlink its only name, and compare inner free space before and after the holder exits. The image recovers blocks only when the final open reference is released.`,
       syntaxBreakdown:
-        code`A loop mount gives the image a private capacity boundary; exec 9< holds the file; rm removes its name; df -B1 measures free bytes; wait closes the holder; sudo -n umount releases the exact mount.`,
+        code`A loop mount gives the image a private capacity boundary; exec 9< holds the file; rm removes its name; df -B1 measures free bytes; wait closes the holder; as_root (root directly, sudo -n otherwise) umount releases the exact mount from inside the subshell.`,
       code: code`
+(
+as_root() { if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -n "$@"; fi; }
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
 IMAGE=$LAB/recover-image-$UID.img
@@ -266,16 +275,16 @@ READY=$LAB/recover-ready-$UID
 mkdir -p "$MOUNT"
 mounted=no
 holder_pid=
-trap 'test -n "$holder_pid" && kill "$holder_pid" 2>/dev/null || true; test -n "$holder_pid" && wait "$holder_pid" 2>/dev/null || true; if [ "$mounted" = yes ]; then sudo -n umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$IMAGE" "$READY"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
+trap 'test -n "$holder_pid" && kill "$holder_pid" 2>/dev/null || true; test -n "$holder_pid" && wait "$holder_pid" 2>/dev/null || true; if [ "$mounted" = yes ]; then as_root umount "$MOUNT" 2>/dev/null || true; fi; rm -f "$IMAGE" "$READY"; rmdir "$MOUNT" 2>/dev/null || true' EXIT
 rm -f "$IMAGE" "$READY"
 truncate -s 33554432 "$IMAGE"
 mkfs.ext4 -q -F "$IMAGE"
-if ! sudo -n mount -o loop "$IMAGE" "$MOUNT"; then
+if ! as_root mount -o loop "$IMAGE" "$MOUNT"; then
   printf 'mount_status=unavailable\n'
   exit 1
 fi
 mounted=yes
-sudo -n dd if=/dev/zero of="$MOUNT/held.bin" bs=1048576 count=12 status=none
+as_root dd if=/dev/zero of="$MOUNT/held.bin" bs=1048576 count=12 status=none
 free_before=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $4}')
 holder_pid=
 export READY
@@ -285,7 +294,7 @@ for attempt in 1 2 3 4 5 6 7 8 9 10; do
   [ -e "$READY" ] && break
   sleep 0.05
 done
-sudo -n rm "$MOUNT/held.bin"
+as_root rm "$MOUNT/held.bin"
 free_after_unlink=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $4}')
 printf 'mount_status=mounted\n'
 printf 'free_before=%s\n' "$free_before"
@@ -296,12 +305,13 @@ holder_pid=
 free_after_close=$(df -B1 -P "$MOUNT" | awk 'NR==2{print $4}')
 printf 'free_after_close=%s\n' "$free_after_close"
 if [ ! -e "$MOUNT/held.bin" ] && [ "$free_after_close" -gt "$free_after_unlink" ]; then printf 'space_recovery=after-final-close\n'; else printf 'space_recovery=unexpected\n'; fi
-sudo -n umount "$MOUNT"
+as_root umount "$MOUNT"
 mounted=no
 rm -f "$IMAGE" "$READY"
 rmdir "$MOUNT" 2>/dev/null || true
 trap - EXIT
 printf 'cleanup=image-and-mount-removed\n'
+)
 `,
       expectedResult:
         code`On the disposable VM, mount_status=mounted, name_exists_after_unlink=no, free_after_close is greater than free_after_unlink, space_recovery=after-final-close, and cleanup=image-and-mount-removed. Exact free-byte values vary with ext4 metadata.`,

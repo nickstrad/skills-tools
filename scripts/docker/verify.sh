@@ -18,6 +18,10 @@ set -uo pipefail
 # that the tool is installed. Keep in sync with lab-setup.sh.
 CHECKS=(
     "psql --version"
+    "python3 --version"
+    "/usr/bin/time --version"
+    "mkfs.ext4 -V"
+    "sudo --version | head -1"
     "node --version"
     "npm --version"
     "codex --version"

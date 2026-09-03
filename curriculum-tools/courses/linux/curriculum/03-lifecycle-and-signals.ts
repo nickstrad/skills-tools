@@ -81,10 +81,11 @@ if [ "$success_status" -eq 0 ] && [ "$failure_status" -eq 7 ]; then printf 'exit
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Run a two-process pipeline whose left member fails after recording its PID. Inspect both member PIDs and Bash's PIPESTATUS vector to show that a pipeline is concurrent process composition, not one command.`,
       syntaxBreakdown:
-        code`A pipe connects stdout to stdin; pipefail makes the pipeline status reflect failure; PIPESTATUS records each member status; declare -p prints the array without overwriting it; export passes lab filenames to pipeline children.`,
+        code`A pipe connects stdout to stdin; $? is the whole pipeline's status, which is the last member's unless pipefail selects the last nonzero one; PIPESTATUS records each member's status and is overwritten by the next command, so both are captured in one assignment line right after the pipeline; export passes lab filenames to pipeline children.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -94,24 +95,25 @@ RIGHT_PID_FILE=$LAB/pipeline-right-$UID.pid
 PIPE_OUTPUT=$LAB/pipeline-output-$UID.txt
 trap 'rm -f "$LEFT_PID_FILE" "$RIGHT_PID_FILE" "$PIPE_OUTPUT"' EXIT
 export LEFT_PID_FILE RIGHT_PID_FILE PIPE_OUTPUT
+bash -c 'exit 7' | cat > /dev/null
+status_without_pipefail=$?
 set -o pipefail
 bash -c 'printf "%s\n" "$BASHPID" > "$LEFT_PID_FILE"; printf "left-output\n"; exit 7' |
   bash -c 'printf "%s\n" "$BASHPID" > "$RIGHT_PID_FILE"; cat > "$PIPE_OUTPUT"'
-pipeline_vector=$(declare -p PIPESTATUS)
-pipeline_status=$(printf '%s\n' "$pipeline_vector" | sed -n 's/.*\[0\]="\([^"]*\)".*/\1/p')
+pipeline_status=$? left_status=${"$"}{PIPESTATUS[0]} right_status=${"$"}{PIPESTATUS[1]}
 set +o pipefail
 left_pid=$(cat "$LEFT_PID_FILE")
 right_pid=$(cat "$RIGHT_PID_FILE")
 printf 'left_pid=%s right_pid=%s\n' "$left_pid" "$right_pid"
-printf 'pipeline_status=%s\n' "$pipeline_status"
-printf 'pipeline_vector=%s\n' "$pipeline_vector"
+printf 'status_without_pipefail=%s\n' "$status_without_pipefail"
+printf 'left_status=%s right_status=%s pipeline_status=%s\n' "$left_status" "$right_status" "$pipeline_status"
 printf 'pipeline_output=%s\n' "$(cat "$PIPE_OUTPUT")"
-if printf '%s' "$pipeline_vector" | grep -q '7' && printf '%s' "$pipeline_vector" | grep -q '0'; then printf 'pipeline_members=failed-left-successful-right\n'; else printf 'pipeline_members=unexpected\n'; fi
+if [ "$left_status" -eq 7 ] && [ "$right_status" -eq 0 ] && [ "$pipeline_status" -eq 7 ] && [ "$status_without_pipefail" -eq 0 ]; then printf 'pipeline_members=failed-left-successful-right\n'; else printf 'pipeline_members=unexpected\n'; fi
 rm -f "$LEFT_PID_FILE" "$RIGHT_PID_FILE" "$PIPE_OUTPUT"
 trap - EXIT
 `,
       expectedResult:
-        code`left_pid and right_pid are distinct positive PIDs; pipeline_output=left-output; pipeline_status is nonzero because pipefail sees the left exit 7; pipeline_vector contains one 7 and one 0; and pipeline_members=failed-left-successful-right. The array's exact formatting is Bash-version dependent.`,
+        code`left_pid and right_pid are distinct positive PIDs; pipeline_output=left-output; status_without_pipefail=0 because the last member (cat) succeeded; left_status=7 right_status=0 pipeline_status=7 because pipefail reports the last nonzero member; and pipeline_members=failed-left-successful-right.`,
       systemsLens:
         code`Pipelines form a process graph joined by kernel pipes. A supervisor that reports only the final reader's status can hide an upstream failure, just as a distributed pipeline can hide a failed producer behind a healthy sink.`,
     },
@@ -124,10 +126,11 @@ trap - EXIT
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Install a TERM handler in one child, wait for its readiness record, and send SIGTERM. The child converts asynchronous delivery into a durable receipt and a clean exit.`,
       syntaxBreakdown:
-        code`trap installs a signal disposition; kill -0 probes existence without delivering a signal; kill -TERM requests graceful handling; wait captures the resulting exit status; a polling loop bounds readiness.`,
+        code`trap installs a signal disposition; kill -0 probes existence without delivering a signal; kill -TERM requests graceful handling; wait captures the resulting exit status; a polling loop bounds readiness. The child runs its sleep in the background and blocks in wait, because Bash runs a trap only after the foreground command it is waiting for returns: a child written as trap ...; sleep 30 would receive TERM immediately but act on it 30 seconds later.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -137,7 +140,7 @@ TERM_FILE=$LAB/signal-term-$UID
 rm -f "$READY_FILE" "$TERM_FILE"
 trap 'test -n "$signal_pid" && kill "$signal_pid" 2>/dev/null || true; test -n "$signal_pid" && wait "$signal_pid" 2>/dev/null || true; rm -f "$READY_FILE" "$TERM_FILE"' EXIT
 export READY_FILE TERM_FILE
-bash -c 'trap "printf '\''%s\n'\'' term_received > \"$TERM_FILE\"; exit 0" TERM; : > "$READY_FILE"; sleep 5' &
+bash -c 'sleep 30 & trap "kill $! 2>/dev/null; printf '\''%s\n'\'' term_received > \"$TERM_FILE\"; exit 0" TERM; : > "$READY_FILE"; wait' &
 signal_pid=$!
 for attempt in 1 2 3 4 5 6 7 8 9 10; do
   [ -e "$READY_FILE" ] && break
@@ -145,16 +148,20 @@ for attempt in 1 2 3 4 5 6 7 8 9 10; do
 done
 printf 'ready=%s\n' "$(test -e "$READY_FILE" && echo yes || echo no)"
 if kill -0 "$signal_pid" 2>/dev/null; then printf 'alive_before_term=yes\n'; else printf 'alive_before_term=no\n'; fi
+term_sent_ns=$(date +%s%N)
 kill -TERM "$signal_pid"
 wait "$signal_pid"
 signal_status=$?
+term_handled_ms=$(( ($(date +%s%N) - term_sent_ns) / 1000000 ))
 printf 'term_receipt=%s\n' "$(cat "$TERM_FILE")"
 printf 'term_exit_status=%s\n' "$signal_status"
+printf 'term_handled_ms=%s\n' "$term_handled_ms"
+if [ "$term_handled_ms" -lt 1000 ]; then printf 'handler_ran_promptly=yes\n'; else printf 'handler_ran_promptly=no\n'; fi
 rm -f "$READY_FILE" "$TERM_FILE"
 trap - EXIT
 `,
       expectedResult:
-        code`ready=yes, alive_before_term=yes, term_receipt=term_received, and term_exit_status=0. The handler chose a clean exit after receiving TERM; readiness polling is bounded at ten short attempts.`,
+        code`ready=yes, alive_before_term=yes, term_receipt=term_received, term_exit_status=0, term_handled_ms well under 1000, and handler_ran_promptly=yes. The handler chose a clean exit as soon as TERM arrived, killing its own 30-second sleep on the way out; readiness polling is bounded at ten short attempts.`,
       systemsLens:
         code`Signals are asynchronous requests interpreted by a process's disposition. Graceful shutdown is therefore a protocol—readiness, signal, drain, exit—not merely a numeric kill command.`,
     },
@@ -167,32 +174,36 @@ trap - EXIT
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
+      revision: 2,
       overview:
         code`Give one child a TERM handler and send KILL to another identical sleeper. Their wait statuses expose the difference between cooperative cleanup and kernel-enforced termination.`,
       syntaxBreakdown:
-        code`SIGTERM is catchable; SIGKILL cannot be caught or delayed; wait returns 128 plus the terminating signal number for a signalled child; trap ensures exact-PID fallback cleanup.`,
+        code`SIGTERM is catchable; SIGKILL cannot be caught or delayed; wait returns 128 plus the terminating signal number for a signalled child; the graceful child blocks in wait on a background sleep so its trap runs the moment TERM arrives (see lesson 16); trap ensures exact-PID fallback cleanup.`,
       code: code`
 graceful_pid=
 forced_pid=
-bash -c 'trap "exit 0" TERM; sleep 5' &
+bash -c 'sleep 30 & trap "kill $! 2>/dev/null; exit 0" TERM; wait' &
 graceful_pid=$!
-sleep 5 &
+sleep 30 &
 forced_pid=$!
-trap 'kill "$graceful_pid" "$forced_pid" 2>/dev/null || true; wait "$graceful_pid" "$forced_pid" 2>/dev/null || true' EXIT
+trap 'kill -KILL "$graceful_pid" "$forced_pid" 2>/dev/null || true; wait "$graceful_pid" "$forced_pid" 2>/dev/null || true' EXIT
 sleep 0.1
+sent_ns=$(date +%s%N)
 kill -TERM "$graceful_pid"
 kill -KILL "$forced_pid"
 wait "$graceful_pid"
 graceful_status=$?
 wait "$forced_pid"
 forced_status=$?
+stopped_ms=$(( ($(date +%s%N) - sent_ns) / 1000000 ))
 printf 'graceful_status=%s\n' "$graceful_status"
 printf 'forced_status=%s\n' "$forced_status"
+printf 'both_stopped_ms=%s\n' "$stopped_ms"
 if [ "$graceful_status" -eq 0 ] && [ "$forced_status" -eq 137 ]; then printf 'stop_modes=cooperative-versus-kernel\n'; else printf 'stop_modes=observed-statuses-vary\n'; fi
 trap - EXIT
 `,
       expectedResult:
-        code`graceful_status=0 and forced_status=137 (128+SIGKILL), producing stop_modes=cooperative-versus-kernel. If a shell reports a platform-specific signalled status, the labels still identify which exact child received each signal.`,
+        code`graceful_status=0 and forced_status=137 (128+SIGKILL), producing stop_modes=cooperative-versus-kernel, with both_stopped_ms well under 1000 even though both children were sleeping for 30 seconds. If a shell reports a platform-specific signalled status, the labels still identify which exact child received each signal.`,
       systemsLens:
         code`TERM leaves policy to the application; KILL removes that policy and ends the task in the kernel. Operators need both paths: graceful draining for correctness and forced bounds for stuck processes.`,
     },
