@@ -25,8 +25,11 @@
 | --- | --- | --- | --- |
 | Bootstrap and Docker safety | Luna/high `linux_bootstrap` + primary review | verified static; runtime blocked by host | `scripts/*` |
 | Shell validator | Luna/high `shell_validator` + primary review | verified | validator, tests, docs |
-| Scaffold and fixed-slug plan | primary | active | `courses/linux/*` |
-| Modules 1-12 | unassigned | pending | one file per module |
+| Scaffold and fixed-slug plan | primary | verified | `courses/linux/*` |
+| Modules 1-3 | Luna/high `modules_01_03` + primary review | verified | module files 01-03 |
+| Modules 4-6 | Luna/high `modules_04_06` | active | module files 04-06 |
+| Modules 7-9 | Luna/high `modules_07_09` | active | module files 07-09 |
+| Modules 10-12 | Luna/high `modules_10_12` | active | module files 10-12 |
 
 ## Validation evidence
 
@@ -46,6 +49,11 @@
 - Shell validator: focused suite passed `6 passed | 0 failed`; targeted `deno fmt --check`,
   `deno lint`, and `deno check` passed. A real legacy smoke selection of PostgreSQL
   `build-lab-cluster` printed the manual-shell skip and exited 0.
+- Blocking-step correction: primary review found deferred steps were not required to finish. The
+  validator now fails an unresolved blocking marker; regression suite is `7 passed | 0 failed`.
+- Modules 1-3: build wrote 18 lessons; all 18 passed the shell harness with a unique `/tmp` lab and
+  labeled evidence matching expectations. Primary fixed FIFO header/readiness ordering. Final
+  checks showed an empty lab directory and no lesson-owned processes/FIFOs.
 
 ## Active lab resources
 
@@ -57,6 +65,9 @@
   `/root/.deno/bin/deno` in this environment.
 - Docker runtime validation is environment-blocked here, not a test failure: daemon unavailable and
   cannot be started. The test restored the same stopped/unavailable state.
+- The first modules 1-3 run exposed a FIFO startup race and a validator false positive for an
+  unresolved blocking step. Both were corrected, the stale FIFO was removed, and all 18 lessons
+  then passed on rerun.
 
 ## Commits and pushes
 

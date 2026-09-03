@@ -1,0 +1,7 @@
+interface:
+  display_name: "Linux Systems Tutor"
+  short_description: "Hands-on Linux Systems experiments with tracked progress"
+  default_prompt: "Use $linux-tutor to show my next unfinished Linux Systems lesson."
+
+policy:
+  allow_implicit_invocation: true

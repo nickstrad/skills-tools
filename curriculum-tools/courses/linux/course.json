@@ -1,0 +1,18 @@
+{
+  "id": "linux",
+  "name": "Linux Systems",
+  "description": "Linux kernel abstractions through hands-on experiments on a disposable Ubuntu VM",
+  "tool": "bash",
+  "minVersion": "5.1",
+  "revision": 1,
+  "repl": {
+    "mode": "shell",
+    "command": ["bash", "--noprofile", "--norc"],
+    "echo": "printf '%s %s\\n' '{marker}' \"$?\"",
+    "quit": "exit",
+    "env": {
+      "LC_ALL": "C",
+      "LANG": "C"
+    }
+  }
+}
