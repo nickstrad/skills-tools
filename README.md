@@ -94,6 +94,17 @@ ln -sfn /root/Software/skills-tools/pg-systems-tutor/skill/pg-systems-tutor \
 If the repository is cloned elsewhere, replace `/root/Software/skills-tools` in
 the skill files or keep a symlink at that path.
 
+## Knowledge base for agents
+
+`docs/knowledge/` holds findings from past work here: tooling quirks, how to read the
+validation harness, lesson-writing pitfalls per course, and the subagent workflow
+that has held up. Before starting work in this repository, read
+`docs/knowledge/README.md` (the index) and the files it points to for your task.
+When you finish work that taught you something another agent would otherwise
+rediscover, add a new file there and a row in the index; the index explains the
+format. Updating the knowledge base is part of finishing the work, not optional
+follow-up.
+
 ## Development and verification
 
 ```sh
@@ -118,6 +129,7 @@ and `curriculum-tools/docs/VALIDATION.md` for real-tool validation. Built
 skills-tools/
 ├── scripts/                machine bootstrap (lab-setup.sh) and utilities
 ├── curriculum-tools/       generalized engine, courses, authoring skill, and validation tools
+├── docs/knowledge/         findings for future agents; read the index before starting work
 ├── pg-systems-tutor/       standalone PostgreSQL CLI, 100 lessons, and skill
 ├── .gitignore              excludes runtime state, secrets, logs, and editor files
 └── README.md
