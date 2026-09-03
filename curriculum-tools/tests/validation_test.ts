@@ -101,6 +101,20 @@ Deno.test("a blocking session is released by another session", async () => {
   });
 });
 
+Deno.test("an unreleased blocking step fails validation", async () => {
+  await withLab(async (lab, logs) => {
+    const result = await validate(
+      `-- Session A (blocks but is never released)\nsleep 0.2\n-- Session B\nprintf 'other-session-finished'`,
+      lab,
+      logs,
+      20,
+    );
+    if (result.failures !== 1 || !logs.some((line) => line.includes("did not complete"))) {
+      throw new Error(JSON.stringify({ result, logs }));
+    }
+  });
+});
+
 Deno.test("a step that exceeds the timeout fails validation", async () => {
   await withLab(async (lab, logs) => {
     const result = await validate("sleep 0.2", lab, logs, 20);

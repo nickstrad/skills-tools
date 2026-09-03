@@ -57,6 +57,7 @@ export class Session {
   readonly writer: WritableStreamDefaultWriter<Uint8Array>;
   private buffer = "";
   private waiters: Waiter[] = [];
+  private pending: { step: number; done: Promise<number | undefined> }[] = [];
   private readonly encoder = new TextEncoder();
   private readonly timeoutMs: number;
   private readonly mode: "tool" | "shell";
@@ -124,6 +125,9 @@ export class Session {
     if (!wait) {
       // A non-waiting step (usually a deliberate block) still reports a later
       // nonzero status through hadFailure when its marker eventually arrives.
+      // Keep its completion promise so lesson teardown cannot silently accept
+      // a step that never became unblocked.
+      this.pending.push({ step, done });
       return { completed: true };
     }
     let timerId: ReturnType<typeof setTimeout> | undefined;
@@ -143,6 +147,22 @@ export class Session {
   }
 
   async close() {
+    if (this.pending.length) {
+      let timerId: ReturnType<typeof setTimeout> | undefined;
+      const timer = new Promise<boolean>((resolve) => {
+        timerId = setTimeout(() => resolve(false), this.timeoutMs);
+      });
+      const completed = await Promise.race([
+        Promise.all(this.pending.map((pending) => pending.done)).then(() => true),
+        timer,
+      ]);
+      if (timerId !== undefined) clearTimeout(timerId);
+      if (!completed) {
+        const steps = this.pending.map((pending) => pending.step).join(", ");
+        this.log(`  !! blocking step(s) ${steps} in session ${this.name} did not complete`);
+        this.hadFailure = true;
+      }
+    }
     try {
       await this.writer.write(this.encoder.encode(`${this.repl.quit}\n`));
       await this.writer.close();

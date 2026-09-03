@@ -1,0 +1,466 @@
+[
+  {
+    "ordinal": 1,
+    "slug": "build-disposable-linux-lab",
+    "title": "Build a disposable Linux lab you can safely own",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell"
+    ],
+    "prerequisites": [],
+    "overview": "Create the bounded directory that every later experiment owns, then label the Bash, kernel, and OS versions used for the observation. A named failure domain makes cleanup and reproduction possible on a disposable VM.",
+    "syntaxBreakdown": "The LINUX_LAB environment variable selects the lab root; mkdir -p is idempotent; readlink -f canonicalizes a path; bash --version, uname, and /etc/os-release identify the execution layers.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nprintf 'lab_path=%s\\n' \"$(readlink -f \"$LAB\")\"\nprintf 'lab_writable=%s\\n' \"$(test -w \"$LAB\" && echo yes || echo no)\"\nprintf 'bash_version=%s\\n' \"$(bash --version | sed -n '1p')\"\nprintf 'kernel_release=%s\\n' \"$(uname -r)\"\nprintf 'os_name=%s\\n' \"$(awk -F= '/^PRETTY_NAME=/{gsub(/\"/, \"\", $2); print $2}' /etc/os-release)\"\nprintf 'locale=%s\\n' \"$LC_ALL\"",
+    "expectedResult": "The output contains an absolute lab_path ending in linux-systems-lab (unless LINUX_LAB was supplied), lab_writable=yes, a Bash 5.1-or-newer version line, a Linux kernel release, an OS name, and locale=C from the course environment. Only the selected lab directory is created.",
+    "systemsLens": "A reproducible experiment starts by naming its failure domain and recording the independent kernel and userspace versions. This is the same discipline used for a service's scratch volume, deployment image, and incident timeline.",
+    "caution": "Use a new directory or a dedicated VM-owned LINUX_LAB. Do not point it at a home directory containing unrelated files.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 2,
+    "slug": "identify-kernel-and-userspace",
+    "title": "Separate the running kernel from userspace",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell",
+      "procfs"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Compare the release reported by uname with the distribution metadata and with /proc/version. The comparison makes visible that a userspace image can change independently of the kernel providing its system calls.",
+    "syntaxBreakdown": "uname -r reads the running kernel release; /proc/version is a kernel-generated procfs view; /etc/os-release describes the userspace distribution; readlink resolves the executable backing the current shell.",
+    "code": "printf 'kernel_uname=%s\\n' \"$(uname -r)\"\nprintf 'proc_version_prefix=%s\\n' \"$(cut -d' ' -f1-3 /proc/version)\"\nprintf 'userspace_id=%s\\n' \"$(awk -F= '/^ID=/{gsub(/\"/, \"\", $2); print $2}' /etc/os-release)\"\nprintf 'readlink_self_exe=%s\\n' \"$(readlink -f /proc/self/exe)\"\nprintf 'shell_exe=%s\\n' \"$(readlink -f /proc/$$/exe)\"\nif grep -q \"$(uname -r)\" /proc/version; then printf 'kernel_release_consistent=yes\\n'; else printf 'kernel_release_consistent=no\\n'; fi",
+    "expectedResult": "kernel_uname is the current Linux release and kernel_release_consistent=yes. proc_version_prefix begins with Linux and includes the kernel build identity; userspace_id identifies the distribution; shell_exe resolves to a Bash binary.",
+    "systemsLens": "The kernel is the syscall provider and procfs publisher, while /etc/os-release belongs to the filesystem image. Containers commonly change userspace while sharing the host kernel, so these identities must be recorded separately.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 8,
+    "revision": 1
+  },
+  {
+    "ordinal": 3,
+    "slug": "inventory-required-commands",
+    "title": "Inventory the commands the curriculum needs",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell",
+      "troubleshooting"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Probe the command surface before an incident exercise starts. A zero-missing inventory distinguishes a missing capability from a kernel or application failure.",
+    "syntaxBreakdown": "A Bash array stores command names; command -v resolves an executable without running it; arithmetic increments a counter; printf gives machine-readable labels.",
+    "code": "missing=0\nrequired_command_count=0\nfor command_name in bash awk cat chmod cp cut date dd df du env find findmnt free grep head hostname ip ionice iostat kill locale lsof lsblk lsns mkdir mkfifo mount mv nice nsenter pgrep pmap printf ps pstree python3 read readlink rm sed sleep sort stat sync taskset test timeout tr true uname umask unshare vmstat wait wc; do\n  required_command_count=$((required_command_count + 1))\n  if command -v \"$command_name\" >/dev/null 2>&1; then\n    printf 'command=%s status=present\\n' \"$command_name\"\n  else\n    printf 'command=%s status=missing\\n' \"$command_name\"\n    missing=$((missing + 1))\n  fi\ndone\nprintf 'required_command_count=%s\\n' \"$required_command_count\"\nprintf 'missing_command_count=%s\\n' \"$missing\"\nif [ \"$missing\" -eq 0 ]; then printf 'inventory_ok=yes\\n'; else printf 'inventory_ok=no\\n'; fi",
+    "expectedResult": "Each listed command prints status=present, required_command_count is greater than 0, missing_command_count=0, and inventory_ok=yes on the prepared Ubuntu VM. If a tool is absent, its name is explicit rather than being mistaken for a later lesson failure.",
+    "systemsLens": "Capability discovery is an observability prerequisite: the same symptom can mean a missing binary, a permission boundary, or a kernel feature. Operators first establish which measurement tools are actually available.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 8,
+    "revision": 1
+  },
+  {
+    "ordinal": 4,
+    "slug": "normalize-shell-observations",
+    "title": "Normalize locale-sensitive shell observations",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Create a tiny observation input, show the active locale and ordering, then run the same observation under LC_ALL=C. Stable labels prevent a locale or timezone difference from looking like a systems regression.",
+    "syntaxBreakdown": "locale reports the active locale; sort orders lines according to the selected collation; date +%s prints an epoch timestamp; printf writes exact labels to a lab file.",
+    "setup": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nORDER_FILE=$LAB/locale-order.txt\nprintf 'b\\nA\\na\\nB\\n' > \"$ORDER_FILE\"\nprintf 'active_locale=%s\\n' \"$LC_ALL\"\nprintf 'active_charmap=%s\\n' \"$(locale charmap)\"\nprintf 'raw_order='; sort \"$ORDER_FILE\" | tr '\\n' ','; printf '\\n'\nprintf 'stable_locale=C\\n'\nprintf 'stable_order='; LC_ALL=C sort \"$ORDER_FILE\" | tr '\\n' ','; printf '\\n'\nprintf 'epoch_seconds=%s\\n' \"$(LC_ALL=C date +%s)\"\nrm -f \"$ORDER_FILE\"\nprintf 'cleanup=order_file_absent:%s\\n' \"$(test ! -e \"$ORDER_FILE\" && echo yes || echo no)\"",
+    "expectedResult": "active_locale is C in the validator, stable_locale=C, and stable_order is A,B,a,b,. epoch_seconds is a changing numeric timestamp, while the locale and ordering labels are stable. cleanup=order_file_absent:yes proves the only artifact was removed.",
+    "systemsLens": "Measurements are part of the experiment's control plane. LC_ALL=C fixes collation and diagnostics so diffs represent kernel behavior rather than a machine's language configuration.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 8,
+    "revision": 1
+  },
+  {
+    "ordinal": 5,
+    "slug": "coordinate-two-shell-sessions",
+    "title": "Coordinate two shell sessions through a FIFO",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell",
+      "pipes"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Use two persistent Bash sessions to make a named pipe rendezvous. Session A blocks in read until Session B writes, making the ordering between independent processes visible rather than implied by a script's line order.",
+    "syntaxBreakdown": "mkfifo creates a filesystem-named pipe; read -r waits for one newline-delimited record; test -p checks the object type; trap registers exact cleanup; rm removes only the lab FIFO.",
+    "code": "# Session A (blocks until B writes)\nLAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFIFO=$LAB/session-coordinate-$UID.fifo\nrm -f \"$FIFO\"\nmkfifo \"$FIFO\"\ntrap 'rm -f \"$FIFO\"' EXIT\nprintf 'run_id=linux-tutor-%s\\n' \"$UID\"\nprintf 'fifo_ready=%s\\n' \"$(test -p \"$FIFO\" && echo yes || echo no)\"\nprintf 'session_a=waiting\\n'\nread -r token < \"$FIFO\"\nprintf 'session_a_received=%s\\n' \"$token\"\nrm -f \"$FIFO\"\ntrap - EXIT\nprintf 'session_a_cleanup=done\\n'\n\n# Session B\nLAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nFIFO=$LAB/session-coordinate-$UID.fifo\nfor attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do\n  [ -p \"$FIFO\" ] && break\n  sleep 0.05\ndone\nprintf 'session_b_fifo_present=%s\\n' \"$(test -p \"$FIFO\" && echo yes || echo no)\"\n[ -p \"$FIFO\" ]\nprintf 'linux-tutor-%s\\n' \"$UID\" > \"$FIFO\"\nprintf 'session_b=unblocked\\n'",
+    "expectedResult": "Session A prints fifo_ready=yes and then waits. Session B observes session_b_fifo_present=yes, writes the token, and prints session_b=unblocked; A resumes with session_a_received=linux-tutor-<UID>. Both sessions use the same run_id, and session_a_cleanup=done leaves no FIFO.",
+    "systemsLens": "A FIFO is a kernel pipe with a pathname. Opening and reading it establishes a happens-before edge between processes, the same kind of explicit rendezvous used by workers, queues, and readiness protocols.",
+    "caution": "The Session A step intentionally blocks until Session B runs. The validator and the learner must execute the labelled steps in order.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 2,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 6,
+    "slug": "cleanup-with-traps",
+    "title": "Make cleanup part of the experiment with traps",
+    "category": "lab-and-shell-discipline",
+    "difficulty": "beginner",
+    "tags": [
+      "lab",
+      "shell",
+      "processes"
+    ],
+    "prerequisites": [
+      5
+    ],
+    "overview": "Start one uniquely identified child and one lab record inside a subshell, then leave the subshell normally. Its EXIT trap kills and reaps the exact child and removes the record, proving that cleanup runs at the boundary where resources were acquired.",
+    "syntaxBreakdown": "trap attaches cleanup to EXIT; sleep creates a bounded child; kill sends a signal to one recorded PID; wait reaps that child; test -e checks the resulting filesystem state.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nPID_FILE=$LAB/trap-child-$UID.pid\ntrap_child_pid=\n(\n  trap 'kill \"$trap_child_pid\" 2>/dev/null || true; wait \"$trap_child_pid\" 2>/dev/null || true; rm -f \"$PID_FILE\"' EXIT\n  sleep 30 & trap_child_pid=$!\n  printf '%s\\n' \"$trap_child_pid\" > \"$PID_FILE\"\n  printf 'inside_child_pid=%s\\n' \"$trap_child_pid\"\n  printf 'inside_pid_file=%s\\n' \"$(test -e \"$PID_FILE\" && echo present || echo absent)\"\n)\nrecorded_pid=$(cat \"$PID_FILE\" 2>/dev/null || true)\nif [ -n \"$recorded_pid\" ] && kill -0 \"$recorded_pid\" 2>/dev/null; then child_after_subshell=alive; else child_after_subshell=gone; fi\nprintf 'child_after_subshell=%s\\n' \"$child_after_subshell\"\nprintf 'pid_file_after_subshell=%s\\n' \"$(test ! -e \"$PID_FILE\" && echo absent || echo present)\"\nrm -f \"$PID_FILE\"",
+    "expectedResult": "inside_pid_file=present identifies one sleep child. After the subshell exits, child_after_subshell=gone and pid_file_after_subshell=absent. The PID is exact and temporary; no unrelated process is signalled.",
+    "systemsLens": "Resource ownership is a control-flow property: the process that acquires a child and a file should register their release immediately. This is the shell analogue of finally blocks, lease expiry, and service shutdown hooks.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 7,
+    "slug": "pid-and-parentage",
+    "title": "Read PID and parentage from procfs",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs"
+    ],
+    "prerequisites": [
+      6
+    ],
+    "overview": "Spawn one bounded child and correlate the shell's PID, the child's PID, and the child's PPID. The relationship is kernel-maintained process identity, not a convention inferred from a command line.",
+    "syntaxBreakdown": "BASHPID identifies the current Bash process; $! expands to the newest background PID; /proc/PID/status exposes PPid; ps prints a process table row; wait reaps the child.",
+    "code": "child_pid=\nbash -c 'sleep 4' &\nchild_pid=$!\nshell_pid=$BASHPID\nchild_ppid=$(awk '/^PPid:/{print $2}' \"/proc/$child_pid/status\")\nprintf 'shell_bashpid=%s\\n' \"$shell_pid\"\nprintf 'child_pid=%s\\n' \"$child_pid\"\nprintf 'child_ppid=%s\\n' \"$child_ppid\"\nps -o pid=,ppid=,stat=,comm= -p \"$child_pid\"\nif [ \"$child_ppid\" -eq \"$shell_pid\" ]; then printf 'parentage_check=direct-child\\n'; else printf 'parentage_check=unexpected\\n'; fi\nwait \"$child_pid\"\nprintf 'cleanup=child_reaped\\n'",
+    "expectedResult": "child_pid is a live positive PID; child_ppid equals shell_bashpid; ps shows the child in a sleeping state with that PPID; parentage_check=direct-child; and wait finishes with cleanup=child_reaped. PIDs vary per run.",
+    "systemsLens": "A PID names a task in a process namespace and PPID records its parent relationship. Supervisors, reapers, and request-to-process correlation all depend on this kernel-maintained identity graph.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 8,
+    "slug": "process-tree",
+    "title": "Observe a controlled process tree",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs"
+    ],
+    "prerequisites": [
+      7
+    ],
+    "overview": "Create a parent, child, and grandchild that sleep briefly, then inspect their hierarchy with pstree and ps --forest. The tree shows which execution contexts were forked from which ancestors.",
+    "syntaxBreakdown": "bash -c runs a child shell; wait keeps a parent alive for its child; pstree -p annotates ancestry with PIDs; ps --forest renders the same relationship from procfs.",
+    "code": "tree_parent=\nbash -c 'bash -c \"sleep 5\" & wait' &\ntree_parent=$!\ntrap 'kill \"$tree_parent\" 2>/dev/null || true; wait \"$tree_parent\" 2>/dev/null || true' EXIT\nsleep 0.2\nprintf 'tree_root_pid=%s\\n' \"$tree_parent\"\nprintf 'pstree_evidence=\\n'\npstree -p \"$tree_parent\"\nprintf 'ps_forest_evidence=\\n'\nps -o pid=,ppid=,stat=,comm= --forest -p \"$tree_parent\" --ppid \"$tree_parent\"\nkill \"$tree_parent\" 2>/dev/null || true\nwait \"$tree_parent\" 2>/dev/null || true\ntrap - EXIT\nprintf 'cleanup=tree_stopped\\n'",
+    "expectedResult": "pstree_evidence contains tree_root_pid and at least one descendant, and ps_forest_evidence lists the root and its child with matching PID/PPID columns. cleanup=tree_stopped follows exact root cleanup; short-lived PIDs and display spacing vary.",
+    "systemsLens": "Fork ancestry propagates environment, credentials, and open descriptors while retaining a parent-child lifecycle edge. A service tree is therefore useful evidence when an unexpected worker survives or inherits state.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 9,
+    "slug": "proc-process-identity",
+    "title": "Correlate ps identity with procfs identity",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs",
+      "troubleshooting"
+    ],
+    "prerequisites": [
+      7
+    ],
+    "overview": "Start one uniquely argv-labelled process and read its identity through ps, pgrep, and procfs. Correlation by PID is stronger than matching a mutable display name alone.",
+    "syntaxBreakdown": "exec -a changes argv[0] for a child; pgrep -f searches the full command line; readlink resolves /proc/PID/exe; awk extracts Name and State fields; /proc/PID/stat field 22 is a start-time tick count.",
+    "code": "proc_identity_pid=\nbash -c 'exec -a linux-tutor-proc-identity sleep 5' &\nproc_identity_pid=$!\ntrap 'kill \"$proc_identity_pid\" 2>/dev/null || true; wait \"$proc_identity_pid\" 2>/dev/null || true' EXIT\nsleep 0.1\nprintf 'proc_pid=%s\\n' \"$proc_identity_pid\"\nprintf 'ps_pid=%s\\n' \"$(ps -o pid= -p \"$proc_identity_pid\" | tr -d ' ')\"\nprintf 'pgrep_pid=%s\\n' \"$(pgrep -P \"$$\" -f 'linux-tutor-proc-identity' | head -n 1)\"\nprintf 'proc_exe=%s\\n' \"$(readlink -f \"/proc/$proc_identity_pid/exe\")\"\nprintf 'proc_name=%s\\n' \"$(awk '/^Name:/{print $2}' \"/proc/$proc_identity_pid/status\")\"\nprintf 'proc_state=%s\\n' \"$(awk '/^State:/{print $2}' \"/proc/$proc_identity_pid/status\")\"\nprintf 'starttime_ticks=%s\\n' \"$(awk '{print $22}' \"/proc/$proc_identity_pid/stat\")\"\nprintf 'cmdline='; tr '\\0' ' ' < \"/proc/$proc_identity_pid/cmdline\"; printf '\\n'\nkill \"$proc_identity_pid\" 2>/dev/null || true\nwait \"$proc_identity_pid\" 2>/dev/null || true\ntrap - EXIT",
+    "expectedResult": "proc_pid and ps_pid match; pgrep_pid is the same child PID; proc_exe resolves to the sleep executable; proc_name= sleep (or the distro's equivalent comm); proc_state begins with S; starttime_ticks is numeric; and cmdline contains linux-tutor-proc-identity. The exact tick count varies.",
+    "systemsLens": "procfs is a live projection of kernel task state, while ps and pgrep are different readers and filters over that state. Incident tools should correlate stable identifiers and timestamps before trusting names.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 10,
+    "slug": "command-line-and-environment",
+    "title": "Distinguish argv from the environment",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs"
+    ],
+    "prerequisites": [
+      9
+    ],
+    "overview": "Launch a child with a lab-only environment token and inspect its NUL-delimited command line and environment separately. Both are inherited byte vectors, but they answer different debugging questions.",
+    "syntaxBreakdown": "env adds one variable for a child; /proc/PID/cmdline and environ contain NUL-separated records; tr converts NULs to visible separators; grep selects one exact environment key.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nTOKEN=linux-tutor-token-$UID\nexport TOKEN\nenv LINUX_TUTOR_TOKEN=\"$TOKEN\" bash -c 'sleep 5' &\nargv_env_pid=$!\ntrap 'kill \"$argv_env_pid\" 2>/dev/null || true; wait \"$argv_env_pid\" 2>/dev/null || true' EXIT\nsleep 0.1\nprintf 'process_pid=%s\\n' \"$argv_env_pid\"\nprintf 'cmdline='; tr '\\0' ' ' < \"/proc/$argv_env_pid/cmdline\"; printf '\\n'\nprintf 'environment_token=%s\\n' \"$(tr '\\0' '\\n' < \"/proc/$argv_env_pid/environ\" | grep '^LINUX_TUTOR_TOKEN=')\"\nif tr '\\0' '\\n' < \"/proc/$argv_env_pid/cmdline\" | grep -q 'sleep'; then printf 'argv_contains_program=yes\\n'; else printf 'argv_contains_program=no\\n'; fi\nkill \"$argv_env_pid\" 2>/dev/null || true\nwait \"$argv_env_pid\" 2>/dev/null || true\ntrap - EXIT",
+    "expectedResult": "cmdline contains sleep, environment_token=LINUX_TUTOR_TOKEN=linux-tutor-token-<UID>, and argv_contains_program=yes. process_pid varies. Bash may optimize the final sleep and replace its own command line; that is why the experiment checks the observable argv rather than requiring a shell wrapper.",
+    "systemsLens": "argv selects how a program interprets its arguments; environ carries inherited configuration and secrets. Treating either as process identity causes misleading diagnoses and accidental credential exposure.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 11,
+    "slug": "process-states",
+    "title": "Observe sleeping and stopped process states",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs",
+      "signals"
+    ],
+    "prerequisites": [
+      9
+    ],
+    "overview": "Observe one child while it sleeps, stop it with SIGSTOP, and continue it with SIGCONT. The state letter explains why a task is not currently executing.",
+    "syntaxBreakdown": "ps -o stat reads the compact task state; kill -STOP suspends a task unconditionally; kill -CONT makes it runnable again; cut extracts the state letter.",
+    "code": "state_pid=\nsleep 5 &\nstate_pid=$!\ntrap 'kill \"$state_pid\" 2>/dev/null || true; wait \"$state_pid\" 2>/dev/null || true' EXIT\nsleep 0.1\nstate_before=$(ps -o stat= -p \"$state_pid\" | tr -d ' ' | cut -c1)\nkill -STOP \"$state_pid\"\nsleep 0.1\nstate_stopped=$(ps -o stat= -p \"$state_pid\" | tr -d ' ' | cut -c1)\nkill -CONT \"$state_pid\"\nsleep 0.1\nstate_after=$(ps -o stat= -p \"$state_pid\" | tr -d ' ' | cut -c1)\nprintf 'state_before=%s\\n' \"$state_before\"\nprintf 'state_after_stop=%s\\n' \"$state_stopped\"\nprintf 'state_after_continue=%s\\n' \"$state_after\"\nif [ \"$state_stopped\" = T ] && [ \"$state_before\" = S ] && [ \"$state_after\" = S ]; then printf 'state_transition=observed\\n'; else printf 'state_transition=unexpected\\n'; fi\nkill \"$state_pid\" 2>/dev/null || true\nwait \"$state_pid\" 2>/dev/null || true\ntrap - EXIT",
+    "expectedResult": "state_before=S, state_after_stop=T, state_after_continue=S, and state_transition=observed. A plus suffix may appear in raw ps output when a process is in the foreground process group; the first state letter is the invariant.",
+    "systemsLens": "Task state records whether a process is sleeping, stopped, runnable, or exiting. A scheduler view without state transitions cannot distinguish a slow computation from a deliberately paused or blocked task.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 12,
+    "slug": "threads-under-task",
+    "title": "See Linux threads as schedulable tasks",
+    "category": "processes-and-identity",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "procfs",
+      "scheduling"
+    ],
+    "prerequisites": [
+      9
+    ],
+    "overview": "Create one Python process with three sleeping threads, then compare its process identity with the entries under /proc/PID/task. Linux schedules each thread task even though users often name the group by one PID.",
+    "syntaxBreakdown": "threading.Thread creates native Python threads; daemon threads do not keep Python alive; /proc/PID/task contains one directory per thread ID; ps -L lists lightweight processes in a thread group; wc -l counts entries.",
+    "code": "thread_pid=\npython3 -c 'import threading,time; [threading.Thread(target=time.sleep,args=(5,),daemon=True).start() for unused in range(3)]; time.sleep(5)' &\nthread_pid=$!\ntrap 'kill \"$thread_pid\" 2>/dev/null || true; wait \"$thread_pid\" 2>/dev/null || true' EXIT\nsleep 0.2\nthread_count=$(find \"/proc/$thread_pid/task\" -mindepth 1 -maxdepth 1 -type d | wc -l)\ntgid=$(awk '/^Tgid:/{print $2}' \"/proc/$thread_pid/status\")\nprintf 'process_pid=%s\\n' \"$thread_pid\"\nprintf 'tgid=%s\\n' \"$tgid\"\nprintf 'thread_entry_count=%s\\n' \"$thread_count\"\nps -L -o pid=,lwp=,stat=,comm= -p \"$thread_pid\"\nif [ \"$tgid\" = \"$thread_pid\" ] && [ \"$thread_count\" -ge 4 ]; then printf 'thread_group=one_process_four_tasks_or_more\\n'; else printf 'thread_group=unexpected\\n'; fi\nkill \"$thread_pid\" 2>/dev/null || true\nwait \"$thread_pid\" 2>/dev/null || true\ntrap - EXIT",
+    "expectedResult": "tgid equals process_pid, thread_entry_count is at least 4 (the leader plus three workers), ps -L lists those LWP entries, and thread_group=one_process_four_tasks_or_more. Thread IDs and scheduling state vary.",
+    "systemsLens": "Linux's schedulable unit is a task, while a thread group supplies shared address space and signal semantics. This distinction matters when CPU, memory, or fault evidence attributes load to one process but many runnable tasks.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 13,
+    "slug": "foreground-and-background",
+    "title": "Compare foreground and background lifetime",
+    "category": "lifecycle-and-signals",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "signals",
+      "shell"
+    ],
+    "prerequisites": [
+      7
+    ],
+    "overview": "Run equal bounded sleeps in the foreground and background, measuring when the shell returns and when the work completes. The shell is a process supervisor that decides whether to wait immediately.",
+    "syntaxBreakdown": "An ampersand starts asynchronous work; $! records its PID; jobs lists shell jobs; date +%s%N supplies nanosecond timestamps; wait joins a child and returns its completion status.",
+    "code": "start_ns=$(date +%s%N)\nsleep 0.25\nforeground_end_ns=$(date +%s%N)\nforeground_ms=$(( (foreground_end_ns - start_ns) / 1000000 ))\nbackground_start_ns=$(date +%s%N)\nsleep 0.25 &\nbackground_pid=$!\nbackground_return_ns=$(date +%s%N)\njobs -l\nwait \"$background_pid\"\nbackground_end_ns=$(date +%s%N)\nbackground_return_ms=$(( (background_return_ns - background_start_ns) / 1000000 ))\nbackground_total_ms=$(( (background_end_ns - background_start_ns) / 1000000 ))\nprintf 'foreground_ms=%s\\n' \"$foreground_ms\"\nprintf 'background_return_ms=%s\\n' \"$background_return_ms\"\nprintf 'background_total_ms=%s\\n' \"$background_total_ms\"\nif [ \"$background_return_ms\" -lt \"$foreground_ms\" ] && [ \"$background_total_ms\" -ge 200 ]; then printf 'shell_wait_relationship=observed\\n'; else printf 'shell_wait_relationship=unexpected\\n'; fi",
+    "expectedResult": "foreground_ms is about 250 or more, background_return_ms is much smaller than foreground_ms, background_total_ms is at least 200, and shell_wait_relationship=observed. Exact timing varies with scheduler load; wait ensures the background child is reaped.",
+    "systemsLens": "Foreground execution couples the shell's next command to child completion; background execution separates submission from join. This is the basic supervision choice behind worker pools and asynchronous service startup.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 14,
+    "slug": "wait-and-exit-status",
+    "title": "Carry completion information through wait",
+    "category": "lifecycle-and-signals",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "signals",
+      "shell"
+    ],
+    "prerequisites": [
+      13
+    ],
+    "overview": "Launch one child that exits successfully and one that exits with status 7, then capture both wait results. Exit status is a compact completion message from child to parent.",
+    "syntaxBreakdown": "bash -c runs an explicit child command; exit selects its status; wait joins a specific PID; $? is the status of the immediately preceding command, so capture it before another command runs.",
+    "code": "bash -c 'exit 0' &\nsuccess_pid=$!\nbash -c 'exit 7' &\nfailure_pid=$!\nwait \"$success_pid\"\nsuccess_status=$?\nwait \"$failure_pid\"\nfailure_status=$?\nprintf 'success_pid=%s success_status=%s\\n' \"$success_pid\" \"$success_status\"\nprintf 'failure_pid=%s failure_status=%s\\n' \"$failure_pid\" \"$failure_status\"\nif [ \"$success_status\" -eq 0 ] && [ \"$failure_status\" -eq 7 ]; then printf 'exit_channel=preserved\\n'; else printf 'exit_channel=unexpected\\n'; fi",
+    "expectedResult": "success_status=0 and failure_status=7, with exit_channel=preserved. Child PIDs vary. The nonzero wait is intentionally captured, so it is evidence rather than an accidental validator failure.",
+    "systemsLens": "A wait status is an intentionally lossy result channel: it records success, application failure, or signal termination for the parent. Supervisors use this channel to choose retry, alert, or shutdown policy.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 8,
+    "revision": 1
+  },
+  {
+    "ordinal": 15,
+    "slug": "pipelines-are-processes",
+    "title": "Expose pipeline members and PIPESTATUS",
+    "category": "lifecycle-and-signals",
+    "difficulty": "beginner",
+    "tags": [
+      "processes",
+      "pipes",
+      "shell"
+    ],
+    "prerequisites": [
+      14
+    ],
+    "overview": "Run a two-process pipeline whose left member fails after recording its PID. Inspect both member PIDs and Bash's PIPESTATUS vector to show that a pipeline is concurrent process composition, not one command.",
+    "syntaxBreakdown": "A pipe connects stdout to stdin; pipefail makes the pipeline status reflect failure; PIPESTATUS records each member status; declare -p prints the array without overwriting it; export passes lab filenames to pipeline children.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nLEFT_PID_FILE=$LAB/pipeline-left-$UID.pid\nRIGHT_PID_FILE=$LAB/pipeline-right-$UID.pid\nPIPE_OUTPUT=$LAB/pipeline-output-$UID.txt\ntrap 'rm -f \"$LEFT_PID_FILE\" \"$RIGHT_PID_FILE\" \"$PIPE_OUTPUT\"' EXIT\nexport LEFT_PID_FILE RIGHT_PID_FILE PIPE_OUTPUT\nset -o pipefail\nbash -c 'printf \"%s\\n\" \"$BASHPID\" > \"$LEFT_PID_FILE\"; printf \"left-output\\n\"; exit 7' |\n  bash -c 'printf \"%s\\n\" \"$BASHPID\" > \"$RIGHT_PID_FILE\"; cat > \"$PIPE_OUTPUT\"'\npipeline_vector=$(declare -p PIPESTATUS)\npipeline_status=$(printf '%s\\n' \"$pipeline_vector\" | sed -n 's/.*\\[0\\]=\"\\([^\"]*\\)\".*/\\1/p')\nset +o pipefail\nleft_pid=$(cat \"$LEFT_PID_FILE\")\nright_pid=$(cat \"$RIGHT_PID_FILE\")\nprintf 'left_pid=%s right_pid=%s\\n' \"$left_pid\" \"$right_pid\"\nprintf 'pipeline_status=%s\\n' \"$pipeline_status\"\nprintf 'pipeline_vector=%s\\n' \"$pipeline_vector\"\nprintf 'pipeline_output=%s\\n' \"$(cat \"$PIPE_OUTPUT\")\"\nif printf '%s' \"$pipeline_vector\" | grep -q '7' && printf '%s' \"$pipeline_vector\" | grep -q '0'; then printf 'pipeline_members=failed-left-successful-right\\n'; else printf 'pipeline_members=unexpected\\n'; fi\nrm -f \"$LEFT_PID_FILE\" \"$RIGHT_PID_FILE\" \"$PIPE_OUTPUT\"\ntrap - EXIT",
+    "expectedResult": "left_pid and right_pid are distinct positive PIDs; pipeline_output=left-output; pipeline_status is nonzero because pipefail sees the left exit 7; pipeline_vector contains one 7 and one 0; and pipeline_members=failed-left-successful-right. The array's exact formatting is Bash-version dependent.",
+    "systemsLens": "Pipelines form a process graph joined by kernel pipes. A supervisor that reports only the final reader's status can hide an upstream failure, just as a distributed pipeline can hide a failed producer behind a healthy sink.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 16,
+    "slug": "signal-disposition",
+    "title": "Turn SIGTERM delivery into child policy",
+    "category": "lifecycle-and-signals",
+    "difficulty": "beginner",
+    "tags": [
+      "signals",
+      "processes",
+      "shell"
+    ],
+    "prerequisites": [
+      14
+    ],
+    "overview": "Install a TERM handler in one child, wait for its readiness record, and send SIGTERM. The child converts asynchronous delivery into a durable receipt and a clean exit.",
+    "syntaxBreakdown": "trap installs a signal disposition; kill -0 probes existence without delivering a signal; kill -TERM requests graceful handling; wait captures the resulting exit status; a polling loop bounds readiness.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nREADY_FILE=$LAB/signal-ready-$UID\nTERM_FILE=$LAB/signal-term-$UID\nrm -f \"$READY_FILE\" \"$TERM_FILE\"\ntrap 'test -n \"$signal_pid\" && kill \"$signal_pid\" 2>/dev/null || true; test -n \"$signal_pid\" && wait \"$signal_pid\" 2>/dev/null || true; rm -f \"$READY_FILE\" \"$TERM_FILE\"' EXIT\nexport READY_FILE TERM_FILE\nbash -c 'trap \"printf '\\''%s\\n'\\'' term_received > \\\"$TERM_FILE\\\"; exit 0\" TERM; : > \"$READY_FILE\"; sleep 5' &\nsignal_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY_FILE\" ] && break\n  sleep 0.05\ndone\nprintf 'ready=%s\\n' \"$(test -e \"$READY_FILE\" && echo yes || echo no)\"\nif kill -0 \"$signal_pid\" 2>/dev/null; then printf 'alive_before_term=yes\\n'; else printf 'alive_before_term=no\\n'; fi\nkill -TERM \"$signal_pid\"\nwait \"$signal_pid\"\nsignal_status=$?\nprintf 'term_receipt=%s\\n' \"$(cat \"$TERM_FILE\")\"\nprintf 'term_exit_status=%s\\n' \"$signal_status\"\nrm -f \"$READY_FILE\" \"$TERM_FILE\"\ntrap - EXIT",
+    "expectedResult": "ready=yes, alive_before_term=yes, term_receipt=term_received, and term_exit_status=0. The handler chose a clean exit after receiving TERM; readiness polling is bounded at ten short attempts.",
+    "systemsLens": "Signals are asynchronous requests interpreted by a process's disposition. Graceful shutdown is therefore a protocol—readiness, signal, drain, exit—not merely a numeric kill command.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 17,
+    "slug": "graceful-and-forced-stop",
+    "title": "Compare graceful TERM with forced KILL",
+    "category": "lifecycle-and-signals",
+    "difficulty": "beginner",
+    "tags": [
+      "signals",
+      "processes"
+    ],
+    "prerequisites": [
+      16
+    ],
+    "overview": "Give one child a TERM handler and send KILL to another identical sleeper. Their wait statuses expose the difference between cooperative cleanup and kernel-enforced termination.",
+    "syntaxBreakdown": "SIGTERM is catchable; SIGKILL cannot be caught or delayed; wait returns 128 plus the terminating signal number for a signalled child; trap ensures exact-PID fallback cleanup.",
+    "code": "graceful_pid=\nforced_pid=\nbash -c 'trap \"exit 0\" TERM; sleep 5' &\ngraceful_pid=$!\nsleep 5 &\nforced_pid=$!\ntrap 'kill \"$graceful_pid\" \"$forced_pid\" 2>/dev/null || true; wait \"$graceful_pid\" \"$forced_pid\" 2>/dev/null || true' EXIT\nsleep 0.1\nkill -TERM \"$graceful_pid\"\nkill -KILL \"$forced_pid\"\nwait \"$graceful_pid\"\ngraceful_status=$?\nwait \"$forced_pid\"\nforced_status=$?\nprintf 'graceful_status=%s\\n' \"$graceful_status\"\nprintf 'forced_status=%s\\n' \"$forced_status\"\nif [ \"$graceful_status\" -eq 0 ] && [ \"$forced_status\" -eq 137 ]; then printf 'stop_modes=cooperative-versus-kernel\\n'; else printf 'stop_modes=observed-statuses-vary\\n'; fi\ntrap - EXIT",
+    "expectedResult": "graceful_status=0 and forced_status=137 (128+SIGKILL), producing stop_modes=cooperative-versus-kernel. If a shell reports a platform-specific signalled status, the labels still identify which exact child received each signal.",
+    "systemsLens": "TERM leaves policy to the application; KILL removes that policy and ends the task in the kernel. Operators need both paths: graceful draining for correctness and forced bounds for stuck processes.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 18,
+    "slug": "zombies-and-orphans",
+    "title": "Distinguish zombie retention from orphan reparenting",
+    "category": "lifecycle-and-signals",
+    "difficulty": "intermediate",
+    "tags": [
+      "processes",
+      "procfs",
+      "signals"
+    ],
+    "prerequisites": [
+      14
+    ],
+    "overview": "Use a bounded Python parent that leaves one exited child unreaped briefly and lets another child outlive it. Observe a Z state before wait, then compare the orphan's parent PID before and after reparenting.",
+    "syntaxBreakdown": "fork creates children; os._exit ends a child without Python cleanup; ps stat exposes Z; os.waitpid reaps a zombie; os.getppid reports the current parent; polling avoids an unbounded race.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nPID_FILE=$LAB/zombie-pids-$UID\nREPORT_FILE=$LAB/orphan-report-$UID\nrm -f \"$PID_FILE\" \"$REPORT_FILE\"\npython3 -c 'import os,time,sys; p,r=sys.argv[1:]; z=os.fork(); z == 0 and os._exit(0); o=os.fork(); o == 0 and (open(r,\"w\").write(\"before_ppid=\"+str(os.getppid())+\"\\n\"), time.sleep(.6), open(r,\"a\").write(\"after_ppid=\"+str(os.getppid())+\"\\n\"), time.sleep(.2), os._exit(0)); open(p,\"w\").write(str(os.getpid())+\" \"+str(z)+\" \"+str(o)+\"\\n\"); time.sleep(.25); os.waitpid(z,0); time.sleep(.1)' \"$PID_FILE\" \"$REPORT_FILE\" &\npython_parent=$!\norphan_pid=\ntrap 'kill \"$python_parent\" 2>/dev/null || true; test -n \"$orphan_pid\" && kill \"$orphan_pid\" 2>/dev/null || true; wait \"$python_parent\" \"$orphan_pid\" 2>/dev/null || true; rm -f \"$PID_FILE\" \"$REPORT_FILE\"' EXIT\nfor attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do\n  [ -s \"$PID_FILE\" ] && break\n  sleep 0.05\ndone\nread python_record_pid zombie_pid orphan_pid < \"$PID_FILE\"\nzombie_state=$(ps -o stat= -p \"$zombie_pid\" 2>/dev/null | tr -d ' ' | cut -c1)\nprintf 'zombie_pid=%s\\n' \"$zombie_pid\"\nprintf 'zombie_state=%s\\n' \"$zombie_state\"\nprintf 'orphan_pid=%s\\n' \"$orphan_pid\"\nwait \"$python_parent\"\nfor attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do\n  grep -q '^after_ppid=' \"$REPORT_FILE\" 2>/dev/null && break\n  sleep 0.05\ndone\nbefore_ppid=$(awk -F= '/^before_ppid=/{print $2}' \"$REPORT_FILE\")\nafter_ppid=$(awk -F= '/^after_ppid=/{print $2}' \"$REPORT_FILE\")\nprintf 'orphan_before_ppid=%s\\n' \"$before_ppid\"\nprintf 'orphan_after_ppid=%s\\n' \"$after_ppid\"\nif [ \"$zombie_state\" = Z ] && [ \"$before_ppid\" != \"$after_ppid\" ]; then printf 'lifecycle_distinction=observed\\n'; else printf 'lifecycle_distinction=check_timing_or_subreaper\\n'; fi\nrm -f \"$PID_FILE\" \"$REPORT_FILE\"\ntrap - EXIT",
+    "expectedResult": "zombie_state=Z while the Python parent delays wait; orphan_before_ppid equals python_record_pid; after the parent exits, orphan_after_ppid differs (commonly 1, or a VM subreaper); and lifecycle_distinction=observed. Exact PIDs and the reaper PID vary.",
+    "systemsLens": "Exit and reaping are separate lifecycle events: a zombie retains a small status record until its parent waits, while an orphan is reparented so it can eventually be reaped. Both are failure modes for supervisors that neglect lifecycle ownership.",
+    "caution": "This experiment uses only two exact children and waits for bounded completion. Never generalize it into host-wide process cleanup.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 18,
+    "revision": 1
+  }
+]

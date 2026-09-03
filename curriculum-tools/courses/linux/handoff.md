@@ -73,6 +73,9 @@
 
 - `4521813` — bootstrap/Docker safety; pushed to `origin/main`.
 - `e6ab578` — persistent shell validator and six initial regression tests; pushed to `origin/main`.
+- `4d1cb62` — disk-safe Docker cleanup follow-up; pushed to `origin/main`.
+- `a3ad816` — fixed 72-lesson plan, course metadata, wrapper skill, and module stubs; pushed to
+  `origin/main`.
 - External PostgreSQL work advanced `main` through `84d8dad`; Linux commits remain ancestors and no
   PostgreSQL files were staged by this workflow.
 
