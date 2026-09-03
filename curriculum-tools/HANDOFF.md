@@ -1,6 +1,6 @@
 # Handoff: PostgreSQL systems curriculum + general tutor engine
 
-Last updated: 2026-09-03 11:12 UTC. **Update this file after every module and before any risky
+Last updated: 2026-09-03 11:32 UTC. **Update this file after every module and before any risky
 step.**
 
 ## What the user asked for
@@ -102,12 +102,12 @@ changed from the spec and why.
 | 06 | 06-locking.ts       | locks, queues, deadlocks, DDL                               | 8       | DONE, subagent-validated, Fable re-ran deadlock/lock-queue/ddl-behind-long-query OK (23:45)                                                                                               |
 | 07 | 07-wal.ts           | WAL records, durability, crash redo                         | 7       | DONE; Fable re-ran 4 harness lessons OK 01:35 (crash/pg_waldump/pgbench lessons validated by hand by the subagent; crash lesson needs Session B commit to force the ghost record to disk) |
 | 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | 6       | DONE; Fable re-ran anatomy/max-wal-size/timeline OK 01:55. Leaves $PGLAB/backup1 (330 MB) for module 09; archive is 2.7 GB and growing (archive_mode on), watch `df`                      |
-| 09 | 09-replication.ts   | physical streaming replication, failover                    | ~8      | TODO (cluster-level, serial)                                                                                                                                                              |
+| 09 | 09-replication.ts   | physical streaming replication, failover                    | 8       | IN PROGRESS (opus subagent, standby on 5441 under $PGLAB/standby, started 11:32)                                                                                                          |
 | 10 | 10-logical.ts       | logical decoding, CDC, pub/sub                              | 6       | DONE; Fable re-ran decode/pubsub/slot-lag OK 01:05 (lesson 6 switched to lg_orders so it does not depend on lesson 4 state)                                                               |
 | 11 | 11-planner.ts       | planner, statistics, execution                              | 7       | DONE; Fable re-ran stats/spill/parallel OK 01:02                                                                                                                                          |
 | 12 | 12-indexes.ts       | btree internals, concurrent builds, bloat                   | 6       | DONE; Fable re-ran cic/bloat OK 01:00 (lesson 3 uses 3 sessions: RR snapshot cannot see the new pg_index row)                                                                             |
 | 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | 6       | DONE; Sonnet validated + corrected expected results (pg_stat_io needs parallel query off, idx_tup_fetch small because of index-only scans), Fable re-ran 3 lessons OK                     |
-| 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | 7       | IN PROGRESS (opus subagent, restarts server for the 2PC lesson, started 11:12)                                                                                                            |
+| 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | 7       | DONE; Fable re-ran outbox/OCC/fencing/notify OK 11:30 (2PC lesson single-session with 3 restarts; read-your-writes uses logical replication to lab_rr)                                    |
 | 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | ~5      | TODO (cluster-level, serial)                                                                                                                                                              |
 
 ## Ship (after all modules validated)
