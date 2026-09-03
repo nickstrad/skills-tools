@@ -21,6 +21,10 @@ courses/<id>/progress.sqlite        learner progress, never touch
 Read `$TUTOR/docs/AUTHORING.md` before writing any lesson; it defines the lesson contract and the
 pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementation.
 
+Also read the repository knowledge base before starting: `$TUTOR/../docs/knowledge/README.md` is an
+index of findings from earlier course work (tooling quirks, how to read the validation harness,
+per-course lesson pitfalls, the subagent workflow). Open the files relevant to your tool and task.
+
 ## Workflow
 
 1. **Scaffold** a new course (skip if it exists):
@@ -60,6 +64,11 @@ pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementat
 8. **Install the wrapper skill**: copy or symlink `courses/<id>/skill/<id>-tutor` into the user's
    skills directory (for example `~/.claude/skills/` or `~/.codex/skills/`) and report the path. The
    wrapper skill is generated from `templates/course/skill/`; keep its progress invariants intact.
+9. **Record findings** in the knowledge base. Anything you learned that another author would
+   otherwise rediscover (a tool quirk that broke a lesson, a harness behaviour, a validation trick)
+   goes in a new `$TUTOR/../docs/knowledge/<topic>.md` plus a row in its `README.md` index, in the
+   format the index describes. Update an existing file when it already covers the topic. This is
+   part of finishing the work, not a follow-up.
 
 ## Quality bar for every lesson
 
@@ -80,6 +89,9 @@ pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementat
 - Nothing in a lesson may target a database or directory the learner did not create in the lab.
 
 ## Lessons from the PostgreSQL pass
+
+These are kept here because every author hits them; the knowledge base holds the longer list,
+including the SQLite and Linux findings.
 
 - The harness only detects timeouts. A lesson whose SQL errors still "passes", so grep every
   validation run for `ERROR` before trusting it, and read the output against `expectedResult`
