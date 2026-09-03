@@ -11,14 +11,10 @@ set -euo pipefail
 # agents, container tooling, and Linux observability utilities.
 #
 # Environment overrides (all optional):
-#   PG_VERSION    PostgreSQL major to install from PGDG, e.g. 16.
-#                 Unset (default) installs the "postgresql" meta-package,
-#                 i.e. the current stable major in PGDG.
 #   NODE_VERSION  Node.js major installed through NVM (default 22).
 #   NVM_VERSION   NVM release tag (default v0.40.6).
 # ============================================================
 
-PG_VERSION="${PG_VERSION:-}"
 NODE_VERSION="${NODE_VERSION:-22}"
 NVM_VERSION="${NVM_VERSION:-v0.40.6}"
 
@@ -122,6 +118,7 @@ $SUDO systemctl enable --now docker
 
 # ------------------------------------------------------------
 # PostgreSQL - official PGDG Apt repository
+# "postgresql" tracks the current stable major in PGDG.
 # ------------------------------------------------------------
 
 echo
@@ -149,19 +146,11 @@ EOF
 $SUDO apt-get update
 
 echo
-if [[ -n "${PG_VERSION}" ]]; then
-    echo "==> Installing PostgreSQL ${PG_VERSION}..."
-    $SUDO apt-get install -y \
-        "postgresql-${PG_VERSION}" \
-        "postgresql-contrib-${PG_VERSION}" \
-        libpq-dev
-else
-    echo "==> Installing PostgreSQL (current stable major in PGDG)..."
-    $SUDO apt-get install -y \
-        postgresql \
-        postgresql-contrib \
-        libpq-dev
-fi
+echo "==> Installing PostgreSQL (current stable major in PGDG)..."
+$SUDO apt-get install -y \
+    postgresql \
+    postgresql-contrib \
+    libpq-dev
 
 $SUDO systemctl enable postgresql
 $SUDO systemctl start postgresql

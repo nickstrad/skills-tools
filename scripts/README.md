@@ -48,7 +48,6 @@ Optional environment variables:
 
 | Variable       | Default   | Effect                                                                 |
 | -------------- | --------- | ---------------------------------------------------------------------- |
-| `PG_VERSION`   | unset     | Install a specific PostgreSQL major from PGDG (for example `16`) instead of the meta-package. |
 | `NODE_VERSION` | `22`      | Node.js major installed through NVM.                                   |
 | `NVM_VERSION`  | `v0.40.6` | NVM release tag to install.                                            |
 
