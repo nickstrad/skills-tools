@@ -1,22 +1,1401 @@
 [
   {
     "ordinal": 1,
-    "slug": "build-lab",
-    "title": "Build a disposable SQLite Systems lab you can break",
-    "category": "lab-setup",
+    "slug": "build-sqlite-lab",
+    "title": "Build a disposable SQLite lab",
+    "category": "lab-file",
     "difficulty": "beginner",
+    "tags": [
+      "sqlite-cli",
+      "file-format",
+      "idempotency"
+    ],
     "prerequisites": [],
-    "overview": "Create the scratch environment every later experiment assumes: a directory you can delete, a\nknown sqlite3 version, and a way to open two sessions against the same data.",
-    "syntaxBreakdown": "Describe each command or flag the learner meets for the first time, one sentence each.",
-    "code": "export TUTOR_LAB=$HOME/sqlite-lab\nmkdir -p \"$TUTOR_LAB\"\nsqlite3 --version",
-    "expectedResult": "Say exactly what success looks like (a version string, a file that now exists, a row count) so the\nlearner can tell a working setup from a broken one.",
-    "systemsLens": "Name the systems idea this makes concrete. Every lesson must earn its place by teaching something\nabout how storage, concurrency, durability, replication, or query execution really works.",
-    "challenge": "Offer one prediction to make or variation to try before moving on.",
-    "safetyLevel": "privileged",
+    "overview": "Create a learner-owned directory and a small baseline database. The same setup can be run again to reset the experiment, so later lessons have a known file and schema to inspect.",
+    "syntaxBreakdown": "sqlite3 FILE opens or creates a database at FILE; .databases lists attached database paths; .tables lists visible tables; .shell runs a host command; stat reports file bytes.",
+    "code": "export SQLITE_LAB=\"$PWD/sqlite-lab\"\nexport TUTOR_SQLITE_DB=\"$SQLITE_LAB/lab.db\"\nmkdir -p \"$SQLITE_LAB\"\nsqlite3 \"$SQLITE_LAB/lab.db\" <<'SQL'\n.headers on\n.mode box\nDROP TABLE IF EXISTS events;\nCREATE TABLE events(event_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '');\nINSERT INTO events(kind, payload) VALUES ('baseline', 'owned lab');\n.databases\n.tables\nSELECT count(*) AS baseline_rows FROM events;\nSQL\nstat -c 'lab.db bytes=%s path=%n' \"$SQLITE_LAB/lab.db\"",
+    "expectedResult": "sqlite3 reports one main database whose path ends in sqlite-lab/lab.db, .tables prints events, and the final query prints baseline_rows = 1. A second run again reports one row because setup drops and recreates the table; the file is inside the directory you own.",
+    "systemsLens": "Safe systems experiments start with ownership, isolation, and a reproducible initial state. SQLite's database is a local file object, so the lab boundary is also the boundary of what the experiment may modify.",
+    "challenge": "Copy the directory to sqlite-lab-copy, open the copy, and predict which path .databases reports.",
+    "safetyLevel": "ddl",
     "runIn": "shell",
     "sessions": 1,
     "minVersion": "3.45",
     "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 2,
+    "slug": "inspect-build-capabilities",
+    "title": "Inspect the SQLite build capabilities",
+    "category": "lab-file",
+    "difficulty": "beginner",
+    "tags": [
+      "sqlite-cli",
+      "file-format",
+      "observability"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Open the lab and inspect the runtime rather than inferring capabilities from a package name. Record the SQLite version, compile-time options, and help for optional inspection commands.",
+    "syntaxBreakdown": "sqlite_version() is the engine version; PRAGMA compile_options exposes build flags; .help filters CLI help. The dbstat virtual table is useful only when the build includes ENABLE_DBSTAT_VTAB.",
+    "setup": ".print -- The wrapper has already opened $TUTOR_SQLITE_DB",
+    "code": ".headers on\n.mode box\nSELECT sqlite_version() AS sqlite_version;\nSELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;\n.print -- CLI commands relevant to this course\n.help backup\n.help recover",
+    "expectedResult": "The version query prints 3.45.1 (or another version at least 3.45). The compile-option query records whether ENABLE_DBSTAT_VTAB appears; this installation should report it. Help includes .backup and .recover entries. Missing optional features are evidence to record, not reasons to assume they exist.",
+    "systemsLens": "Deployed capability is a runtime fact. Reproducible operations begin by measuring the binary and its feature set, just as a service checks protocol and storage capabilities at startup.",
+    "challenge": "Run SELECT sqlite_compileoption_used('ENABLE_DBSTAT_VTAB'); and compare its integer result with the compile-options list.",
+    "safetyLevel": "read-only",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 8,
+    "revision": 1
+  },
+  {
+    "ordinal": 3,
+    "slug": "share-one-file-between-sessions",
+    "title": "Share one database file between sessions",
+    "category": "lab-file",
+    "difficulty": "beginner",
+    "tags": [
+      "sqlite-cli",
+      "transactions",
+      "isolation"
+    ],
+    "prerequisites": [
+      2
+    ],
+    "overview": "Use two sqlite3 processes against one path. Commit a row in Session A and read it in Session B, then leave another row uncommitted and prove that B sees only committed state.",
+    "syntaxBreakdown": "BEGIN starts a transaction; COMMIT makes its changes visible to other connections; ROLLBACK discards uncommitted changes. Both wrapper-opened sessions use TUTOR_SQLITE_DB, so they share one pager state boundary.",
+    "setup": ".print -- The wrapper has already opened $TUTOR_SQLITE_DB\nDROP TABLE IF EXISTS messages;\nCREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT NOT NULL);",
+    "code": "-- Session A\n.headers on\nBEGIN;\nINSERT INTO messages(body) VALUES ('committed from A');\nCOMMIT;\n\n-- Session B\n.headers on\nSELECT id, body FROM messages ORDER BY id;\n\n-- Session A\nBEGIN;\nINSERT INTO messages(body) VALUES ('uncommitted from A');\nSELECT count(*) AS a_count FROM messages;\n\n-- Session B\nSELECT count(*) AS b_count FROM messages;\n\n-- Session A\nROLLBACK;\n\n-- Session B\nSELECT count(*) AS b_after_rollback FROM messages;",
+    "expectedResult": "Session B first prints one committed row. While A's second transaction is open, A reports a_count = 2 but B reports b_count = 1. After A rolls back, B still reports b_after_rollback = 1. No connection ever observes A's uncommitted row.",
+    "systemsLens": "Separate processes coordinate through one filesystem object and its locks, while transaction commit defines the visibility boundary. This is connection-level isolation without a database server.",
+    "challenge": "Replace ROLLBACK with COMMIT and predict the next count in B; then test it.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 4,
+    "slug": "decode-database-header",
+    "title": "Decode the database header",
+    "category": "lab-file",
+    "difficulty": "beginner",
+    "tags": [
+      "file-format",
+      "pages",
+      "observability"
+    ],
+    "prerequisites": [
+      3
+    ],
+    "overview": "Correlate SQLite's page metadata with bytes on disk. Switch the CLI to an in-memory database before inspecting the file so the header and file length describe a stable state.",
+    "syntaxBreakdown": "PRAGMA page_size and page_count expose pager geometry; stat -c %s reports bytes; xxd -l 100 prints the first 100 bytes. SQLite format 3 begins at byte zero and uses a power-of-two page size.",
+    "setup": ".print -- The wrapper has already opened $TUTOR_SQLITE_DB\nPRAGMA page_size=4096;\nVACUUM;\nDROP TABLE IF EXISTS records;\nCREATE TABLE records(k INTEGER PRIMARY KEY, v TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 20) INSERT INTO records SELECT x, 'value-' || x FROM n;",
+    "code": ".headers on\n.mode box\nSELECT page_size, page_count, page_size * page_count AS expected_bytes FROM pragma_page_size, pragma_page_count;\n.print -- switch away from the file before shell inspection\n.open :memory:\n.shell stat -c 'actual_bytes=%s' \"$TUTOR_SQLITE_DB\"\n.shell xxd -l 100 -g 1 \"$TUTOR_SQLITE_DB\"",
+    "expectedResult": "The query reports a power-of-two page size (4096 in a fresh file) and page_count > 1. After .open :memory: switches away from the file, actual_bytes equals page_size multiplied by page_count. The hex dump starts with ASCII \"SQLite format 3\" followed by a NUL; the remaining header bytes include page size and schema metadata.",
+    "systemsLens": "Durable abstractions have byte-level compatibility contracts. Page geometry is not an implementation detail when it determines I/O units, file sizing, and whether another implementation can open the file.",
+    "challenge": "Change the page size to 1024 in a new database and compare the first 20 header bytes and file length.",
+    "safetyLevel": "read-only",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 5,
+    "slug": "application-id-schema-versioning",
+    "title": "Version an application file format",
+    "category": "lab-file",
+    "difficulty": "intermediate",
+    "tags": [
+      "file-format",
+      "transactions",
+      "idempotency"
+    ],
+    "prerequisites": [
+      4
+    ],
+    "overview": "Use application_id and user_version as durable metadata while migrating a document table. Perform the schema change and version update in one transaction, then reopen and validate both values.",
+    "syntaxBreakdown": "PRAGMA application_id identifies an application-owned file format; PRAGMA user_version is an application-controlled schema integer; ALTER TABLE changes schema; BEGIN/COMMIT makes migration and metadata advancement one atomic unit.",
+    "setup": ".print -- The wrapper has already opened $TUTOR_SQLITE_DB\nDROP TABLE IF EXISTS documents;\nPRAGMA application_id=0;\nPRAGMA user_version=0;\nCREATE TABLE documents(id INTEGER PRIMARY KEY, title TEXT NOT NULL);\nINSERT INTO documents(title) VALUES ('first document');",
+    "code": "BEGIN IMMEDIATE;\nALTER TABLE documents ADD COLUMN body TEXT NOT NULL DEFAULT '';\nPRAGMA application_id=1397836884;\nPRAGMA user_version=2;\nINSERT INTO documents(title, body) VALUES ('migrated document', 'body survives reopen');\nCOMMIT;\n.headers on\n.mode box\nPRAGMA application_id;\nPRAGMA user_version;\nSELECT sql FROM sqlite_schema WHERE name='documents';\nSELECT count(*) AS documents, count(body) AS rows_with_body FROM documents;\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"PRAGMA application_id; PRAGMA user_version; SELECT count(*), count(body) FROM documents;\"",
+    "expectedResult": "After reopening, application_id is 1397836884 (hex 0x53514c54, the chosen SQLite Systems marker) and user_version is 2. The schema contains body with its default, and documents = 2 with rows_with_body = 2. Both metadata values and data survive close/reopen.",
+    "systemsLens": "A local database can be a versioned application file format. Identity and schema generation let a reader reject or migrate files deliberately, and the transaction couples format metadata to contents.",
+    "caution": "Use an application-specific identifier in a real product and advance user_version only after a successful migration. Do not treat either pragma as SQLite's internal library version.",
+    "safetyLevel": "ddl",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 6,
+    "slug": "pages-and-dbstat",
+    "title": "Observe pages with dbstat",
+    "category": "pages",
+    "difficulty": "beginner",
+    "tags": [
+      "pages",
+      "btree",
+      "file-format"
+    ],
+    "prerequisites": [
+      5
+    ],
+    "overview": "Grow a table with fixed-size rows, then correlate page_count, file bytes, and the dbstat virtual table.",
+    "syntaxBreakdown": "PRAGMA page_size/page_count report pager geometry; dbstat exposes one row per B-tree page; pagetype distinguishes leaf, internal, and overflow pages.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS samples;\nCREATE TABLE samples(id INTEGER PRIMARY KEY, value TEXT NOT NULL);",
+    "code": "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000) INSERT INTO samples SELECT x, printf('row-%05d', x) FROM n;\n.headers on\n.mode box\nSELECT page_size, page_count, page_size * page_count AS file_bytes FROM pragma_page_size, pragma_page_count;\nSELECT name, pagetype, count(*) AS pages, sum(ncell) AS cells FROM dbstat WHERE name='samples' GROUP BY name, pagetype ORDER BY pagetype;",
+    "expectedResult": "file_bytes equals page_size multiplied by page_count and is page-aligned. dbstat reports samples occupying leaf pages and at least one internal page once the table is large enough; the exact counts depend on SQLite's page layout but are concrete in the output.",
+    "systemsLens": "Pages are the unit of I/O and persistence. A logical table grows by allocating B-tree pages, not by appending an abstract row to an infinite array.",
+    "challenge": "Repeat with page_size=4096 and predict whether the table needs fewer pages for the same rows.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 7,
+    "slug": "btree-splits",
+    "title": "Cause B-tree splits with ordered inserts",
+    "category": "pages",
+    "difficulty": "intermediate",
+    "tags": [
+      "btree",
+      "pages",
+      "write-amplification"
+    ],
+    "prerequisites": [
+      6
+    ],
+    "overview": "Insert ordered batches while sampling page count and B-tree depth. Discrete allocation steps reveal structural splits and root growth.",
+    "syntaxBreakdown": "A recursive CTE generates deterministic batches; dbstat.path describes page ancestry; page_count samples allocated pages after each batch.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS ordered;\nCREATE TABLE ordered(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);",
+    "code": ".headers on\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 100) INSERT INTO ordered SELECT x, printf('batch-a-%04d', x) FROM n;\nSELECT 'after_100' AS sample, page_count FROM pragma_page_count;\nWITH RECURSIVE n(x) AS (VALUES(101) UNION ALL SELECT x + 1 FROM n WHERE x < 1000) INSERT INTO ordered SELECT x, printf('batch-b-%04d', x) FROM n;\nSELECT 'after_1000' AS sample, page_count FROM pragma_page_count;\nWITH RECURSIVE n(x) AS (VALUES(1001) UNION ALL SELECT x + 1 FROM n WHERE x < 5000) INSERT INTO ordered SELECT x, printf('batch-c-%04d', x) FROM n;\nSELECT 'after_5000' AS sample, page_count FROM pragma_page_count;\nSELECT max(length(path) - length(replace(path, '/', ''))) AS observed_depth FROM dbstat WHERE name='ordered';",
+    "expectedResult": "The three page_count values increase in discrete jumps rather than one byte at a time. observed_depth is greater than the single-leaf case (typically 2 or more slash components), showing an internal page/root. Exact thresholds can vary with payload and SQLite build details.",
+    "systemsLens": "Bounded fanout forces structural splits. A split rewrites or allocates several pages, producing bursty write amplification even when each logical insert is small.",
+    "challenge": "Insert the same keys in a random order in another file and compare page count and depth; explain any difference as locality, not a universal guarantee.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 8,
+    "slug": "rowid-storage",
+    "title": "Compare rowid and indexed identity",
+    "category": "pages",
+    "difficulty": "intermediate",
+    "tags": [
+      "rowid",
+      "btree",
+      "pages"
+    ],
+    "prerequisites": [
+      7
+    ],
+    "overview": "Store equivalent records in a normal rowid table, an INTEGER PRIMARY KEY alias, and a table with a secondary unique index; compare their B-tree page footprints.",
+    "syntaxBreakdown": "INTEGER PRIMARY KEY aliases the table's rowid; a secondary index is another B-tree; dbstat aggregates page counts by object name.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS normal;\nDROP TABLE IF EXISTS alias;\nDROP TABLE IF EXISTS indexed;\nCREATE TABLE normal(logical_key TEXT, payload TEXT);\nCREATE TABLE alias(id INTEGER PRIMARY KEY, payload TEXT);\nCREATE TABLE indexed(logical_key TEXT, payload TEXT);\nCREATE UNIQUE INDEX indexed_key ON indexed(logical_key);",
+    "code": "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)\nINSERT INTO normal SELECT printf('key-%05d', x), printf('payload-%05d', x) FROM n;\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)\nINSERT INTO alias SELECT x, printf('payload-%05d', x) FROM n;\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)\nINSERT INTO indexed SELECT printf('key-%05d', x), printf('payload-%05d', x) FROM n;\n.headers on\n.mode box\nSELECT name, count(*) AS pages, sum(pgsize) AS bytes FROM dbstat WHERE name IN ('normal', 'alias', 'indexed', 'indexed_key') GROUP BY name ORDER BY name;\nSELECT (SELECT count(*) FROM normal) AS normal_rows, (SELECT count(*) FROM alias) AS alias_rows, (SELECT count(*) FROM indexed) AS indexed_rows;",
+    "expectedResult": "All three row counts are 1000. dbstat shows the alias table stores its integer key in the table B-tree, while indexed has a separate indexed_key object with pages in addition to its table; normal has only its table object. The exact bytes depend on page size and payload.",
+    "systemsLens": "Logical identity choices change physical indirection and storage cost. An INTEGER PRIMARY KEY can avoid an extra lookup structure; a secondary index is a maintained materialized access path.",
+    "challenge": "Use EXPLAIN QUERY PLAN to look up one key in normal and indexed and identify the extra B-tree used by the indexed table.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 9,
+    "slug": "without-rowid-layout",
+    "title": "Compare WITHOUT ROWID layouts",
+    "category": "pages",
+    "difficulty": "intermediate",
+    "tags": [
+      "without-rowid",
+      "btree",
+      "query-planner"
+    ],
+    "prerequisites": [
+      8
+    ],
+    "overview": "Build equivalent composite-key tables with and without WITHOUT ROWID, then compare their page use and lookup plans.",
+    "syntaxBreakdown": "PRIMARY KEY(a,b) on a rowid table creates a separate unique index; WITHOUT ROWID makes the declared composite key the table's B-tree key; EXPLAIN QUERY PLAN reports access paths.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS with_rowid;\nDROP TABLE IF EXISTS without_rowid;\nCREATE TABLE with_rowid(a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY(a,b));\nCREATE TABLE without_rowid(a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY(a,b)) WITHOUT ROWID;",
+    "code": "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000)\nINSERT INTO with_rowid SELECT x / 100, x % 100, printf('payload-%05d', x) FROM n;\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000)\nINSERT INTO without_rowid SELECT x / 100, x % 100, printf('payload-%05d', x) FROM n;\n.headers on\n.mode box\nSELECT name, count(*) AS pages, sum(pgsize) AS bytes FROM dbstat WHERE name IN ('with_rowid', 'without_rowid', 'sqlite_autoindex_with_rowid_1') GROUP BY name ORDER BY name;\nEXPLAIN QUERY PLAN SELECT payload FROM with_rowid WHERE a=12 AND b=34;\nEXPLAIN QUERY PLAN SELECT payload FROM without_rowid WHERE a=12 AND b=34;",
+    "expectedResult": "Both tables contain 2000 rows. The rowid table has a table object plus a primary-key index, while WITHOUT ROWID has one table B-tree for the composite key. The two query plans name different physical paths. Record actual page totals rather than assuming one layout always wins.",
+    "systemsLens": "Clustering trades one access path against update and secondary-index costs. Physical layout is a workload decision, not merely a declaration of logical keys.",
+    "challenge": "Add a secondary index on payload to both tables and compare the incremental pages; predict which key is clustered.",
+    "safetyLevel": "ddl",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 10,
+    "slug": "overflow-pages",
+    "title": "Create overflow pages with large values",
+    "category": "pages",
+    "difficulty": "intermediate",
+    "tags": [
+      "overflow-pages",
+      "pages",
+      "write-amplification"
+    ],
+    "prerequisites": [
+      9
+    ],
+    "overview": "Insert poorly compressible values larger than a page and inspect dbstat's payload and page types.",
+    "syntaxBreakdown": "randomblob creates high-entropy bytes; hex doubles their textual representation; dbstat pagetype=overflow identifies chained overflow pages and mx_payload reports the largest record.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS blobs;\nCREATE TABLE blobs(id INTEGER PRIMARY KEY, value TEXT NOT NULL);",
+    "code": "WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 20)\nINSERT INTO blobs SELECT x, hex(randomblob(5000)) FROM n;\n.headers on\n.mode box\nSELECT count(*) AS rows, max(length(value)) AS max_value_chars FROM blobs;\nSELECT pagetype, count(*) AS pages, sum(payload) AS payload_bytes, max(mx_payload) AS max_payload FROM dbstat WHERE name='blobs' GROUP BY pagetype ORDER BY pagetype;\nSELECT count(*) AS overflow_page_count FROM dbstat WHERE name='blobs' AND pagetype='overflow';",
+    "expectedResult": "rows = 20 and max_value_chars is about 10000. dbstat reports one or more overflow pages for blobs and overflow_page_count > 0; the leaf payload is only the local portion of each large record.",
+    "systemsLens": "Oversized values turn a point lookup into multiple page I/Os and amplify rewrites. The logical row abstraction hides a physical chain whose length is visible to the pager.",
+    "caution": "The values are intentionally large and the database is disposable. Do not run this workload against a production path or a synchronized folder.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 11,
+    "slug": "freelist-vacuum-and-reuse",
+    "title": "Observe freelist reuse and VACUUM compaction",
+    "category": "pages",
+    "difficulty": "intermediate",
+    "tags": [
+      "freelist",
+      "vacuum",
+      "pages",
+      "capacity"
+    ],
+    "prerequisites": [
+      10
+    ],
+    "overview": "Delete most rows, observe free pages and unchanged file size, reuse some pages with new inserts, and run VACUUM on a uniquely named copy.",
+    "syntaxBreakdown": "freelist_count counts reusable pages; VACUUM rewrites a compact database; .shell cp preserves the source before the rewrite; page_count and stat expose size.",
+    "setup": "PRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS retained;\nCREATE TABLE retained(id INTEGER PRIMARY KEY, payload TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 3000) INSERT INTO retained SELECT x, printf('payload-%05d', x) FROM n;",
+    "code": ".headers on\n.mode box\nSELECT 'before_delete' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;\n.shell stat -c 'before_delete_bytes=%s' \"$TUTOR_SQLITE_DB\"\nDELETE FROM retained WHERE id > 500;\nSELECT 'after_delete' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;\n.shell stat -c 'after_delete_bytes=%s' \"$TUTOR_SQLITE_DB\"\nWITH RECURSIVE n(x) AS (VALUES(3001) UNION ALL SELECT x + 1 FROM n WHERE x < 3100) INSERT INTO retained SELECT x, printf('replacement-%05d', x) FROM n;\nSELECT 'after_reuse' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;\n.shell cp \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB-vacuum.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB-vacuum.db\" \"VACUUM; SELECT page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;\"\n.shell stat -c 'after_vacuum_bytes=%s' \"$TUTOR_SQLITE_DB-vacuum.db\"",
+    "expectedResult": "after_delete has a positive freelist_count while page_count and file bytes remain at least as large as before deletion. after_reuse shows that inserts consume free pages before growing the file. The copied database remains valid and after_vacuum has freelist_count = 0 and fewer pages/bytes than the un-compacted source.",
+    "systemsLens": "Reuse and compaction are separate policies. Freelist reuse avoids immediate allocation, while VACUUM trades availability and a rewrite for a smaller file and denser layout.",
+    "caution": "Only the uniquely named TUTOR_SQLITE_DB-vacuum.db copy is rewritten. Keep the original evidence and never VACUUM a live production file merely to chase a size number.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 18,
+    "revision": 1
+  },
+  {
+    "ordinal": 12,
+    "slug": "rollback-journal-lifecycle",
+    "title": "Observe a rollback journal lifecycle",
+    "category": "journals",
+    "difficulty": "intermediate",
+    "tags": [
+      "rollback-journal",
+      "transactions",
+      "atomicity"
+    ],
+    "prerequisites": [
+      11
+    ],
+    "overview": "Hold a rollback-mode write transaction open and inspect the sidecar journal before rollback and commit.",
+    "syntaxBreakdown": "PRAGMA journal_mode=DELETE selects rollback journaling; BEGIN IMMEDIATE reserves the writer; .shell ls inspects sidecar files; ROLLBACK and COMMIT finish the transaction.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS journal_rows;\nCREATE TABLE journal_rows(id INTEGER PRIMARY KEY, payload TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO journal_rows SELECT x, 'baseline' FROM n;",
+    "code": "-- Session A\nPRAGMA journal_mode=DELETE;\nBEGIN IMMEDIATE;\nUPDATE journal_rows SET payload='uncommitted-update' WHERE id <= 150;\n\n-- Session B\n.shell ls -l \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB-journal\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"SELECT 'b_visible_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';\"\n\n-- Session A\nROLLBACK;\n\n-- Session B\n.shell if [ -e \"$TUTOR_SQLITE_DB-journal\" ]; then stat -c 'after_rollback journal_bytes=%s' \"$TUTOR_SQLITE_DB-journal\"; else echo 'after_rollback journal_absent'; fi\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"SELECT 'b_after_rollback_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';\"\n\n-- Session A\nBEGIN IMMEDIATE;\nUPDATE journal_rows SET payload='committed-update' WHERE id <= 150;\nCOMMIT;\n\n-- Session B\n.shell if [ -e \"$TUTOR_SQLITE_DB-journal\" ]; then stat -c 'after_commit journal_bytes=%s' \"$TUTOR_SQLITE_DB-journal\"; else echo 'after_commit journal_absent'; fi\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"SELECT 'b_committed_update=' || count(*) FROM journal_rows WHERE payload='committed-update';\"",
+    "expectedResult": "While A's transaction is open, B sees a nonempty journal and b_visible_uncommitted = 0. After rollback, b_after_rollback_uncommitted = 0; after a committed update, b_committed_update = 150. In DELETE mode the sidecar is normally absent after rollback and commit.",
+    "systemsLens": "Transaction state is represented by files outside the main database. Atomicity is a protocol of before-images, locks, write ordering, and cleanup—not a property supplied by SQL syntax alone.",
+    "challenge": "Repeat with one updated page and then many updated pages; compare journal size and explain why the journal tracks before-images.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 13,
+    "slug": "journal-modes",
+    "title": "Compare rollback journal cleanup modes",
+    "category": "journals",
+    "difficulty": "intermediate",
+    "tags": [
+      "journal-modes",
+      "rollback-journal",
+      "atomicity"
+    ],
+    "prerequisites": [
+      12
+    ],
+    "overview": "Run bounded writes under DELETE, TRUNCATE, and PERSIST, observing sidecar existence and size while checking that committed logical data is equivalent.",
+    "syntaxBreakdown": "DELETE removes the journal; TRUNCATE leaves a zero-length sidecar; PERSIST keeps the file but clears its header. PRAGMA journal_mode returns the selected mode.",
+    "setup": "DROP TABLE IF EXISTS mode_rows;\nCREATE TABLE mode_rows(mode TEXT, value INTEGER);",
+    "code": "DELETE FROM mode_rows;\nPRAGMA journal_mode=DELETE;\nBEGIN;\nINSERT INTO mode_rows VALUES ('DELETE', 1), ('DELETE', 2);\nCOMMIT;\n.shell if [ -e \"$TUTOR_SQLITE_DB-journal\" ]; then stat -c 'DELETE exists bytes=%s' \"$TUTOR_SQLITE_DB-journal\"; else echo 'DELETE absent'; fi\n\nPRAGMA journal_mode=TRUNCATE;\nBEGIN;\nINSERT INTO mode_rows VALUES ('TRUNCATE', 1), ('TRUNCATE', 2);\nCOMMIT;\n.shell if [ -e \"$TUTOR_SQLITE_DB-journal\" ]; then stat -c 'TRUNCATE exists bytes=%s' \"$TUTOR_SQLITE_DB-journal\"; else echo 'TRUNCATE absent'; fi\n\nPRAGMA journal_mode=PERSIST;\nBEGIN;\nINSERT INTO mode_rows VALUES ('PERSIST', 1), ('PERSIST', 2);\nCOMMIT;\n.shell if [ -e \"$TUTOR_SQLITE_DB-journal\" ]; then stat -c 'PERSIST exists bytes=%s' \"$TUTOR_SQLITE_DB-journal\"; else echo 'PERSIST absent'; fi\n\n.headers on\nSELECT mode, count(*) AS rows FROM mode_rows GROUP BY mode ORDER BY mode;",
+    "expectedResult": "All three transactions commit their rows. DELETE normally prints journal absent; TRUNCATE prints an existing journal with bytes=0; PERSIST prints an existing nonzero-sized journal whose contents are reset for reuse. The final query reports exactly two rows for each of DELETE, PERSIST, and TRUNCATE.",
+    "systemsLens": "Cleanup strategy is independent from the higher-level atomicity interface until failure occurs. The mode changes when and how sidecar space is reclaimed, not whether a committed transaction has one logical outcome.",
+    "caution": "MEMORY and OFF are useful to discuss but are intentionally not used here: they weaken crash-recovery guarantees and are unsuitable for durable state without a separately justified contract.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 18,
+    "revision": 1
+  },
+  {
+    "ordinal": 14,
+    "slug": "crash-leaves-hot-journal",
+    "title": "Preserve a hot journal after a crash",
+    "category": "journals",
+    "difficulty": "advanced",
+    "tags": [
+      "rollback-journal",
+      "crash-recovery",
+      "incident"
+    ],
+    "prerequisites": [
+      13
+    ],
+    "overview": "Use a disposable copy, kill a writer while its rollback transaction is active, and preserve the main file plus journal before any connection can trigger recovery.",
+    "syntaxBreakdown": "A FIFO keeps sqlite3 stdin open; BEGIN IMMEDIATE starts a writer; kill -KILL simulates abrupt process termination; cp preserves evidence.",
+    "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\nmkdir -p \"$(dirname \"$TUTOR_SQLITE_DB\")\"\nrm -f \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB-journal\" \"$TUTOR_SQLITE_DB.hot-main\" \"$TUTOR_SQLITE_DB.hot-main-journal\" \"$TUTOR_SQLITE_DB.commands\"\nsqlite3 \"$TUTOR_SQLITE_DB\" <<'SQL'\nPRAGMA journal_mode=DELETE;\nPRAGMA page_size=1024;\nVACUUM;\nCREATE TABLE crash_rows(id INTEGER PRIMARY KEY, payload TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 500) INSERT INTO crash_rows SELECT x, 'committed-' || hex(randomblob(2500)) FROM n;\nSQL\nmkfifo \"$TUTOR_SQLITE_DB.commands\"\nsqlite3 \"$TUTOR_SQLITE_DB\" <\"$TUTOR_SQLITE_DB.commands\" >\"$TUTOR_SQLITE_DB.writer.log\" 2>&1 &\nWRITER_PID=$!\nexec 3>\"$TUTOR_SQLITE_DB.commands\"\necho \"PRAGMA cache_size=10; PRAGMA cache_spill=ON; BEGIN IMMEDIATE; UPDATE crash_rows SET payload='dirty-' || printf('%08d', id) || hex(randomblob(2500)); SELECT 'WRITER_READY';\" >&3\nuntil grep -q WRITER_READY \"$TUTOR_SQLITE_DB.writer.log\"; do sleep 0.05; done\nSPILLED=0\nfor attempt in $(seq 1 100); do\n  SPILLED=$(grep -a -o 'dirty-' \"$TUTOR_SQLITE_DB\" | wc -l || true)\n  [ \"$SPILLED\" -gt 0 ] && break\n  sleep 0.05\ndone\nif [ \"$SPILLED\" -le 0 ]; then kill -KILL \"$WRITER_PID\" 2>/dev/null || true; wait \"$WRITER_PID\" 2>/dev/null || true; echo 'dirty-page spill was not observed'; exit 3; fi\nJOURNAL_MAGIC=$(xxd -p -l 8 \"$TUTOR_SQLITE_DB-journal\")\nif [ \"$JOURNAL_MAGIC\" != d9d505f920a163d7 ]; then kill -KILL \"$WRITER_PID\" 2>/dev/null || true; wait \"$WRITER_PID\" 2>/dev/null || true; echo \"unexpected journal magic=$JOURNAL_MAGIC\"; exit 3; fi\nprintf 'pre_kill_dirty_rows=%s\\n' \"$SPILLED\"\nprintf 'pre_kill_journal_magic=%s\\n' \"$JOURNAL_MAGIC\"\nkill -KILL \"$WRITER_PID\"\nwait \"$WRITER_PID\" 2>/dev/null || true\ncp \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB.hot-main\"\ncp \"$TUTOR_SQLITE_DB-journal\" \"$TUTOR_SQLITE_DB.hot-main-journal\"\nstat -c 'preserved_main_bytes=%s' \"$TUTOR_SQLITE_DB.hot-main\"\nstat -c 'preserved_journal_bytes=%s' \"$TUTOR_SQLITE_DB.hot-main-journal\"\nrm -f \"$TUTOR_SQLITE_DB.commands\"",
+    "expectedResult": "The writer is terminated while its transaction is uncommitted. Before SIGKILL, pre_kill_dirty_rows is greater than zero and pre_kill_journal_magic is d9d505f920a163d7, the rollback-journal magic. Two preserved files exist: TUTOR_SQLITE_DB.hot-main and a nonempty TUTOR_SQLITE_DB.hot-main-journal. Evidence is saved before any normal open of the crashed copy can roll it back.",
+    "systemsLens": "A crash experiment has an evidence-ordering requirement: preserve the file set before recovery mutates it. Process termination demonstrates crash recovery, not a power-loss durability guarantee.",
+    "caution": "Run only with a uniquely named disposable TUTOR_SQLITE_DB. The command deliberately sends SIGKILL and leaves a preserved evidence pair; do not point it at production.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 15,
+    "slug": "hot-journal-recovery",
+    "title": "Recover a hot journal deterministically",
+    "category": "journals",
+    "difficulty": "advanced",
+    "tags": [
+      "crash-recovery",
+      "rollback-journal",
+      "integrity-check"
+    ],
+    "prerequisites": [
+      14
+    ],
+    "overview": "Open the preserved crashed copy once, allowing SQLite to roll back its before-images, then run integrity and domain checks on the recovered result.",
+    "syntaxBreakdown": "sqlite3 opens the hot copy and performs automatic rollback; PRAGMA integrity_check validates structure; domain queries validate application state.",
+    "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\n[ -s \"$TUTOR_SQLITE_DB.hot-main\" ] || { echo 'preserved hot-main evidence is missing or empty'; exit 2; }\n[ -s \"$TUTOR_SQLITE_DB.hot-main-journal\" ] || { echo 'preserved hot journal evidence is missing or empty'; exit 2; }\nsqlite3 \"$TUTOR_SQLITE_DB.hot-main\" <<'SQL'\n.headers on\n.mode box\nPRAGMA integrity_check;\nSELECT count(*) AS rows, min(substr(payload, 1, 10)) AS minimum_prefix, max(substr(payload, 1, 10)) AS maximum_prefix FROM crash_rows;\nSELECT count(*) AS uncommitted_rows_visible FROM crash_rows WHERE payload LIKE 'dirty-%';\nSQL\nif [ -e \"$TUTOR_SQLITE_DB.hot-main-journal\" ]; then stat -c 'post_recovery_journal_bytes=%s' \"$TUTOR_SQLITE_DB.hot-main-journal\"; else echo 'post_recovery_journal_absent'; fi",
+    "expectedResult": "Opening the hot copy automatically rolls back the interrupted update. integrity_check prints ok; rows = 500; uncommitted_rows_visible = 0; and payload values are committed. The preserved journal is consumed or invalidated after recovery (typically absent or zero-length), while the recovered database state is the primary check.",
+    "systemsLens": "Recovery is a deterministic state transition driven by durable metadata and before-images. A verified backup is the recovery guarantee; a successful salvage run is evidence about one incident, not a promise for every failure.",
+    "caution": "This lesson mutates the preserved copy by design. Keep the original evidence pair untouched if you need to inspect it again.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 16,
+    "slug": "synchronous-contracts",
+    "title": "Observe synchronization contracts",
+    "category": "journals",
+    "difficulty": "advanced",
+    "tags": [
+      "synchronous",
+      "fsync",
+      "durability"
+    ],
+    "prerequisites": [
+      15
+    ],
+    "overview": "Use strace to compare synchronization calls for bounded FULL, NORMAL, and OFF rollback-mode workloads. Treat the trace as an observation of the contract, not a timing benchmark.",
+    "syntaxBreakdown": "strace -e trace=fsync,fdatasync records synchronization syscalls; -o writes a trace file; PRAGMA synchronous selects durability behavior; grep -c counts observed calls.",
+    "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\ncommand -v strace\nrm -f \"$TUTOR_SQLITE_DB-FULL\" \"$TUTOR_SQLITE_DB-NORMAL\" \"$TUTOR_SQLITE_DB-OFF\" \"$TUTOR_SQLITE_DB-FULL.trace\" \"$TUTOR_SQLITE_DB-NORMAL.trace\" \"$TUTOR_SQLITE_DB-OFF.trace\" \"$TUTOR_SQLITE_DB-FULL.time\" \"$TUTOR_SQLITE_DB-NORMAL.time\" \"$TUTOR_SQLITE_DB-OFF.time\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-FULL.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-FULL.trace\" sqlite3 \"$TUTOR_SQLITE_DB-FULL\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-NORMAL.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-NORMAL.trace\" sqlite3 \"$TUTOR_SQLITE_DB-NORMAL\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=NORMAL; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-OFF.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-OFF.trace\" sqlite3 \"$TUTOR_SQLITE_DB-OFF\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=OFF; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\nprintf 'FULL sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-FULL.trace\" || true\nprintf 'NORMAL sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-NORMAL.trace\" || true\nprintf 'OFF sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-OFF.trace\" || true\nprintf 'FULL elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-FULL.time\"\nprintf 'NORMAL elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-NORMAL.time\"\nprintf 'OFF elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-OFF.time\"",
+    "expectedResult": "On the validated SQLite 3.45.1 run, strace recorded FULL=8, NORMAL=6, and OFF=0 synchronization calls, with elapsed times of about 0.12s, 0.12s, and 0.03s respectively. Repeat runs may vary with filesystem, kernel, and load; treat these as evidence from one bounded run, not universal ratios or a power-loss simulation.",
+    "systemsLens": "Acknowledgement latency buys a specific persistence contract. Observed sync ordering is evidence of what the engine requested from this filesystem, not an abstract guarantee independent of filesystem and hardware behavior.",
+    "caution": "No process-kill or power-loss claim follows from this lesson. Run on a disposable path and preserve trace files with the database files they describe.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 17,
+    "slug": "batching-changes-the-cost",
+    "title": "Measure the cost of transaction boundaries",
+    "category": "journals",
+    "difficulty": "intermediate",
+    "tags": [
+      "transactions",
+      "fsync",
+      "write-amplification"
+    ],
+    "prerequisites": [
+      16
+    ],
+    "overview": "Insert the same bounded rows in autocommit and one explicit transaction, comparing elapsed time and synchronization-call counts.",
+    "syntaxBreakdown": "An autocommit statement is its own transaction; BEGIN/COMMIT groups statements; strace captures sync calls; awk generates deterministic SQL.",
+    "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\nrm -f \"$TUTOR_SQLITE_DB-autocommit\" \"$TUTOR_SQLITE_DB-batch\" \"$TUTOR_SQLITE_DB-autocommit.sql\" \"$TUTOR_SQLITE_DB-batch.sql\" \"$TUTOR_SQLITE_DB-autocommit.trace\" \"$TUTOR_SQLITE_DB-batch.trace\" \"$TUTOR_SQLITE_DB-autocommit.time\" \"$TUTOR_SQLITE_DB-batch.time\"\necho 'PRAGMA journal_mode=DELETE; CREATE TABLE t(x INTEGER);' > \"$TUTOR_SQLITE_DB-autocommit.sql\"\nawk 'BEGIN { for (i=1; i<=200; i++) print \"INSERT INTO t VALUES (\" i \");\"; }' >> \"$TUTOR_SQLITE_DB-autocommit.sql\"\necho 'PRAGMA journal_mode=DELETE; CREATE TABLE t(x INTEGER); BEGIN;' > \"$TUTOR_SQLITE_DB-batch.sql\"\nawk 'BEGIN { for (i=1; i<=200; i++) print \"INSERT INTO t VALUES (\" i \");\"; }' >> \"$TUTOR_SQLITE_DB-batch.sql\"\necho 'COMMIT;' >> \"$TUTOR_SQLITE_DB-batch.sql\"\n/usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-autocommit.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-autocommit.trace\" sqlite3 \"$TUTOR_SQLITE_DB-autocommit\" < \"$TUTOR_SQLITE_DB-autocommit.sql\"\n/usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-batch.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-batch.trace\" sqlite3 \"$TUTOR_SQLITE_DB-batch\" < \"$TUTOR_SQLITE_DB-batch.sql\"\nprintf 'autocommit sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-autocommit.trace\" || true\nprintf 'batch sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-batch.trace\" || true\nprintf 'autocommit elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-autocommit.time\"\nprintf 'batch elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-batch.time\"\nsqlite3 \"$TUTOR_SQLITE_DB-autocommit\" 'SELECT count(*) AS rows FROM t;'\nsqlite3 \"$TUTOR_SQLITE_DB-batch\" 'SELECT count(*) AS rows FROM t;'",
+    "expectedResult": "Both databases report rows = 200. On the validated SQLite 3.45.1 run, autocommit recorded 804 sync calls and took about 7.23s, while batch recorded 8 sync calls and took about 0.15s. Filesystem, kernel, and load change elapsed time and counts; the durable lesson is the large transaction-boundary difference, and the larger batch is one larger unit of failure if it aborts.",
+    "systemsLens": "Group commit amortizes durability costs while enlarging the unit of failure. This is the same throughput-versus-recovery trade-off seen in logs, queues, and storage engines.",
+    "challenge": "Change 200 rows to 2000 and plot sync calls against row count; predict where measurement becomes dominated by other overhead.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 18,
+    "slug": "deferred-write-race",
+    "title": "Deferred transactions discover contention at the write",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "transactions",
+      "locking",
+      "busy",
+      "isolation"
+    ],
+    "prerequisites": [
+      17
+    ],
+    "overview": "Two DEFERRED transactions can both read before either has reserved the single writer slot. Create that race and observe that the conflict is reported when one reader tries to become a writer.",
+    "syntaxBreakdown": "BEGIN DEFERRED starts a transaction without immediately taking a RESERVED write lock. A busy timeout bounds waiting, and changes() reports whether the preceding write changed a row.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS counter;\nCREATE TABLE counter(id INTEGER PRIMARY KEY, value INTEGER NOT NULL);\nINSERT INTO counter VALUES (1, 0);",
+    "code": "-- Session A\nPRAGMA busy_timeout=100;\nBEGIN DEFERRED;\nSELECT 'A snapshot', value FROM counter WHERE id=1;\n\n-- Session B\nPRAGMA busy_timeout=100;\nBEGIN DEFERRED;\nSELECT 'B snapshot', value FROM counter WHERE id=1;\n\n-- Session A\nUPDATE counter SET value=value+1 WHERE id=1;\nSELECT 'A changes', changes();\n\n-- Session B\nUPDATE counter SET value=value+1 WHERE id=1;\nSELECT 'B first changes (may be 0 after SQLITE_BUSY)', changes();\n\n-- Session A\nROLLBACK;\n\n-- Session B\nUPDATE counter SET value=value+1 WHERE id=1;\nCOMMIT;\nSELECT 'committed value', value FROM counter WHERE id=1;",
+    "expectedResult": "Both sessions initially print value 0. A's update reports 1. B's first update normally prints a database-is-locked error; after A rolls back, B can update and commit, leaving value 1.",
+    "systemsLens": "DEFERRED acquisition is optimistic admission control: work can begin before the serialization point is secured, so a retry must know whether application work is safe to repeat.",
+    "challenge": "Repeat with A committing instead of rolling back. Predict which transaction can finish and why.",
+    "caution": "The exact busy error text is CLI/version dependent; the lock boundary, not the wording, is the evidence.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 19,
+    "slug": "immediate-reserves-writer",
+    "title": "BEGIN IMMEDIATE makes writer admission explicit",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "transactions",
+      "locking",
+      "busy",
+      "serialization"
+    ],
+    "prerequisites": [
+      18
+    ],
+    "overview": "Compare BEGIN IMMEDIATE with the deferred race: the second writer learns it cannot enter at the transaction boundary, before doing write work.",
+    "syntaxBreakdown": "BEGIN IMMEDIATE obtains a RESERVED lock up front. .timeout controls how long sqlite3 waits for a lock before returning SQLITE_BUSY.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS events;\nCREATE TABLE events(id INTEGER PRIMARY KEY, note TEXT);\nINSERT INTO events(note) VALUES ('baseline');",
+    "code": "-- Session A\n.timeout 100\nBEGIN IMMEDIATE;\nINSERT INTO events(note) VALUES ('A owns writer');\n\n-- Session B\n.timeout 250\n.timer on\nBEGIN IMMEDIATE;\n.timer off\nSELECT 'B entered', changes();\n\n-- Session A\nCOMMIT;\n\n-- Session B\nBEGIN IMMEDIATE;\nINSERT INTO events(note) VALUES ('B after admission');\nCOMMIT;\nSELECT id, note FROM events ORDER BY id;",
+    "expectedResult": "B's timed first BEGIN IMMEDIATE returns database is locked after roughly the configured 250 ms (the timer reports the measured wait), while A remains the only writer. After A commits, B can begin and commit; final rows are baseline, A owns writer, and B after admission.",
+    "systemsLens": "An explicit admission point makes overload visible before expensive application work and defines a clean retry boundary.",
+    "challenge": "Set B's timeout to 0 and then to 1000. What latency budget and user-visible failure does each policy create?",
+    "caution": "B's first BEGIN is intentionally a bounded 250 ms failure, not a release-dependent blocking step. A commits only after that failure; do not run both transactions in one sqlite3 process.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 20,
+    "slug": "rollback-reader-writer-blocking",
+    "title": "Rollback mode moves contention to writer commit",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "rollback-journal",
+      "locking",
+      "transactions",
+      "isolation"
+    ],
+    "prerequisites": [
+      19
+    ],
+    "overview": "Hold a rollback-mode reader open while a writer changes data. The writer can prepare changes, but its commit needs an exclusive lock and waits for the reader.",
+    "syntaxBreakdown": "A read transaction keeps a SHARED lock. A writer's COMMIT is the blocking operation in rollback mode; .timeout makes the wait finite.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS messages;\nCREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT);\nINSERT INTO messages(body) VALUES ('before');",
+    "code": "-- Session A\n.timeout 5000\nBEGIN;\nSELECT 'A sees', count(*) FROM messages;\n\n-- Session B\n.timeout 2000\nBEGIN IMMEDIATE;\nINSERT INTO messages(body) VALUES ('after');\n\n-- Session B (blocks until A ends its read)\nCOMMIT;\n\n-- Session A\nCOMMIT;\nSELECT 'A after release', count(*) FROM messages;\n\n-- Session B\nSELECT 'B committed', count(*) FROM messages;",
+    "expectedResult": "A first sees 1. B's INSERT succeeds inside its transaction, but COMMIT waits while A's read is open; after A commits, B completes and the final count is 2.",
+    "systemsLens": "Lock-upgrade protocols determine where latency appears: rollback mode can defer a writer conflict until commit, making the commit path a queue.",
+    "challenge": "Switch both sessions to WAL and repeat. Which step stops blocking, and which single-writer constraint remains?",
+    "caution": "A's transaction must remain open between SELECT and COMMIT; an autocommit SELECT releases its lock immediately.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 21,
+    "slug": "busy-timeout-bounds-wait",
+    "title": "A busy timeout is a bounded queue budget",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "busy",
+      "locking",
+      "retries",
+      "backpressure"
+    ],
+    "prerequisites": [
+      20
+    ],
+    "overview": "Make one writer hold the lock longer than a peer's wait budget, then release it and retry. Observe a bounded failure instead of an indefinite hang.",
+    "syntaxBreakdown": ".timeout N sets sqlite3's busy timeout in milliseconds. A retry is a new statement after the lock holder has released its transaction.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS work;\nCREATE TABLE work(id INTEGER PRIMARY KEY, done INTEGER NOT NULL);\nINSERT INTO work VALUES (1, 0);",
+    "code": "-- Session A\nBEGIN IMMEDIATE;\nUPDATE work SET done=1 WHERE id=1;\n.shell sleep 0.4\n\n-- Session B\n.timeout 150\n.timer on\nUPDATE work SET done=2 WHERE id=1;\n.timer off\nSELECT 'B after first attempt', done FROM work;\n\n-- Session A\nCOMMIT;\n\n-- Session B\nUPDATE work SET done=2 WHERE id=1;\nSELECT 'B retry', changes(), done FROM work;",
+    "expectedResult": "B's first timed UPDATE reports database is locked after approximately 150 ms (the timer reports the measured wait) and its read still sees committed value 0. A then commits. B's retry succeeds and reports changes() = 1 with done = 2.",
+    "systemsLens": "Every queue needs a wait and cancellation budget. Busy timeout plus retry policy turns lock contention into bounded backpressure rather than unbounded latency.",
+    "challenge": "Change A's sleep to 0.05 seconds. Predict whether B succeeds on the first attempt with the same timeout.",
+    "caution": "The sleep is only a deterministic demonstration delay; it is not a durability or power-loss test.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 22,
+    "slug": "compare-and-swap-update",
+    "title": "Use a version predicate as compare-and-swap",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "optimistic-concurrency",
+      "transactions",
+      "retries",
+      "consistency"
+    ],
+    "prerequisites": [
+      21
+    ],
+    "overview": "Have two actors read version 1, then condition each update on that version. Exactly one decision wins and the loser gets an observable zero-row result.",
+    "syntaxBreakdown": "UPDATE ... WHERE version=? is the compare-and-swap predicate. changes() is the conditional-write result that drives conflict handling.",
+    "setup": "DROP TABLE IF EXISTS document;\nCREATE TABLE document(id INTEGER PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL);\nINSERT INTO document VALUES (1, 'base', 1);",
+    "code": "-- Session A\nSELECT 'A read', body, version FROM document WHERE id=1;\n\n-- Session B\nSELECT 'B read', body, version FROM document WHERE id=1;\n\n-- Session A\nUPDATE document SET body='A edit', version=version+1 WHERE id=1 AND version=1;\nSELECT 'A changed', changes();\n\n-- Session B\nUPDATE document SET body='B edit', version=version+1 WHERE id=1 AND version=1;\nSELECT 'B changed', changes();\n\n-- Session A\nSELECT 'winner', body, version FROM document WHERE id=1;",
+    "expectedResult": "Both reads report version 1. One update reports changes() = 1 and advances version to 2; the other reports 0 and cannot overwrite the winner. With this ordering A wins and the final body is A edit.",
+    "systemsLens": "Optimistic concurrency converts an invisible lost update into a detectable conflict that the caller can merge, retry, or surface.",
+    "challenge": "Run B's UPDATE before A's. Predict the winner without changing the SQL predicate.",
+    "caution": "The version check and mutation must be one SQL statement; separate SELECT and unconditional UPDATE reintroduces the race.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 23,
+    "slug": "idempotent-retry-ledger",
+    "title": "Put retry identity and its effect in one transaction",
+    "category": "concurrency",
+    "difficulty": "intermediate",
+    "tags": [
+      "idempotency",
+      "retries",
+      "atomicity",
+      "deduplication",
+      "transactions"
+    ],
+    "prerequisites": [
+      22
+    ],
+    "overview": "Apply the same operation twice through a unique ledger row and a domain update. The first attempt changes the account; the replay records no second effect.",
+    "syntaxBreakdown": "A UNIQUE operation_id makes the ledger the deduplication boundary. INSERT OR IGNORE is idempotent, and changes() gates the domain mutation to the newly claimed operation.",
+    "setup": "DROP TABLE IF EXISTS applied_operations;\nDROP TABLE IF EXISTS account;\nCREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);\nCREATE TABLE applied_operations(operation_id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);\nINSERT INTO account VALUES (1, 100);",
+    "code": "-- Session A\nBEGIN IMMEDIATE;\nINSERT OR IGNORE INTO applied_operations VALUES ('op-42', 'first-attempt');\nSELECT 'claim 1', changes();\nUPDATE account SET balance=balance+10 WHERE id=1 AND changes()=1;\nCOMMIT;\nSELECT 'after first', balance FROM account;\n\nBEGIN IMMEDIATE;\nINSERT OR IGNORE INTO applied_operations VALUES ('op-42', 'replay');\nSELECT 'claim 2', changes();\nUPDATE account SET balance=balance+10 WHERE id=1 AND changes()=1;\nCOMMIT;\nSELECT 'after replay', balance, (SELECT count(*) FROM applied_operations) FROM account;",
+    "expectedResult": "The first claim reports 1 and balance becomes 110. The replay claim reports 0, its gated UPDATE changes no row, and final output is balance 110 with one ledger row.",
+    "systemsLens": "At-least-once delivery becomes safe when operation identity and the side effect share an atomic commit boundary; retries then collapse to one durable effect.",
+    "challenge": "Make the first transaction roll back after claiming. What should the retry observe, and why is that desirable?",
+    "caution": "Do not split the ledger insert and account update into separate transactions: a crash between them can create a permanently skipped effect.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 24,
+    "slug": "wal-sidecar-files",
+    "title": "WAL turns one database into a live file set",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "file-format",
+      "pager",
+      "observability"
+    ],
+    "prerequisites": [
+      23
+    ],
+    "overview": "Enable WAL, commit a row, and inspect the main database plus -wal and -shm sidecars while connections remain open.",
+    "syntaxBreakdown": "PRAGMA journal_mode=WAL changes the persistent mode. PRAGMA wal_autocheckpoint=0 prevents automatic checkpointing, leaving frames observable. .shell stat inspects file existence and bytes.",
+    "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS notes;\nCREATE TABLE notes(id INTEGER PRIMARY KEY, body TEXT);\nINSERT INTO notes VALUES (1, 'baseline');",
+    "code": "-- Session A\nPRAGMA journal_mode;\nPRAGMA wal_autocheckpoint=0;\nINSERT INTO notes VALUES (2, 'frame-in-wal');\nSELECT count(*) FROM notes;\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB-wal\" \"$TUTOR_SQLITE_DB-shm\"\n\n-- Session B\nPRAGMA journal_mode;\nSELECT 'B sees committed WAL state', count(*) FROM notes;\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB-wal\" \"$TUTOR_SQLITE_DB-shm\";",
+    "expectedResult": "Both connections report journal_mode wal and count 2. While the connections are live, the main file, -wal, and -shm files exist; the WAL size is nonzero after the commit. Exact byte sizes depend on page size and SQLite build.",
+    "systemsLens": "A single-file logical database has a multi-file live lifecycle. Operational tooling must treat the main file, WAL, and SHM as one coordinated state machine.",
+    "challenge": "Run PRAGMA wal_checkpoint(TRUNCATE) after closing the reader. Which sidecar changes, and why is that a separate operation from committing?",
+    "caution": "Never copy just the main file while WAL contains committed frames; use an engine-coordinated backup.",
+    "safetyLevel": "writes-data",
+    "runIn": "mixed",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 25,
+    "slug": "reader-and-writer-overlap",
+    "title": "WAL readers and the writer overlap safely",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "snapshots",
+      "isolation",
+      "transactions"
+    ],
+    "prerequisites": [
+      24
+    ],
+    "overview": "Hold a read transaction in A while B commits a new row. WAL lets the writer complete without evicting A's original snapshot.",
+    "syntaxBreakdown": "A read transaction establishes a snapshot. WAL appends committed frames while readers continue using the older database image.",
+    "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS items;\nCREATE TABLE items(id INTEGER PRIMARY KEY, value TEXT);\nINSERT INTO items VALUES (1, 'old');",
+    "code": "-- Session A\nBEGIN;\nSELECT 'A before', count(*), group_concat(value) FROM items;\n\n-- Session B\nINSERT INTO items VALUES (2, 'new');\nSELECT 'B committed', count(*) FROM items;\n\n-- Session A\nSELECT 'A snapshot after B commit', count(*), group_concat(value) FROM items;\nCOMMIT;\nSELECT 'A current', count(*) FROM items;",
+    "expectedResult": "B commits and reports count 2 while A remains in its transaction. A's second query still reports count 1 and only old; after COMMIT, A's new query reports count 2.",
+    "systemsLens": "WAL's append-only frames decouple readers from the active writer, providing snapshot isolation without removing the single-writer serialization point.",
+    "challenge": "Add a second concurrent writer. Predict which operation waits or returns busy and why WAL is not distributed replication.",
+    "caution": "Readers must actually keep a transaction open; two autocommit SELECT statements can observe different snapshots.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 26,
+    "slug": "snapshot-reader",
+    "title": "A long-lived snapshot pins a temporal view",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "snapshots",
+      "isolation",
+      "checkpoints"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Count rows inside a long-lived A snapshot while B performs several commits. End A's transaction and observe the handoff to current state.",
+    "syntaxBreakdown": "BEGIN fixes the read view for that transaction. B's two autocommit INSERT statements each append a committed state; A's snapshot does not move until it ends.",
+    "setup": "PRAGMA journal_mode=WAL;\nDROP TABLE IF EXISTS log;\nCREATE TABLE log(id INTEGER PRIMARY KEY, marker TEXT);\nINSERT INTO log VALUES (1, 'base');",
+    "code": "-- Session A\nBEGIN;\nSELECT 'A snapshot start', count(*) FROM log;\n\n-- Session B\nINSERT INTO log(marker) VALUES ('b1');\nINSERT INTO log(marker) VALUES ('b2');\nSELECT 'B current', count(*) FROM log;\n\n-- Session A\nSELECT 'A stable snapshot', count(*) FROM log;\nCOMMIT;\nSELECT 'A after transaction', count(*) FROM log;",
+    "expectedResult": "A starts at 1. B sees and commits 3 rows. A still reports 1 inside its transaction; after COMMIT, A's fresh query reports 3.",
+    "systemsLens": "A snapshot is a temporal isolation boundary and a reclamation horizon: old readers can constrain how quickly newer log state is reusable.",
+    "challenge": "Keep A open while running a passive checkpoint. Predict which frames can be reclaimed.",
+    "caution": "The snapshot is connection/transaction state, not a copy you can safely move between files.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 27,
+    "slug": "busy-snapshot-upgrade",
+    "title": "A stale WAL snapshot cannot silently become a writer",
+    "category": "wal",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "snapshots",
+      "busy",
+      "optimistic-concurrency"
+    ],
+    "prerequisites": [
+      26
+    ],
+    "overview": "Let A read an old snapshot, let B commit, and then ask A to write. SQLite rejects the stale snapshot upgrade instead of risking a write based on obsolete state.",
+    "syntaxBreakdown": "SQLite documents SQLITE_BUSY_SNAPSHOT for a WAL reader-to-writer upgrade after another connection commits. Here that extended-code mapping is a documented inference; the primary evidence is the CLI's database is locked result.",
+    "setup": "PRAGMA journal_mode=WAL;\nDROP TABLE IF EXISTS docs;\nCREATE TABLE docs(id INTEGER PRIMARY KEY, body TEXT);\nINSERT INTO docs VALUES (1, 'v1');",
+    "code": "-- Session A\n.timeout 100\nBEGIN;\nSELECT 'A read', body FROM docs WHERE id=1;\n\n-- Session B\nUPDATE docs SET body='v2' WHERE id=1;\nSELECT 'B committed', body FROM docs WHERE id=1;\n\n-- Session A\nUPDATE docs SET body='A stale write' WHERE id=1;\nSELECT 'A still snapshot', body FROM docs WHERE id=1;\nROLLBACK;\nSELECT 'A retry view', body FROM docs WHERE id=1;",
+    "expectedResult": "A first reads v1. B commits v2. A's UPDATE returns the primary CLI evidence database is locked; mapping it to the documented stale-snapshot SQLITE_BUSY_SNAPSHOT condition is an inference. After rollback, a fresh A query sees v2.",
+    "systemsLens": "A stale read cannot become a write without revalidation. This is the same optimistic-concurrency rule behind compare-and-swap and conflict-aware retries.",
+    "challenge": "Retry A with BEGIN IMMEDIATE after rolling back. Why does admission plus a fresh read avoid the stale upgrade?",
+    "caution": "The default CLI exposes the primary error text; bindings can inspect the extended SQLITE_BUSY_SNAPSHOT result code.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 28,
+    "slug": "checkpoint-modes",
+    "title": "Checkpoint modes trade progress for coordination",
+    "category": "wal",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "checkpoints",
+      "backpressure",
+      "observability"
+    ],
+    "prerequisites": [
+      27
+    ],
+    "overview": "Generate WAL frames, hold a reader snapshot, and run PASSIVE, FULL, RESTART, and TRUNCATE checkpoints. Compare result triples and sidecar sizes as coordination gets stronger.",
+    "syntaxBreakdown": "PRAGMA wal_checkpoint(mode) returns busy, log frames, and checkpointed frames. PASSIVE does not wait; FULL waits for writers; RESTART also waits for readers to end; TRUNCATE additionally truncates the WAL.",
+    "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS frames;\nCREATE TABLE frames(id INTEGER PRIMARY KEY, note TEXT);\nINSERT INTO frames(note) VALUES ('base');",
+    "code": "-- Session A\nPRAGMA wal_autocheckpoint=0;\n\n-- Session B\nBEGIN;\nSELECT 'reader pins snapshot', count(*) FROM frames;\n\n-- Session A\nINSERT INTO frames(note) VALUES ('frame-1'), ('frame-2'), ('frame-3'), ('frame-4'), ('frame-5'), ('frame-6'), ('frame-7'), ('frame-8');\n.timeout 100\nPRAGMA wal_checkpoint(PASSIVE);\nPRAGMA wal_checkpoint(FULL);\nPRAGMA wal_checkpoint(RESTART);\nPRAGMA wal_checkpoint(TRUNCATE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\"\n\n-- Session B\nCOMMIT;\n\n-- Session A\nPRAGMA wal_checkpoint(FULL);\nPRAGMA wal_checkpoint(RESTART);\nPRAGMA wal_checkpoint(TRUNCATE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\";",
+    "expectedResult": "On SQLite 3.45.1 with the default 4 KiB layout, the four calls while B's snapshot is open report PASSIVE 0|6|5, then FULL 1|6|5, RESTART 1|6|5, and TRUNCATE 1|6|5. After B commits, FULL and RESTART report 0|6|6, TRUNCATE reports 0|0|0, and the WAL stat is 0 bytes. Page layout can change the frame counts, but the relationship is stable: PASSIVE makes partial progress, the stronger calls cannot finish past the reader, and release permits full checkpoint plus truncation.",
+    "systemsLens": "Applying log frames and reclaiming log space are distinct operations. A slow observer sets the safe reclamation horizon and can turn checkpoint work into backpressure.",
+    "challenge": "Repeat with no reader. Which modes converge to the same result, and why is PASSIVE still useful for low-latency maintenance?",
+    "caution": "Checkpoint results and exact sidecar sizes vary with page size and scheduling; compare the busy/log/checkpointed relationship rather than relying on one literal triple.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 29,
+    "slug": "checkpoint-starvation",
+    "title": "A slow reader can grow the WAL indefinitely",
+    "category": "wal",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "checkpoints",
+      "backpressure",
+      "capacity",
+      "snapshots"
+    ],
+    "prerequisites": [
+      28
+    ],
+    "overview": "Pin an old reader, commit repeated batches, and attempt passive checkpoints. Observe WAL growth and incomplete progress until the reader releases its snapshot.",
+    "syntaxBreakdown": "wal_autocheckpoint=0 makes the backlog visible. A passive checkpoint reports progress without waiting; TRUNCATE after the reader ends reclaims the file.",
+    "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS queue;\nCREATE TABLE queue(id INTEGER PRIMARY KEY, payload TEXT);\nINSERT INTO queue(payload) VALUES ('anchor');",
+    "code": "-- Session B\nBEGIN;\nSELECT 'old reader', count(*) FROM queue;\n\n-- Session A\nPRAGMA wal_autocheckpoint=0;\nINSERT INTO queue(payload) VALUES ('batch-1');\nINSERT INTO queue(payload) VALUES ('batch-2');\nINSERT INTO queue(payload) VALUES ('batch-3');\nPRAGMA wal_checkpoint(PASSIVE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\"\nINSERT INTO queue(payload) VALUES ('batch-4');\nINSERT INTO queue(payload) VALUES ('batch-5');\nINSERT INTO queue(payload) VALUES ('batch-6');\nPRAGMA wal_checkpoint(PASSIVE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\"\n\n-- Session B\nCOMMIT;\n\n-- Session A\nPRAGMA wal_checkpoint(TRUNCATE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\";\nSELECT 'current rows', count(*) FROM queue;",
+    "expectedResult": "While B's snapshot is open, passive checkpoints report a WAL backlog and the sidecar grows after each batch. After B commits, TRUNCATE can reclaim the WAL; current rows then total 7.",
+    "systemsLens": "The slowest observer controls garbage collection. In WAL this is a local form of backpressure: unbounded reader lifetimes become unbounded log-space demand.",
+    "challenge": "Set a WAL size alert and choose a policy for readers that exceed it: cancellation, restart, or allowing growth.",
+    "caution": "WAL is same-host coordination, not replication or consensus; do not place the files on NFS, SMB, or a synchronized cloud directory.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 30,
+    "slug": "unsafe-live-copy",
+    "title": "Copying only the main file misses live WAL state",
+    "category": "recovery",
+    "difficulty": "advanced",
+    "tags": [
+      "backup",
+      "wal",
+      "rpo",
+      "file-format"
+    ],
+    "prerequisites": [
+      29
+    ],
+    "overview": "Keep a source connection open with committed frames in WAL, copy only the main file, and compare the disposable destination with the source.",
+    "syntaxBreakdown": "The shell cp command copies bytes without asking SQLite for a consistent snapshot. The course REPL already opens TUTOR_SQLITE_DB; WAL mode stores recent committed pages in the -wal sidecar.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS records;\nCREATE TABLE records(id INTEGER PRIMARY KEY, value TEXT);\nINSERT INTO records VALUES (1, 'main-file-baseline');\nPRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;",
+    "code": "-- Session B\nPRAGMA wal_autocheckpoint=0;\nSELECT 'source baseline', count(*) FROM records;\n\n-- Session A\nINSERT INTO records VALUES (2, 'committed-only-in-wal');\nSELECT 'source current', count(*) FROM records;\n.shell rm -f \"$TUTOR_SQLITE_DB.copy.db\" \"$TUTOR_SQLITE_DB.copy.db-wal\" \"$TUTOR_SQLITE_DB.copy.db-shm\"\n.shell cp \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB.copy.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.copy.db\" \"SELECT 'main-file-only copy', count(*) FROM records;\"\n\n-- Session B\nSELECT 'source remains', count(*) FROM records;",
+    "expectedResult": "B and A see source count 2 after the commit. The copy made while B keeps the source connection open sees only the baseline count 1 (or reports an unusable/incomplete state), demonstrating that main-file bytes alone are not a transactional snapshot. The source remains intact at count 2.",
+    "systemsLens": "Filesystem copying ignores transaction boundaries. A recovery point objective is meaningful only when the capture method coordinates with the engine's pager and all live sidecars.",
+    "challenge": "Repeat after a coordinated TRUNCATE checkpoint and compare the copy. Why does that make the copy less unsafe but still less flexible than online backup?",
+    "caution": "This intentionally unsafe exercise copies only a disposable source and never overwrites the original. Do not copy live SQLite files in production this way.",
+    "safetyLevel": "dangerous",
+    "runIn": "mixed",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 31,
+    "slug": "online-cli-backup",
+    "title": "The CLI backup captures a consistent source snapshot",
+    "category": "recovery",
+    "difficulty": "advanced",
+    "tags": [
+      "backup",
+      "wal",
+      "consistency",
+      "rpo",
+      "rto"
+    ],
+    "prerequisites": [
+      30
+    ],
+    "overview": "Run SQLite's online .backup command while another connection performs bounded writes, then validate the destination independently.",
+    "syntaxBreakdown": ".backup FILE asks SQLite to copy pages through the backup API, coordinating with source locks and snapshots. integrity_check validates structural consistency after opening the destination.",
+    "setup": "PRAGMA journal_mode=WAL;\nDROP TABLE IF EXISTS events;\nCREATE TABLE events(id INTEGER PRIMARY KEY, note TEXT);\nINSERT INTO events VALUES (1, 'baseline');",
+    "code": "-- Session B\nBEGIN IMMEDIATE;\nINSERT INTO events(note) VALUES ('b1');\nINSERT INTO events(note) VALUES ('b2');\nINSERT INTO events(note) VALUES ('b3');\n\n-- Session A\n.shell rm -f \"$TUTOR_SQLITE_DB.online-backup.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \".backup '$TUTOR_SQLITE_DB.online-backup.db'\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.online-backup.db\" \"PRAGMA integrity_check; SELECT 'backup rows', count(*) FROM events;\"\n\n-- Session B\nCOMMIT;\nINSERT INTO events(note) VALUES ('b4');\nINSERT INTO events(note) VALUES ('b5');\nSELECT 'source final', count(*) FROM events;",
+    "expectedResult": "B holds an uncommitted write while A runs the online backup. The destination opens successfully and integrity_check returns ok; it reports the committed snapshot count 1, while B then commits and the source final count is 6. The backup never contains B's uncommitted half-effect.",
+    "systemsLens": "Online backup turns a moving file set into a consistent recovery artifact. The snapshot point defines RPO; the time to produce and restore it contributes to RTO.",
+    "challenge": "Run .backup while B holds a bounded write transaction. Which operation waits, and how does that differ from guessing an ordering of cp calls?",
+    "caution": "A backup is only as current as its capture point; schedule and monitor it rather than treating it as continuous replication.",
+    "safetyLevel": "writes-data",
+    "runIn": "mixed",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 32,
+    "slug": "vacuum-into-snapshot",
+    "title": "VACUUM INTO creates an independent compact snapshot",
+    "category": "recovery",
+    "difficulty": "intermediate",
+    "tags": [
+      "backup",
+      "vacuum",
+      "pages",
+      "integrity-check"
+    ],
+    "prerequisites": [
+      31
+    ],
+    "overview": "Create free pages, then use VACUUM INTO to produce a separate compact database and compare size and logical contents.",
+    "syntaxBreakdown": "freelist_count reports pages available for reuse. VACUUM INTO rewrites a consistent database into a new filename without changing the source.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS blobs;\nCREATE TABLE blobs(id INTEGER PRIMARY KEY, payload TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100)\nINSERT INTO blobs SELECT x, hex(randomblob(1000)) FROM n;",
+    "code": "-- Session A\nDELETE FROM blobs WHERE id>20;\nSELECT 'source rows/free pages', count(*), (SELECT freelist_count FROM pragma_freelist_count) FROM blobs;\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB\"\n.shell rm -f \"$TUTOR_SQLITE_DB.vacuum.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"VACUUM INTO '$TUTOR_SQLITE_DB.vacuum.db'\"\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB.vacuum.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.vacuum.db\" \"PRAGMA integrity_check; SELECT 'copy rows', count(*) FROM blobs;\"",
+    "expectedResult": "The source has 20 rows and a nonzero freelist after deleting 80 approximately 2,000-byte payloads. VACUUM INTO produces an independent file whose integrity_check is ok and whose count is 20; its byte size is smaller than the fragmented source.",
+    "systemsLens": "A logical rewrite can combine snapshot creation and compaction, but it spends I/O and temporary space. Reuse, compaction, and backup are separate operational policies.",
+    "challenge": "Increase payload size and compare the size delta. At what point does rewrite cost exceed the space benefit for your workload?",
+    "caution": "The destination must not already exist; this lesson removes only its uniquely named disposable copy.",
+    "safetyLevel": "writes-data",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 33,
+    "slug": "integrity-and-domain-checks",
+    "title": "Engine integrity does not prove application correctness",
+    "category": "recovery",
+    "difficulty": "intermediate",
+    "tags": [
+      "integrity-check",
+      "consistency",
+      "observability"
+    ],
+    "prerequisites": [
+      32
+    ],
+    "overview": "Construct a structurally valid database with an orphan child row, then compare SQLite's structural checks with foreign-key and domain-level checks.",
+    "syntaxBreakdown": "quick_check samples structural invariants; integrity_check performs a deeper consistency check. foreign_key_check reports relational violations, while a domain query encodes business meaning.",
+    "setup": "DROP TABLE IF EXISTS child;\nDROP TABLE IF EXISTS parent;\nPRAGMA foreign_keys=ON;\nCREATE TABLE parent(id INTEGER PRIMARY KEY);\nCREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id), state TEXT NOT NULL);\nINSERT INTO parent VALUES (1);\nINSERT INTO child VALUES (1, 1, 'ready');\nPRAGMA foreign_keys=OFF;\nINSERT INTO child VALUES (2, 999, 'ready');\nPRAGMA foreign_keys=ON;",
+    "code": "-- Session A\nPRAGMA quick_check;\nPRAGMA integrity_check;\nPRAGMA foreign_key_check;\nSELECT 'domain orphan count', count(*) FROM child c LEFT JOIN parent p ON p.id=c.parent_id WHERE p.id IS NULL;\nSELECT 'domain ready count', count(*) FROM child WHERE state='ready';",
+    "expectedResult": "quick_check and integrity_check each print ok because the B-tree and pages are structurally sound. foreign_key_check prints a row identifying child row 2 and parent; the domain orphan query prints 1, proving application-level consistency needs its own checks.",
+    "systemsLens": "Consistency has layers: storage structure, relational constraints, and domain invariants. Monitoring only the first layer can declare a semantically broken database healthy.",
+    "challenge": "Add a CHECK constraint for allowed state values and compare what integrity_check can and cannot validate.",
+    "caution": "Foreign keys are connection settings; every writer must enable PRAGMA foreign_keys=ON rather than relying on a process-wide default.",
+    "safetyLevel": "ddl",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 34,
+    "slug": "recover-damaged-copy",
+    "title": "Recovery maximizes salvage, while backups provide guarantees",
+    "category": "recovery",
+    "difficulty": "advanced",
+    "tags": [
+      "recovery",
+      "integrity-check",
+      "incident",
+      "rpo",
+      "rto"
+    ],
+    "prerequisites": [
+      33
+    ],
+    "overview": "Preserve an original, corrupt only a uniquely named copy, run checks, and use .recover to salvage readable rows into a third database.",
+    "syntaxBreakdown": ".recover emits SQL that reconstructs readable tables. .output redirects that SQL to a file, .read executes it, and dd changes selected bytes in the disposable copy.",
+    "setup": "PRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS observations;\nCREATE TABLE observations(id INTEGER PRIMARY KEY, reading TEXT NOT NULL);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<40)\nINSERT INTO observations SELECT x, printf('reading-%02d', x) FROM n;",
+    "code": "-- Session A\n.shell rm -f \"$TUTOR_SQLITE_DB.damaged.db\" \"$TUTOR_SQLITE_DB.recovered.db\" \"$TUTOR_SQLITE_DB.recover.sql\" \"$TUTOR_SQLITE_DB.recover.err\" \"$TUTOR_SQLITE_DB.recover.status\" \"$TUTOR_SQLITE_DB.dump.sql\" \"$TUTOR_SQLITE_DB.dump.err\" \"$TUTOR_SQLITE_DB.observations.present\"\n.shell cp \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB.damaged.db\"\n.shell dd if=/dev/zero of=\"$TUTOR_SQLITE_DB.damaged.db\" bs=1 seek=4096 count=128 conv=notrunc\n.shell sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \"PRAGMA quick_check; PRAGMA integrity_check;\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \".recover\" >\"$TUTOR_SQLITE_DB.recover.sql\" 2>\"$TUTOR_SQLITE_DB.recover.err\"; rc=$?; echo recover_status=$rc; printf \"%s\" \"$rc\" >\"$TUTOR_SQLITE_DB.recover.status\"\n.shell cat \"$TUTOR_SQLITE_DB.recover.err\"\n.shell if grep -q sqlite_dbpage \"$TUTOR_SQLITE_DB.recover.err\"; then sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \".dump\" >\"$TUTOR_SQLITE_DB.dump.sql\" 2>\"$TUTOR_SQLITE_DB.dump.err\"; sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" <\"$TUTOR_SQLITE_DB.dump.sql\"; else sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" <\"$TUTOR_SQLITE_DB.recover.sql\"; fi\n.shell sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" \"PRAGMA integrity_check;\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" \"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='observations';\" >\"$TUTOR_SQLITE_DB.observations.present\"\n.shell if grep -q '^1$' \"$TUTOR_SQLITE_DB.observations.present\"; then sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" \"SELECT 'recovered observation rows', count(*) FROM observations;\"; else echo 'recovered observation rows|0 (absent)'; fi\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"PRAGMA integrity_check; SELECT 'source_rows', count(*) FROM observations;\"",
+    "expectedResult": "The source remains untouched and the damaged copy's checks report corruption or an error. The lesson prints one recover_status=N line, captures .recover SQL and stderr, and then validates the third artifact. On builds with sqlite_dbpage, a successful .recover is loaded and prints recovered observation rows|N. On the installed SQLite 3.45.1 build, .recover prints recover_status=1 with stderr containing no such table: sqlite_dbpage; the documented .dump fallback yields integrity_check ok and recovered observation rows|0 (absent). The final source check prints ok and source_rows|40.",
+    "systemsLens": "Recovery tools maximize readable evidence after an incident; only a verified, engine-coordinated backup can support a stated RPO/RTO restoration guarantee.",
+    "challenge": "Run .recover against a copy damaged in a different page and compare which rows survive. Record the corruption location and salvage rate.",
+    "caution": "This deliberately corrupts only the uniquely named TUTOR_SQLITE_DB.damaged.db copy and preserves the source. Never point dd or .recover at a production database.",
+    "safetyLevel": "dangerous",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 35,
+    "slug": "query-plan-as-evidence",
+    "title": "Treat a query plan as a performance hypothesis",
+    "category": "performance",
+    "difficulty": "intermediate",
+    "tags": [
+      "query-planner",
+      "indexes",
+      "observability"
+    ],
+    "prerequisites": [
+      33
+    ],
+    "overview": "Build a moderately large table, run a selective lookup before and after adding an index, and pair the planner's explanation with a measured result. The plan is evidence about a mechanism; timing checks whether that mechanism matters for this workload.",
+    "syntaxBreakdown": "EXPLAIN QUERY PLAN reports the access strategy without executing the query. .timer on prints CLI wall-clock timing. CREATE INDEX materializes a lookup path maintained by SQLite.",
+    "setup": "DROP TABLE IF EXISTS plan_events;\nCREATE TABLE plan_events(event_id INTEGER PRIMARY KEY, tenant TEXT NOT NULL, payload TEXT NOT NULL);\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 20000)\nINSERT INTO plan_events(event_id, tenant, payload)\nSELECT x, 'tenant-' || printf('%02d', x % 100), 'payload-' || printf('%06d', x) FROM n;\nDROP INDEX IF EXISTS plan_events_tenant_idx;\nPRAGMA optimize;",
+    "code": ".timer on\nEXPLAIN QUERY PLAN SELECT payload FROM plan_events WHERE tenant = 'tenant-37' ORDER BY event_id;\nSELECT count(*) AS matching_rows FROM plan_events WHERE tenant = 'tenant-37';\nCREATE INDEX plan_events_tenant_idx ON plan_events(tenant, event_id, payload);\nEXPLAIN QUERY PLAN SELECT payload FROM plan_events WHERE tenant = 'tenant-37' ORDER BY event_id;\nSELECT count(*) AS matching_rows FROM plan_events WHERE tenant = 'tenant-37';\n.timer off",
+    "expectedResult": "The first plan contains SCAN plan_events and the second contains SEARCH plan_events USING COVERING INDEX plan_events_tenant_idx (or an equivalent indexed search). Both counts are 200. Timing is workload- and machine-dependent, so use it only as supporting evidence; the access-path change is the durable observation.",
+    "systemsLens": "A plan is a causal hypothesis about pages touched, while a measurement tests the hypothesis under a concrete cache and data shape. This is the same evidence loop used when evaluating storage or network changes.",
+    "challenge": "Change the predicate to a value matching half the table and compare the plan and timing. At what selectivity does the index stop being an obvious win?",
+    "caution": "Do not infer a universal speedup from one warm-cache run. Keep the data size, SQLite build, cache state, and predicate visible when recording a result.",
+    "safetyLevel": "ddl",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 36,
+    "slug": "index-read-write-tradeoff",
+    "title": "Measure the read and write cost of indexes",
+    "category": "performance",
+    "difficulty": "intermediate",
+    "tags": [
+      "indexes",
+      "pages",
+      "write-amplification",
+      "capacity"
+    ],
+    "prerequisites": [
+      35
+    ],
+    "overview": "Populate equivalent indexed and unindexed tables, compare their page footprints and lookup plans, then apply the same batch update to each. An index is a materialized access path whose maintenance is part of the write cost.",
+    "syntaxBreakdown": "PRAGMA page_count and page_size expose the database's current page footprint. EXPLAIN QUERY PLAN exposes whether a named index is used. A transaction makes the batch update one measured unit.",
+    "setup": "DROP TABLE IF EXISTS trade_no_index;\nDROP TABLE IF EXISTS trade_with_indexes;\nCREATE TABLE trade_no_index(id INTEGER PRIMARY KEY, account TEXT NOT NULL, state TEXT NOT NULL, amount INTEGER NOT NULL);\nCREATE TABLE trade_with_indexes(id INTEGER PRIMARY KEY, account TEXT NOT NULL, state TEXT NOT NULL, amount INTEGER NOT NULL);\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 12000)\nINSERT INTO trade_no_index SELECT x, 'acct-' || printf('%04d', x % 1000), CASE WHEN x % 7 = 0 THEN 'open' ELSE 'closed' END, x % 10000 FROM n;\nINSERT INTO trade_with_indexes SELECT * FROM trade_no_index;\nPRAGMA optimize;",
+    "code": ".timer on\nSELECT 'before_indexes' AS observation, name, count(*) AS pages FROM dbstat WHERE name IN ('trade_no_index', 'trade_with_indexes') GROUP BY name ORDER BY name;\nEXPLAIN QUERY PLAN SELECT sum(amount) FROM trade_no_index WHERE account = 'acct-0042';\nSELECT sum(amount) FROM trade_no_index WHERE account = 'acct-0042';\nCREATE INDEX trade_account_idx ON trade_with_indexes(account);\nCREATE INDEX trade_state_idx ON trade_with_indexes(state);\nCREATE INDEX trade_amount_idx ON trade_with_indexes(amount);\nEXPLAIN QUERY PLAN SELECT sum(amount) FROM trade_with_indexes WHERE account = 'acct-0042';\nSELECT sum(amount) FROM trade_with_indexes WHERE account = 'acct-0042';\nSELECT 'after_indexes' AS observation, name, count(*) AS pages FROM dbstat WHERE name IN ('trade_no_index', 'trade_with_indexes', 'trade_account_idx', 'trade_state_idx', 'trade_amount_idx') GROUP BY name ORDER BY name;\nBEGIN;\nUPDATE trade_no_index SET amount = amount + 1 WHERE id BETWEEN 1 AND 4000;\nCOMMIT;\nBEGIN;\nUPDATE trade_with_indexes SET amount = amount + 1 WHERE id BETWEEN 1 AND 4000;\nCOMMIT;\nSELECT 'after_index_maintenance' AS observation, page_count, page_size FROM pragma_page_count, pragma_page_size;\n.timer off",
+    "expectedResult": "The before_indexes dbstat rows show only the two table objects. After creating indexes, dbstat adds trade_account_idx, trade_state_idx, and trade_amount_idx pages, and the indexed lookup shows SEARCH trade_with_indexes USING INDEX trade_account_idx. The two sums are equal. Exact page counts and elapsed times vary, but added index pages and extra update maintenance are the observed trade-off.",
+    "systemsLens": "Indexes are materialized views: they reduce read amplification for matching predicates but consume capacity and add work to every affected insert, update, and delete. Capacity planning must include both sides of that trade.",
+    "challenge": "Drop trade_amount_idx, repeat the update, and compare the page growth and timer output. Which changed columns actually require index maintenance?",
+    "caution": "The two tables share one database, so page_count is a database-wide measure rather than an exact per-table size. Use dbstat when that optional virtual table is available and label the limitation.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 37,
+    "slug": "analyze-changes-plans",
+    "title": "Let ANALYZE replace a guess with observed statistics",
+    "category": "performance",
+    "difficulty": "advanced",
+    "tags": [
+      "statistics",
+      "query-planner",
+      "observability"
+    ],
+    "prerequisites": [
+      36
+    ],
+    "overview": "Create a deliberately skewed two-column workload with two competing indexes. Compare the plan before and after ANALYZE and inspect sqlite_stat1 so the optimizer's model becomes visible rather than mystical.",
+    "syntaxBreakdown": "ANALYZE records sampled cardinality in sqlite_stat1. EXPLAIN QUERY PLAN reports the selected index. sqlite_stat1 is ordinary queryable metadata, but applications should treat its format as planner statistics rather than an API for hand editing.",
+    "setup": "DROP TABLE IF EXISTS skewed_events;\nCREATE TABLE skewed_events(id INTEGER PRIMARY KEY, region TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL);\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 10000)\nINSERT INTO skewed_events\nSELECT x, CASE WHEN x <= 100 THEN 'rare-region' ELSE 'region-' || printf('%03d', x % 99) END,\n  CASE WHEN x % 2 = 0 THEN 'common-kind' ELSE 'other-kind' END, 'body-' || x FROM n;\nCREATE INDEX skewed_region_idx ON skewed_events(region);\nCREATE INDEX skewed_kind_idx ON skewed_events(kind);\nPRAGMA optimize;",
+    "code": "EXPLAIN QUERY PLAN SELECT body FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';\nSELECT count(*) AS expected_matches FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';\nANALYZE skewed_events;\nSELECT tbl, idx, stat FROM sqlite_stat1 WHERE tbl = 'skewed_events' ORDER BY idx;\nEXPLAIN QUERY PLAN SELECT body FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';",
+    "expectedResult": "The count is 50. After ANALYZE, sqlite_stat1 contains one row for each named index with cardinality text (the exact numbers are build/data dependent but show region is much more selective than kind). The post-ANALYZE plan uses skewed_region_idx; on this fixed 10,000-row dataset it is a reproducible change from the pre-statistics choice of skewed_kind_idx. If a build chooses region before ANALYZE, record that the plan did not change and use the stats to explain why rather than claiming a change that did not occur.",
+    "systemsLens": "An optimizer acts on a compressed and potentially stale model of reality. ANALYZE is an observability and maintenance operation: it can improve decisions, but only while its statistics still represent the workload.",
+    "challenge": "Insert 100,000 common-region rows, rerun ANALYZE, and compare the stats and plan. Predict the change before measuring it.",
+    "caution": "Do not edit sqlite_stat1 as a tuning shortcut in a lesson run. Statistics formats and planner decisions are implementation details; validate the chosen plan after each meaningful data-shape change.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 38,
+    "slug": "measure-the-writer-envelope",
+    "title": "Measure a workload-specific single-writer envelope",
+    "category": "performance",
+    "difficulty": "advanced",
+    "tags": [
+      "transactions",
+      "busy",
+      "capacity",
+      "backpressure"
+    ],
+    "prerequisites": [
+      37
+    ],
+    "overview": "Run bounded autocommit and batched writes against a disposable rollback-mode database, then launch two bounded writer processes. Record throughput and busy outcomes for this filesystem instead of inventing a universal SQLite limit.",
+    "syntaxBreakdown": "sqlite3 -cmd applies PRAGMAs before a script. .timer reports CLI timing. timeout bounds a process so contention cannot leave a lesson hanging. BEGIN and COMMIT define the unit over which the writer lock and durability work are amortized.",
+    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nparent=$(dirname -- \"$db\")\nif [ \"$parent\" = / ] || [ ! -d \"$parent\" ] || [ ! -w \"$parent\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\nbase=$db\nlab_dir=$(dirname -- \"$base\")\ndb=$lab_dir/writer-envelope.sqlite\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"\nsqlite3 \"$db\" 'PRAGMA journal_mode=DELETE; CREATE TABLE writes(id INTEGER PRIMARY KEY, worker TEXT, payload TEXT);'\n\necho '--- autocommit: 200 transactions ---'\ntime sh -c 'i=1; while [ \"$i\" -le 200 ]; do sqlite3 \"$1\" \"INSERT INTO writes(worker,payload) VALUES (\\\"auto\\\",\\\"$i\\\");\" >/dev/null; i=$((i + 1)); done' sh \"$db\"\necho '--- one batch: 200 rows ---'\ntime sqlite3 \"$db\" <<'SQL'\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO writes(worker, payload) SELECT 'batch', x FROM n;\nCOMMIT;\nSQL\necho '--- two bounded competing writers ---'\n(printf '%s\\n' 'PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\"holder\",\"lock\");'; sleep 3; printf '%s\\n' 'ROLLBACK;') | sqlite3 \"$db\" >/dev/null &\nholder=$!\nsleep 0.2\nset +e\ntimeout 2 sh -c 'i=1; while [ \"$i\" -le 50 ]; do sqlite3 \"$1\" \"PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\\\"racer\\\",\\\"$i\\\"); COMMIT;\" >/dev/null || echo busy; i=$((i + 1)); done' sh \"$db\" >\"$lab_dir/writer-racer.out\"\nracer_status=$?\nset -e\nwait \"$holder\"\nprintf 'racer_exit=%s busy_lines=%s rows=%s pages=%s\\n' \"$racer_status\" \"$(wc -l < \"$lab_dir/writer-racer.out\")\" \"$(sqlite3 \"$db\" 'SELECT count(*) FROM writes')\" \"$(sqlite3 \"$db\" 'PRAGMA page_count')\"\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"",
+    "expectedResult": "The script prints timings for 200 autocommit transactions and one 200-row transaction, then a bounded competing-writer result. The batch normally takes less transaction-boundary work than autocommit. writer-racer.out may contain busy lines depending on scheduling and the configured timeout; rows and page count remain valid integers, and the timeout prevents an indefinite wait. Record the exact host-specific numbers as the measured envelope.",
+    "systemsLens": "SQLite has one writer at a time. Batching amortizes commit work, while competing writers turn the serialization point into a queue whose throughput, wait budget, and failure rate must be measured for the actual workload.",
+    "challenge": "Repeat with batches of 10, 50, and 500 and graph rows per second against batch size. Identify the point where transaction latency or lock hold time becomes unacceptable.",
+    "caution": "Run this only with a uniquely named disposable path. The holder process is intentionally terminated and the outputs are workload evidence, not a durability or power-loss test.",
+    "safetyLevel": "locking",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 39,
+    "slug": "transactional-outbox",
+    "title": "Close the dual-write gap with a transactional outbox",
+    "category": "local-systems",
+    "difficulty": "intermediate",
+    "tags": [
+      "outbox",
+      "atomicity",
+      "transactions",
+      "idempotency"
+    ],
+    "prerequisites": [
+      23
+    ],
+    "overview": "Update domain state and append the message describing that update in one SQLite transaction. Then run a rollback variant to show that a failed transaction emits neither half of the intended effect.",
+    "syntaxBreakdown": "A UNIQUE operation_id gives an outbox event stable identity. BEGIN, COMMIT, and ROLLBACK define one atomic state transition. SELECT joins domain state to durable intent for inspection.",
+    "setup": "DROP TABLE IF EXISTS outbox;\nDROP TABLE IF EXISTS accounts;\nCREATE TABLE accounts(account_id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);\nCREATE TABLE outbox(event_id INTEGER PRIMARY KEY, operation_id TEXT NOT NULL UNIQUE, account_id INTEGER NOT NULL, event_type TEXT NOT NULL, payload TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0);\nINSERT INTO accounts VALUES (1, 100);",
+    "code": "BEGIN;\nUPDATE accounts SET balance = balance - 15 WHERE account_id = 1;\nINSERT INTO outbox(operation_id, account_id, event_type, payload) VALUES ('op-001', 1, 'debit', 'amount=15');\nCOMMIT;\nSELECT a.account_id, a.balance, o.operation_id, o.event_type, o.published FROM accounts a JOIN outbox o USING (account_id);\nBEGIN;\nUPDATE accounts SET balance = balance - 20 WHERE account_id = 1;\nINSERT INTO outbox(operation_id, account_id, event_type, payload) VALUES ('op-002', 1, 'debit', 'amount=20');\nROLLBACK;\nSELECT balance AS balance_after_rollback FROM accounts WHERE account_id = 1;\nSELECT count(*) AS durable_events FROM outbox;",
+    "expectedResult": "The committed operation leaves balance 85 and one outbox row for op-001. The rollback variant leaves balance at 85 and durable_events at 1: neither the debit nor op-002 exists. The outbox is pending (published = 0) until a separate delivery process acknowledges it.",
+    "systemsLens": "The outbox closes the dual-write gap by placing domain state and delivery intent behind one local commit point. A later worker may deliver at least once, but it cannot observe intent for a state change that rolled back.",
+    "challenge": "Add a foreign key and a query that lists unpublished events older than a chosen timestamp. Which invariant belongs in SQLite and which belongs in the delivery service?",
+    "caution": "The outbox is not a distributed transaction or proof of remote delivery. It records durable intent; delivery, retry, and downstream deduplication remain separate responsibilities.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 40,
+    "slug": "outbox-replay-after-crash",
+    "title": "Make an outbox replay safe after worker death",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "outbox",
+      "deduplication",
+      "retries",
+      "crash-recovery"
+    ],
+    "prerequisites": [
+      39
+    ],
+    "overview": "Commit an outbox claim, stop before acknowledgement, and restart a worker against the same row. A downstream receipt ledger keyed by operation_id turns the replay into one logical effect while retaining at-least-once delivery semantics.",
+    "syntaxBreakdown": "UPDATE ... RETURNING claims and displays one row. INSERT OR IGNORE makes a replay a no-op at the receipt boundary. changes() reports whether the current statement inserted a new effect.",
+    "setup": "DROP TABLE IF EXISTS delivery_receipts;\nDROP TABLE IF EXISTS outbox_replay;\nCREATE TABLE outbox_replay(operation_id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE delivery_receipts(operation_id TEXT PRIMARY KEY, effect TEXT NOT NULL);\nINSERT INTO outbox_replay VALUES ('send-001', 'email:welcome', 'pending', 0);",
+    "code": "BEGIN IMMEDIATE;\nUPDATE outbox_replay SET status = 'in_flight', attempts = attempts + 1 WHERE operation_id = 'send-001' AND status = 'pending' RETURNING operation_id, status, attempts;\nCOMMIT;\nSELECT 'worker_died_before_ack' AS event, status, attempts FROM outbox_replay WHERE operation_id = 'send-001';\nBEGIN IMMEDIATE;\nINSERT OR IGNORE INTO delivery_receipts(operation_id, effect) SELECT operation_id, payload FROM outbox_replay WHERE operation_id = 'send-001';\nSELECT changes() AS new_effect_on_first_replay;\nUPDATE outbox_replay SET status = 'done' WHERE operation_id = 'send-001';\nCOMMIT;\nBEGIN;\nINSERT OR IGNORE INTO delivery_receipts(operation_id, effect) VALUES ('send-001', 'email:welcome');\nSELECT changes() AS new_effect_on_duplicate_replay;\nCOMMIT;\nSELECT operation_id, status, attempts FROM outbox_replay;\nSELECT count(*) AS logical_effects FROM delivery_receipts;",
+    "expectedResult": "The claim commits as status in_flight with attempts = 1, then the simulated worker death leaves it unacknowledged. The first replay inserts one receipt (new_effect_on_first_replay = 1) and marks the outbox done; the duplicate replay reports 0 new effects. The final logical_effects count is 1 even though delivery was attempted again.",
+    "systemsLens": "A crash between remote effect and local acknowledgement creates at-least-once delivery. Exactly-once-looking behavior comes from an atomic identity ledger at the effect boundary, not from pretending a process cannot fail between two systems.",
+    "challenge": "Delete the receipt and replay with a different payload. What key and validation rule would prevent an operation ID from being reused for a different effect?",
+    "caution": "The SQL simulation models the failure window; it does not kill a real process or prove remote side effects are transactional. Use stable operation identities and make downstream operations genuinely idempotent.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 41,
+    "slug": "durable-job-claims",
+    "title": "Claim durable jobs with short write transactions",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "queues",
+      "leases",
+      "locking",
+      "transactions"
+    ],
+    "prerequisites": [
+      40
+    ],
+    "overview": "Use short BEGIN IMMEDIATE transactions to assign queued jobs to workers, then commit before slow work. Two sequential sessions take different jobs and record owner, attempt, and deadline in durable rows; the lesson makes unique claims explicit before adding a contention experiment as a challenge.",
+    "syntaxBreakdown": "BEGIN IMMEDIATE reserves SQLite's writer slot before the claim query. UPDATE ... RETURNING both changes and displays the selected job. julianday provides a portable numeric deadline for this bounded exercise.",
+    "setup": "DROP TABLE IF EXISTS durable_jobs;\nCREATE TABLE durable_jobs(job_id INTEGER PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'queued', owner TEXT, attempt INTEGER NOT NULL DEFAULT 0, lease_until REAL);\nINSERT INTO durable_jobs(job_id, payload) VALUES (1, 'resize-image'), (2, 'send-report'), (3, 'refresh-cache');",
+    "code": "-- Session A\nBEGIN IMMEDIATE;\nWITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)\nUPDATE durable_jobs SET state = 'claimed', owner = 'worker-a', attempt = attempt + 1, lease_until = julianday('now') + 1.0 / 1440.0 WHERE job_id IN next_job RETURNING job_id, owner, attempt, state;\nCOMMIT;\n-- Session B\nBEGIN IMMEDIATE;\nWITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)\nUPDATE durable_jobs SET state = 'claimed', owner = 'worker-b', attempt = attempt + 1, lease_until = julianday('now') + 1.0 / 1440.0 WHERE job_id IN next_job RETURNING job_id, owner, attempt, state;\nCOMMIT;\nSELECT job_id, state, owner, attempt FROM durable_jobs ORDER BY job_id;",
+    "expectedResult": "Session A claims job 1 and commits; the sequential Session B then claims job 2 and commits. Each claim has attempt = 1 and a non-NULL lease_until. No job has two owners, and job 3 remains queued. Because these sessions are sequential in the harness, this run demonstrates unique short claims, not a measured lock race; the challenge adds bounded contention.",
+    "systemsLens": "A durable queue separates an ownership transition from the work it authorizes. BEGIN IMMEDIATE makes admission explicit, while the lease and attempt fields make recovery and observability possible after a worker disappears.",
+    "challenge": "Add a third worker and a partial index on queued jobs. Then hold a write transaction briefly and observe the bounded busy behavior of another claimant.",
+    "caution": "A lease is not fencing by itself: a worker that holds an old lease can still finish late unless every completion checks the ownership token. The next lesson adds that guard.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 42,
+    "slug": "lease-expiry-and-fencing",
+    "title": "Fence a stale worker after lease takeover",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "leases",
+      "fencing",
+      "optimistic-concurrency",
+      "retries"
+    ],
+    "prerequisites": [
+      41
+    ],
+    "overview": "Expire worker A's lease, let worker B take over with a higher fencing token, then submit A's late completion. The stale completion must update zero rows even though A still believes it owns the job.",
+    "syntaxBreakdown": "The token column is monotonically increasing ownership evidence. UPDATE ... WHERE token = ? is a compare-and-swap guard. changes() exposes whether a stale completion was accepted.",
+    "setup": "DROP TABLE IF EXISTS leased_jobs;\nCREATE TABLE leased_jobs(job_id INTEGER PRIMARY KEY, state TEXT NOT NULL, owner TEXT, token INTEGER NOT NULL, lease_until INTEGER NOT NULL, result TEXT);\nINSERT INTO leased_jobs VALUES (1, 'claimed', 'worker-a', 1, 100, NULL);",
+    "code": "SELECT job_id, state, owner, token, lease_until FROM leased_jobs;\nUPDATE leased_jobs SET state = 'claimed', owner = 'worker-b', token = token + 1, lease_until = 300 WHERE job_id = 1 AND lease_until <= 200;\nSELECT changes() AS takeover_rows;\nSELECT job_id, state, owner, token, lease_until FROM leased_jobs;\nUPDATE leased_jobs SET state = 'done', result = 'late-a' WHERE job_id = 1 AND owner = 'worker-a' AND token = 1 AND state = 'claimed';\nSELECT changes() AS stale_completion_rows;\nUPDATE leased_jobs SET state = 'done', result = 'result-b' WHERE job_id = 1 AND owner = 'worker-b' AND token = 2 AND state = 'claimed';\nSELECT changes() AS current_completion_rows;\nSELECT job_id, state, owner, token, result FROM leased_jobs;",
+    "expectedResult": "Worker B's takeover changes one row and raises token to 2. Worker A's late completion changes zero rows (stale_completion_rows = 0), while B's guarded completion changes one row. The final result is result-b, owned by worker-b with token 2; the stale worker cannot overwrite it.",
+    "systemsLens": "Expiry permits progress after a failed owner; fencing prevents an old owner from acting after that progress. The monotonically increasing token is a local form of authority that downstream writes must verify.",
+    "challenge": "Move the token check into a separate result table with a UNIQUE job_id and test a duplicate completion. Which boundary must enforce the fence if the side effect is outside SQLite?",
+    "caution": "Wall-clock expiry can jump or be misconfigured. Production leases need a clock policy, bounded durations, and a fencing check at every side-effecting boundary.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 43,
+    "slug": "local-oplog",
+    "title": "Record local mutations in an operation log",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "oplog",
+      "idempotency",
+      "ordering",
+      "atomicity"
+    ],
+    "prerequisites": [
+      42
+    ],
+    "overview": "Apply a local document mutation and append its operation metadata in one transaction. The operation ID, device sequence, payload, and acknowledgement state provide durable intent while disconnected.",
+    "syntaxBreakdown": "A composite UNIQUE(device_id, device_seq) detects sequence reuse. A separate UNIQUE(op_id) detects duplicate identity. The transaction makes the state row and oplog row appear together or not at all.",
+    "setup": "DROP TABLE IF EXISTS local_oplog;\nDROP TABLE IF EXISTS local_notes;\nCREATE TABLE local_notes(note_id INTEGER PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL);\nCREATE TABLE local_oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, device_seq INTEGER NOT NULL, note_id INTEGER NOT NULL, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0, UNIQUE(device_id, device_seq));\nINSERT INTO local_notes VALUES (1, 'draft', 0);",
+    "code": "BEGIN;\nUPDATE local_notes SET body = 'offline edit 1', version = version + 1 WHERE note_id = 1;\nINSERT INTO local_oplog(op_id, device_id, device_seq, note_id, payload) VALUES ('dev-a-0001', 'device-a', 1, 1, 'body=offline edit 1');\nCOMMIT;\nSELECT n.note_id, n.body, n.version, o.op_id, o.device_id, o.device_seq, o.acknowledged FROM local_notes n JOIN local_oplog o ON o.note_id = n.note_id;\nBEGIN;\nUPDATE local_notes SET body = 'should-not-commit', version = version + 1 WHERE note_id = 1;\nINSERT INTO local_oplog(op_id, device_id, device_seq, note_id, payload) VALUES ('dev-a-0002', 'device-a', 2, 1, 'body=should-not-commit');\nROLLBACK;\nSELECT body AS body_after_rollback, count(*) AS oplog_rows FROM local_notes CROSS JOIN local_oplog;",
+    "expectedResult": "The first commit shows body offline edit 1, version 1, and exactly one oplog entry with device-a sequence 1 and acknowledged = 0. The rollback leaves body offline edit 1 and oplog_rows = 1; the failed mutation has no durable intent record.",
+    "systemsLens": "An operation log is durable intent, not replication by itself. Atomic local state plus ordered identity lets a disconnected agent resume after a crash; transport, conflict policy, and compaction are separate protocols.",
+    "challenge": "Add a CHECK requiring positive device_seq and query the next contiguous unacknowledged operation for a device. What state do you need to retain after compaction?",
+    "caution": "Device sequence numbers are only ordered within a device. Do not compare them as a global clock or use an oplog as proof that another replica has applied an operation.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 44,
+    "slug": "duplicate-and-lost-ack",
+    "title": "Survive duplicate transfer and a lost acknowledgement",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "deduplication",
+      "oplog",
+      "outbox",
+      "rpo"
+    ],
+    "prerequisites": [
+      43
+    ],
+    "overview": "Attach two disposable SQLite files as sender and receiver. Commit a receiver receipt without advancing the sender, then retry the same operation; a unique receipt ledger makes the duplicate harmless before the sender eventually advances.",
+    "syntaxBreakdown": "ATTACH adds another database file to one connection. A transaction spanning attached databases coordinates the local file changes. INSERT OR IGNORE expresses duplicate delivery as a deliberate no-op.",
+    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nparent=$(dirname -- \"$db\")\nif [ \"$parent\" = / ] || [ ! -d \"$parent\" ] || [ ! -w \"$parent\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\ncase \"$parent\" in *\"'\"*) echo 'database parent may not contain a single quote for ATTACH safety' >&2; exit 2;; esac\ndb_dir=$(dirname -- \"$db\")\nsender_db=$db_dir/sync-sender.sqlite\nreceiver_db=$db_dir/sync-receiver.sqlite\nrm -f \"$sender_db\" \"$receiver_db\" \"$sender_db-journal\" \"$receiver_db-journal\" \"$sender_db-wal\" \"$receiver_db-wal\" \"$sender_db-shm\" \"$receiver_db-shm\"\nsqlite3 \"$db\" <<SQL\nATTACH '$sender_db' AS sender;\nATTACH '$receiver_db' AS receiver;\n.databases\nCREATE TABLE sender.pending_ops(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE receiver.receipts(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL);\nINSERT INTO sender.pending_ops VALUES ('sync-001', 'set-color=blue', 0);\nBEGIN;\nINSERT OR IGNORE INTO receiver.receipts(op_id, payload) SELECT op_id, payload FROM sender.pending_ops WHERE op_id = 'sync-001';\nSELECT changes() AS first_delivery_rows;\nCOMMIT;\nSELECT op_id, acknowledged FROM sender.pending_ops;\nBEGIN;\nINSERT OR IGNORE INTO receiver.receipts(op_id, payload) SELECT op_id, payload FROM sender.pending_ops WHERE op_id = 'sync-001';\nSELECT changes() AS retry_delivery_rows;\nUPDATE sender.pending_ops SET acknowledged = 1 WHERE op_id = 'sync-001' AND acknowledged = 0 AND EXISTS (SELECT 1 FROM receiver.receipts WHERE op_id = 'sync-001');\nSELECT changes() AS sender_advance_rows;\nCOMMIT;\nSELECT count(*) AS receiver_effects FROM receiver.receipts;\nSELECT op_id, acknowledged FROM sender.pending_ops;\nSQL\nrm -f \"$sender_db\" \"$receiver_db\" \"$sender_db-journal\" \"$receiver_db-journal\" \"$sender_db-wal\" \"$receiver_db-wal\" \"$sender_db-shm\" \"$receiver_db-shm\"",
+    "expectedResult": "ATTACH lists sender and receiver as separate files. The first delivery inserts one receipt and the sender remains acknowledged = 0, modeling a lost acknowledgement. The retry inserts zero new receipts, then advances the sender by one row. Final receiver_effects = 1 and sender acknowledged = 1: duplicate transfer did not duplicate the logical effect.",
+    "systemsLens": "Messages and acknowledgements can each be lost, so a sender must retry and a receiver must deduplicate by stable identity. A receipt ledger is a local convergence aid, not a guarantee that an arbitrary remote side effect was reversible.",
+    "challenge": "Close and reopen the connection, then inspect both attached files. Add a payload hash and reject a reused op_id whose payload differs.",
+    "caution": "The attached sender and receiver filenames are derived as siblings of TUTOR_SQLITE_DB. Run the lesson in the disposable lab and remove only those uniquely named files when cleanup is appropriate; never attach a production database by accident.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 45,
+    "slug": "ordering-conflicts-and-tombstones",
+    "title": "Make ordering, conflicts, and deletion explicit",
+    "category": "local-systems",
+    "difficulty": "advanced",
+    "tags": [
+      "ordering",
+      "conflict-resolution",
+      "tombstones",
+      "deduplication"
+    ],
+    "prerequisites": [
+      44
+    ],
+    "overview": "Deliver operations out of order and resolve concurrent edits with one deterministic rule: the greatest (logical_time, device_id) wins, with a tombstone represented as a value that participates in the same ordering. A cursor prevents applying a gap and a tombstone prevents stale resurrection.",
+    "syntaxBreakdown": "The next_seq cursor is a contiguous application boundary. INSERT OR IGNORE handles duplicate operation delivery. The tuple comparison in the guarded UPDATE is a deterministic last-writer-wins rule; deleted = 1 is a tombstone, not physical absence.",
+    "setup": "DROP TABLE IF EXISTS sync_ops;\nDROP TABLE IF EXISTS sync_state;\nDROP TABLE IF EXISTS replica_delivery;\nDROP TABLE IF EXISTS replica_notes;\nCREATE TABLE sync_state(replica TEXT PRIMARY KEY, next_seq INTEGER NOT NULL DEFAULT 1);\nCREATE TABLE replica_delivery(replica TEXT NOT NULL, seq INTEGER NOT NULL, applied INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(replica, seq));\nCREATE TABLE replica_notes(replica TEXT NOT NULL, note_id INTEGER NOT NULL, body TEXT, deleted INTEGER NOT NULL, logical_time INTEGER NOT NULL, device_id TEXT NOT NULL, PRIMARY KEY(replica, note_id));\nCREATE TABLE sync_ops(seq INTEGER PRIMARY KEY, op_id TEXT NOT NULL UNIQUE, device_id TEXT NOT NULL, logical_time INTEGER NOT NULL, note_id INTEGER NOT NULL, body TEXT, deleted INTEGER NOT NULL DEFAULT 0);\nINSERT INTO sync_state VALUES ('replica-a', 1), ('replica-b', 1);\nINSERT INTO sync_ops(seq, op_id, device_id, logical_time, note_id, body, deleted) VALUES\n  (1, 'a-1', 'device-a', 1, 1, 'A at t1', 0),\n  (2, 'b-2', 'device-b', 2, 1, 'B at t2', 0),\n  (3, 'a-3-delete', 'device-a', 3, 1, NULL, 1),\n  (4, 'b-4-stale', 'device-b', 2, 1, 'late B', 0);",
+    "code": "INSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 2), ('replica-b', 1), ('replica-b', 3);\nSELECT 'initial_gaps' AS observation, replica, next_seq, (SELECT group_concat(seq) FROM (SELECT seq FROM replica_delivery WHERE replica = sync_state.replica ORDER BY seq)) AS delivered FROM sync_state ORDER BY replica;\nUPDATE sync_state SET next_seq = next_seq + 1 WHERE replica = 'replica-a' AND EXISTS (SELECT 1 FROM replica_delivery WHERE replica = 'replica-a' AND seq = sync_state.next_seq);\nSELECT changes() AS advancement_with_gap;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 1 AND (SELECT next_seq FROM sync_state WHERE replica = 'replica-b') = 1;\nINSERT INTO replica_notes VALUES ('replica-b', 1, 'A at t1', 0, 1, 'device-a');\nUPDATE sync_state SET next_seq = 2 WHERE replica = 'replica-b';\nSELECT 'b_stops_at_missing_seq_2' AS observation, replica, next_seq, (SELECT applied FROM replica_delivery WHERE replica = 'replica-b' AND seq = 3) AS seq3_applied FROM sync_state WHERE replica = 'replica-b';\nINSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 1), ('replica-a', 3), ('replica-b', 2);\nINSERT INTO replica_notes VALUES ('replica-a', 1, 'A at t1', 0, 1, 'device-a');\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 1;\nUPDATE sync_state SET next_seq = 2 WHERE replica = 'replica-a';\nUPDATE replica_notes SET body = 'B at t2', deleted = 0, logical_time = 2, device_id = 'device-b' WHERE replica = 'replica-a' AND note_id = 1 AND 2 > logical_time;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 2;\nUPDATE sync_state SET next_seq = 3 WHERE replica = 'replica-a';\nUPDATE replica_notes SET body = NULL, deleted = 1, logical_time = 3, device_id = 'device-a' WHERE replica = 'replica-a' AND note_id = 1 AND 3 > logical_time;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 3;\nUPDATE sync_state SET next_seq = 4 WHERE replica = 'replica-a';\nUPDATE replica_notes SET body = 'B at t2', deleted = 0, logical_time = 2, device_id = 'device-b' WHERE replica = 'replica-b' AND note_id = 1 AND 2 > logical_time;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 2;\nUPDATE sync_state SET next_seq = 3 WHERE replica = 'replica-b';\nUPDATE replica_notes SET body = NULL, deleted = 1, logical_time = 3, device_id = 'device-a' WHERE replica = 'replica-b' AND note_id = 1 AND 3 > logical_time;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 3;\nUPDATE sync_state SET next_seq = 4 WHERE replica = 'replica-b';\nSELECT 'missing_ops_unblock' AS observation, replica, next_seq FROM sync_state ORDER BY replica;\nINSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 4), ('replica-b', 4);\nUPDATE replica_notes SET body = (SELECT body FROM sync_ops WHERE seq = 4), deleted = (SELECT deleted FROM sync_ops WHERE seq = 4), logical_time = (SELECT logical_time FROM sync_ops WHERE seq = 4), device_id = (SELECT device_id FROM sync_ops WHERE seq = 4) WHERE replica = 'replica-a' AND note_id = 1 AND ((SELECT logical_time FROM sync_ops WHERE seq = 4) > logical_time OR ((SELECT logical_time FROM sync_ops WHERE seq = 4) = logical_time AND (SELECT device_id FROM sync_ops WHERE seq = 4) > device_id));\nSELECT changes() AS replica_a_seq4_effect;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 4;\nUPDATE sync_state SET next_seq = 5 WHERE replica = 'replica-a' AND next_seq = 4;\nUPDATE replica_notes SET body = (SELECT body FROM sync_ops WHERE seq = 4), deleted = (SELECT deleted FROM sync_ops WHERE seq = 4), logical_time = (SELECT logical_time FROM sync_ops WHERE seq = 4), device_id = (SELECT device_id FROM sync_ops WHERE seq = 4) WHERE replica = 'replica-b' AND note_id = 1 AND ((SELECT logical_time FROM sync_ops WHERE seq = 4) > logical_time OR ((SELECT logical_time FROM sync_ops WHERE seq = 4) = logical_time AND (SELECT device_id FROM sync_ops WHERE seq = 4) > device_id));\nSELECT changes() AS replica_b_seq4_effect;\nUPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 4;\nUPDATE sync_state SET next_seq = 5 WHERE replica = 'replica-b' AND next_seq = 4;\nINSERT OR IGNORE INTO replica_delivery(replica, seq) VALUES ('replica-a', 4);\nSELECT changes() AS duplicate_delivery_insert;\nSELECT a.body AS a_body, a.deleted AS a_deleted, b.body AS b_body, b.deleted AS b_deleted, CASE WHEN a.body IS b.body AND a.deleted = b.deleted AND a.logical_time = b.logical_time AND a.device_id = b.device_id THEN 'converged' ELSE 'diverged' END AS convergence FROM replica_notes a JOIN replica_notes b ON a.note_id = b.note_id WHERE a.replica = 'replica-a' AND b.replica = 'replica-b';\nSELECT replica, next_seq FROM sync_state ORDER BY replica;",
+    "expectedResult": "initial_gaps shows both cursors at 1 while replica-a has only seq 2 and replica-b has seq 1 and 3. advancement_with_gap is 0, proving A cannot advance over missing seq 1. After B applies seq 1, b_stops_at_missing_seq_2 shows next_seq 2 and seq3_applied 0. Delivering the missing operations moves both cursors to 4 and applies the body updates followed by the logical_time 3 tombstone. Both guarded seq-4 stale updates report 0 effects because (2, device-b) loses to the tombstone (3, device-a), but both deliveries are marked applied and both cursors become 5. duplicate_delivery_insert is 0. The final joined row has NULL bodies, deleted = 1 on both replicas, matching clocks/device IDs, and convergence = converged.",
+    "systemsLens": "Synchronization needs explicit policies for ordering, conflict resolution, deletion retention, and compaction. A cursor prevents gaps from being mistaken for progress; a tombstone preserves deletion knowledge so an old update cannot resurrect state.",
+    "challenge": "Add a third replica with a deliberately delayed seq 3. Predict which cursor and note state it can expose at each step, then design a tombstone garbage-collection horizon that cannot admit a late resurrection.",
+    "caution": "Last-writer-wins is deterministic, not inherently semantically correct. Document clock assumptions and retain tombstones long enough that delayed operations cannot arrive after their deletion evidence is discarded.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 35,
+    "revision": 1
+  },
+  {
+    "ordinal": 46,
+    "slug": "wal-growth-incident",
+    "title": "Diagnose a WAL-growth incident",
+    "category": "capstone",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "checkpoints",
+      "incident",
+      "backpressure"
+    ],
+    "prerequisites": [
+      29
+    ],
+    "overview": "Hold a reader snapshot while a writer produces a bounded burst, inspect checkpoint progress and sidecar files, and then release the snapshot. Reconstruct a short incident timeline from evidence before restoring checkpoint progress.",
+    "syntaxBreakdown": "PRAGMA journal_mode=WAL enables the write-ahead log. wal_checkpoint(PASSIVE) reports busy, log-frame, and checkpointed-frame counts. wal_checkpoint(TRUNCATE) asks SQLite to finish and truncate the WAL when readers permit it.",
+    "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS incident_events;\nCREATE TABLE incident_events(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);\nDELETE FROM incident_events;",
+    "code": "-- Session A\nBEGIN;\nSELECT count(*) AS reader_snapshot FROM incident_events;\n.print timeline: reader opened\n.shell stat -c 'wal_bytes_before=%s' \"$TUTOR_SQLITE_DB-wal\" 2>/dev/null || true\n-- Session B\nPRAGMA wal_autocheckpoint=0;\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO incident_events(payload) SELECT printf('burst-a-%04d-%s', x, hex(randomblob(700))) FROM n;\nCOMMIT;\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO incident_events(payload) SELECT printf('burst-b-%04d-%s', x, hex(randomblob(700))) FROM n;\nCOMMIT;\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO incident_events(payload) SELECT printf('burst-c-%04d-%s', x, hex(randomblob(700))) FROM n;\nCOMMIT;\n.print timeline: writer committed 600 rows\n.shell stat -c 'wal_bytes_after_write=%s' \"$TUTOR_SQLITE_DB-wal\" 2>/dev/null || true\nPRAGMA wal_checkpoint(PASSIVE);\n.print timeline: passive checkpoint attempted while reader remains open\n.shell stat -c 'wal_bytes_after_passive=%s' \"$TUTOR_SQLITE_DB-wal\" 2>/dev/null || true\n-- Session A\nSELECT count(*) AS still_old_snapshot FROM incident_events;\nCOMMIT;\n-- Session B\nPRAGMA wal_checkpoint(TRUNCATE);\n.print timeline: reader released and truncate completed\n.shell stat -c 'wal_bytes_after_truncate=%s' \"$TUTOR_SQLITE_DB-wal\" 2>/dev/null || true\nSELECT count(*) AS current_rows FROM incident_events;",
+    "expectedResult": "The labeled timeline reports wal_bytes_before, wal_bytes_after_write, wal_bytes_after_passive, and wal_bytes_after_truncate for TUTOR_SQLITE_DB-wal. Session A first sees 0 rows and continues to see 0 inside its read transaction. Session B commits three 200-row, large-payload transactions while A is open; wal_bytes_after_write and the passive checkpoint log-frame count are visibly larger than zero. The passive checkpoint output is a three-column tuple (busy, log frames, checkpointed frames); it normally reports 0 busy and 0 checkpointed frames because A pins the old snapshot. After A commits, TRUNCATE returns 0|0|0, the final WAL size is 0 or near-zero, and current_rows is 600. No rows are lost.",
+    "systemsLens": "A long-lived reader extends the WAL reclamation horizon. New writes succeed, but checkpoint progress stalls and disk usage becomes backpressure. The incident is an interaction between snapshot lifetime and checkpoint policy, not a distributed replication event.",
+    "challenge": "Repeat with a reader that never ends and write until a filesystem budget is nearly reached. Define an alert based on reader age and WAL bytes, then release the reader and verify recovery.",
+    "caution": "The intentionally open read transaction blocks checkpoint reclamation. Keep the burst bounded and release Session A before leaving the lesson; never run an unbounded WAL-growth experiment on a valuable database.",
+    "safetyLevel": "locking",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "3.45",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 47,
+    "slug": "offline-agent-capstone",
+    "title": "Assemble and recover an offline agent",
+    "category": "capstone",
+    "difficulty": "advanced",
+    "tags": [
+      "architecture",
+      "outbox",
+      "leases",
+      "backup",
+      "recovery"
+    ],
+    "prerequisites": [
+      46
+    ],
+    "overview": "Build a versioned application database that combines an outbox, idempotent inbox, fenced job lease, and oplog. Inject bounded process termination, duplicate transfer, a lost acknowledgement, a stale worker, and damage to a copy; then check recovery and convergence invariants.",
+    "syntaxBreakdown": "PRAGMA user_version stores an application schema generation. .backup makes an engine-coordinated copy. timeout bounds process termination. INSERT OR IGNORE and token-guarded UPDATE implement deduplication and fencing.",
+    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nlab_dir=$(dirname -- \"$db\")\nif [ \"$lab_dir\" = / ] || [ ! -d \"$lab_dir\" ] || [ ! -w \"$lab_dir\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\ncase \"$lab_dir\" in *\"'\"*) echo 'database parent may not contain a single quote for SQL path safety' >&2; exit 2;; esac\nreplica_b=$lab_dir/offline-agent-replica-b.db\nbackup=$lab_dir/offline-agent.backup.sqlite\ndamaged=$lab_dir/offline-agent.damaged.sqlite\nrecovered=$lab_dir/offline-agent.recovered.sqlite\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\" \"$replica_b\" \"$replica_b-journal\" \"$replica_b-wal\" \"$replica_b-shm\" \"$backup\" \"$damaged\" \"$recovered\"\nsqlite3 \"$db\" <<'SQL'\nPRAGMA journal_mode=WAL;\nPRAGMA user_version=1;\nCREATE TABLE accounts(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);\nCREATE TABLE outbox(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE jobs(id INTEGER PRIMARY KEY, state TEXT NOT NULL, owner TEXT, token INTEGER NOT NULL, result TEXT);\nCREATE TABLE oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, seq INTEGER NOT NULL, payload TEXT NOT NULL, UNIQUE(device_id, seq));\nINSERT INTO accounts VALUES (1, 100);\nINSERT INTO jobs VALUES (1, 'claimed', 'agent-a', 1, NULL);\nBEGIN;\nUPDATE accounts SET balance = balance - 10 WHERE id = 1;\nINSERT INTO outbox VALUES ('op-1', 'debit=10', 0);\nINSERT INTO oplog VALUES ('device-a-1', 'device-a', 1, 'debit=10');\nCOMMIT;\nSQL\nsqlite3 \"$replica_b\" <<'SQL'\nPRAGMA user_version=1;\nCREATE TABLE accounts(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);\nCREATE TABLE inbox(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, applied INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, seq INTEGER NOT NULL, payload TEXT NOT NULL, UNIQUE(device_id, seq));\nINSERT INTO accounts VALUES (1, 100);\nSQL\necho '--- process termination before commit ---'\nset +e\n(printf '%s\\n' 'BEGIN; INSERT INTO accounts VALUES (2, 50);'; sleep 5; printf '%s\\n' 'COMMIT;') 2>/dev/null | timeout 1 sqlite3 \"$db\" >/dev/null\ncrash_status=$?\nset -e\nsqlite3 \"$db\" 'PRAGMA integrity_check; SELECT count(*) AS account_rows_after_crash FROM accounts;'\necho \"terminated_process_exit=$crash_status\"\necho '--- duplicate transfer and lost acknowledgement ---'\nsqlite3 \"$replica_b\" <<'SQL'\nBEGIN;\nINSERT OR IGNORE INTO inbox(op_id, payload) VALUES ('op-1', 'debit=10');\nSELECT changes() AS first_receipt;\nCOMMIT;\nSQL\nsqlite3 \"$db\" 'SELECT op_id, sent FROM outbox;'\nsqlite3 \"$replica_b\" <<'SQL'\nBEGIN;\nINSERT OR IGNORE INTO inbox(op_id, payload) VALUES ('op-1', 'debit=10');\nSELECT changes() AS duplicate_receipt;\nUPDATE accounts SET balance = balance - 10 WHERE id = 1 AND EXISTS (SELECT 1 FROM inbox WHERE op_id = 'op-1' AND applied = 0);\nUPDATE inbox SET applied = 1 WHERE op_id = 'op-1' AND applied = 0;\nCOMMIT;\nSELECT count(*) AS logical_receipts, (SELECT balance FROM accounts WHERE id = 1) AS replica_b_balance FROM inbox;\nSQL\nsqlite3 \"$db\" <<'SQL'\nUPDATE outbox SET sent = 1 WHERE op_id = 'op-1' AND sent = 0;\nSELECT op_id, sent FROM outbox;\nSQL\nsqlite3 \"$replica_b\" <<'SQL'\nINSERT OR IGNORE INTO oplog VALUES ('device-a-1', 'device-a', 1, 'debit=10');\nSELECT count(*) AS replica_b_oplog_rows FROM oplog;\nSQL\necho '--- replica convergence ---'\nreplica_a_balance=$(sqlite3 \"$db\" 'SELECT balance FROM accounts WHERE id = 1;')\nreplica_b_balance=$(sqlite3 \"$replica_b\" 'SELECT balance FROM accounts WHERE id = 1;')\nif [ \"$replica_a_balance\" = \"$replica_b_balance\" ]; then echo \"replica_balances=$replica_a_balance/$replica_b_balance convergence=converged\"; else echo \"replica_balances=$replica_a_balance/$replica_b_balance convergence=diverged\"; fi\necho '--- stale fenced worker ---'\nsqlite3 \"$db\" <<'SQL'\nUPDATE jobs SET owner = 'agent-b', token = token + 1, state = 'claimed' WHERE id = 1;\nUPDATE jobs SET state = 'done', result = 'late-a' WHERE id = 1 AND owner = 'agent-a' AND token = 1;\nSELECT changes() AS stale_worker_rows;\nUPDATE jobs SET state = 'done', result = 'result-b' WHERE id = 1 AND owner = 'agent-b' AND token = 2;\nSELECT id, state, owner, token, result FROM jobs;\nSQL\nsqlite3 \"$db\" \".backup '$backup'\"\necho \"source_integrity=$(sqlite3 \"$db\" 'PRAGMA integrity_check;')\"\necho \"backup_integrity=$(sqlite3 \"$backup\" 'PRAGMA integrity_check;')\"\necho \"backup_user_version=$(sqlite3 \"$backup\" 'PRAGMA user_version;')\"\necho \"backup_balance=$(sqlite3 \"$backup\" 'SELECT balance FROM accounts WHERE id = 1;')\"\ncp \"$backup\" \"$damaged\"\ndd if=/dev/zero of=\"$damaged\" bs=1 seek=100 count=8 conv=notrunc status=none\nset +e\nsqlite3 \"$damaged\" 'PRAGMA integrity_check;' >\"$lab_dir/damaged-check.out\" 2>&1\ndamaged_status=$?\nsqlite3 \"$damaged\" '.recover' >\"$lab_dir/recover.sql\" 2>\"$lab_dir/recover.err\"\nrecover_status=$?\nset -e\necho \"damaged_integrity_exit=$damaged_status\"\necho \"recover_status=$recover_status\"\ncat \"$lab_dir/recover.err\"\nif grep -q 'sqlite_dbpage' \"$lab_dir/recover.err\"; then\n  echo 'recover_fallback=dump'\n  sqlite3 \"$damaged\" '.dump' >\"$lab_dir/dump.sql\" 2>\"$lab_dir/dump.err\" || true\n  sqlite3 \"$recovered\" <\"$lab_dir/dump.sql\" || true\nelse\n  echo 'recover_fallback=none'\n  sqlite3 \"$recovered\" <\"$lab_dir/recover.sql\" || true\nfi\necho \"recovered_integrity=$(sqlite3 \"$recovered\" 'PRAGMA integrity_check;' 2>&1 || true)\"\necho \"recovered_tables=$(sqlite3 \"$recovered\" 'SELECT count(*) FROM sqlite_master WHERE type = \"table\";' 2>&1 || true)\"\nrm -f \"$replica_b\" \"$replica_b-journal\" \"$replica_b-wal\" \"$replica_b-shm\"",
+    "expectedResult": "The bounded terminated process exits 124, but source integrity_check is ok and account_rows_after_crash is 1, so the uncommitted account row is absent. Replica B's first receipt is 1, duplicate_receipt is 0, logical_receipts is 1, and its balance becomes 90 exactly once; the sender outbox advances to sent = 1 after the lost acknowledgement is retried. Replica B receives one oplog row, and replica_balances=90/90 reports convergence=converged. The stale worker update changes 0 rows; agent-b token 2 completes the job. Source and engine-created backup integrity are both ok; backup_user_version=1 and backup_balance=90. The damaged copy reports a nonzero integrity exit. On SQLite 3.45.1, recover_status=1 and stderr contains sql error: no such table: sqlite_dbpage (1), so the script selects recover_fallback=dump; that fallback prints recovered_integrity=ok and recovered_tables=0. Builds with sqlite_dbpage instead load the captured .recover SQL and print their actual recovered integrity/table count. Salvage is evidence only, not a backup guarantee.",
+    "systemsLens": "Reliable local systems compose small invariants at transaction boundaries: intent with state, receipts with deduplication, ownership with fencing, and recovery with verified copies. SQLite supplies local atomicity and recovery machinery; delivery, failure domains, and convergence policy still belong to the application.",
+    "challenge": "Add a schema migration that increments user_version, then rehearse restore into a clean directory and measure elapsed recovery time. Define which missing remote effects belong in the RPO statement.",
+    "caution": "This lesson deliberately terminates a disposable process and modifies only a copy of the backup. Set TUTOR_SQLITE_DB to a uniquely named lab path, preserve original evidence, and never run damage commands against a source database.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 45,
+    "revision": 1
+  },
+  {
+    "ordinal": 48,
+    "slug": "sqlite-architecture-decision",
+    "title": "Write an evidence-backed SQLite architecture decision",
+    "category": "capstone",
+    "difficulty": "advanced",
+    "tags": [
+      "architecture",
+      "capacity",
+      "durability",
+      "rto",
+      "observability"
+    ],
+    "prerequisites": [
+      47
+    ],
+    "overview": "Measure a small capstone-shaped workload and turn the observations into an ADR/runbook. State concurrency, latency, durability mode, backup cadence, RPO, RTO, failure domain, invariant checks, and explicit exit criteria for moving beyond SQLite.",
+    "syntaxBreakdown": "EXPLAIN QUERY PLAN records an access mechanism. PRAGMA synchronous and journal_mode state durability settings. stat reports file bytes. A shell heredoc writes an auditable ADR beside the disposable database.",
+    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nlab_dir=$(dirname -- \"$db\")\nif [ \"$lab_dir\" = / ] || [ ! -d \"$lab_dir\" ] || [ ! -w \"$lab_dir\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\ncase \"$lab_dir\" in *\"'\"*) echo 'database parent may not contain a single quote for SQL path safety' >&2; exit 2;; esac\ndecision=$lab_dir/sqlite-architecture-adr.md\ntest_db=$lab_dir/architecture-decision.sqlite\nbackup=$lab_dir/architecture-decision.backup.sqlite\nrestored=$lab_dir/architecture-decision.restored.sqlite\nrm -f \"$test_db\" \"$test_db-wal\" \"$test_db-shm\" \"$test_db-journal\" \"$backup\" \"$restored\" \"$decision\"\nsqlite3 \"$test_db\" <<'SQL'\nPRAGMA journal_mode=WAL;\nPRAGMA synchronous=NORMAL;\nCREATE TABLE events(id INTEGER PRIMARY KEY, tenant TEXT NOT NULL, payload TEXT NOT NULL);\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 5000)\nINSERT INTO events SELECT x, 'tenant-' || (x % 100), 'event-' || x FROM n;\nCREATE INDEX events_tenant_idx ON events(tenant);\nANALYZE;\nSQL\nversion=$(sqlite3 \"$test_db\" 'SELECT sqlite_version();')\nplan=$(sqlite3 \"$test_db\" \"EXPLAIN QUERY PLAN SELECT payload FROM events WHERE tenant = 'tenant-7';\")\npages=$(sqlite3 \"$test_db\" 'PRAGMA page_count;')\nbytes=$(stat -c '%s' \"$test_db\")\ntimer_output=$(sqlite3 \"$test_db\" <<'SQL' 2>&1\n.timer on\nSELECT count(*) FROM events WHERE tenant = 'tenant-7';\n.timer off\nSQL\n)\nrestore_start=$(date +%s%N)\nsqlite3 \"$test_db\" \".backup '$backup'\"\nsqlite3 \"$backup\" \".backup '$restored'\"\nsqlite3 \"$restored\" 'PRAGMA integrity_check; SELECT count(*) FROM events WHERE tenant = \"tenant-7\";' >\"$lab_dir/restore-check.out\"\nrestore_end=$(date +%s%N)\nrestore_ms=$(( (restore_end - restore_start) / 1000000 ))\necho '# SQLite architecture decision' >\"$decision\"\necho '' >>\"$decision\"\necho '## Observed evidence' >>\"$decision\"\necho \"- SQLite runtime version: $version\" >>\"$decision\"\necho \"- Query plan: $plan\" >>\"$decision\"\necho \"- Main-file bytes: $bytes\" >>\"$decision\"\necho \"- Page count: $pages\" >>\"$decision\"\necho \"- Timed lookup output: $timer_output\" >>\"$decision\"\necho \"- Backup/restore check: $(cat \"$lab_dir/restore-check.out\")\" >>\"$decision\"\necho \"- Measured backup/restore elapsed milliseconds: $restore_ms\" >>\"$decision\"\necho '' >>\"$decision\"\necho '## Decision and boundaries' >>\"$decision\"\necho '- Use SQLite for one-host embedded state with one writer and bounded reader concurrency.' >>\"$decision\"\necho '- Keep WAL on a local filesystem; it is not distributed replication or consensus.' >>\"$decision\"\necho '- Use NORMAL only when the documented synchronization contract and recovery objective accept its trade-off; otherwise measure FULL.' >>\"$decision\"\necho '- Run engine integrity checks plus domain invariant queries after restore.' >>\"$decision\"\necho '- Chosen backup cadence: every 15 minutes, with RPO <= 15 minutes as an explicit assumption to verify in a restore rehearsal.' >>\"$decision\"\necho '- Chosen restore objective: RTO <= 5 minutes, measured from backup selection through integrity and domain checks.' >>\"$decision\"\necho '- Failure domain: one host and its local filesystem; a host loss requires an independently stored backup.' >>\"$decision\"\necho '- Invariant checks: integrity_check, foreign_key_check, account/outbox balance, receipt uniqueness, and lease-token monotonicity.' >>\"$decision\"\necho '- Back up with .backup or VACUUM INTO, then restore-test on the 15-minute cadence to measure RPO/RTO.' >>\"$decision\"\necho '' >>\"$decision\"\necho '## Exit criteria' >>\"$decision\"\necho '- Move beyond SQLite when measured writer contention violates the latency budget, the required failure domain spans hosts, or backup/restore cannot meet the RPO/RTO.' >>\"$decision\"\necho '' >>\"$decision\"\necho '## References' >>\"$decision\"\necho '- Course observations above (plans, bytes, pages, timings).' >>\"$decision\"\necho '- https://www.sqlite.org/wal.html' >>\"$decision\"\necho '- https://www.sqlite.org/backup.html' >>\"$decision\"\necho '- https://www.sqlite.org/atomiccommit.html' >>\"$decision\"\ncat \"$decision\"",
+    "expectedResult": "The script prints an ADR containing the measured query plan, main-file bytes, page count, and timer output, followed by explicit decisions and exit criteria. The plan uses events_tenant_idx, the row count is 50, and the file metrics are positive integers. Numbers and timings are host-specific; every operational claim in the ADR points either to observed evidence or to a SQLite primary reference.",
+    "systemsLens": "Architecture is a contract between workload requirements and measured guarantees. SQLite is a strong local state machine with a single-writer envelope; an ADR makes the failure domain, recovery objective, and trigger for a different system explicit before an incident forces the decision.",
+    "challenge": "Add a two-writer benchmark and a restore stopwatch to the ADR. Pick concrete latency, RPO, and RTO thresholds, then rerun measurements after changing synchronous and journal modes.",
+    "caution": "Do not copy host-specific timing into a universal claim. Keep the ADR with the workload, SQLite version, filesystem, and exact commands that produced its evidence.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "3.45",
+    "estimatedMinutes": 35,
     "revision": 1
   }
 ]

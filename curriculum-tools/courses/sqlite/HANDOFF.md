@@ -65,35 +65,26 @@ and a scoped git commit that includes this handoff file.
   - this SQLite build lacks `sqlite_dbpage`, so the capstone accurately records `.recover` status 1,
     uses its `.dump` fallback, and validates the resulting empty-but-integral salvage database;
   - final formatting and type checks pass on all three source modules.
+  - checkpoint `775ff9c` records these modules and this handoff state.
+- Final integration validation is complete:
+  - `deno task build sqlite` writes exactly 48 lessons; all 48 planned slugs match in exact order,
+    ordinals are consecutive, prerequisites point backward, tag counts and vocabulary are valid,
+    multi-session headers are complete, and module counts are `5/6/6/6/6/5/4/7/3`;
+  - one fresh-database harness sweep completed lessons 2-46 (`45/45`) without timeout; the four
+    reported lock errors are the intentional evidence in lessons 18, 19, 21, and 27;
+  - every shell/dangerous path was also validated serially, including lab setup, hot-journal crash
+    and recovery, `strace` synchronization counts, batching, live-copy failure, damaged-copy
+    salvage, the bounded writer envelope, lost-ack delivery, and both capstones;
+  - repository-wide `deno task check` passes and `deno task test` reports 9 passed, 0 failed;
+  - an isolated SQLite tutor database passed init, modules, topics, pretty, search, done, note,
+    skip, undone, status, and revision-staleness behavior;
+  - the skill-creator quick validator reports `courses/sqlite/skill/sqlite-tutor` is valid.
 
 ## In progress
 
-- All 48 lessons have an author draft and `deno task build sqlite` currently succeeds.
-- Modules 07-09 are ready for their scoped checkpoint commit; its hash should be added here in the
-  next handoff update.
-- Nine-file module topology and `curriculum/mod.ts` registration exist in the working tree but are
-  not complete or committed yet because the lesson batches are still being authored.
-- Main-agent integration review has already required:
-  - all tool sessions use the wrapper-opened `TUTOR_SQLITE_DB`, never hard-coded `/tmp` or
-    repository-relative database paths;
-  - derived copies/sidecars remain siblings beneath the selected scratch database directory;
-  - `(blocks` appears only when the validation harness should send a step asynchronously;
-  - expected results match observed SQLite 3.45.1 output rather than merely asserting no timeout.
-
-## Validation still required
-
-1. Confirm all 48 planned slugs, ordering, prerequisites, tags, safety levels, sessions, and run
-   locations after `deno task build sqlite`.
-2. Run `deno task check` and `deno task test` without changing concurrent PostgreSQL files.
-3. Run each tool lesson through `tools/validate.ts` with its own fresh absolute `TUTOR_SQLITE_DB`;
-   inspect output for unexpected parse, shell, busy, and capability errors.
-4. Run shell, crash, copy, `strace`, corruption, and recovery exercises manually and serially.
-5. Independently rerun at least two lessons per module, every multi-session lesson, every dangerous
-   lesson, and all capstones; compare evidence line by line with `expectedResult`.
-6. Smoke-test `bin/tutor sqlite` init/modules/topics/pretty/search, isolated `--db` progress,
-   completion, notes, skip/undone, and revision staleness.
-7. Validate the existing `skill/sqlite-tutor` package with the skill validator; update it only if
-   actual usage exposes a gap.
+- Commit the validated final topology: delete placeholder `curriculum/01-lab.ts`, register all nine
+  modules in `curriculum/mod.ts`, and commit the generated `lessons.json` with this handoff.
+- After that checkpoint, record its hash here, mark the project complete, and push the branch.
 
 ## Environment
 
@@ -109,7 +100,5 @@ and a scoped git commit that includes this handoff file.
 
 1. Read this file, `PLAN.md`, `../../docs/AUTHORING.md`, and `../../docs/VALIDATION.md`.
 2. Run `git status --short` and preserve all non-SQLite changes.
-3. Inspect agent status or the nine curriculum files; do not assume an authoring stream finished
-   until its report and validation evidence exist.
-4. Continue from the first incomplete validation item above, updating and committing this handoff
-   with every completed slice.
+3. All authoring and validation streams are complete. Finish only the two integration steps listed
+   under **In progress**, preserving unrelated work.
