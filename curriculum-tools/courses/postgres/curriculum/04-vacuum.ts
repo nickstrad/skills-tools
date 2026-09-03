@@ -438,7 +438,7 @@ select pg_relation_size('vac_small') / 8192 as pages_after_churn, count(*) as ro
 -- Session A
 vacuum (verbose) vac_small;
 select pid, backend_xmin, state, left(query, 30) as query
-from pg_stat_activity where backend_xmin is not null order by backend_xmin;
+from pg_stat_activity where backend_xmin is not null order by age(backend_xmin) desc;
 -- Session B
 commit;
 -- Session A

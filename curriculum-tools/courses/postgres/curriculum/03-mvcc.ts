@@ -345,7 +345,7 @@ select count(*) as b_sees from mv_accounts;
 delete from mv_accounts where id in (2, 3);
 select tuple_count as live, dead_tuple_count as dead from pgstattuple('mv_accounts');
 select pid, state, backend_xmin, xact_start is not null as in_txn
-from pg_stat_activity where backend_xmin is not null order by backend_xmin;
+from pg_stat_activity where backend_xmin is not null order by age(backend_xmin) desc;
 vacuum (verbose) mv_accounts;
 
 -- Session B
