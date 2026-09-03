@@ -51,6 +51,39 @@ Optional environment variables:
 | `NODE_VERSION` | `22`      | Node.js major installed through NVM.                                   |
 | `NVM_VERSION`  | `v0.40.6` | NVM release tag to install.                                            |
 
+## Testing the script
+
+`scripts/docker/test.sh` proves `lab-setup.sh` works end to end on a fresh
+Ubuntu image, without touching the machine you run it from:
+
+```sh
+scripts/docker/test.sh
+```
+
+It builds `scripts/docker/Dockerfile` (an `ubuntu:24.04` image that runs
+`lab-setup.sh` as root during the build), then runs the resulting image so the
+toolchain verification happens again at container runtime. The build fails if
+`lab-setup.sh` fails, and `scripts/docker/verify.sh` fails the build if any of
+psql, node, npm, codex, claude, deno, duckdb, go, sqlite3, tmux, mosh, docker,
+rg, jq, hyperfine, http or bpftrace is missing or not runnable. The script
+exits non-zero on any failure.
+
+Two conveniences, both handled by an `EXIT` trap so they also run when the
+build fails:
+
+- **Docker on demand.** If the Docker daemon is not active, the test starts it
+  and stops `docker.service`, `docker.socket` and `containerd.service` again
+  when it finishes. A daemon that was already running is left running.
+- **No leftovers.** The test image is removed and `docker system prune -a -f
+  --volumes` clears every image, container, network, volume and build-cache
+  entry, so a run leaves no disk behind. The trade-off is that each run is a
+  cold build: allow 15-25 minutes.
+
+Inside a container there is no systemd and the kernel belongs to the host, so
+`lab-setup.sh` installs the Docker and PostgreSQL packages without starting
+their services and skips the kernel-specific `perf` package. On a droplet, all
+three run as before.
+
 Notes:
 
 - `perf` needs a kernel-specific package; the script tries

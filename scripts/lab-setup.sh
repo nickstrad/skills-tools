@@ -30,6 +30,33 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+# ------------------------------------------------------------
+# Environment detection
+#
+# The target is a real droplet, but the script is also exercised inside a
+# container image build (see scripts/docker/) where PID 1 is not systemd
+# and the kernel belongs to the host. Both helpers below are true/false in
+# the way that leaves droplet behaviour exactly as it was.
+# ------------------------------------------------------------
+
+# systemd is the running init, so `systemctl` can manage units.
+# True on a droplet; false in a container image build.
+has_systemd() {
+    [[ -d /run/systemd/system ]]
+}
+
+# Running inside a container, where kernel-specific packages are useless
+# because the kernel is the host's and cannot be replaced from here.
+# The explicit markers cover `docker run` and Podman; a BuildKit image build
+# has none of them (no /.dockerenv, and cgroup v2 reports a bare "0::/"), so
+# fall back to "PID 1 is not systemd", which is never true on a droplet.
+in_container() {
+    [[ -f /.dockerenv ]] \
+        || [[ -f /run/.containerenv ]] \
+        || grep -qaE '(docker|lxc|containerd|kubepods)' /proc/1/cgroup 2>/dev/null \
+        || ! has_systemd
+}
+
 echo
 echo "==> Updating apt..."
 $SUDO apt-get update
@@ -74,9 +101,15 @@ $SUDO apt-get install -y \
 # kernel-specific package that may not exist for every droplet kernel.
 echo
 echo "==> Installing perf for kernel $(uname -r) (best effort)..."
-$SUDO apt-get install -y "linux-tools-$(uname -r)" \
-    || $SUDO apt-get install -y linux-tools-generic \
-    || echo "perf binary not available for this kernel; skipping."
+if in_container; then
+    # uname -r reports the host kernel; its linux-tools package would be
+    # installed but could never be loaded from inside the container.
+    echo "Container detected; skipping the kernel-specific perf package."
+else
+    $SUDO apt-get install -y "linux-tools-$(uname -r)" \
+        || $SUDO apt-get install -y linux-tools-generic \
+        || echo "perf binary not available for this kernel; skipping."
+fi
 
 # shellcheck disable=SC1091
 . /etc/os-release
@@ -114,7 +147,15 @@ $SUDO apt-get install -y \
     docker-buildx-plugin \
     docker-compose-plugin
 
-$SUDO systemctl enable --now docker
+# The packages above are all that a container image can get: without
+# systemd there is nothing to start the daemon, and dockerd would need
+# privileges the build does not have. The CLI, buildx and compose plugins
+# are still installed and report their versions.
+if has_systemd; then
+    $SUDO systemctl enable --now docker
+else
+    echo "systemd not running; installed Docker packages without starting the daemon."
+fi
 
 # ------------------------------------------------------------
 # PostgreSQL - official PGDG Apt repository
@@ -152,8 +193,14 @@ $SUDO apt-get install -y \
     postgresql-contrib \
     libpq-dev
 
-$SUDO systemctl enable postgresql
-$SUDO systemctl start postgresql
+# Same reasoning as Docker: the server, client and contrib packages are
+# installed either way, but only a systemd host can run the cluster.
+if has_systemd; then
+    $SUDO systemctl enable postgresql
+    $SUDO systemctl start postgresql
+else
+    echo "systemd not running; installed PostgreSQL without starting a cluster."
+fi
 
 # ------------------------------------------------------------
 # NVM + Node.js
