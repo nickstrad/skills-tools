@@ -1,7 +1,0 @@
-interface:
-  display_name: "DuckDB Systems Tutor"
-  short_description: "Hands-on DuckDB Systems experiments with tracked progress"
-  default_prompt: "Use $duckdb-tutor to show my next unfinished DuckDB Systems lesson."
-
-policy:
-  allow_implicit_invocation: true

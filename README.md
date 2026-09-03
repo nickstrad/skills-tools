@@ -20,7 +20,7 @@ The generalized curriculum engine for building and running hands-on systems cour
 - One CLI for multiple courses: `bin/tutor <course> <command>`
 - Course authoring skill, reusable course template, build tooling, validation harness, and tests
 - Bundled PostgreSQL course (96 lessons in 15 modules, every lesson validated on a real cluster)
-  plus starter DuckDB and SQLite courses
+  plus a complete SQLite course and a Linux course in progress
 - Per-course wrapper skills under `courses/<course>/skill/`
 
 ### `pg-systems-tutor/`
@@ -74,8 +74,6 @@ ln -sfn /root/Software/skills-tools/curriculum-tools/skills/curriculum-author \
   ~/.codex/skills/curriculum-author
 ln -sfn /root/Software/skills-tools/curriculum-tools/courses/postgres/skill/postgres-tutor \
   ~/.codex/skills/postgres-tutor
-ln -sfn /root/Software/skills-tools/curriculum-tools/courses/duckdb/skill/duckdb-tutor \
-  ~/.codex/skills/duckdb-tutor
 ln -sfn /root/Software/skills-tools/curriculum-tools/courses/sqlite/skill/sqlite-tutor \
   ~/.codex/skills/sqlite-tutor
 ln -sfn /root/Software/skills-tools/pg-systems-tutor/skill/pg-systems-tutor \
