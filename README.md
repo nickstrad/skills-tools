@@ -7,6 +7,13 @@ progress; they do not execute lesson SQL for you.
 
 ## Projects
 
+### `scripts/`
+
+Machine bootstrap scripts. `scripts/lab-setup.sh` turns a fresh Ubuntu droplet
+into the development environment everything here assumes (PostgreSQL, SQLite,
+DuckDB, Deno, Node, Go, Docker, Claude Code, Codex, mosh/tmux, and the usual
+Linux debugging tools). Run it first on a new VM; see `scripts/README.md`.
+
 ### `curriculum-tools/`
 
 The generalized curriculum engine for building and running hands-on systems
@@ -36,6 +43,8 @@ experiment-driven PostgreSQL curriculum.
 - Deno 2
 - The course's command-line tool when actually running exercises (`psql`,
   `duckdb`, `sqlite3`, etc.)
+
+On a fresh droplet, `scripts/lab-setup.sh` installs all of these.
 
 The launchers use `DENO_BIN` when set, then `deno` on `PATH`, with a final
 fallback to `/root/.deno/bin/deno` on these droplets.
@@ -102,6 +111,7 @@ and `curriculum-tools/docs/VALIDATION.md` for real-tool validation. Built
 
 ```text
 skills-tools/
+├── scripts/                machine bootstrap (lab-setup.sh) and utilities
 ├── curriculum-tools/       generalized engine, courses, authoring skill, and validation tools
 ├── pg-systems-tutor/       standalone PostgreSQL CLI, 100 lessons, and skill
 ├── .gitignore              excludes runtime state, secrets, logs, and editor files
