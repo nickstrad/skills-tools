@@ -51,14 +51,26 @@ and a scoped git commit that includes this handoff file.
     `integrity_check=ok`, 500 committed rows, zero dirty rows, and removed the recovered journal;
   - the recovery audit was tightened after main-agent review to report short payload prefixes rather
     than printing multi-kilobyte values.
+  - checkpoint `9510e27` records these modules, the formatted plan, and this handoff state.
+- Modules 07-09 (15 lessons: performance, local systems, capstones) completed author correction,
+  independent review, and main-agent validation:
+  - the current generated harness completed lessons 35-46 without timeout, executing ten tool
+    lessons and correctly routing shell lessons 38 and 44 to manual validation; both shell lessons
+    were run separately to verify the bounded writer envelope and idempotent lost-ack transfer;
+  - the WAL incident grew its sidecar from 16,512 to 1,277,232 bytes behind a reader, reported the
+    expected partial checkpoint relationship, then truncated to zero after reader release;
+  - dangerous capstone 47 exited successfully with process termination isolated to its producer,
+    duplicate-safe transfer, `90/90` replica convergence, stale-worker fencing, and valid source and
+    backup state;
+  - this SQLite build lacks `sqlite_dbpage`, so the capstone accurately records `.recover` status 1,
+    uses its `.dump` fallback, and validates the resulting empty-but-integral salvage database;
+  - final formatting and type checks pass on all three source modules.
 
 ## In progress
 
 - All 48 lessons have an author draft and `deno task build sqlite` currently succeeds.
-- Modules 01-03 are ready for their scoped checkpoint commit; its hash should be added here in the
+- Modules 07-09 are ready for their scoped checkpoint commit; its hash should be added here in the
   next handoff update.
-- Modules 07-09 have returned from correction. Their final dangerous capstone rerun and main-agent
-  source review are pending before the batch is complete.
 - Nine-file module topology and `curriculum/mod.ts` registration exist in the working tree but are
   not complete or committed yet because the lesson batches are still being authored.
 - Main-agent integration review has already required:
