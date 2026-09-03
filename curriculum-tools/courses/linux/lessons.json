@@ -462,5 +462,478 @@
     "minVersion": "5.1",
     "estimatedMinutes": 18,
     "revision": 1
+  },
+  {
+    "ordinal": 19,
+    "slug": "standard-stream-fds",
+    "title": "Resolve the three conventional standard streams",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "beginner",
+    "tags": [
+      "file-descriptors",
+      "procfs",
+      "shell"
+    ],
+    "prerequisites": [
+      10
+    ],
+    "overview": "Give a short-lived child a regular file for each standard stream and inspect its descriptor table while it is alive. The /proc links make the convention of descriptors 0, 1, and 2 concrete and show that redirection changes references, not stream names.",
+    "syntaxBreakdown": "The redirection operators < and > open files for a child; readlink resolves a /proc/PID/fd link; kill and wait perform exact-PID cleanup; a polling loop bounds the readiness race.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nINPUT=$LAB/stdin-$UID.txt\nOUT=$LAB/stdout-$UID.txt\nERR=$LAB/stderr-$UID.txt\nREADY=$LAB/std-ready-$UID\nprintf 'input\\n' > \"$INPUT\"\nrm -f \"$OUT\" \"$ERR\" \"$READY\"\nexport INPUT OUT ERR READY\nchild_pid=\ntrap 'test -n \"$child_pid\" && kill \"$child_pid\" 2>/dev/null || true; test -n \"$child_pid\" && wait \"$child_pid\" 2>/dev/null || true; rm -f \"$INPUT\" \"$OUT\" \"$ERR\" \"$READY\"' EXIT\nbash -c 'exec 0<\"$INPUT\"; exec 1>\"$OUT\"; exec 2>\"$ERR\"; : > \"$READY\"; sleep 2' &\nchild_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY\" ] && break\n  sleep 0.05\ndone\nstdin_target=$(readlink \"/proc/$child_pid/fd/0\")\nstdout_target=$(readlink \"/proc/$child_pid/fd/1\")\nstderr_target=$(readlink \"/proc/$child_pid/fd/2\")\nprintf 'child_pid=%s\\n' \"$child_pid\"\nprintf 'fd0_target=%s\\n' \"$stdin_target\"\nprintf 'fd1_target=%s\\n' \"$stdout_target\"\nprintf 'fd2_target=%s\\n' \"$stderr_target\"\nif [ \"$stdin_target\" = \"$INPUT\" ] && [ \"$stdout_target\" = \"$OUT\" ] && [ \"$stderr_target\" = \"$ERR\" ]; then printf 'standard_streams=redirected\\n'; else printf 'standard_streams=unexpected\\n'; fi\nwait \"$child_pid\"\nchild_pid=\nrm -f \"$INPUT\" \"$OUT\" \"$ERR\" \"$READY\"\ntrap - EXIT\nprintf 'cleanup=done\\n'",
+    "expectedResult": "fd0_target, fd1_target, and fd2_target point to the three uniquely named lab files, standard_streams=redirected, and cleanup=done. The child PID and absolute lab path vary.",
+    "systemsLens": "A process starts with a descriptor table whose first three entries conventionally carry input, output, and diagnostics. The same indirection underlies logging redirection, service supervisors, and container stdio plumbing.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 20,
+    "slug": "redirect-and-duplicate-fds",
+    "title": "Separate and then duplicate stdout and stderr",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "beginner",
+    "tags": [
+      "file-descriptors",
+      "shell",
+      "pipes"
+    ],
+    "prerequisites": [
+      19
+    ],
+    "overview": "Send a command's stdout and stderr to separate files, then run it with stderr duplicated onto stdout. Comparing the resulting bytes shows that 2>&1 copies a descriptor-table reference at the point where the redirections are evaluated.",
+    "syntaxBreakdown": "A command's > redirection selects stdout; 2> selects stderr; 2>&1 duplicates descriptor 1 into descriptor 2; cmp compares byte-for-byte files; cat displays the captured records.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nOUT=$LAB/redirect-out-$UID.txt\nERR=$LAB/redirect-err-$UID.txt\nBOTH=$LAB/redirect-both-$UID.txt\ntrap 'rm -f \"$OUT\" \"$ERR\" \"$BOTH\"' EXIT\nbash -c 'printf stdout-line; printf stderr-line >&2' > \"$OUT\" 2> \"$ERR\"\nbash -c 'printf stdout-line; printf stderr-line >&2' > \"$BOTH\" 2>&1\nprintf 'separate_stdout=%s\\n' \"$(cat \"$OUT\")\"\nprintf 'separate_stderr=%s\\n' \"$(cat \"$ERR\")\"\nprintf 'duplicated_bytes=%s\\n' \"$(cat \"$BOTH\")\"\nif cmp -s \"$OUT\" \"$ERR\"; then printf 'separate_streams=unexpectedly_equal\\n'; else printf 'separate_streams=distinct\\n'; fi\nif [ \"$(cat \"$BOTH\")\" = \"stdout-linestderr-line\" ]; then printf 'duplicate_result=combined\\n'; else printf 'duplicate_result=unexpected\\n'; fi\nrm -f \"$OUT\" \"$ERR\" \"$BOTH\"\ntrap - EXIT\nprintf 'cleanup=done\\n'",
+    "expectedResult": "separate_stdout=stdout-line and separate_stderr=stderr-line, while duplicated_bytes=stdout-linestderr-line and duplicate_result=combined. separate_streams=distinct proves the first invocation kept separate descriptor targets.",
+    "systemsLens": "Redirection mutates entries in a process-local table. Descriptor duplication is therefore a wiring operation, much like attaching a service's output to two collectors or joining an adapter to an existing stream.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 21,
+    "slug": "inherited-open-files",
+    "title": "Observe an inherited open-file reference",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "intermediate",
+    "tags": [
+      "file-descriptors",
+      "processes",
+      "procfs"
+    ],
+    "prerequisites": [
+      20
+    ],
+    "overview": "Open descriptor 9 in the parent, fork a child that writes through that descriptor, and inspect both /proc links before the child exits. Both processes refer to the same open-file description and therefore the same inode.",
+    "syntaxBreakdown": "exec 9>> opens a persistent shell descriptor; >&9 writes through it; readlink /proc/PID/fd/9 resolves each process's descriptor; wait joins the child.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFILE=$LAB/inherited-$UID.log\nREADY=$LAB/inherited-ready-$UID\nrm -f \"$FILE\" \"$READY\"\nexec 9>>\"$FILE\"\nchild_pid=\ntrap 'test -n \"$child_pid\" && kill \"$child_pid\" 2>/dev/null || true; test -n \"$child_pid\" && wait \"$child_pid\" 2>/dev/null || true; exec 9>&-; rm -f \"$FILE\" \"$READY\"' EXIT\nexport FILE READY\nbash -c 'printf child-line >&9; : > \"$READY\"; sleep 2' &\nchild_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY\" ] && break\n  sleep 0.05\ndone\nparent_target=$(readlink \"/proc/$$/fd/9\")\nchild_target=$(readlink \"/proc/$child_pid/fd/9\")\nprintf 'parent_fd9=%s\\n' \"$parent_target\"\nprintf 'child_fd9=%s\\n' \"$child_target\"\nprintf 'file_contents=%s\\n' \"$(cat \"$FILE\")\"\nif [ \"$parent_target\" = \"$child_target\" ] && [ \"$parent_target\" = \"$FILE\" ]; then printf 'open_file_reference=shared\\n'; else printf 'open_file_reference=unexpected\\n'; fi\nwait \"$child_pid\"\nchild_pid=\nexec 9>&-\nrm -f \"$FILE\" \"$READY\"\ntrap - EXIT\nprintf 'cleanup=done\\n'",
+    "expectedResult": "parent_fd9 and child_fd9 resolve to the same inherited log path, file_contents=child-line, and open_file_reference=shared. The two PIDs and path are run-specific.",
+    "systemsLens": "Fork copies descriptor references, while the kernel open-file description carries the underlying file and offset. This is why workers can share a log, pipe, or socket without reopening it by pathname.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 22,
+    "slug": "pipe-buffer-backpressure",
+    "title": "Turn a finite FIFO buffer into backpressure",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "intermediate",
+    "tags": [
+      "pipes",
+      "processes",
+      "file-descriptors"
+    ],
+    "prerequisites": [
+      19
+    ],
+    "overview": "Start a producer writing a bounded eight-megabyte stream to a FIFO with no reader. Its write side blocks when the kernel pipe buffer fills; starting a consumer releases the producer and lets the exact byte count complete.",
+    "syntaxBreakdown": "mkfifo creates a named pipe; exec 7<> keeps both FIFO endpoints open without draining bytes; dd emits fixed-size blocks; ps -o stat observes a task state; wc -c counts bytes; wait joins both producer and consumer; trap removes exact lab resources.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFIFO=$LAB/backpressure-$UID.fifo\nDRAIN=$LAB/backpressure-$UID.bin\nrm -f \"$FIFO\" \"$DRAIN\"\nmkfifo \"$FIFO\"\nexec 7<>\"$FIFO\"\nproducer_pid=\nconsumer_pid=\ntrap 'test -n \"$producer_pid\" && kill \"$producer_pid\" 2>/dev/null || true; test -n \"$consumer_pid\" && kill \"$consumer_pid\" 2>/dev/null || true; test -n \"$producer_pid\" && wait \"$producer_pid\" 2>/dev/null || true; test -n \"$consumer_pid\" && wait \"$consumer_pid\" 2>/dev/null || true; exec 7>&-; rm -f \"$FIFO\" \"$DRAIN\"' EXIT\ndd if=/dev/zero of=\"$FIFO\" bs=65536 count=128 status=none &\nproducer_pid=$!\nsleep 0.15\nproducer_state=$(ps -o stat= -p \"$producer_pid\" 2>/dev/null | tr -d ' ' | cut -c1)\nif [ \"$producer_state\" = S ] || [ \"$producer_state\" = D ]; then producer_blocked=yes; else producer_blocked=no; fi\nprintf 'producer_pid=%s\\n' \"$producer_pid\"\nprintf 'producer_state=%s\\n' \"$producer_state\"\nprintf 'producer_blocked=%s\\n' \"$producer_blocked\"\ndd if=\"$FIFO\" of=\"$DRAIN\" bs=65536 count=128 status=none &\nconsumer_pid=$!\nwait \"$producer_pid\"\nproducer_status=$?\nwait \"$consumer_pid\"\nconsumer_status=$?\nexec 7>&-\nprintf 'producer_status=%s consumer_status=%s\\n' \"$producer_status\" \"$consumer_status\"\nprintf 'produced_bytes=%s\\n' \"$(wc -c < \"$DRAIN\")\"\nif [ \"$producer_status\" -eq 0 ] && [ \"$consumer_status\" -eq 0 ] && [ \"$(wc -c < \"$DRAIN\")\" -eq 8388608 ]; then printf 'backpressure_released=yes\\n'; else printf 'backpressure_released=no\\n'; fi\nrm -f \"$FIFO\" \"$DRAIN\"\nproducer_pid=\nconsumer_pid=\ntrap - EXIT\nprintf 'cleanup=done\\n'",
+    "expectedResult": "producer_blocked=yes while the FIFO has no reader, then both statuses are 0, produced_bytes=8388608, and backpressure_released=yes after the consumer starts. The producer state may be S or D depending on kernel accounting.",
+    "systemsLens": "A pipe is a bounded kernel buffer, not an infinite queue. When producer throughput exceeds consumer throughput, blocking is the built-in feedback signal used by shells, RPC streams, and worker pipelines.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 14,
+    "revision": 1
+  },
+  {
+    "ordinal": 23,
+    "slug": "fifo-process-coordination",
+    "title": "Coordinate independent shells through a named pipe",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "intermediate",
+    "tags": [
+      "pipes",
+      "processes",
+      "file-descriptors"
+    ],
+    "prerequisites": [
+      5
+    ],
+    "overview": "Make Session A wait in a FIFO read and let Session B discover the FIFO and write one labeled message. The pathname makes a byte-stream rendezvous visible to two otherwise independent persistent shells.",
+    "syntaxBreakdown": "mkfifo creates the coordination object; stat -c %F identifies its file type; read -r blocks for a line; printf writes one record; the EXIT trap and explicit rm bound cleanup.",
+    "code": "# Session A (blocks until B writes)\nLAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFIFO=$LAB/fifo-coordination-$UID.fifo\nrm -f \"$FIFO\"\nmkfifo \"$FIFO\"\ntrap 'rm -f \"$FIFO\"' EXIT\nprintf 'fifo_type=%s\\n' \"$(stat -c %F \"$FIFO\")\"\nprintf 'session_a=waiting\\n'\nread -r message < \"$FIFO\"\nprintf 'session_a_received=%s\\n' \"$message\"\nrm -f \"$FIFO\"\ntrap - EXIT\nprintf 'session_a_cleanup=done\\n'\n\n# Session B\nLAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nFIFO=$LAB/fifo-coordination-$UID.fifo\nfor attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do\n  [ -p \"$FIFO\" ] && break\n  sleep 0.05\ndone\nprintf 'session_b_fifo=%s\\n' \"$(test -p \"$FIFO\" && echo present || echo absent)\"\n[ -p \"$FIFO\" ]\nprintf 'fifo-message-from-B\\n' > \"$FIFO\"\nprintf 'session_b=sent\\n'",
+    "expectedResult": "Session A prints fifo_type=fifo and session_a=waiting; Session B prints session_b_fifo=present and session_b=sent; A then prints session_a_received=fifo-message-from-B and session_a_cleanup=done. The A step intentionally blocks until B runs.",
+    "systemsLens": "A FIFO combines a filesystem name with a kernel pipe, so opening and reading it creates a durable rendezvous between unrelated processes. Queue consumers, handoff scripts, and readiness gates use the same ordering edge.",
+    "caution": "Run the labelled Session A step first. It is intentionally blocked until Session B writes one newline, and both sessions must use the same LINUX_LAB.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 2,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 24,
+    "slug": "exhaust-file-descriptors",
+    "title": "Bound descriptor growth with a per-process limit",
+    "category": "file-descriptors-and-pipes",
+    "difficulty": "intermediate",
+    "tags": [
+      "file-descriptors",
+      "resource-limits",
+      "shell"
+    ],
+    "prerequisites": [
+      21
+    ],
+    "overview": "Lower the open-file limit only inside a subshell and open descriptors until Bash reports EMFILE. The parent limit remains unchanged, showing that a resource boundary belongs to one process context and its descendants.",
+    "syntaxBreakdown": "ulimit -n reads or sets the soft descriptor limit; eval constructs a bounded exec redirection; an if statement captures the expected nonzero open attempt; the subshell exit closes all descriptors.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFILE=$LAB/fd-limit-$UID.log\nERRORS=$LAB/fd-limit-$UID.err\nrm -f \"$FILE\" \"$ERRORS\"\nparent_limit=$(ulimit -n)\ntrap 'rm -f \"$FILE\" \"$ERRORS\"' EXIT\n(\n  trap 'rm -f \"$FILE\" \"$ERRORS\"' EXIT\n  ulimit -n 32\n  subshell_limit=$(ulimit -n)\n  opened=0\n  failed_fd=\n  for fd in $(seq 10 80); do\n    if eval \"exec $fd>>\\\"$FILE\\\"\" 2>>\"$ERRORS\"; then\n      opened=$((opened + 1))\n    else\n      failed_fd=$fd\n      break\n    fi\n  done\n  printf 'subshell_limit=%s\\n' \"$subshell_limit\"\n  printf 'opened_before_failure=%s\\n' \"$opened\"\n  printf 'failed_fd=%s\\n' \"$failed_fd\"\n  if [ -n \"$failed_fd\" ]; then printf 'descriptor_error=too-many-open-files\\n'; printf 'descriptor_boundary=observed\\n'; else printf 'descriptor_boundary=unexpected\\n'; fi\n)\nprintf 'parent_limit=%s\\n' \"$parent_limit\"\nprintf 'parent_limit_unchanged=%s\\n' \"$(test \"$(ulimit -n)\" = \"$parent_limit\" && echo yes || echo no)\"\nrm -f \"$FILE\" \"$ERRORS\"\ntrap - EXIT",
+    "expectedResult": "subshell_limit=32, opened_before_failure is positive, failed_fd is reported, and descriptor_boundary=observed. parent_limit_unchanged=yes proves the parent soft limit was not changed; the exact first failing descriptor depends on inherited descriptors.",
+    "systemsLens": "Descriptor limits cap kernel references held by one process, preventing an FD leak from consuming the whole host. The same per-process boundary protects web servers, proxies, and file watchers.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 25,
+    "slug": "paths-and-inodes",
+    "title": "Follow a file through a rename",
+    "category": "filesystem-objects",
+    "difficulty": "beginner",
+    "tags": [
+      "filesystem",
+      "inodes",
+      "shell"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "overview": "Create a file, record its device and inode, rename its directory entry, and read it through the new name. The stable inode and bytes show that a path name is a lookup handle, not the file's identity.",
+    "syntaxBreakdown": "stat -c prints selected inode fields; mv changes a directory entry; cat reads file contents; test -e checks name existence; cmp compares exact metadata strings.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nOLD=$LAB/path-before-$UID.txt\nNEW=$LAB/path-after-$UID.txt\ntrap 'rm -f \"$OLD\" \"$NEW\"' EXIT\nprintf 'inode-payload\\n' > \"$OLD\"\nbefore=$(stat -c '%d %i %s' \"$OLD\")\nmv \"$OLD\" \"$NEW\"\nafter=$(stat -c '%d %i %s' \"$NEW\")\nprintf 'before_device_inode_size=%s\\n' \"$before\"\nprintf 'after_device_inode_size=%s\\n' \"$after\"\nprintf 'old_name_exists=%s\\n' \"$(test -e \"$OLD\" && echo yes || echo no)\"\nprintf 'new_contents=%s\\n' \"$(cat \"$NEW\")\"\nif [ \"$(printf '%s\\n' \"$before\" | awk '{print $1,$2,$3}')\" = \"$after\" ] && [ ! -e \"$OLD\" ]; then printf 'rename_preserved_inode=yes\\n'; else printf 'rename_preserved_inode=no\\n'; fi\nrm -f \"$OLD\" \"$NEW\"\ntrap - EXIT",
+    "expectedResult": "before_device_inode_size and after_device_inode_size contain identical device, inode, and size fields; old_name_exists=no; new_contents=inode-payload; and rename_preserved_inode=yes.",
+    "systemsLens": "Directories map names to inode records. Rename on one filesystem changes those namespace references atomically while the inode and file data remain in place, the basis for safe deployment swaps.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 26,
+    "slug": "hard-link-counts",
+    "title": "Watch an inode's hard-link count change",
+    "category": "filesystem-objects",
+    "difficulty": "beginner",
+    "tags": [
+      "filesystem",
+      "inodes"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Add a second hard-link name to one file, then remove each name in turn. The inode number remains stable while the link count moves from one to two and back, exposing directory entries as references to one object.",
+    "syntaxBreakdown": "ln creates a hard link; stat -c %i and %h print inode and link count; rm removes exactly one name; test -e checks whether a pathname remains.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nPRIMARY=$LAB/hard-primary-$UID\nSECONDARY=$LAB/hard-secondary-$UID\ntrap 'rm -f \"$PRIMARY\" \"$SECONDARY\"' EXIT\nprintf 'shared-by-names\\n' > \"$PRIMARY\"\ninode=$(stat -c %i \"$PRIMARY\")\ncount_one=$(stat -c %h \"$PRIMARY\")\nln \"$PRIMARY\" \"$SECONDARY\"\ncount_two=$(stat -c %h \"$PRIMARY\")\nsecond_inode=$(stat -c %i \"$SECONDARY\")\nrm \"$PRIMARY\"\ncount_after_remove=$(stat -c %h \"$SECONDARY\")\nprintf 'inode=%s secondary_inode=%s\\n' \"$inode\" \"$second_inode\"\nprintf 'link_counts=%s->%s->%s\\n' \"$count_one\" \"$count_two\" \"$count_after_remove\"\nprintf 'primary_exists=%s secondary_contents=%s\\n' \"$(test -e \"$PRIMARY\" && echo yes || echo no)\" \"$(cat \"$SECONDARY\")\"\nif [ \"$inode\" = \"$second_inode\" ] && [ \"$count_one\" -eq 1 ] && [ \"$count_two\" -eq 2 ] && [ \"$count_after_remove\" -eq 1 ]; then printf 'hard_link_invariant=observed\\n'; else printf 'hard_link_invariant=unexpected\\n'; fi\nrm -f \"$PRIMARY\" \"$SECONDARY\"\ntrap - EXIT",
+    "expectedResult": "inode and secondary_inode match; link_counts=1->2->1; primary_exists=no; secondary_contents=shared-by-names; and hard_link_invariant=observed.",
+    "systemsLens": "An inode remains reachable while at least one directory entry or open reference points to it. Garbage collection of files therefore resembles reference counting: unlink removes one name, not necessarily the object.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 27,
+    "slug": "symlink-resolution",
+    "title": "Compare symbolic-link lookup with inode lookup",
+    "category": "filesystem-objects",
+    "difficulty": "beginner",
+    "tags": [
+      "filesystem",
+      "inodes"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Create a relative symbolic link and a broken one, then compare lstat, stat, and readlink -f. A symlink stores another path and can therefore resolve to a target inode—or fail when the target name disappears.",
+    "syntaxBreakdown": "ln -s creates a symbolic link; stat follows a link by default; stat -c %F reports the object type; lstat is requested with stat -L disabled; readlink prints or canonicalizes link text.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nTARGET=$LAB/symlink-target-$UID.txt\nLINK=$LAB/symlink-link-$UID\nBROKEN=$LAB/symlink-broken-$UID\nERROR=$LAB/symlink-error-$UID\ntrap 'rm -f \"$TARGET\" \"$LINK\" \"$BROKEN\" \"$ERROR\"' EXIT\nprintf 'target-by-path\\n' > \"$TARGET\"\nln -s \"$(basename \"$TARGET\")\" \"$LINK\"\nln -s missing-target-$UID \"$BROKEN\"\nprintf 'link_type=%s\\n' \"$(stat -c %F \"$LINK\")\"\nprintf 'target_type=%s\\n' \"$(stat -L -c %F \"$LINK\")\"\nprintf 'link_text=%s\\n' \"$(readlink \"$LINK\")\"\nprintf 'resolved_target=%s\\n' \"$(readlink -f \"$LINK\")\"\nprintf 'target_inode=%s link_followed_inode=%s\\n' \"$(stat -c %i \"$TARGET\")\" \"$(stat -L -c %i \"$LINK\")\"\nif stat -L -c %i \"$BROKEN\" > /dev/null 2>\"$ERROR\"; then broken_stat=unexpected-success; else broken_stat=failed; fi\nprintf 'broken_lstat_type=%s\\n' \"$(stat -c %F \"$BROKEN\")\"\nprintf 'broken_stat=%s\\n' \"$broken_stat\"\nif [ \"$(stat -c %F \"$LINK\")\" = \"symbolic link\" ] && [ \"$(stat -L -c %F \"$LINK\")\" = \"regular file\" ] && [ \"$(readlink -f \"$LINK\")\" = \"$TARGET\" ] && [ \"$broken_stat\" = failed ]; then printf 'symlink_lookup=observed\\n'; else printf 'symlink_lookup=unexpected\\n'; fi\nrm -f \"$TARGET\" \"$LINK\" \"$BROKEN\" \"$ERROR\"\ntrap - EXIT",
+    "expectedResult": "link_type=symbolic link, link_text is the target basename, resolved_target is the absolute target path, target_inode equals link_followed_inode, broken_lstat_type=symbolic link, broken_stat=failed, and symlink_lookup=observed.",
+    "systemsLens": "Unlike a hard link, a symlink is a path-bearing inode interpreted during lookup. Relative links are relocatable within a tree, while broken links demonstrate that the target name is not embedded data.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 28,
+    "slug": "permissions-and-umask",
+    "title": "Separate creation policy from inode mode",
+    "category": "filesystem-objects",
+    "difficulty": "beginner",
+    "tags": [
+      "filesystem",
+      "inodes",
+      "shell"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Create two files under different umasks, inspect their resulting mode bits, then add execute permission to one file. The experiment separates the creation-time policy from the inode permission bits later checked by the kernel.",
+    "syntaxBreakdown": "umask prints or sets the process creation mask; a shell redirection creates a regular file with requested mode 0666; stat -c %a reports octal mode; chmod changes mode; test -x checks execute permission.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nPRIVATE=$LAB/umask-private-$UID\nSHARED=$LAB/umask-shared-$UID\nold_umask=$(umask)\ntrap 'umask \"$old_umask\"; rm -f \"$PRIVATE\" \"$SHARED\"' EXIT\numask 077\n: > \"$PRIVATE\"\numask 022\n: > \"$SHARED\"\nprivate_mode=$(stat -c %a \"$PRIVATE\")\nshared_mode=$(stat -c %a \"$SHARED\")\nchmod u+x \"$PRIVATE\"\nprintf 'private_mode=%s shared_mode=%s\\n' \"$private_mode\" \"$shared_mode\"\nprintf 'private_execute_after_chmod=%s\\n' \"$(test -x \"$PRIVATE\" && echo yes || echo no)\"\nif [ \"$private_mode\" = 600 ] && [ \"$shared_mode\" = 644 ] && [ -x \"$PRIVATE\" ]; then printf 'creation_policy=umask_then_chmod\\n'; else printf 'creation_policy=unexpected\\n'; fi\nrm -f \"$PRIVATE\" \"$SHARED\"\numask \"$old_umask\"\ntrap - EXIT",
+    "expectedResult": "private_mode=600 and shared_mode=644 from requested 0666 masked by 077 and 022; private_execute_after_chmod=yes; and creation_policy=umask_then_chmod.",
+    "systemsLens": "The umask is a process-local default applied at creation, while permissions live on the inode and can be changed afterward. This two-stage policy is a simple form of least privilege and inherited configuration.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 29,
+    "slug": "atomic-rename",
+    "title": "Observe a pathname switch without partial files",
+    "category": "filesystem-objects",
+    "difficulty": "intermediate",
+    "tags": [
+      "filesystem",
+      "inodes",
+      "processes"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Have a reader repeatedly open one pathname while a writer replaces it with complete alpha and omega files. The reader should observe whole values only, demonstrating same-filesystem rename as an atomic namespace operation.",
+    "syntaxBreakdown": "mv -f atomically changes a directory entry; read opens and consumes one complete record without spawning a process; a background loop creates concurrent reads; case classifies observations; wait joins the reader; trap kills only the recorded reader and removes lab files.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nTARGET=$LAB/atomic-current-$UID\nTEMP=$LAB/atomic-temp-$UID\nBAD=$LAB/atomic-bad-$UID\nprintf 'alpha\\n' > \"$TARGET\"\nrm -f \"$BAD\"\nreader_pid=\ntrap 'test -n \"$reader_pid\" && kill \"$reader_pid\" 2>/dev/null || true; test -n \"$reader_pid\" && wait \"$reader_pid\" 2>/dev/null || true; rm -f \"$TARGET\" \"$TEMP\" \"$BAD\"' EXIT\n( for iteration in $(seq 1 3000); do\n    value=\n    IFS= read -r value < \"$TARGET\" || true\n    case \"$value\" in\n      alpha|omega) ;;\n      \"\") ;;\n      *) printf '%s\\n' \"$value\" > \"$BAD\"; break ;;\n    esac\n  done ) &\nreader_pid=$!\nfor iteration in $(seq 1 200); do\n  printf 'omega\\n' > \"$TEMP\"\n  mv -f \"$TEMP\" \"$TARGET\"\n  printf 'alpha\\n' > \"$TEMP\"\n  mv -f \"$TEMP\" \"$TARGET\"\ndone\nwait \"$reader_pid\"\nreader_pid=\nif [ -s \"$BAD\" ]; then printf 'invalid_observation=%s\\n' \"$(cat \"$BAD\")\"; else printf 'invalid_observation=none\\n'; fi\nprintf 'reader_samples=3000 writer_swaps=400\\n'\nif [ ! -s \"$BAD\" ]; then printf 'atomicity=preserved\\n'; else printf 'atomicity=violated\\n'; fi\nrm -f \"$TARGET\" \"$TEMP\" \"$BAD\"\ntrap - EXIT",
+    "expectedResult": "invalid_observation=none and atomicity=preserved; the reader sees only complete alpha or omega records (an empty read is tolerated if the writer is between names). reader_samples=3000 and writer_swaps=400 are bounded workload labels.",
+    "systemsLens": "Rename changes a directory's pointer in one namespace operation, allowing readers to choose an old complete object or a new complete object. Release artifacts and configuration rollouts use this commit-like boundary.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 14,
+    "revision": 1
+  },
+  {
+    "ordinal": 30,
+    "slug": "deleted-open-file",
+    "title": "Keep reading an unlinked file through an open descriptor",
+    "category": "filesystem-objects",
+    "difficulty": "intermediate",
+    "tags": [
+      "filesystem",
+      "inodes",
+      "file-descriptors",
+      "procfs"
+    ],
+    "prerequisites": [
+      21,
+      26
+    ],
+    "overview": "Let a child hold a file open, unlink its only pathname, and inspect the child's descriptor through /proc. The bytes remain readable and the link is marked deleted until the final open reference closes.",
+    "syntaxBreakdown": "exec 9< opens a read descriptor; rm unlinks the directory entry; readlink /proc/PID/fd/9 exposes the deleted marker; cat follows the still-live descriptor; wait reaps the holder.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFILE=$LAB/deleted-open-$UID.log\nREADY=$LAB/deleted-open-ready-$UID\nprintf 'still-readable\\n' > \"$FILE\"\nrm -f \"$READY\"\nholder_pid=\ntrap 'test -n \"$holder_pid\" && kill \"$holder_pid\" 2>/dev/null || true; test -n \"$holder_pid\" && wait \"$holder_pid\" 2>/dev/null || true; rm -f \"$FILE\" \"$READY\"' EXIT\nexport FILE READY\nbash -c 'exec 9<\"$FILE\"; : > \"$READY\"; sleep 2' &\nholder_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY\" ] && break\n  sleep 0.05\ndone\nrm \"$FILE\"\nfd_link=$(readlink \"/proc/$holder_pid/fd/9\")\nfd_contents=$(cat \"/proc/$holder_pid/fd/9\")\nprintf 'path_exists_after_unlink=%s\\n' \"$(test -e \"$FILE\" && echo yes || echo no)\"\nprintf 'fd_link=%s\\n' \"$fd_link\"\nprintf 'fd_contents=%s\\n' \"$fd_contents\"\nif printf '%s' \"$fd_link\" | grep -q '(deleted)' && [ \"$fd_contents\" = still-readable ]; then printf 'unlink_kept_open_reference=yes\\n'; else printf 'unlink_kept_open_reference=no\\n'; fi\nwait \"$holder_pid\"\nholder_pid=\nrm -f \"$FILE\" \"$READY\"\ntrap - EXIT",
+    "expectedResult": "path_exists_after_unlink=no, fd_link contains (deleted), fd_contents=still-readable, and unlink_kept_open_reference=yes. The pathname disappears immediately, while the inode is reclaimed only after the holder exits.",
+    "systemsLens": "unlink removes a directory reference; an open-file description remains valid independently. This explains deleted log files consuming space, graceful rotation, and why closing the final descriptor is part of reclamation.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 14,
+    "revision": 1
+  },
+  {
+    "ordinal": 31,
+    "slug": "map-mounts-and-devices",
+    "title": "Map a pathname to its mount and storage source",
+    "category": "mounts-and-storage",
+    "difficulty": "beginner",
+    "tags": [
+      "mounts",
+      "storage",
+      "filesystem"
+    ],
+    "prerequisites": [
+      25
+    ],
+    "overview": "Place one observation file below the learner-owned lab and ask findmnt which mounted filesystem receives its path. Correlate that mount with df and an lsblk inventory without assuming a particular device name or container storage driver.",
+    "syntaxBreakdown": "findmnt -T resolves the mount containing a path; df -P reports filesystem capacity; lsblk lists block-device topology; awk selects labeled fields; readlink -f canonicalizes the observed path.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFILE=$LAB/mount-map-$UID.txt\nprintf 'mount-observation\\n' > \"$FILE\"\nmount_record=$(findmnt -T \"$FILE\" -o TARGET,SOURCE,FSTYPE -n)\nmount_target=$(printf '%s\\n' \"$mount_record\" | awk '{print $1}')\nmount_source=$(printf '%s\\n' \"$mount_record\" | awk '{print $2}')\nmount_type=$(printf '%s\\n' \"$mount_record\" | awk '{print $3}')\ndf_device=$(df -P \"$FILE\" | awk 'NR==2{print $1}')\ndf_mount=$(df -P \"$FILE\" | awk 'NR==2{print $6}')\nblock_devices=$(lsblk -o NAME,TYPE -n 2>/dev/null | head -3 | tr '\\n' ';')\nprintf 'path=%s\\n' \"$(readlink -f \"$FILE\")\"\nprintf 'findmnt_target=%s\\n' \"$mount_target\"\nprintf 'findmnt_source=%s\\n' \"$mount_source\"\nprintf 'findmnt_fstype=%s\\n' \"$mount_type\"\nprintf 'df_device=%s\\n' \"$df_device\"\nprintf 'df_mountpoint=%s\\n' \"$df_mount\"\nprintf 'lsblk_sample=%s\\n' \"$block_devices\"\nif [ -n \"$mount_target\" ] && [ -n \"$mount_source\" ] && [ -n \"$mount_type\" ] && [ -n \"$df_device\" ]; then printf 'mount_mapping=observed\\n'; else printf 'mount_mapping=unexpected\\n'; fi\nrm -f \"$FILE\"",
+    "expectedResult": "findmnt_target, findmnt_source, findmnt_fstype, df_device, and df_mountpoint are nonempty labels for the lab file; lsblk_sample may vary or be empty on a storage-driver-backed VM; mount_mapping=observed.",
+    "systemsLens": "Path lookup crosses a mount graph before reaching an inode, while df reports the capacity boundary selected by that graph. lsblk adds physical topology when the source is a block device; containers may expose a virtual source instead.",
+    "safetyLevel": "read-only",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 10,
+    "revision": 1
+  },
+  {
+    "ordinal": 32,
+    "slug": "compare-df-and-du",
+    "title": "Contrast named usage with allocated filesystem space",
+    "category": "mounts-and-storage",
+    "difficulty": "intermediate",
+    "tags": [
+      "storage",
+      "filesystem",
+      "file-descriptors"
+    ],
+    "prerequisites": [
+      30,
+      31
+    ],
+    "overview": "Allocate a bounded 16-megabyte file, hold it open in a child, and unlink its name. du can no longer find the file, but df still counts its blocks until the child closes the descriptor.",
+    "syntaxBreakdown": "dd writes fixed blocks; df -B1 reports free bytes for the filesystem; du -B1 reports reachable named data; readlink shows the deleted descriptor; wait joins the holder.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nFILE=$LAB/df-du-$UID.bin\nREADY=$LAB/df-du-ready-$UID\nrm -f \"$FILE\" \"$READY\"\ndd if=/dev/zero of=\"$FILE\" bs=1048576 count=16 status=none\nfree_before=$(df -B1 -P \"$LAB\" | awk 'NR==2{print $4}')\nnamed_before=$(du -B1 -s \"$LAB\" | awk '{print $1}')\nholder_pid=\ntrap 'test -n \"$holder_pid\" && kill \"$holder_pid\" 2>/dev/null || true; test -n \"$holder_pid\" && wait \"$holder_pid\" 2>/dev/null || true; rm -f \"$FILE\" \"$READY\"' EXIT\nexport FILE READY\nbash -c 'exec 9<\"$FILE\"; : > \"$READY\"; sleep 2' &\nholder_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY\" ] && break\n  sleep 0.05\ndone\nrm \"$FILE\"\nfree_after_unlink=$(df -B1 -P \"$LAB\" | awk 'NR==2{print $4}')\nnamed_after=$(du -B1 -s \"$LAB\" | awk '{print $1}')\nfd_link=$(readlink \"/proc/$holder_pid/fd/9\")\nprintf 'named_before_bytes=%s\\n' \"$named_before\"\nprintf 'named_after_unlink_bytes=%s\\n' \"$named_after\"\nprintf 'free_before=%s free_after_unlink=%s\\n' \"$free_before\" \"$free_after_unlink\"\nprintf 'open_fd_deleted=%s\\n' \"$(printf '%s' \"$fd_link\" | grep -q '(deleted)' && echo yes || echo no)\"\nif [ \"$named_after\" -lt \"$named_before\" ] && [ \"$free_after_unlink\" -le \"$free_before\" ] && printf '%s' \"$fd_link\" | grep -q '(deleted)'; then printf 'df_du_diverge=observed\\n'; else printf 'df_du_diverge=unexpected\\n'; fi\nwait \"$holder_pid\"\nholder_pid=\nfree_after_close=$(df -B1 -P \"$LAB\" | awk 'NR==2{print $4}')\nprintf 'free_after_close=%s\\n' \"$free_after_close\"\nif [ \"$free_after_close\" -gt \"$free_after_unlink\" ]; then printf 'space_recovered_after_close=yes\\n'; else printf 'space_recovered_after_close=no\\n'; fi\nrm -f \"$FILE\" \"$READY\"\ntrap - EXIT",
+    "expectedResult": "named_after_unlink_bytes is lower than named_before_bytes, free_after_unlink is no greater than free_before, open_fd_deleted=yes, df_du_diverge=observed, and free_after_close is greater than free_after_unlink with space_recovered_after_close=yes. Exact df values vary with filesystem metadata.",
+    "systemsLens": "du answers how much data is reachable through names; df answers how many blocks the filesystem has free. An unlinked open file sits in the gap, a common cause of disk-full incidents.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 16,
+    "revision": 1
+  },
+  {
+    "ordinal": 33,
+    "slug": "sparse-file-allocation",
+    "title": "Separate logical size from physical allocation",
+    "category": "mounts-and-storage",
+    "difficulty": "beginner",
+    "tags": [
+      "storage",
+      "filesystem"
+    ],
+    "prerequisites": [
+      31
+    ],
+    "overview": "Create two files with the same 32-megabyte logical size: one by seeking over a hole and one by writing every byte. stat and du reveal that logical offsets and allocated blocks are different measurements.",
+    "syntaxBreakdown": "truncate sets logical length without allocating every block; dd writes real zero blocks; stat -c %s and %b report bytes and 512-byte blocks; du --apparent-size reports logical size.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nmkdir -p \"$LAB\"\nSPARSE=$LAB/sparse-$UID.bin\nALLOCATED=$LAB/allocated-$UID.bin\ntrap 'rm -f \"$SPARSE\" \"$ALLOCATED\"' EXIT\ntruncate -s 33554432 \"$SPARSE\"\ndd if=/dev/zero of=\"$ALLOCATED\" bs=1048576 count=32 status=none\nsparse_size=$(stat -c %s \"$SPARSE\")\nallocated_size=$(stat -c %s \"$ALLOCATED\")\nsparse_blocks=$(stat -c %b \"$SPARSE\")\nallocated_blocks=$(stat -c %b \"$ALLOCATED\")\nsparse_apparent=$(du --apparent-size -B1 \"$SPARSE\" | awk '{print $1}')\nallocated_apparent=$(du --apparent-size -B1 \"$ALLOCATED\" | awk '{print $1}')\nprintf 'logical_sizes=%s,%s\\n' \"$sparse_size\" \"$allocated_size\"\nprintf 'allocated_blocks=%s,%s\\n' \"$sparse_blocks\" \"$allocated_blocks\"\nprintf 'apparent_sizes=%s,%s\\n' \"$sparse_apparent\" \"$allocated_apparent\"\nif [ \"$sparse_size\" -eq 33554432 ] && [ \"$allocated_size\" -eq 33554432 ] && [ \"$sparse_blocks\" -lt \"$allocated_blocks\" ] && [ \"$sparse_apparent\" -eq \"$allocated_apparent\" ]; then printf 'sparse_allocation=observed\\n'; else printf 'sparse_allocation=unexpected\\n'; fi\nrm -f \"$SPARSE\" \"$ALLOCATED\"\ntrap - EXIT",
+    "expectedResult": "logical_sizes=33554432,33554432 and apparent_sizes=33554432,33554432, while allocated_blocks has a smaller sparse value first; sparse_allocation=observed. Filesystem block accounting and minimum allocation units may vary, but the sparse file uses fewer blocks.",
+    "systemsLens": "A file's logical address space can contain holes that have no physical blocks. VM images, database files, and checkpoint formats exploit this distinction to reserve offsets without immediately consuming storage.",
+    "safetyLevel": "writes-data",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 12,
+    "revision": 1
+  },
+  {
+    "ordinal": 34,
+    "slug": "tmpfs-uses-memory",
+    "title": "Observe a bounded tmpfs backed by memory",
+    "category": "mounts-and-storage",
+    "difficulty": "intermediate",
+    "tags": [
+      "mounts",
+      "storage",
+      "filesystem"
+    ],
+    "prerequisites": [
+      31
+    ],
+    "overview": "On the dedicated disposable VM, mount a uniquely named 32-megabyte tmpfs below the lab and write eight megabytes into it. findmnt identifies the memory-backed filesystem while df measures its quota; free provides a noisy host-memory observation.",
+    "syntaxBreakdown": "sudo -n mount -t tmpfs creates a bounded memory-backed mount without prompting; findmnt -T resolves it; df -B1 reports the tmpfs capacity; sudo -n umount releases the exact mount.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nMOUNT=$LAB/tmpfs-$UID\nFILE=$MOUNT/payload.bin\nmkdir -p \"$MOUNT\"\nmounted=no\ntrap 'if [ \"$mounted\" = yes ]; then sudo -n umount \"$MOUNT\" 2>/dev/null || true; fi; rm -f \"$FILE\"; rmdir \"$MOUNT\" 2>/dev/null || true' EXIT\nif ! sudo -n mount -t tmpfs -o size=32m \"linux-tutor-$UID-tmpfs\" \"$MOUNT\"; then\n  printf 'mount_status=unavailable\\n'\n  exit 1\nfi\nmounted=yes\nsudo -n dd if=/dev/zero of=\"$FILE\" bs=1048576 count=8 status=none\nrecord=$(findmnt -T \"$FILE\" -o TARGET,SOURCE,FSTYPE -n)\ntmpfs_size=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $2}')\ntmpfs_used=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $3}')\nmemory_available=$(free -b | awk '/^Mem:/{print $7}')\nprintf 'mount_status=mounted\\n'\nprintf 'findmnt_record=%s\\n' \"$record\"\nprintf 'tmpfs_size_bytes=%s\\n' \"$tmpfs_size\"\nprintf 'tmpfs_used_bytes=%s\\n' \"$tmpfs_used\"\nprintf 'memory_available_bytes=%s\\n' \"$memory_available\"\nif printf '%s' \"$record\" | grep -q 'tmpfs' && [ \"$tmpfs_used\" -ge 8388608 ] && [ \"$tmpfs_size\" -ge 33554432 ]; then printf 'tmpfs_memory_backed=yes\\n'; else printf 'tmpfs_memory_backed=no\\n'; fi\nsudo -n umount \"$MOUNT\"\nmounted=no\nrm -f \"$FILE\"\nrmdir \"$MOUNT\" 2>/dev/null || true\ntrap - EXIT\nprintf 'cleanup=unmounted\\n'",
+    "expectedResult": "On a VM with passwordless sudo, mount_status=mounted, findmnt_record names tmpfs, tmpfs_size_bytes is at least 33554432, tmpfs_used_bytes is at least 8388608, tmpfs_memory_backed=yes, and cleanup=unmounted. The memory_available value varies.",
+    "systemsLens": "tmpfs presents filesystem semantics while storing pages in memory and enforcing a filesystem quota. It is useful for scratch state, but its bytes compete with memory rather than a disk volume.",
+    "caution": "Run only on the dedicated disposable VM with passwordless sudo. The trap unmounts this exact mount and never touches another mount.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 35,
+    "slug": "bounded-filesystem-full",
+    "title": "Contain ENOSPC inside a small filesystem",
+    "category": "mounts-and-storage",
+    "difficulty": "intermediate",
+    "tags": [
+      "mounts",
+      "storage",
+      "filesystem"
+    ],
+    "prerequisites": [
+      31
+    ],
+    "overview": "On the disposable VM, format a uniquely named 32-megabyte image, loop-mount it below the lab, and write a bounded stream until the filesystem returns ENOSPC. The host remains available because the capacity boundary is the mounted image.",
+    "syntaxBreakdown": "truncate creates a fixed image; mkfs.ext4 formats it; sudo -n mount -o loop attaches one loop mount; dd captures its nonzero full-disk result; df reports the inner filesystem.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nIMAGE=$LAB/full-image-$UID.img\nMOUNT=$LAB/full-mount-$UID\nERROR=$LAB/full-error-$UID\nmkdir -p \"$MOUNT\"\nmounted=no\ntrap 'if [ \"$mounted\" = yes ]; then sudo -n umount \"$MOUNT\" 2>/dev/null || true; fi; rm -f \"$IMAGE\" \"$ERROR\"; rmdir \"$MOUNT\" 2>/dev/null || true' EXIT\nrm -f \"$IMAGE\" \"$ERROR\"\ntruncate -s 33554432 \"$IMAGE\"\nmkfs.ext4 -q -F \"$IMAGE\"\nif ! sudo -n mount -o loop \"$IMAGE\" \"$MOUNT\"; then\n  printf 'mount_status=unavailable\\n'\n  exit 1\nfi\nmounted=yes\nset +e\nsudo -n dd if=/dev/zero of=\"$MOUNT/fill.bin\" bs=1048576 count=64 status=none 2>\"$ERROR\"\nfill_status=$?\nset -e\ninner_free=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $4}')\nprintf 'mount_status=mounted\\n'\nprintf 'fill_status=%s\\n' \"$fill_status\"\nprintf 'inner_free_bytes=%s\\n' \"$inner_free\"\nprintf 'enospc_text=%s\\n' \"$(grep -qi 'no space left on device' \"$ERROR\" && echo present || echo absent)\"\nif [ \"$fill_status\" -ne 0 ] && grep -qi 'no space left on device' \"$ERROR\" && [ \"$inner_free\" -lt 1048576 ]; then printf 'bounded_enospc=observed\\n'; else printf 'bounded_enospc=unexpected\\n'; fi\nsudo -n umount \"$MOUNT\"\nmounted=no\nrm -f \"$IMAGE\" \"$ERROR\"\nrmdir \"$MOUNT\" 2>/dev/null || true\ntrap - EXIT\nprintf 'cleanup=image-and-mount-removed\\n'",
+    "expectedResult": "On the disposable VM, mount_status=mounted, fill_status is nonzero, enospc_text=present, inner_free_bytes is below one MiB, bounded_enospc=observed, and cleanup=image-and-mount-removed. The exact free count depends on ext4 metadata and reserved blocks.",
+    "systemsLens": "ENOSPC is a failure at a particular filesystem boundary, not necessarily a host-wide disk failure. Volume quotas and container layers use the same containment idea to localize capacity incidents.",
+    "caution": "This lesson formats and loop-mounts only the uniquely named lab image. Run it serially on the disposable VM; never substitute a real block device or mount point.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 18,
+    "revision": 1
+  },
+  {
+    "ordinal": 36,
+    "slug": "recover-filesystem-space",
+    "title": "Recover image space only after the last holder closes",
+    "category": "mounts-and-storage",
+    "difficulty": "advanced",
+    "tags": [
+      "mounts",
+      "storage",
+      "file-descriptors"
+    ],
+    "prerequisites": [
+      32,
+      35
+    ],
+    "overview": "Create a fresh bounded ext4 image, hold a 12-megabyte file open, unlink its only name, and compare inner free space before and after the holder exits. The image recovers blocks only when the final open reference is released.",
+    "syntaxBreakdown": "A loop mount gives the image a private capacity boundary; exec 9< holds the file; rm removes its name; df -B1 measures free bytes; wait closes the holder; sudo -n umount releases the exact mount.",
+    "code": "LAB=$LINUX_LAB\nif [ -z \"$LAB\" ]; then LAB=$HOME/linux-systems-lab; fi\nIMAGE=$LAB/recover-image-$UID.img\nMOUNT=$LAB/recover-mount-$UID\nREADY=$LAB/recover-ready-$UID\nmkdir -p \"$MOUNT\"\nmounted=no\nholder_pid=\ntrap 'test -n \"$holder_pid\" && kill \"$holder_pid\" 2>/dev/null || true; test -n \"$holder_pid\" && wait \"$holder_pid\" 2>/dev/null || true; if [ \"$mounted\" = yes ]; then sudo -n umount \"$MOUNT\" 2>/dev/null || true; fi; rm -f \"$IMAGE\" \"$READY\"; rmdir \"$MOUNT\" 2>/dev/null || true' EXIT\nrm -f \"$IMAGE\" \"$READY\"\ntruncate -s 33554432 \"$IMAGE\"\nmkfs.ext4 -q -F \"$IMAGE\"\nif ! sudo -n mount -o loop \"$IMAGE\" \"$MOUNT\"; then\n  printf 'mount_status=unavailable\\n'\n  exit 1\nfi\nmounted=yes\nsudo -n dd if=/dev/zero of=\"$MOUNT/held.bin\" bs=1048576 count=12 status=none\nfree_before=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $4}')\nholder_pid=\nexport READY\nbash -c 'exec 9<\"$1/held.bin\"; : > \"$READY\"; sleep 2' bash \"$MOUNT\" &\nholder_pid=$!\nfor attempt in 1 2 3 4 5 6 7 8 9 10; do\n  [ -e \"$READY\" ] && break\n  sleep 0.05\ndone\nsudo -n rm \"$MOUNT/held.bin\"\nfree_after_unlink=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $4}')\nprintf 'mount_status=mounted\\n'\nprintf 'free_before=%s\\n' \"$free_before\"\nprintf 'free_after_unlink=%s\\n' \"$free_after_unlink\"\nprintf 'name_exists_after_unlink=%s\\n' \"$(test -e \"$MOUNT/held.bin\" && echo yes || echo no)\"\nwait \"$holder_pid\"\nholder_pid=\nfree_after_close=$(df -B1 -P \"$MOUNT\" | awk 'NR==2{print $4}')\nprintf 'free_after_close=%s\\n' \"$free_after_close\"\nif [ ! -e \"$MOUNT/held.bin\" ] && [ \"$free_after_close\" -gt \"$free_after_unlink\" ]; then printf 'space_recovery=after-final-close\\n'; else printf 'space_recovery=unexpected\\n'; fi\nsudo -n umount \"$MOUNT\"\nmounted=no\nrm -f \"$IMAGE\" \"$READY\"\nrmdir \"$MOUNT\" 2>/dev/null || true\ntrap - EXIT\nprintf 'cleanup=image-and-mount-removed\\n'",
+    "expectedResult": "On the disposable VM, mount_status=mounted, name_exists_after_unlink=no, free_after_close is greater than free_after_unlink, space_recovery=after-final-close, and cleanup=image-and-mount-removed. Exact free-byte values vary with ext4 metadata.",
+    "systemsLens": "Reclamation follows references, not names: deleting the last directory entry is insufficient while an open description remains. The same delayed recovery appears in rotated logs, temporary files, and storage snapshots.",
+    "caution": "This is serial, privileged work on a disposable VM. The trap targets only the holder PID, loop mount, image, and lab directory created by this lesson.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "5.1",
+    "estimatedMinutes": 18,
+    "revision": 1
   }
 ]

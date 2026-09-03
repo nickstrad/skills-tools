@@ -27,7 +27,7 @@
 | Shell validator | Luna/high `shell_validator` + primary review | verified | validator, tests, docs |
 | Scaffold and fixed-slug plan | primary | verified | `courses/linux/*` |
 | Modules 1-3 | Luna/high `modules_01_03` + primary review | verified | module files 01-03 |
-| Modules 4-6 | Luna/high `modules_04_06` | active | module files 04-06 |
+| Modules 4-6 | Luna/high `modules_04_06` + primary review | verified | module files 04-06 |
 | Modules 7-9 | Luna/high `modules_07_09` | active | module files 07-09 |
 | Modules 10-12 | Luna/high `modules_10_12` | active | module files 10-12 |
 
@@ -54,6 +54,13 @@
 - Modules 1-3: build wrote 18 lessons; all 18 passed the shell harness with a unique `/tmp` lab and
   labeled evidence matching expectations. Primary fixed FIFO header/readiness ordering. Final
   checks showed an empty lab directory and no lesson-owned processes/FIFOs.
+- Modules 4-6: all 15 unprivileged lessons (19-33), including the two-session FIFO, passed the
+  primary shell harness in 11 seconds after corrections. Evidence included an 8 MiB completed pipe,
+  FD/inode/link/rename invariants, `(deleted)` descriptors, df/du divergence, and sparse
+  0-vs-65536 block allocation. The scratch directory was empty and removed.
+- Privileged lessons 34-36 passed serially: tmpfs reported 32 MiB total/8 MiB used; bounded ext4
+  returned ENOSPC with zero free bytes; deleted-open space rose from 12,283,904 to 24,866,816 bytes
+  only after close. Post-run checks found no lab mount, loop device, process, or file.
 
 ## Active lab resources
 
@@ -68,6 +75,10 @@
 - The first modules 1-3 run exposed a FIFO startup race and a validator false positive for an
   unresolved blocking step. Both were corrected, the stale FIFO was removed, and all 18 lessons
   then passed on rerun.
+- Primary review of modules 4-6 corrected FIFO open-vs-buffer semantics, added bounded FIFO
+  readiness, changed atomic rename reads from 3000 child processes to Bash `read`, and made writes
+  inside root-owned lab mounts use exact `sudo -n` operations. Lessons 34-36 then passed serially and
+  cleanup checks confirmed no `tmpfs-$UID`, `full-mount-$UID`, or `recover-mount-$UID` remained.
 
 ## Commits and pushes
 
