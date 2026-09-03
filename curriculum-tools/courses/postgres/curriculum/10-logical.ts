@@ -13,7 +13,7 @@ export const LOGICAL: Module = {
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 20,
-      prerequisites: ["shell-and-psql-toolkit"],
+      prerequisites: ["shell-and-psql-toolkit", "every-change-is-a-wal-record"],
       overview: code`
 Physical replication ships page deltas: unreadable outside PostgreSQL and useless to a downstream
 system. Logical decoding runs the same WAL through an output plugin that knows the catalog, and

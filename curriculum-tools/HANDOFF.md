@@ -1,6 +1,6 @@
 # Handoff: PostgreSQL systems curriculum + general tutor engine
 
-Last updated: 2026-09-03 01:25 UTC. **Update this file after every module and before any risky
+Last updated: 2026-09-03 01:38 UTC. **Update this file after every module and before any risky
 step.**
 
 ## What the user asked for
@@ -89,23 +89,23 @@ changed from the spec and why.
 
 ## Module status
 
-| #  | File                | Module                                                      | Lessons | Status                                                                                                                                                  |
-| -- | ------------------- | ----------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 01 | 01-lab.ts           | lab-setup                                                   | 4       | DONE, validated                                                                                                                                         |
-| 02 | 02-storage.ts       | storage: pages, tuples, buffers                             | 7       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator) |
-| 03 | 03-mvcc.ts          | mvcc: versions, snapshots, horizons                         | 6       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator) |
-| 04 | 04-vacuum.ts        | vacuum: dead tuples, VM, bloat, freeze                      | 6       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator) |
-| 05 | 05-isolation.ts     | transactions & isolation anomalies                          | 7       | DONE, subagent-validated, Fable re-ran write-skew/serializable-ssi/repeatable-read-blocks-then-fails OK (23:32)                                         |
-| 06 | 06-locking.ts       | locks, queues, deadlocks, DDL                               | 8       | DONE, subagent-validated, Fable re-ran deadlock/lock-queue/ddl-behind-long-query OK (23:45)                                                             |
-| 07 | 07-wal.ts           | WAL records, durability, crash redo                         | 7       | IN PROGRESS (opus subagent, cluster-level, started 01:10)                                                                                               |
-| 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | ~6      | TODO                                                                                                                                                    |
-| 09 | 09-replication.ts   | physical streaming replication, failover                    | ~8      | TODO (cluster-level, serial)                                                                                                                            |
-| 10 | 10-logical.ts       | logical decoding, CDC, pub/sub                              | 6       | DONE; Fable re-ran decode/pubsub/slot-lag OK 01:05 (lesson 6 switched to lg_orders so it does not depend on lesson 4 state)                             |
-| 11 | 11-planner.ts       | planner, statistics, execution                              | 7       | DONE; Fable re-ran stats/spill/parallel OK 01:02                                                                                                        |
-| 12 | 12-indexes.ts       | btree internals, concurrent builds, bloat                   | 6       | DONE; Fable re-ran cic/bloat OK 01:00 (lesson 3 uses 3 sessions: RR snapshot cannot see the new pg_index row)                                           |
-| 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | ~6      | TODO                                                                                                                                                    |
-| 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | ~7      | TODO                                                                                                                                                    |
-| 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | ~5      | TODO (cluster-level, serial)                                                                                                                            |
+| #  | File                | Module                                                      | Lessons | Status                                                                                                                                                                                    |
+| -- | ------------------- | ----------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01 | 01-lab.ts           | lab-setup                                                   | 4       | DONE, validated                                                                                                                                                                           |
+| 02 | 02-storage.ts       | storage: pages, tuples, buffers                             | 7       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator)                                   |
+| 03 | 03-mvcc.ts          | mvcc: versions, snapshots, horizons                         | 6       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator)                                   |
+| 04 | 04-vacuum.ts        | vacuum: dead tuples, VM, bloat, freeze                      | 6       | DONE, validated; Fable re-ran 2-3 lessons OK 2026-09-03 00:45 (fixed `order by backend_xmin` -> `age(backend_xmin) desc`, xid has no ordering operator)                                   |
+| 05 | 05-isolation.ts     | transactions & isolation anomalies                          | 7       | DONE, subagent-validated, Fable re-ran write-skew/serializable-ssi/repeatable-read-blocks-then-fails OK (23:32)                                                                           |
+| 06 | 06-locking.ts       | locks, queues, deadlocks, DDL                               | 8       | DONE, subagent-validated, Fable re-ran deadlock/lock-queue/ddl-behind-long-query OK (23:45)                                                                                               |
+| 07 | 07-wal.ts           | WAL records, durability, crash redo                         | 7       | DONE; Fable re-ran 4 harness lessons OK 01:35 (crash/pg_waldump/pgbench lessons validated by hand by the subagent; crash lesson needs Session B commit to force the ghost record to disk) |
+| 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | 6       | IN PROGRESS (opus subagent, cluster-level, started 01:38)                                                                                                                                 |
+| 09 | 09-replication.ts   | physical streaming replication, failover                    | ~8      | TODO (cluster-level, serial)                                                                                                                                                              |
+| 10 | 10-logical.ts       | logical decoding, CDC, pub/sub                              | 6       | DONE; Fable re-ran decode/pubsub/slot-lag OK 01:05 (lesson 6 switched to lg_orders so it does not depend on lesson 4 state)                                                               |
+| 11 | 11-planner.ts       | planner, statistics, execution                              | 7       | DONE; Fable re-ran stats/spill/parallel OK 01:02                                                                                                                                          |
+| 12 | 12-indexes.ts       | btree internals, concurrent builds, bloat                   | 6       | DONE; Fable re-ran cic/bloat OK 01:00 (lesson 3 uses 3 sessions: RR snapshot cannot see the new pg_index row)                                                                             |
+| 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | ~6      | TODO                                                                                                                                                                                      |
+| 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | ~7      | TODO                                                                                                                                                                                      |
+| 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | ~5      | TODO (cluster-level, serial)                                                                                                                                                              |
 
 ## Ship (after all modules validated)
 
@@ -145,8 +145,8 @@ changed from the spec and why.
 3. `su - postgres -c 'pg_isready -h /tmp -p 5440'`; if down, first try
    `su - postgres -c 'export PATH=/usr/lib/postgresql/16/bin:$PATH; pg_ctl -D $HOME/pglab/primary -l $HOME/pglab/primary.log start -w'`
    (a crash lesson may have left it stopped); rebuild per "The lab" only if that fails.
-4. Read the status table; if a module is IN PROGRESS, check whether its `curriculum/NN-*.ts` is
-   more than the 9-line stub and whether it builds; finish/validate it before the next one.
+4. Read the status table; if a module is IN PROGRESS, check whether its `curriculum/NN-*.ts` is more
+   than the 9-line stub and whether it builds; finish/validate it before the next one.
 5. Remaining serial order: 07 -> 08 -> 13 -> 14 -> 09 -> 15, then "Ship".
 6. After each verified module: update the status table here, then
    `git add curriculum-tools && git commit && git push`.

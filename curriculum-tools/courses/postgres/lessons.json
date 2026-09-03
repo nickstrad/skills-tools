@@ -1046,6 +1046,218 @@
   },
   {
     "ordinal": 39,
+    "slug": "every-change-is-a-wal-record",
+    "title": "Every change is a WAL record",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "replicated-log",
+      "durability",
+      "transactions"
+    ],
+    "prerequisites": [
+      3,
+      7
+    ],
+    "overview": "Before a data page is allowed to reach disk, the change that produced it must already be in the\nwrite-ahead log. That single rule is what makes PostgreSQL crash-safe, and it means the WAL, not\nthe heap, is the real record of what happened. In this lesson you bracket a transaction with two\nLSNs, decode the bytes in between with pg_walinspect, and read back the exact sequence of records\nthe server appended: one per tuple change, one per index change, one COMMIT at the end. Then you\nfind two things that surprise people: a rolled-back transaction still leaves its work in the log,\nand a plain SELECT can write megabytes of WAL.",
+    "syntaxBreakdown": "An LSN (pg_lsn) is a byte offset into the infinite log, printed as hex/hex. pg_current_wal_lsn()\nis how far the log has been written, pg_current_wal_flush_lsn() how far it is fsynced, and\npg_current_wal_insert_lsn() how far it has been reserved in memory. pg_wal_lsn_diff(a, b) is a\nminus b in bytes. pg_get_wal_records_info(start, end) decodes every record in a range: start_lsn,\nrecord_length, fpi_length, resource_manager (the subsystem that will replay it: Heap, Btree,\nTransaction, XLOG), record_type and a human description. pg_get_wal_stats(start, end) aggregates\nthe same range. pg_get_wal_block_info(start, end) lists the pages each record touches, as\n(reldatabase, relfilenode, relblocknumber); pg_filenode_relation(0, relfilenode) turns that back\ninto a table name. All of them can only read WAL that has already been flushed.",
+    "setup": "drop table if exists wal_orders;\ncreate table wal_orders(id int primary key, customer text, amount numeric)\n  with (autovacuum_enabled = off);\ninsert into wal_orders select g, 'cust-' || g, g * 1.5 from generate_series(1,100) g;\nvacuum wal_orders;\ndrop table if exists wal_hint;\ncreate table wal_hint(id int, v text) with (autovacuum_enabled = off);\ninsert into wal_hint select g, 'x' from generate_series(1,5000) g;",
+    "code": "-- Three LSNs: reserved, written, durable. They only ever move forward.\nselect pg_current_wal_insert_lsn() as insert_lsn,\n       pg_current_wal_lsn()        as write_lsn,\n       pg_current_wal_flush_lsn()  as flush_lsn;\n\n-- A warm-up transaction over the pages we are about to change. The first write to\n-- a page after a checkpoint carries a full copy of it (lesson 2); this gets that\n-- out of the way so the measured transaction shows the small \"delta\" records.\nbegin;\nupdate wal_orders set amount = amount where id = 1;\ndelete from wal_orders where id = 99;\ncommit;\n\n-- Bracket one transaction with two LSNs and read the bytes in between.\nselect pg_current_wal_lsn() as start_lsn \\gset\nbegin;\ninsert into wal_orders values (1002, 'ada', 10.00);\nupdate wal_orders set amount = 99.00 where id = 1002;\ndelete from wal_orders where id = 6;\ncommit;\nselect pg_current_wal_lsn() as end_lsn \\gset\n\nselect pg_wal_lsn_diff(:'end_lsn', :'start_lsn') as wal_bytes_for_that_txn;\n\nselect start_lsn, record_length, fpi_length, resource_manager, record_type, description\nfrom pg_get_wal_records_info(:'start_lsn', :'end_lsn')\norder by start_lsn;\n\n-- Which page does each record change? relfilenode maps back to a relation.\nselect relfilenode, pg_filenode_relation(0, relfilenode) as relation,\n       relforknumber as fork, relblocknumber as blk, record_type\nfrom pg_get_wal_block_info(:'start_lsn', :'end_lsn', false)\norder by start_lsn, block_id;\n\n-- A transaction that is rolled back still wrote to the log.\nselect pg_current_wal_lsn() as abort_start \\gset\nbegin;\ninsert into wal_orders values (2002, 'never-committed', 1.00);\nrollback;\n-- An aborted transaction never fsyncs, so force its bytes out with a real commit.\nbegin; insert into wal_orders values (2003, 'flusher', 1.00); commit;\nselect pg_current_wal_lsn() as abort_end \\gset\n\nselect start_lsn, record_length, resource_manager, record_type\nfrom pg_get_wal_records_info(:'abort_start', :'abort_end')\norder by start_lsn;\n\n-- And a pure SELECT can write WAL. Checksums are on in this lab, so setting a\n-- hint bit on a page is a change that must be logged like any other.\ncheckpoint;\nselect pg_current_wal_lsn() as hint_start \\gset\nselect count(*) from wal_hint;\nbegin; insert into wal_hint values (0, 'flusher'); commit;\nselect pg_current_wal_lsn() as hint_end \\gset\n\nselect pg_wal_lsn_diff(:'hint_end', :'hint_start') as bytes_written_by_a_select;\nselect resource_manager, record_type, count(*), sum(record_length) as total_len\nfrom pg_get_wal_records_info(:'hint_start', :'hint_end')\ngroup by 1, 2 order by 3 desc;",
+    "expectedResult": "The three LSNs are close together and ordered insert_lsn >= write_lsn >= flush_lsn.\n\nThe measured transaction costs 328 bytes of WAL and decodes into exactly five records, one per\nphysical change plus the commit:\n\n  start_lsn  | record_length | fpi_length | resource_manager | record_type\n  0/811F0E78 |            68 |          0 | Heap             | INSERT\n  0/811F0EC0 |            64 |          0 | Btree            | INSERT_LEAF\n  0/811F0F00 |            79 |          0 | Heap             | HOT_UPDATE\n  0/811F0F50 |            64 |          0 | Heap             | DELETE\n  0/811F0F90 |            46 |          0 | Transaction      | COMMIT\n\nNote what is and is not there. The INSERT costs a heap record AND a btree record: the index is a\nseparate relation with its own WAL. The UPDATE is a HOT_UPDATE, so it needed no index record at\nall. The DELETE is 64 bytes because it only stamps xmax, it does not move data. The COMMIT record\nis 46 bytes and carries a timestamp -- committing is appending one small record, and the whole\ntransaction becomes visible the instant that record is durable. Your LSNs will differ; the record\ntypes, the order, and the magnitudes (60-90 bytes each) will not.\n\npg_get_wal_block_info resolves the same records to pages, one row per (record, block):\n\n  relfilenode |    relation     | fork | blk | record_type\n        26290 | wal_orders      |    0 |   0 | INSERT\n        26295 | wal_orders_pkey |    0 |   1 | INSERT_LEAF\n        26290 | wal_orders      |    0 |   0 | HOT_UPDATE\n        26290 | wal_orders      |    0 |   0 | DELETE\n\nThe rolled-back transaction is fully present in the log, followed by a 34-byte ABORT record:\n\n  Heap        | INSERT        <- the row nobody will ever see\n  Btree       | INSERT_LEAF\n  Transaction | ABORT\n  Heap        | INSERT        <- the flusher transaction\n  Btree       | INSERT_LEAF\n  Transaction | COMMIT\n\n(a Heap2 PRUNE may appear at the front of that list if the page needed pruning first)\n\nFinally, the plain \"select count(*) from wal_hint\" writes about 182 KB of WAL:\n\n  bytes_written_by_a_select = 182488\n  XLOG        | FPI_FOR_HINT |    23 |    181679\n  Heap        | INSERT       |     1 |        67\n  Transaction | COMMIT       |     1 |        46\n\n23 FPI_FOR_HINT records, one per page of the table, each a full 8 KB page image. The scan set\nhint bits (this xid committed, that one aborted) so future scans do not have to consult the commit\nlog; with data checksums on, even that bookkeeping bit changes the page's checksum and so must be\nlogged in full.",
+    "systemsLens": "This is write-ahead logging in its pure form, and the same design shows up in every durable\nsystem: an append-only, totally ordered stream of records is the source of truth, and the \"real\"\ndata structures (heap pages, indexes, memtables, SSTables) are derived state that can be rebuilt\nby replaying it. The LSN is the sequence number of that stream, so it doubles as a version stamp\nfor a page, a progress marker for a replica, a restore point for PITR, and a consumption cursor\nfor CDC. Once you have that stream, replication is not a separate feature: it is another consumer\nof the same log.\n\nTwo lessons from the surprises. First, the log records physical work, not committed outcomes, so\naborts cost you real bytes and real I/O -- \"the transaction failed so nothing happened\" is only\ntrue logically. Second, reads are not free: cache warming, hint bits, and background maintenance\nall mutate state, which is why a read-only replica still has write amplification and why a\nread-heavy workload can still saturate a disk.",
+    "challenge": "Wrap a single-row INSERT in its own transaction and measure it, then wrap 100 of them in one\ntransaction and measure that. Divide by 100. Which part of the cost is per-row and which is\nper-commit? Lesson 7 measures this properly, so make a prediction first.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 40,
+    "slug": "full-page-writes-after-checkpoint",
+    "title": "Full-page writes: why the first change after a checkpoint costs 8 KB",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "full-page-writes",
+      "checkpoints",
+      "write-amplification",
+      "checksums"
+    ],
+    "prerequisites": [
+      39,
+      6
+    ],
+    "overview": "A WAL record normally says \"at page X, offset Y, change these bytes\". That is only safe if the\ncopy of page X on disk is a page the server actually wrote -- but an 8 KB page is many disk\nsectors, and a crash mid-write can leave a torn page that is half old and half new. Redo applied\nto a torn page produces garbage. PostgreSQL's answer is the full-page image: the first time a page\nis modified after a checkpoint, the entire page goes into the WAL record, and redo overwrites the\npage instead of patching it. In this lesson you measure the cost: the same UPDATE, run three times\nin a row, costs about 6 KB then about 200 bytes then about 200 bytes.",
+    "syntaxBreakdown": "full_page_writes (on by default) controls this behaviour; it is a SIGHUP setting, so ALTER SYSTEM\nplus pg_reload_conf() changes it without a restart. CHECKPOINT forces a checkpoint immediately,\nwhich resets \"first touch since checkpoint\" for every page. In pg_get_wal_records_info,\nrecord_length is the whole record and fpi_length is how much of it is full-page images; fpi_length\nis usually less than 8192 because the unused hole between pd_lower and pd_upper is not stored.\nwal_compression can compress those images. A table created with fillfactor = 70 leaves room for\nHOT updates so the experiment stays on one page.",
+    "setup": "drop table if exists wal_fpi;\ncreate table wal_fpi(id int primary key, payload text)\n  with (autovacuum_enabled = off, fillfactor = 70);\ninsert into wal_fpi select g, repeat('x',20) from generate_series(1,300) g;\nvacuum wal_fpi;",
+    "code": "show full_page_writes;\nselect name, setting from pg_settings where name in ('wal_compression','wal_log_hints');\n\n-- Reset every page's \"already imaged since the last checkpoint\" flag.\ncheckpoint;\n\n-- Now update the SAME row three times and price each update separately.\nselect pg_current_wal_lsn() as a \\gset\nupdate wal_fpi set payload = repeat('a',20) where id = 1;\nselect pg_current_wal_lsn() as b \\gset\nupdate wal_fpi set payload = repeat('b',20) where id = 1;\nselect pg_current_wal_lsn() as c \\gset\nupdate wal_fpi set payload = repeat('c',20) where id = 1;\nselect pg_current_wal_lsn() as d \\gset\n\nselect 'update 1 (first touch after checkpoint)' as which,\n       pg_wal_lsn_diff(:'b',:'a') as wal_bytes\nunion all select 'update 2', pg_wal_lsn_diff(:'c',:'b')\nunion all select 'update 3', pg_wal_lsn_diff(:'d',:'c');\n\n-- The difference is one field: fpi_length.\nselect start_lsn, record_length, fpi_length, resource_manager, record_type\nfrom pg_get_wal_records_info(:'a', :'d')\norder by start_lsn;\n\n-- Another checkpoint puts the page back in \"must be imaged\" state, so an\n-- identical statement costs 30x more than the one before it.\ncheckpoint;\nselect pg_current_wal_lsn() as e \\gset\nupdate wal_fpi set payload = repeat('d',20) where id = 1;\nselect pg_current_wal_lsn() as f \\gset\nselect 'update 4 (first touch after another checkpoint)' as which,\n       pg_wal_lsn_diff(:'f',:'e') as wal_bytes;\n\n-- What is the image actually buying? Turn the protection off and re-measure.\n-- Run this whole block; it puts the setting back at the end.\nalter system set full_page_writes = off;\nselect pg_reload_conf();\n-- The checkpointer, not your backend, applies this change (it logs an\n-- XLOG/FPW_CHANGE record). CHECKPOINT wakes it up so the change is live;\n-- SHOW would say \"off\" even before that, because SHOW reads your own copy.\ncheckpoint;\nselect pg_sleep(2);\nshow full_page_writes;\ncheckpoint;\nselect pg_current_wal_lsn() as g \\gset\nupdate wal_fpi set payload = repeat('e',20) where id = 1;\nselect pg_current_wal_lsn() as h \\gset\nselect 'first touch after checkpoint, full_page_writes = off' as which,\n       pg_wal_lsn_diff(:'h',:'g') as wal_bytes;\nselect start_lsn, record_length, fpi_length, resource_manager, record_type\nfrom pg_get_wal_records_info(:'g', :'h') order by start_lsn;\nalter system reset full_page_writes;\nselect pg_reload_conf();\ncheckpoint;\nselect pg_sleep(2);\nshow full_page_writes;",
+    "expectedResult": "full_page_writes is on, wal_compression is off, wal_log_hints is off (checksums already force\nhint-bit logging, so wal_log_hints is redundant here).\n\nThe three identical updates do not cost the same:\n\n  which                                   | wal_bytes\n  update 1 (first touch after checkpoint) |      5952\n  update 2                                |       208\n  update 3                                |       208\n\nand the record dump shows exactly where the 5952 went:\n\n  start_lsn  | record_length | fpi_length | resource_manager | record_type\n  0/8131B3A8 |          5880 |       5784 | Heap             | HOT_UPDATE\n  0/8131CAB8 |            46 |          0 | Transaction      | COMMIT\n  0/8131CAE8 |            59 |          0 | Heap2            | PRUNE\n  0/8131CB28 |            91 |          0 | Heap             | HOT_UPDATE\n  0/8131CB88 |            46 |          0 | Transaction      | COMMIT\n  0/8131CBB8 |            61 |          0 | Heap2            | PRUNE\n  0/8131CBF8 |            91 |          0 | Heap             | HOT_UPDATE\n  0/8131CC58 |            46 |          0 | Transaction      | COMMIT\n\nThe first HOT_UPDATE is 5880 bytes of which 5784 are the page image; the next two are 91 bytes\neach. fpi_length is 5784 rather than 8192 because the page is only about 70% full and the free\nhole in the middle is not stored.\n\nCheckpointing again re-arms the page: update 4, byte-for-byte the same statement, costs about\n6000 bytes again (6048 and 6072 in two runs).\n\nWith full_page_writes = off, the total is still about 6072 bytes -- but for a completely\ndifferent reason, and the record dump is the point of the whole exercise:\n\n  start_lsn  | record_length | fpi_length | resource_manager | record_type\n  0/8870FFA0 |          5837 |       5788 | XLOG             | FPI_FOR_HINT\n  0/88711688 |            61 |          0 | Heap2            | PRUNE\n  0/887116C8 |            91 |          0 | Heap             | HOT_UPDATE\n  0/88711728 |            46 |          0 | Transaction      | COMMIT\n\nThe HOT_UPDATE has collapsed from 5880 bytes to 91, with fpi_length 0: exactly the delta record\nupdates 2 and 3 produced. full_page_writes did what it says. The 5788-byte image that remains\nbelongs to an FPI_FOR_HINT on the index page the update probed -- a hint bit, and data checksums\nforce a full image for a hint-bit change regardless of full_page_writes, because the checksum\ncovers the whole page either way. Two independent reasons to copy a page, one setting each, and\nturning off the one you can turn off buys you nothing while the other is in play. (If you also\ndisabled checksums, this update would cost about 250 bytes -- and the cluster would be one\nbadly-timed power loss away from silently corrupt pages, since redo would patch bytes into a page\nthat may be half-written.)\n\nThe block ends with \"show full_page_writes\" printing \"on\" again; if it does not, fix it before\ncontinuing.",
+    "systemsLens": "This is the classic torn-write problem, and every system that updates blocks in place has to solve\nit: InnoDB has the doublewrite buffer, SQLite has the rollback journal, filesystems have journals.\nThe choice is where to pay: an extra full copy in the log (PostgreSQL), an extra copy in a side\nfile (InnoDB), or never updating in place at all (log-structured storage, which pays in compaction\ninstead). \"Atomic\" only means atomic at some layer -- a 4 KB sector, or a 512 B sector -- and\neverything above that layer has to build its own atomicity on top.\n\nOperationally this is why WAL volume is bursty rather than proportional to the workload: WAL\ngeneration spikes right after every checkpoint and decays until the next one. Checkpointing more\noften gives you faster recovery and more WAL; checkpointing less often gives you less WAL and a\nlonger outage after a crash. That is a straight availability-versus-cost dial, and it is the same\ndial as snapshot frequency in a Raft log or any state-machine replication system.",
+    "challenge": "Turn wal_compression on (it is also SIGHUP: alter system set wal_compression = 'pglz';\nselect pg_reload_conf();) and re-run the checkpoint-then-update measurement. How much of the 5784\nbytes survives compression on a page of repeated 20-character strings? Reset it afterwards.",
+    "caution": "This lesson turns full_page_writes off and back on. Between those two steps the cluster is NOT\ncrash safe. Run the ALTER SYSTEM block to the end; if you interrupt it, run\n\"alter system reset full_page_writes; select pg_reload_conf(); checkpoint;\" before doing\nanything else, and confirm \"show full_page_writes\" says on.",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 41,
+    "slug": "commit-means-fsync",
+    "title": "Commit means fsync: the durability latency floor",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "fsync",
+      "durability",
+      "capacity"
+    ],
+    "prerequisites": [
+      39,
+      1
+    ],
+    "overview": "A COMMIT record is 46 bytes, so why does a commit take milliseconds? Because returning from COMMIT\npromises the record survives a power cut, and that promise costs one fsync of the WAL file. In\nthis lesson you measure the disk's fsync ceiling with pg_test_fsync, then run pgbench with\nsynchronous_commit on and off and watch throughput move by an order of magnitude, then run eight\nclients with synchronous_commit still on and see the server beat the single-client rate by\namortising many commits into one fsync. Three numbers, one story: durability is a latency floor,\nand batching is the only way around it that does not lose data.",
+    "syntaxBreakdown": "pg_test_fsync measures the raw device: ops/sec and usecs/op for each wal_sync_method, with no\nPostgreSQL involved. pgbench -i -s 1 loads a 100k-row TPC-B-like schema; pgbench -c N -j M -T S\n-N -M prepared runs it for S seconds with N clients (-N skips the contended branches update and\n-M prepared removes parse overhead, so the measurement is dominated by commit cost).\nsynchronous_commit is USERSET, so PGOPTIONS=\"-c synchronous_commit=off\" changes it per connection\nwith no server change; off means the commit record is written but not waited on, so a crash can\nlose a bounded window of recent commits (but can never corrupt anything). pg_stat_wal counts\nwal_write (write calls) and wal_sync (fsync calls) cluster-wide, so the delta across a run tells\nyou how many commits shared an fsync.",
+    "code": "# Run as the postgres OS user, with the lab on PATH.\nexport PATH=/usr/lib/postgresql/16/bin:$PATH\nexport PGLAB=$HOME/pglab PGHOST=/tmp PGPORT=5440 PGUSER=postgres\n\n# 1. What can the disk actually do? No database involved.\ncd \"$PGLAB/primary\" && pg_test_fsync -s 2 | sed -n '1,10p'\n\n# 2. A workload to measure. This is its own database so nothing else is touched.\ncreatedb wal_bench\npgbench -i -s 1 wal_bench\n\nsync_counter() { psql -X -Atc \"select wal_sync from pg_stat_wal\" wal_bench; }\n\n# 3. One client, durable commits: every commit waits for an fsync.\necho \"wal_sync before: $(sync_counter)\"\npgbench -c 1 -T 5 -N -M prepared wal_bench | grep -E '^(latency|tps)'\necho \"wal_sync after:  $(sync_counter)\"\n\n# 4. Same workload, same client count, commits not waited on.\necho \"wal_sync before: $(sync_counter)\"\nPGOPTIONS=\"-c synchronous_commit=off\" pgbench -c 1 -T 5 -N -M prepared wal_bench | grep -E '^(latency|tps)'\necho \"wal_sync after:  $(sync_counter)\"\n\n# 5. Durable commits again, but eight clients. Watch commits per fsync.\necho \"wal_sync before: $(sync_counter)\"\npgbench -c 8 -j 2 -T 5 -N -M prepared wal_bench | grep -E '^(latency|tps)'\necho \"wal_sync after:  $(sync_counter)\"\n\n# 6. Clean up.\ndropdb wal_bench",
+    "expectedResult": "On this lab (a container on shared storage) pg_test_fsync reported:\n\n        open_datasync                       638.435 ops/sec    1566 usecs/op\n        fdatasync                           644.976 ops/sec    1550 usecs/op\n        fsync                               171.354 ops/sec    5836 usecs/op\n        open_sync                            82.197 ops/sec   12166 usecs/op\n\nThe configured wal_sync_method is fdatasync, so about 645 durable 8 KB writes per second, about\n1.55 ms each. That is the physical ceiling for \"one commit, one fsync\". (pgbench -i then prints a\nfew NOTICEs about pgbench_* tables that do not exist yet; that is normal on a fresh database.)\nThe three runs line up like this:\n\n  run                        tps      avg latency   fsyncs during the run   commits per fsync\n  1 client,  sync on         313.7    3.188 ms      11196-9630  = 1566      ~1.0\n  1 client,  sync off       1094.8    0.913 ms      11222-11196 =   26      ~210\n  8 clients, sync on        1557.0    5.138 ms      13890-11222 = 2668      ~2.9\n\nRead the rows against each other:\n\n- Row 1 is the fsync ceiling made visible. The 1566 fsyncs match the 1568 transactions the run\n  processed: one commit, one fsync. tps lands at about half the raw fdatasync rate because each\n  transaction also has to do its query work, and the 3.188 ms latency is the 1.55 ms flush plus\n  that work. The database is not slow; the disk is.\n- Row 2 removes the wait, not the work. The same WAL bytes are written, but nobody blocks on the\n  flush: 5474 transactions cost 26 fsyncs, throughput goes up 3.5x and latency drops 3.5x. The\n  price is a window of recent commits (roughly 3 * wal_writer_delay, 600 ms here) that a crash\n  silently loses. Nothing is corrupted -- redo still stops at the last durable record -- you just\n  lose transactions the client was already told had succeeded.\n- Row 3 keeps full durability and beats row 2 anyway, by making concurrent commits share flushes:\n  7785 transactions, 2668 fsyncs, about 3 commits per fsync. Note that 1557 commits per second is\n  more than twice the 645 fsyncs per second the device can do -- durable throughput above the\n  device's fsync rate is only possible because commits are batched. Per-commit latency got worse\n  (5.138 ms) while aggregate throughput got 5x better.\n\nAbsolute numbers move a lot: across a single session on this lab, pg_test_fsync reported anywhere\nfrom 207 to 920 fdatasync ops/sec and row 1 ranged from 121 to 482 tps. What should hold on any\nstorage: row 1's fsync count equals its transaction count and its tps is within a small factor of\nthe measured fdatasync rate, row 2 is several times faster with almost no fsyncs, and row 3's\nfsync count is far smaller than its transaction count.",
+    "systemsLens": "Group commit is the general answer to \"durability is a per-operation latency floor\": if the\nexpensive step is a fixed-cost flush, batch independent operations into it, trading a little\nlatency for a lot of throughput. Kafka's linger.ms and acks settings, a Raft leader batching\nentries before an fsync, and a write-behind cache flushing every N ms are the same mechanism with\ndifferent names. Note the shape of the trade: latency per request gets slightly worse, throughput\ngets much better, and the batch size is self-tuning because batches grow exactly when the system\nis busy.\n\nsynchronous_commit = off is the other lever, and it is worth being precise about what it costs.\nIt does not weaken atomicity, consistency, or isolation, and it cannot corrupt anything -- it\nweakens the D, and only for a bounded recent window. That makes it a legitimate choice for data\nyou can regenerate (analytics events, caches, bulk loads you would restart anyway) and a bad one\nfor anything a user was told succeeded. The same question -- \"how much recently acknowledged work\nmay I lose?\" -- is what acks=1 versus acks=all, or a quorum write versus a local write, is really\nasking, and module 09 turns this same dial across the network with synchronous_standby_names.",
+    "challenge": "Add commit_delay to the picture: alter system set commit_delay = 2000 (microseconds) and\ncommit_siblings = 2, reload, and rerun the 8-client test. Does forcing a small artificial wait\nbefore flushing raise commits-per-fsync enough to pay for itself on this disk? Reset both\nafterwards.",
+    "caution": "Run this as the postgres OS user. It creates its own database wal_bench and drops it at the end;\nit never changes a server setting. Absolute tps numbers depend entirely on the storage under\n$PGLAB -- on a laptop SSD, a cloud block volume, and a container overlay filesystem you will get\nthree completely different sets of numbers. The RATIOS are the result.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 42,
+    "slug": "wal-files-and-recycling",
+    "title": "Segments, recycling, and the archive",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "backup",
+      "durability",
+      "capacity"
+    ],
+    "prerequisites": [
+      39
+    ],
+    "overview": "The infinite log lives in finite 16 MB files. In this lesson you look at pg_wal as a directory:\nwhich file the current LSN is in, how the file name is derived from the LSN, how many files exist\ncompared to max_wal_size, and why files with names in the FUTURE are already sitting there. Then\nyou force a segment switch and watch the archiver copy the finished segment off the data\ndirectory, which is the moment WAL stops being a crash-recovery detail and becomes a backup.",
+    "syntaxBreakdown": "A WAL segment is wal_segment_size bytes (16 MB) and is named\nTIMELINE(8 hex) + LSN-high(8 hex) + LSN-segment(8 hex). pg_walfile_name(lsn) gives the segment\ncontaining an LSN and pg_walfile_name_offset(lsn) also gives the byte offset inside it; note that\nfor an LSN exactly on a segment boundary these return the PREVIOUS segment, because the usual\nquestion is \"which is the last segment I need\". pg_switch_wal() finishes the current segment early\nand returns the LSN where it stopped. pg_ls_waldir() lists pg_wal from SQL. max_wal_size is a soft\ntarget that drives how often checkpoints happen; min_wal_size is how much space is kept\npreallocated. pg_stat_archiver tracks archive_command's progress.",
+    "setup": "drop table if exists wal_orders;\ncreate table wal_orders(id int primary key, customer text, amount numeric)\n  with (autovacuum_enabled = off);\ninsert into wal_orders select g, 'cust-' || g, g * 1.5 from generate_series(1,100) g;",
+    "code": "select name, setting, unit from pg_settings\nwhere name in ('wal_segment_size','min_wal_size','max_wal_size','wal_keep_size',\n               'archive_mode','wal_level','wal_sync_method')\norder by name;\n\n-- The LSN is an offset; the file name is that offset, chopped up.\nselect pg_current_wal_lsn() as lsn,\n       pg_walfile_name(pg_current_wal_lsn()) as segment,\n       pg_walfile_name_offset(pg_current_wal_lsn()) as segment_and_offset;\n\n-- pg_wal as a directory: how many files, how much space.\nselect count(*) as segments, pg_size_pretty(sum(size)) as bytes_in_pg_wal\nfrom pg_ls_waldir();\n\n-- Files whose names sort AFTER the current segment have not been written yet:\n-- they are old segments renamed for future use.\nselect pg_walfile_name(pg_current_wal_lsn()) as current_segment,\n       count(*) filter (where name > pg_walfile_name(pg_current_wal_lsn())) as future_recycled,\n       count(*) filter (where name <= pg_walfile_name(pg_current_wal_lsn())) as already_written\nfrom pg_ls_waldir();\n\n\\! ls -1 $PGLAB/primary/pg_wal | head -5\n\\! ls -1 $PGLAB/archive | wc -l\n\n-- Force the current segment to end. Everything up to here is now archivable.\nselect pg_switch_wal() as switched_at;\nselect pg_walfile_name(pg_current_wal_lsn()) as name_of_lsn_after_switch;\n-- (that is the segment we just finished: an LSN on a boundary names the previous file)\n\n-- Write one row so the new segment is genuinely in use, then look again.\ninsert into wal_orders values (3001, 'after-switch', 1.00);\nselect pg_walfile_name(pg_current_wal_lsn()) as now_really_the_new_segment;\n\n-- The archiver runs in the background; give it a moment and watch it catch up.\nselect last_archived_wal, last_archived_time, archived_count, failed_count\nfrom pg_stat_archiver \\watch i=2 c=2\n\n\\! ls -1 $PGLAB/archive | tail -3",
+    "expectedResult": "wal_segment_size is 16777216 B, min_wal_size 80 MB, max_wal_size 1024 MB, wal_keep_size 0,\narchive_mode on, wal_level logical, wal_sync_method fdatasync.\n\nThe LSN and the file name are the same number. With lsn = 0/88785E58 the segment is\n000000010000000000000088 and the offset pair is (000000010000000000000088, 7888472): timeline 1,\nhigh half 00000000, segment 0x88 = the 137th 16 MB chunk since the cluster was created, and\n7888472 = 0x785E58 bytes into it.\n\npg_wal holds 19 segments = 304 MB, under max_wal_size. Of those, 18 sort AFTER the current\nsegment and only 1 (the current one) does not:\n\n  current_segment          | future_recycled | already_written\n  000000010000000000000088 |              18 |               1\n\nPostgreSQL does not delete a finished segment, it renames it to the next name it will need and\nkeeps the 16 MB allocated. That is why \"ls -l\" on pg_wal shows files with old modification times\nand future names, and why pg_wal does not shrink back to nothing when the system goes idle.\n\npg_switch_wal() returns something like 0/88787CE0. Right after the switch,\npg_walfile_name(pg_current_wal_lsn()) still prints 000000010000000000000088 -- the boundary rule\nfrom the syntax notes -- and only after the INSERT does it move to 000000010000000000000089.\n\nThe two \\watch iterations catch the archiver in the act. Two seconds apart:\n\n  000000010000000000000087 | 2026-09-03 01:06:23 | archived_count 5 | failed_count 0\n  000000010000000000000088 | 2026-09-03 01:23:33 | archived_count 6 | failed_count 0\n\nlast_archived_wal advances to the segment pg_switch_wal() just sealed, archived_count goes up by\none, failed_count stays 0, and the file appears in $PGLAB/archive (135 files at this point, since\nnothing in this lab ever deletes them -- exactly the disk-space bomb module 15 lets you set off).\narchived_count is small because pg_stat_archiver's counters reset when the cluster restarted in\nthe crash lesson; the file count in the directory is the cumulative number.",
+    "systemsLens": "Two ideas worth carrying out of this directory listing. First, preallocation and recycling: the\ncost of a WAL write should not include allocating a file or extending it, so the system keeps a\npool of correctly-sized files and renames them in a circle. Any latency-sensitive append-only\nsystem ends up doing this (Kafka preallocates segments, etcd preallocates WAL files), because\nfilesystem metadata operations are the unpredictable part of a write.\n\nSecond, the archive is where the log stops being a crash-recovery mechanism and becomes a\ndurability boundary you can reason about. Local WAL survives a process crash; archived WAL\nsurvives the machine. Everything downstream -- point-in-time recovery, rebuilding a replica,\nrestoring after a bad migration -- depends on segments being sealed and shipped, so archiver lag\nis a real availability metric, and an archive_command that fails silently is one of the classic\nways to discover you have no backups at the worst possible moment.",
+    "challenge": "Work out how much disk pg_wal can consume in the worst case: it is not max_wal_size. Look at\nwal_keep_size, at any rows in pg_replication_slots (restart_lsn pins everything after it), and at\nwhat happens if archive_command starts failing. Which of the three has no upper bound?",
+    "safetyLevel": "writes-data",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 15,
+    "revision": 1
+  },
+  {
+    "ordinal": 43,
+    "slug": "crash-and-redo",
+    "title": "Kill the server: redo, and what survives a crash",
+    "category": "wal",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "recovery",
+      "durability",
+      "transactions"
+    ],
+    "prerequisites": [
+      39,
+      15
+    ],
+    "overview": "Now cash the promise. You commit rows, leave a second transaction uncommitted, and then kill the\nserver with SIGQUIT -- no shutdown checkpoint, dirty pages still in shared buffers, WAL flushed\nonly as far as the last commit. On restart the server notices it was not shut down cleanly, finds\nthe last checkpoint's redo point in pg_control, and replays every record from there. Committed\nrows come back. The uncommitted row also comes back physically -- its INSERT record was in the WAL\nand redo does not care about commit status -- but it is invisible forever, because no COMMIT\nrecord for its xid was ever replayed. That distinction is the whole of ARIES-style recovery in one\nexperiment.",
+    "syntaxBreakdown": "pg_ctl stop -m immediate sends SIGQUIT: backends are killed, no checkpoint is written, and the\ncluster is left in state \"in production\" in pg_control. pg_controldata prints pg_control:\n\"Database cluster state\" tells you whether the last shutdown was clean, and\n\"Latest checkpoint's REDO location\" is where replay will start. pg_control_checkpoint() is the\nsame information from SQL. In the server log, recovery announces itself with \"database system was\ninterrupted\", \"database system was not properly shut down; automatic recovery in progress\",\n\"redo starts at LSN\", and \"redo done at LSN\". heap_page_items() lets you see the physical tuple\nthat redo restored even though no snapshot will ever accept it.",
+    "setup": "drop table if exists wal_crash;\ncreate table wal_crash(id int primary key, note text);\ninsert into wal_crash select g, 'committed-' || g from generate_series(1,1000) g;",
+    "code": "-- Session A: establish what is durable, then open a transaction and abandon it.\nselect count(*) as committed_rows from wal_crash;\nselect pg_current_wal_lsn() as lsn_after_commit;\nselect checkpoint_lsn, redo_lsn from pg_control_checkpoint();\n\nbegin;\ninsert into wal_crash values (99999, 'uncommitted, will vanish');\nselect count(*) as visible_inside_this_txn from wal_crash;\n-- STOP HERE. Do not commit, do not quit psql. Leave this session sitting in its\n-- open transaction and switch to Session B.\n\n-- Session B: one committed row from a second session. Its commit fsyncs every\n-- WAL byte written so far -- including Session A's uncommitted INSERT record,\n-- which would otherwise still be sitting in a memory buffer when the server\n-- dies, leaving redo nothing to restore.\ninsert into wal_crash values (99998, 'flusher-committed');\nselect pg_current_wal_flush_lsn() as everything_up_to_here_is_durable;\n\n-- ==========================================================================\n-- SHELL, in another terminal, as the postgres OS user. Run these by hand: no\n-- lesson runner can follow the server across a restart.\n--\n--   export PATH=/usr/lib/postgresql/16/bin:$PATH PGLAB=$HOME/pglab\n--\n--   pg_ctl -D \"$PGLAB/primary\" stop -m immediate\n--   pg_controldata -D \"$PGLAB/primary\" | head -8\n--   pg_ctl -D \"$PGLAB/primary\" -l \"$PGLAB/primary.log\" start -w\n--   grep -E 'interrupted|not properly|redo |invalid record' \\\n--        \"$PGLAB/primary/log/postgresql.log\" | tail -5\n--\n-- ==========================================================================\n\n-- Session B: reconnect after the restart. Both old connections are gone.\nselect count(*) as rows_after_crash from wal_crash;\nselect count(*) as ghost_row_visible from wal_crash where id = 99999;\n\n-- Recovery ended with a checkpoint, so the redo point is now \"here\".\nselect checkpoint_lsn, redo_lsn from pg_control_checkpoint();\n\n-- The abandoned row IS on the page. Redo replayed its INSERT record; nothing\n-- ever replayed a COMMIT for its xid, so no snapshot will accept it.\nselect blk, lp, t_xmin,\n       heap_tuple_infomask_flags(t_infomask, t_infomask2) as flags\nfrom generate_series(0, (pg_relation_size('wal_crash')/8192 - 1)::int) blk,\n     lateral heap_page_items(get_raw_page('wal_crash', blk))\norder by blk desc, lp desc limit 4;",
+    "expectedResult": "Before the crash: 1000 committed rows, pg_current_wal_lsn() around 0/8A7C1530, and\npg_control_checkpoint() showing checkpoint_lsn 0/8A7C1530 with redo_lsn 0/8A7C1530 -- note that on\na busy cluster the redo point is usually far BEHIND the current LSN, and everything in between is\nwork that exists only in the log. Inside the open transaction, count(*) is 1001. Session B's\ninsert commits normally and pg_current_wal_flush_lsn() returns 0/8A8221F0.\n\nThe moment pg_ctl stop -m immediate runs, both psql sessions print:\n\n  WARNING:  terminating connection due to immediate shutdown command\n  server closed the connection unexpectedly\n  psql: error: connection to server was lost\n\npg_controldata on the stopped cluster is the evidence that this was not a clean shutdown:\n\n  Database cluster state:               in production\n  Latest checkpoint location:           0/8A7C1530\n  Latest checkpoint's REDO location:    0/8A7C1530\n\n(\"in production\" on a server that is not running means \"nobody wrote a shutdown checkpoint\".)\n\nRestart takes a few seconds and the server log tells the whole story:\n\n  LOG:  database system was interrupted; last known up at 2026-09-03 01:27:05 UTC\n  LOG:  database system was not properly shut down; automatic recovery in progress\n  LOG:  redo starts at 0/8A7C15A8\n  LOG:  invalid record length at 0/8A8221F0: expected at least 24, got 0\n  LOG:  redo done at 0/8A8221C0 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s\n  LOG:  checkpoint starting: end-of-recovery immediate wait\n  LOG:  database system is ready to accept connections\n\nredo starts at the REDO location pg_controldata printed and ends where the log ran out --\n\"invalid record length ... got 0\" is not an error, it is how replay discovers the end of the\nstream, and note that it stops at exactly the flush LSN Session B reported (0/8A8221F0). Anything\nwritten after that point was still in memory and is simply gone. In an earlier run with more\npre-crash activity the same three lines read \"redo starts at 0/8131CC88 ... redo done at\n0/83055E30\", 30 MB replayed in 0.31 s, with an end-of-recovery checkpoint writing 3053 buffers.\n\nSession B, after reconnecting:\n\n  rows_after_crash  = 1001     <- 1000 committed + Session B's flusher row\n  ghost_row_visible = 0        <- the abandoned row is not among them\n  checkpoint_lsn = 0/8A8221F0, redo_lsn = 0/8A8221F0   <- redo point caught up\n\nand the last page of the heap still contains the abandoned tuple:\n\n  blk | lp | t_xmin | flags\n    6 | 59 |  84397 | {HEAP_HASVARWIDTH,HEAP_XMIN_COMMITTED,HEAP_XMAX_INVALID}\n    6 | 58 |  84396 | {HEAP_HASVARWIDTH,HEAP_XMIN_INVALID,HEAP_XMAX_INVALID}\n    6 | 57 |  84395 | {HEAP_HASVARWIDTH,HEAP_XMIN_COMMITTED,HEAP_XMAX_INVALID}\n    6 | 56 |  84395 | {HEAP_HASVARWIDTH,HEAP_XMIN_COMMITTED,HEAP_XMAX_INVALID}\n\nLine pointer 58, xid 84396, is the ghost: same page, same shape as its neighbours, sitting between\nthe last committed row (84395) and Session B's flusher (84397), but flagged XMIN_INVALID rather\nthan XMIN_COMMITTED. (It reads INVALID rather than blank because the count(*) above already\nconsulted the commit log, found the xid aborted, and cached that as a hint bit.) Redo restored the\nbytes; visibility rejected them.",
+    "systemsLens": "Commit means \"the log is durable\", not \"the data files are durable\". The heap pages for those\n1000 rows were still dirty in shared buffers when the process died, and that was fine -- the WAL\nalready described them, so redo rebuilt them. This is the entire reason a log exists: it converts\nmany expensive random page writes into one cheap sequential append, and defers the random writes\nto a checkpoint that can batch and reorder them.\n\nRecovery here is redo-only, which is worth contrasting with textbook ARIES. There is no undo pass,\nbecause PostgreSQL never overwrites a row in place: an uncommitted change is just a tuple version\nwhose xid is not marked committed, so \"undo\" costs nothing at recovery time and is paid later by\nVACUUM instead. Systems that update in place (InnoDB, most non-MVCC engines) must run an undo pass\nand keep undo logs; PostgreSQL trades that for bloat. Same invariant, different bill.\n\nFinally, note what recovery time depends on: the distance from the last checkpoint's redo point to\nthe end of the log (here 30 MB, 0.31 s), not on database size. That is your RTO after a crash, and\nit is exactly the dial the next module turns.",
+    "challenge": "Repeat the experiment with synchronous_commit = off in Session A (set it, insert rows, commit,\nthen crash within a second). Do the \"committed\" rows survive? This is the failure mode you accept\nwhen you take the throughput win from the previous lesson -- measure how much you actually lose.",
+    "caution": "This lesson deliberately crashes the lab cluster. Only ever run it against $PGLAB, never against a\ncluster you care about, and never against a packaged system cluster on port 5432. Both psql\nsessions WILL lose their connections; that is part of the experiment.",
+    "safetyLevel": "dangerous",
+    "runIn": "mixed",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 44,
+    "slug": "wal-replay-is-deterministic",
+    "title": "Read the log the server replayed",
+    "category": "wal",
+    "difficulty": "advanced",
+    "tags": [
+      "wal",
+      "recovery",
+      "replicated-log",
+      "consistency"
+    ],
+    "prerequisites": [
+      43,
+      42
+    ],
+    "overview": "Redo is not magic and it is not opaque. The records the server replayed after the crash are\nordinary bytes in ordinary files, and pg_waldump prints them. In this lesson you take the \"redo\nstarts at\" and \"redo done at\" LSNs straight out of the server log and summarise exactly that range\nwith pg_waldump --stats. Then you cause a small, known transaction and dump it two ways -- through\npg_walinspect from SQL and through pg_waldump from the shell -- and confirm they print the same\nrecords, in the same order, with the same lengths. The log is a replayable, inspectable stream,\nand that is what makes a physical standby possible.",
+    "syntaxBreakdown": "pg_waldump -p DIR reads segments out of a directory (pg_wal, or an archive), --start/--end bound\nthe LSN range, and --stats aggregates instead of printing every record. Each line carries rmgr,\nlen (rec/tot), tx, lsn, prev, a description, and blkref entries naming\ntablespace/database/relfilenode and block -- prev is the previous record's LSN, so the log is a\nbackward-linked chain that replay validates as it goes. pg_walinspect's\npg_get_wal_records_info() reads the same records from SQL, but only from pg_wal and only up to the\nflush LSN, which is why an older range has to come from the archive. pg_switch_wal() is what makes\na range archivable in the first place.",
+    "setup": "drop table if exists wal_replay;\ncreate table wal_replay(id int primary key, note text);\ninsert into wal_replay values (1,'one');",
+    "code": "-- 1. What did recovery actually replay? Take the LSNs from the server's own log.\n\\! grep -E 'redo (starts|done)' $PGLAB/primary/log/postgresql.log | tail -2\n\n-- 2. Cause a small, known transaction and bracket it.\nselect pg_current_wal_lsn() as s \\gset\nbegin;\ninsert into wal_replay values (2,'two');\nupdate wal_replay set note = 'ONE' where id = 1;\ndelete from wal_replay where id = 2;\ncommit;\nselect pg_current_wal_lsn() as e \\gset\n\\echo range is :s to :e\n\n-- 3. Read it from SQL.\nselect start_lsn, end_lsn, resource_manager, record_type, record_length\nfrom pg_get_wal_records_info(:'s', :'e')\norder by start_lsn;\n\n-- 4. Seal the segment so the archiver ships it.\nselect pg_switch_wal();\nselect pg_sleep(3);\n\\! ls -1 $PGLAB/archive | tail -2\n\n-- 5. Now read the SAME bytes from the archive with pg_waldump. Run these in a\n--    shell as the postgres OS user, substituting the LSNs printed above for\n--    START/END and the two LSNs from step 1 for REDO_START/REDO_DONE:\n--\n--      export PATH=/usr/lib/postgresql/16/bin:$PATH PGLAB=$HOME/pglab\n--      pg_waldump -p \"$PGLAB/archive\" --start START --end END\n--      pg_waldump -p \"$PGLAB/archive\" --start REDO_START --end REDO_DONE --stats",
+    "expectedResult": "Step 1 prints the two lines the crash lesson produced:\n\n  LOG:  redo starts at 0/8A822268\n  LOG:  redo done at 0/8A881EE8 system usage: CPU: user: 0.00 s, ... elapsed: 0.00 s\n\nStep 3, the four-statement transaction, decodes from SQL as five records:\n\n  start_lsn  |  end_lsn   | resource_manager | record_type | record_length\n  0/8A8C2768 | 0/8A8C27A8 | Heap             | INSERT      |            63\n  0/8A8C27A8 | 0/8A8C27E8 | Btree            | INSERT_LEAF |            64\n  0/8A8C27E8 | 0/8A8C2838 | Heap             | HOT_UPDATE  |            74\n  0/8A8C2838 | 0/8A8C2878 | Heap             | DELETE      |            64\n  0/8A8C2878 | 0/8A8C28A8 | Transaction      | COMMIT      |            46\n\nand pg_waldump over the same range from the archive prints the same five, at the same LSNs, with\nthe same lengths, plus the detail SQL hides -- the xid, the backward prev pointer, and the exact\npage each record touches:\n\n  rmgr: Heap  len (rec/tot): 63/63, tx: 84406, lsn: 0/8A8C2768, prev 0/8A8C2738,\n        desc: INSERT off: 2, flags: 0x08, blkref #0: rel 1663/19476/50820 blk 0\n  rmgr: Btree len (rec/tot): 64/64, tx: 84406, lsn: 0/8A8C27A8, prev 0/8A8C2768,\n        desc: INSERT_LEAF off: 2, blkref #0: rel 1663/19476/50825 blk 1\n  rmgr: Heap  len (rec/tot): 74/74, tx: 84406, lsn: 0/8A8C27E8, prev 0/8A8C27A8,\n        desc: HOT_UPDATE old_xmax: 84406, old_off: 1, ..., new_off: 3,\n        blkref #0: rel 1663/19476/50820 blk 0\n  rmgr: Heap  len (rec/tot): 64/64, tx: 84406, lsn: 0/8A8C2838, prev 0/8A8C27E8,\n        desc: DELETE xmax: 84406, off: 2, infobits: [KEYS_UPDATED],\n        blkref #0: rel 1663/19476/50820 blk 0\n  rmgr: Transaction len (rec/tot): 46/46, tx: 84406, lsn: 0/8A8C2878, prev 0/8A8C2838,\n        desc: COMMIT 2026-09-03 01:29:22.893138 UTC\n\nEvery record names one xid and one or more (tablespace/database/relfilenode, block) triples --\n50820 is wal_replay's heap, 50825 its primary key index -- and each prev points back at the\nprevious record's lsn. That is all a replay loop needs: read the next record, find its page, apply\nit if the page's LSN is older than the record's, repeat.\n\nThe --stats run over the recovery range summarises what the crash actually cost (rows that are all\nzero omitted):\n\n  WAL statistics between 0/8A822268 and 0/8A881EE8:\n  Type            N       (%)      Record size    (%)      FPI size     (%)   Combined size\n  XLOG           25 (  1.09)              1206 ( 0.73)       141192 (64.21)          142398\n  Transaction    17 (  0.74)              5424 ( 3.30)            0 ( 0.00)            5424\n  Storage         4 (  0.18)               168 ( 0.10)            0 ( 0.00)             168\n  Standby        10 (  0.44)               440 ( 0.27)            0 ( 0.00)             440\n  Heap2          90 (  3.94)              8098 ( 4.93)            0 ( 0.00)            8098\n  Heap         1053 ( 46.08)             77711 (47.34)            0 ( 0.00)           77711\n  Btree        1086 ( 47.53)             71124 (43.32)        78712 (35.79)          149836\n  Total        2285                     164171 [42.74%]      219904 [57.26%]         384075\n\n2285 records, 384 KB, replayed in well under a second. Note the FPI column: 57% of the replayed\nbytes were full-page images (lesson 2), produced by only 25 XLOG records plus some btree ones. A\nlarger crash earlier in the lab replayed 97057 records and 25 MB with the same shape (Heap and\nHeap2 dominating the record count, XLOG dominating the FPI bytes). Your counts depend entirely on\nhow much work happened between the last checkpoint and the crash; the shape does not.",
+    "systemsLens": "The log is a public, self-describing format, and that is a design choice with consequences.\nBecause each record identifies its target page and carries a backward link, replay is a pure\nfunction of (record stream, starting page state): the same records applied to the same pages\nalways yield the same result, on this machine or another one. That determinism is the whole basis\nof physical streaming replication -- a standby is just a server stuck permanently in the redo loop\nyou watched run at startup, reading records over a socket instead of from a file. It is also the\nbasis of PITR: stop the replay at an arbitrary LSN or timestamp and you have the database as of\nthat instant.\n\nThe general pattern is state-machine replication: rather than shipping state, ship a totally\nordered stream of deterministic operations and let each replica derive the state. The hard part is\nalways determinism -- which is why WAL records reference a physical page and offset rather than\nre-executing SQL, and why shipping statements instead (\"statement-based replication\") breaks the\nfirst time a query calls now() or random(). Module 10 shows the other end of the spectrum:\ndecoding this same stream back into logical row changes, deliberately giving up the physical\nlayout in exchange for portability across versions and engines.",
+    "challenge": "Run pg_waldump --stats=record over a range where you did a CREATE INDEX and a range where you\ninserted the same number of rows. Which resource managers appear, and what fraction of the bytes\nis FPI in each? Then predict what a standby's network link looks like during a big index build.",
+    "safetyLevel": "read-only",
+    "runIn": "mixed",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 20,
+    "revision": 1
+  },
+  {
+    "ordinal": 45,
+    "slug": "wal-size-of-operations",
+    "title": "What things cost: measuring WAL per operation",
+    "category": "wal",
+    "difficulty": "intermediate",
+    "tags": [
+      "wal",
+      "write-amplification",
+      "hot-updates",
+      "capacity"
+    ],
+    "prerequisites": [
+      39,
+      8
+    ],
+    "overview": "WAL volume is a first-class capacity number: it sets your archive bill, your replication\nbandwidth, and how long recovery takes. It is also almost never proportional to the logical size\nof the data. In this lesson you price four choices with pg_wal_lsn_diff -- batching rows into one\ntransaction, using COPY instead of INSERT, updating an indexed versus a non-indexed column, and\nbuilding an index -- and turn each into bytes per row so they can be compared directly.",
+    "syntaxBreakdown": "pg_wal_lsn_diff(end, start) is the byte cost of everything that happened in between; wrapping\nstatements in \\gset'd LSNs is the general recipe for pricing any operation. \\gexec runs each row\nof a result as its own statement, which is how you get N separate autocommit transactions out of\none query. COPY uses heap_multi_insert, which packs many tuples into one WAL record, while\nINSERT ... SELECT logs one record per tuple. A HOT update writes only a heap record; an update\nthat changes an indexed column must also write index records, and pg_stat_user_tables.n_tup_upd\nversus n_tup_hot_upd counts which happened (call pg_stat_force_next_flush() first, statistics are\nbuffered).",
+    "setup": "drop table if exists wal_amp;\ncreate table wal_amp(id int, v text) with (autovacuum_enabled = off);\ndrop table if exists wal_cols;\ncreate table wal_cols(id int primary key, indexed int, plain int)\n  with (autovacuum_enabled = off, fillfactor = 70);\ninsert into wal_cols select g, g, g from generate_series(1,200) g;\ncreate index wal_cols_indexed_idx on wal_cols(indexed);\nvacuum wal_cols;",
+    "code": "-- A. The same 2000 rows, four ways.\nselect pg_current_wal_lsn() as a1 \\gset\ninsert into wal_amp select g, 'v' from generate_series(1,2000) g;\nselect pg_current_wal_lsn() as a2 \\gset\n\nbegin;\ndo $$ begin for i in 2001..4000 loop insert into wal_amp values (i,'v'); end loop; end $$;\ncommit;\nselect pg_current_wal_lsn() as a3 \\gset\n\n-- Session A\n-- 2000 separate autocommit transactions. This takes several seconds: each one\n-- is a commit, and each commit is an fsync.\nselect 'insert into wal_amp values (' || g || ', ''v'');'\nfrom generate_series(4001,6000) g \\gexec\nselect pg_current_wal_lsn() as a4 \\gset\n\n-- Session A\ncopy (select g, 'v' from generate_series(6001,8000) g) to '/tmp/wal_amp.csv' csv;\nselect pg_current_wal_lsn() as a5 \\gset\ncopy wal_amp from '/tmp/wal_amp.csv' csv;\nselect pg_current_wal_lsn() as a6 \\gset\n\nselect 'one multi-row INSERT, 1 txn' as how, pg_wal_lsn_diff(:'a2',:'a1') as wal_bytes,\n       round(pg_wal_lsn_diff(:'a2',:'a1')/2000.0,1) as bytes_per_row\nunion all select '2000 INSERTs, 1 txn',     pg_wal_lsn_diff(:'a3',:'a2'),\n                 round(pg_wal_lsn_diff(:'a3',:'a2')/2000.0,1)\nunion all select '2000 INSERTs, 2000 txns', pg_wal_lsn_diff(:'a4',:'a3'),\n                 round(pg_wal_lsn_diff(:'a4',:'a3')/2000.0,1)\nunion all select 'COPY, 1 txn',             pg_wal_lsn_diff(:'a6',:'a5'),\n                 round(pg_wal_lsn_diff(:'a6',:'a5')/2000.0,1);\n\n-- Session A\n-- B. The same 1000 updates to the same row, on a plain and an indexed column.\ncheckpoint;\nupdate wal_cols set plain = plain + 1 where id = 1;   -- warm-up: this page pays its FPI here\nselect pg_current_wal_lsn() as u1 \\gset\ndo $$ begin for i in 1..1000 loop update wal_cols set plain = plain+1 where id=1; end loop; end $$;\nselect pg_current_wal_lsn() as u2 \\gset\ndo $$ begin for i in 1..1000 loop update wal_cols set indexed = indexed+1 where id=1; end loop; end $$;\nselect pg_current_wal_lsn() as u3 \\gset\n\nselect '1000 updates of a NON-indexed column' as how, pg_wal_lsn_diff(:'u2',:'u1') as wal_bytes,\n       round(pg_wal_lsn_diff(:'u2',:'u1')/1000.0,1) as bytes_per_update\nunion all select '1000 updates of an INDEXED column', pg_wal_lsn_diff(:'u3',:'u2'),\n                 round(pg_wal_lsn_diff(:'u3',:'u2')/1000.0,1);\n\nselect 'non-indexed' as which, record_type, count(*), sum(record_length) as len\nfrom pg_get_wal_records_info(:'u1',:'u2') group by 1,2 order by 4 desc limit 4;\nselect 'indexed' as which, record_type, count(*), sum(record_length) as len\nfrom pg_get_wal_records_info(:'u2',:'u3') group by 1,2 order by 4 desc limit 4;\n\nselect pg_stat_force_next_flush();\nselect relname, n_tup_upd, n_tup_hot_upd from pg_stat_user_tables where relname = 'wal_cols';\n\n-- Session A\n-- C. Building an index: how does the WAL compare to the index itself?\nselect pg_current_wal_lsn() as i1 \\gset\ncreate index wal_amp_id_idx on wal_amp(id);\nselect pg_current_wal_lsn() as i2 \\gset\nselect 'CREATE INDEX' as how, pg_wal_lsn_diff(:'i2',:'i1') as wal_bytes,\n       pg_relation_size('wal_amp_id_idx') as index_bytes;",
+    "expectedResult": "A. Inserting the same 2000 rows costs very different amounts depending on how you frame it:\n\n  how                     | wal_bytes | bytes_per_row\n  one multi-row INSERT    |    129968 |          65.0\n  2000 INSERTs, 1 txn     |    128432 |          64.2\n  2000 INSERTs, 2000 txns |    224712 |         112.4\n  COPY, 1 txn             |     28944 |          14.5\n\nThree separate findings. (1) Writing one INSERT statement for 2000 rows saves nothing over 2000\nINSERT statements in the same transaction -- 64-65 bytes/row either way -- because INSERT logs one\nHeap/INSERT record per tuple regardless of statement shape. (2) Committing 2000 times instead of\nonce adds 48 bytes/row of pure overhead (a 46-byte COMMIT record plus alignment), a 75% increase,\non top of 2000 fsyncs. (3) COPY is 4.4x cheaper per row than INSERT: it uses heap_multi_insert and\npacks many tuples into a single record. Batching helps enormously, but only through the code path\nthat actually batches.\n\nB. Updating the same row 1000 times:\n\n  how                                  | wal_bytes | bytes_per_update\n  1000 updates of a NON-indexed column |    117680 |            117.7\n  1000 updates of an INDEXED column    |    219816 |            219.8\n\nNearly 2x, and the record breakdown says why:\n\n  non-indexed | HOT_UPDATE   |  994 | 77532        indexed | INSERT_LEAF  | 1995 | 127680\n  non-indexed | FPI_FOR_HINT |    3 | 24723        indexed | UPDATE       |  995 |  77610\n  non-indexed | INSERT_LEAF  |   12 |  8866        indexed | SPLIT_L      |    2 |   3400\n  non-indexed | UPDATE       |    1 |  3283        indexed | PRUNE        |    7 |   2389\n\nThe plain column produced 994 HOT_UPDATEs and only 12 index records; the indexed column produced\n995 non-HOT UPDATEs and 1995 INSERT_LEAFs -- two index records per update -- plus page splits and\ndeduplication work. pg_stat_user_tables confirms it: n_tup_upd = 2001 with n_tup_hot_upd = 995,\nso essentially all of the first loop was HOT and none of the second was. (A handful of records in\nthe non-indexed run are not HOT: once the free space that fillfactor 70 reserved is used up, the\nrow has to move to another page until pruning reclaims space, and that move triggers an index\ninsert and a fresh page image.)\n\nC. CREATE INDEX on the 8000-row wal_amp cost 529464 bytes of WAL to produce a 196608-byte index --\nabout 2.7x the size of the thing it built, because the WAL carries the new index pages plus the\nfull-page images of everything the build dirtied. An index build is not a metadata change; it is a\nfull write of a new relation, logged.",
+    "systemsLens": "Write amplification is the number that decides your storage and network bill, and this lesson\ngives you the tool to measure it instead of guessing: bracket anything with two LSNs and divide.\nThe four results generalise cleanly. Per-operation overhead (the commit record, the fsync) is\namortised by batching, which is why every high-throughput ingestion path -- COPY here, batching\nproducers in Kafka, memtable writes in an LSM tree -- exists. Secondary indexes are not free\nstorage, they are a multiplier on every write that touches them, which is the real cost of \"just\nadd an index\". And bulk structural operations (index builds, table rewrites, mass updates)\ngenerate WAL bursts that a replica must receive, an archive must store, and a recovery must\nreplay -- so the migration that is instant on your laptop is the one that saturates the\nreplication link at 3am.\n\nThe habit worth taking away: when you design a write path, ask what it costs in log bytes per\nlogical change, not just in rows. A queue table updated in place through an indexed status column\nis cheap logically and expensive in WAL; the same queue as an append-only outbox with a\nHOT-updatable flag is the same feature at a fraction of the write amplification. Module 14 builds\nexactly that.",
+    "challenge": "Price an UPDATE that changes nothing: \"update wal_amp set v = v\". PostgreSQL still writes a new\ntuple version for every row. Now price the same statement with a \"where v is distinct from 'v'\"\nguard. How many bytes of WAL, and how much replication bandwidth, does one WHERE clause save on a\nmillion-row table?",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 46,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -1058,7 +1270,8 @@
       "replicated-log"
     ],
     "prerequisites": [
-      2
+      2,
+      39
     ],
     "overview": "Physical replication ships page deltas: unreadable outside PostgreSQL and useless to a downstream\nsystem. Logical decoding runs the same WAL through an output plugin that knows the catalog, and\nturns it back into row-level INSERT/UPDATE/DELETE events. That is exactly what a CDC pipeline is.\nIn this lesson you create a slot with the test_decoding plugin, cause a transaction, read the\nevent stream, and find out what the stream does NOT contain: rolled-back work, DDL, and the old\nvalues of a row unless you ask for them.",
     "syntaxBreakdown": "pg_create_logical_replication_slot(name, plugin) creates a durable cursor into the WAL of the\ncurrent database and pins WAL from that point on. test_decoding is the demo output plugin that\nprints changes as text (real consumers use pgoutput or wal2json). pg_logical_slot_peek_changes and\npg_logical_slot_get_changes decode from the slot position; peek leaves the position alone, get\nadvances it. A slot is per-database and is stored in pg_replication_slots. ALTER TABLE ... REPLICA\nIDENTITY FULL makes the WAL carry the whole old row for UPDATE and DELETE instead of just the key.",
@@ -1075,7 +1288,7 @@
     "revision": 1
   },
   {
-    "ordinal": 40,
+    "ordinal": 47,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -1088,7 +1301,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      39
+      46
     ],
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
     "syntaxBreakdown": "pg_replication_slots.confirmed_flush_lsn is the position the consumer has acknowledged;\nrestart_lsn is the oldest WAL the server must keep for this slot. catalog_xmin is the oldest\ntransaction whose catalog rows vacuum may not remove, so the decoder can still resolve column\ntypes. pg_replication_slot_advance(name, lsn) moves the offset forward without reading, i.e. skips\ndata. pg_current_wal_lsn() minus an LSN is a bytes value (pg_lsn subtraction returns numeric).",
@@ -1105,7 +1318,7 @@
     "revision": 1
   },
   {
-    "ordinal": 41,
+    "ordinal": 48,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -1117,7 +1330,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      40
+      47
     ],
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
     "syntaxBreakdown": "CREATE PUBLICATION names a set of tables and which operations to publish. CREATE SUBSCRIPTION\nstores a connection string and a publication name, creates a replication slot on the publisher, and\nstarts an apply worker. WITH (create_slot = false, slot_name = ...) tells it to use a slot you\nalready created, and WITH (copy_data = true) (the default) copies the existing rows first.\npg_stat_replication shows the walsender feeding a subscriber; pg_stat_subscription shows the apply\nworker on the other side. In psql, \\gset captures a query result into a variable, \\set builds a\nstring out of several pieces, and :'var' interpolates it as a quoted literal.",
@@ -1135,7 +1348,7 @@
     "revision": 1
   },
   {
-    "ordinal": 42,
+    "ordinal": 49,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -1147,7 +1360,7 @@
       "consistency"
     ],
     "prerequisites": [
-      41
+      48
     ],
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
     "syntaxBreakdown": "ALTER PUBLICATION ... ADD TABLE changes the publisher's table set; the subscriber only notices when\nyou run ALTER SUBSCRIPTION ... REFRESH PUBLICATION. pg_subscription_rel.srsubstate is the per-table\nstate: i = initialize, d = data is being copied, f = finished the copy, s = synchronized with the\napply worker, r = ready (streaming normally). srsublsn is the LSN at which the table's copy ended\nand streaming took over. Each table sync uses its own temporary slot and its own snapshot, so it\nneeds a consistent snapshot on the publisher before it can start copying.",
@@ -1164,7 +1377,7 @@
     "revision": 1
   },
   {
-    "ordinal": 43,
+    "ordinal": 50,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -1176,7 +1389,7 @@
       "observability"
     ],
     "prerequisites": [
-      42
+      49
     ],
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
     "syntaxBreakdown": "pg_stat_subscription_stats has one row per subscription with apply_error_count and\nsync_error_count, both cumulative since stats_reset. pg_stat_subscription.pid is null while the\napply worker is dead. The server log records the failing statement with a CONTEXT line naming the\nreplication origin, the message type, and the transaction's finish LSN, which is the information\nyou need to skip it. ALTER SUBSCRIPTION ... SKIP (lsn = ...) and pg_replication_origin_advance()\ndiscard the stuck transaction; deleting the offending local row instead lets it apply.",
@@ -1193,7 +1406,7 @@
     "revision": 1
   },
   {
-    "ordinal": 44,
+    "ordinal": 51,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -1206,7 +1419,7 @@
       "observability"
     ],
     "prerequisites": [
-      43
+      50
     ],
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
     "syntaxBreakdown": "ALTER SUBSCRIPTION ... DISABLE stops the apply worker, which disconnects the walsender and makes\nthe slot inactive; the slot itself survives. pg_replication_slots.restart_lsn is the oldest WAL\nbyte the slot needs and pg_walfile_name(restart_lsn) turns it into a file name in pg_wal.\nwal_status is reserved / extended / unreserved / lost, and safe_wal_size is how much more WAL can\nbe written before this slot starts losing data -- both are governed by max_slot_wal_keep_size,\nwhich is -1 (unlimited retention) by default. pg_ls_waldir() lists the segment files.\nDropping cleanly: DISABLE, SET (slot_name = none), DROP SUBSCRIPTION, then drop the slot yourself.",
@@ -1223,7 +1436,7 @@
     "revision": 1
   },
   {
-    "ordinal": 45,
+    "ordinal": 52,
     "slug": "explain-analyze-buffers",
     "title": "Read a plan: estimate vs actual, cost vs time, buffers vs rows",
     "category": "query-planning",
@@ -1254,7 +1467,7 @@
     "revision": 1
   },
   {
-    "ordinal": 46,
+    "ordinal": 53,
     "slug": "statistics-drive-plans",
     "title": "Where row estimates come from, and three ways they go wrong",
     "category": "query-planning",
@@ -1265,7 +1478,7 @@
       "explain"
     ],
     "prerequisites": [
-      45
+      52
     ],
     "overview": "The planner never looks at your data; it looks at a sampled summary of your data in pg_statistic.\nThis lesson makes that summary visible and then breaks it three ways: a table that has never been\nanalyzed (default selectivity constants), a table whose statistics are stale (a snapshot of a\npopulation that has changed), and two columns that are correlated (the independence assumption).\nThe third one is the failure mode that ruins real production plans.",
     "syntaxBreakdown": "ANALYZE samples default_statistics_target * 300 = 30000 rows and stores per-column stats.\npg_stats is the readable view over pg_statistic: null_frac, avg_width, n_distinct (a count, or a\nnegative fraction of the row count when distinctness scales with size), most_common_vals /\nmost_common_freqs (the MCV list), histogram_bounds (equal-frequency buckets for everything not in\nthe MCV list), and correlation (how well physical order matches logical order, -1..1).\npg_class.relpages / reltuples are the table-level counters; reltuples = -1 means \"never analyzed\".\nCREATE STATISTICS ... (dependencies, ndistinct) ON a, b FROM t builds a multi-column statistics\nobject, read back from pg_statistic_ext_data.",
@@ -1282,7 +1495,7 @@
     "revision": 1
   },
   {
-    "ordinal": 47,
+    "ordinal": 54,
     "slug": "index-scan-vs-seq-scan-crossover",
     "title": "The crossover: when an index stops being worth it",
     "category": "query-planning",
@@ -1294,7 +1507,7 @@
       "explain"
     ],
     "prerequisites": [
-      46
+      53
     ],
     "overview": "An index is not \"faster\". It is a random-access strategy that wins below some selectivity and loses\nabove it, and the crossover point is a function of how many rows match, how well the heap is\nordered, and what the planner believes about your disks. Here you sweep the selectivity of one\npredicate from 0.1% to 80%, watch the plan change shape, force the losing plan to see what it would\nhave cost, and then move the crossover by changing a single hardware constant.",
     "syntaxBreakdown": "An Index Scan walks the btree and fetches each matching heap tuple immediately: one random page per\nrow, in index order. A Bitmap Index Scan collects all matching TIDs into a bitmap first, then the\nBitmap Heap Scan visits the heap in physical order, once per page - \"Heap Blocks: exact=N\" counts\nthose pages, and \"Recheck Cond\" is re-applied because a lossy bitmap may only remember pages. A Seq\nScan reads every page and filters. enable_seqscan, enable_bitmapscan and enable_indexscan are\nper-session switches that add a huge penalty to a path rather than truly removing it; they are\ndebugging tools, not tuning. random_page_cost is the planner's belief about the cost of a random\npage relative to a sequential one (default 4.0; on SSDs people set 1.1).",
@@ -1311,7 +1524,7 @@
     "revision": 1
   },
   {
-    "ordinal": 48,
+    "ordinal": 55,
     "slug": "join-strategies",
     "title": "Three ways to join, and the memory that decides between them",
     "category": "query-planning",
@@ -1324,7 +1537,7 @@
       "query-planning"
     ],
     "prerequisites": [
-      47
+      54
     ],
     "overview": "PostgreSQL has exactly three join algorithms and they are the same three every database has: nested\nloop (probe the inner side once per outer row), hash join (build a hash table on the smaller side,\nstream the larger through it), merge join (consume both sides in sorted order and zip). Which one\nwins depends on the row estimates from lesson 2 and on work_mem. Here you force all three over the\nsame two tables, read the per-node evidence for each, and then shrink work_mem until the hash table\nno longer fits and the join splits into batches.",
     "syntaxBreakdown": "\"loops=N\" on a node means the node was executed N times, and its \"actual rows\" and \"actual time\"\nare PER LOOP averages - always multiply. A Hash node reports \"Buckets: N  Batches: M  Memory\nUsage: kB\"; Batches > 1 means the build side did not fit in work_mem and both inputs were\npartitioned to temporary files, which show up as \"temp read=/written=\" blocks. Memoize is a cache\nin front of a nested loop's inner side, reporting Hits/Misses/Evictions. enable_nestloop,\nenable_hashjoin, enable_mergejoin and enable_memoize let you force a shape. work_mem is per node\nper execution, not per query and not per backend.",
@@ -1341,7 +1554,7 @@
     "revision": 1
   },
   {
-    "ordinal": 49,
+    "ordinal": 56,
     "slug": "work-mem-spills-to-disk",
     "title": "work_mem: quicksort, top-N heapsort, external merge, and hash spill",
     "category": "query-planning",
@@ -1353,7 +1566,7 @@
       "capacity"
     ],
     "prerequisites": [
-      48
+      55
     ],
     "overview": "work_mem is the single most misunderstood PostgreSQL setting: it is a limit per plan node per\nexecution, not per query and not per connection, and crossing it does not fail - it silently\nswitches the algorithm and starts writing temporary files. Here you run the same sort at three\nmemory sizes, watch it move between three different algorithms, do the same for a hash aggregate,\nand then find the evidence a DBA would actually see: temp_files in pg_stat_database and a line in\nthe server log.",
     "syntaxBreakdown": "\"Sort Method: quicksort  Memory: NkB\" means it all fit. \"top-N heapsort\" is the LIMIT special case:\nonly the best N rows are ever kept, so a huge sort can run in kilobytes. \"external merge  Disk:\nNkB\" means the input was cut into sorted runs written to temporary files and merged. A HashAggregate\nreports \"Planned Partitions: N  Batches: M  Memory Usage: kB  Disk Usage: kB\" when it spills.\ntemp read=/written= in BUFFERS counts 8 kB temp blocks. pg_stat_database.temp_files and temp_bytes\nare cumulative counters per database; log_temp_files = 0 logs every temporary file the session\ncreates, and pg_current_logfile() plus pg_read_file() read the log back without leaving psql.",
@@ -1370,7 +1583,7 @@
     "revision": 1
   },
   {
-    "ordinal": 50,
+    "ordinal": 57,
     "slug": "parallel-query",
     "title": "Parallel query: Gather, workers planned vs launched, and when it hurts",
     "category": "query-planning",
@@ -1383,7 +1596,7 @@
     ],
     "prerequisites": [
       4,
-      45
+      52
     ],
     "overview": "A parallel plan is scatter-gather inside one query: the leader starts N background worker\nprocesses, each scans a disjoint slice of the same table, and a Gather node merges their output.\nThree separate limits decide how many workers you actually get, and the plan tells you when each\none bit. On this single-CPU lab you will also see the honest result: the workers launch, do their\nshare, and the query gets SLOWER.",
     "syntaxBreakdown": "A Gather node collects rows from workers in arrival order; Gather Merge keeps them sorted. \"Workers\nPlanned\" is what the planner asked for, \"Workers Launched\" is what the worker pool actually gave.\nUnder a Gather, loops = launched workers + 1 because the leader also runs the subplan, and actual\nrows is the PER LOOP average. max_parallel_workers_per_gather caps one Gather (0 disables\nparallelism), max_parallel_workers is the cluster-wide pool, max_worker_processes is the hard slot\nlimit fixed at startup. min_parallel_table_scan_size (8MB) is the size below which a scan is not\nworth splitting; parallel_setup_cost (1000) and parallel_tuple_cost (0.1) are the modelled price of\nstarting workers and shipping rows through the queue. A function declared PARALLEL UNSAFE forbids\nparallelism for any query that calls it.",
@@ -1401,7 +1614,7 @@
     "revision": 1
   },
   {
-    "ordinal": 51,
+    "ordinal": 58,
     "slug": "pg-stat-statements-as-tracing",
     "title": "pg_stat_statements: normalized queries as aggregate tracing",
     "category": "query-planning",
@@ -1414,7 +1627,7 @@
     ],
     "prerequisites": [
       3,
-      45
+      52
     ],
     "overview": "EXPLAIN tells you about one query you already suspect. pg_stat_statements tells you which query to\nsuspect. It normalizes every statement into a fingerprint - literals replaced by $1, $2 - and keeps\nrunning totals per fingerprint: calls, total and mean and stddev execution time, rows, and the\nshared-buffer hit and read counts. In this lesson you reset it, run a small workload, rank it, and\nthen find the two ways an aggregate view lies to you: means that hide bimodal distributions, and\nfingerprints that split when they should not.",
     "syntaxBreakdown": "pg_stat_statements requires shared_preload_libraries (already set in this lab) and CREATE EXTENSION.\npg_stat_statements_reset(userid, dbid, queryid) zeroes counters; passing 0 for a parameter means\n\"all\", so reset(0, <this database oid>, 0) leaves other databases alone. Columns: queryid (the\nfingerprint hash), calls, total_exec_time / mean_exec_time / min_exec_time / max_exec_time /\nstddev_exec_time in ms, rows (total rows returned across all calls), shared_blks_hit and\nshared_blks_read, temp_blks_read/written, and total_plan_time (zero unless\npg_stat_statements.track_planning is on). The view holds pg_stat_statements.max entries and evicts\nthe least-used, so a workload with unbounded distinct query texts can push out the entries you\ncare about.",
@@ -1432,7 +1645,7 @@
     "revision": 1
   },
   {
-    "ordinal": 52,
+    "ordinal": 59,
     "slug": "btree-page-anatomy",
     "title": "Open a B-tree: metapage, root, internal pages, leaves",
     "category": "indexes",
@@ -1462,7 +1675,7 @@
     "revision": 1
   },
   {
-    "ordinal": 53,
+    "ordinal": 60,
     "slug": "index-only-scan-needs-visibility-map",
     "title": "Index-only scans: covering the columns is only half of it",
     "category": "indexes",
@@ -1475,7 +1688,7 @@
       "vacuum"
     ],
     "prerequisites": [
-      52,
+      59,
       21
     ],
     "overview": "An index-only scan needs two independent things to be true: the index must contain every column the\nquery touches, and the heap pages behind the entries must be marked all-visible. Break either one\nand the executor goes to the heap. Here you will watch the same 2000-row query cost 8 buffers, then\n1340 buffers when you add a column the index does not carry, then 144 buffers when a plain INSERT\nleaves fresh pages unmarked - three very different queries that all say \"index\" in the plan.",
@@ -1493,7 +1706,7 @@
     "revision": 1
   },
   {
-    "ordinal": 54,
+    "ordinal": 61,
     "slug": "create-index-concurrently-and-invalid-indexes",
     "title": "CREATE INDEX CONCURRENTLY: build, wait, validate, flip",
     "category": "indexes",
@@ -1506,7 +1719,7 @@
       "btree"
     ],
     "prerequisites": [
-      52,
+      59,
       35
     ],
     "overview": "CREATE INDEX takes a lock that blocks every writer for the whole build, so production migrations use\nCREATE INDEX CONCURRENTLY instead. The price is that CIC is not one operation but a small protocol:\ncreate the catalog entry, wait, build, wait, validate, then mark valid. Every one of those waits is\na wait for other people's transactions - and if the statement dies in the middle, the half-built\nindex survives in the catalog with indisvalid = false. In this lesson Session B holds a snapshot\nopen and you watch Session A's build park in \"waiting for old snapshots\" with the index already\nbuilt but not yet usable; then you make a build fail outright and inspect the wreckage.",
@@ -1525,7 +1738,7 @@
     "revision": 1
   },
   {
-    "ordinal": 55,
+    "ordinal": 62,
     "slug": "partial-and-covering-indexes",
     "title": "Index less, or index more: partial and covering indexes",
     "category": "indexes",
@@ -1537,7 +1750,7 @@
       "btree"
     ],
     "prerequisites": [
-      53
+      60
     ],
     "overview": "Two ways to change what an index costs. A partial index stores only the rows matching a predicate -\nhere 1% of the table, for 1/43 of the bytes - but the planner may only use it when it can prove your\nWHERE clause implies that predicate. A covering index (INCLUDE) stores extra columns in the leaf\nentries so the heap never has to be visited, and charges you for them on every insert. You will\nmeasure both: sizes in bytes, and the same query at 1003 buffers and at 6.",
     "syntaxBreakdown": "CREATE INDEX ... WHERE predicate builds a partial index; the planner uses it only if it can prove\nthe query's restrictions imply the predicate (the proof is syntactic, so status = 'pending' implies\nit and status <> 'done' does not). When the proof succeeds the predicate is dropped from the plan,\nso the Index Cond line may disappear entirely.\nCREATE INDEX ... INCLUDE (cols) adds non-key payload columns to leaf tuples only: they cannot be\nsearched or used for ordering, but they can satisfy an index-only scan. Non-key columns do not\nappear on internal pages, so they do not cost fanout.",
@@ -1554,7 +1767,7 @@
     "revision": 1
   },
   {
-    "ordinal": 56,
+    "ordinal": 63,
     "slug": "index-bloat-from-churn",
     "title": "Index bloat is a steady state, and REINDEX is how you leave it",
     "category": "indexes",
@@ -1567,7 +1780,7 @@
       "write-amplification"
     ],
     "prerequisites": [
-      52,
+      59,
       18
     ],
     "overview": "Update an indexed column and the B-tree cannot update in place either: it inserts a new entry, and\nthe old one stays until VACUUM removes it, by which point the page has split. Here you churn the\nsame 100000 rows twice and watch the index double in size while its leaf pages end up less than\nhalf full, then watch the second round of exactly the same churn cost nothing more - bloat\nconverges instead of growing without bound. Then REINDEX CONCURRENTLY packs it back down, into a\nnew file.",
@@ -1585,7 +1798,7 @@
     "revision": 1
   },
   {
-    "ordinal": 57,
+    "ordinal": 64,
     "slug": "unique-index-enforcement-under-concurrency",
     "title": "Uniqueness is a B-tree property: a partial unique index as a lease",
     "category": "indexes",
@@ -1599,7 +1812,7 @@
     ],
     "prerequisites": [
       38,
-      55
+      62
     ],
     "overview": "A UNIQUE constraint has no storage of its own: it is a row in pg_constraint pointing at a unique\nB-tree index, and the index is what actually decides. Because the decision lives in the index, it\ncan be scoped by a predicate - a partial unique index enforces \"at most one active row per\nresource\", which is a single-holder lease. Here two sessions both check that a shard is free, both\ntry to claim it, and the index - not the check - is what stops the second one.",
     "syntaxBreakdown": "pg_constraint.conindid is the index that implements a unique or primary key constraint;\npg_index.indisunique marks the index itself, and pg_get_expr(indpred, indrelid) prints a partial\nindex's predicate. A unique index without a constraint enforces exactly the same rule; only the\ncatalog bookkeeping differs. CREATE UNIQUE INDEX ... WHERE predicate makes the rule conditional:\nrows outside the predicate are not in the index and are not constrained by it.\nGENERATED ALWAYS AS IDENTITY draws from a sequence, which is not transactional.",
