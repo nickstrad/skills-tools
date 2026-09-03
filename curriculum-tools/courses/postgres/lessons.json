@@ -1440,6 +1440,252 @@
   },
   {
     "ordinal": 52,
+    "slug": "build-a-streaming-standby",
+    "title": "Build a streaming standby from a base backup",
+    "category": "replication",
+    "difficulty": "intermediate",
+    "tags": [
+      "streaming-replication",
+      "hot-standby",
+      "backup",
+      "replicated-log"
+    ],
+    "prerequisites": [
+      49
+    ],
+    "overview": "Module 08 showed that a base backup plus the WAL written since it started is enough to rebuild the\ndatabase at any later point. A streaming standby is that idea with the pause taken out: instead of\nrestoring the backup once and replaying an archive on demand, a second server restores the backup,\nopens a replication connection to the first, and never stops replaying. It is permanently in\nrecovery, permanently a few milliseconds behind, and permanently ready to become the primary.\n\nYou will build one under $PGLAB/standby on port 5441, next to the primary on 5440, and confirm the\nlink from both ends: pg_stat_replication on the primary (one row per connected standby, state\nstreaming) and pg_is_in_recovery() on the standby (true, forever, until you promote it).",
+    "syntaxBreakdown": "pg_basebackup -D DIR -h HOST -p PORT -U USER copies the whole data directory over a replication\nconnection. -c fast asks for an immediate checkpoint instead of waiting for a spread one, so the\nbackup starts now. -X stream opens a second connection that streams the WAL generated during the\ncopy, so the backup is self-contained and needs no archive to reach consistency. -R writes\nstandby.signal (the file that says \"start in standby mode and never leave it\") and a\nprimary_conninfo line in postgresql.auto.conf.\n\npostgresql.auto.conf is written by ALTER SYSTEM and read last, so anything you put there overrides\npostgresql.conf -- which is how one copied data directory becomes a second, differently configured\nserver: port 5441, cluster_name lab-standby, its own log file.\n\nhot_standby = on (the default) lets clients connect to a server in recovery and run read-only\nqueries. archive_mode = off on the standby is deliberate and is explained below.",
+    "code": "# Run as the postgres OS user. The primary on 5440 must be running.\nexport PATH=/usr/lib/postgresql/16/bin:$PATH\nexport PGLAB=$HOME/pglab\n\n# 1. Copy the primary. -R makes it a standby; -X stream makes the copy self-contained.\npg_basebackup -R -D \"$PGLAB/standby\" -h /tmp -p 5440 -U postgres -c fast -X stream -P\n\n# 2. Make the copy a different server. postgresql.auto.conf already holds the\n#    primary_conninfo that -R wrote; these lines are appended after it and win\n#    over the postgresql.conf that came with the backup.\ncat >> \"$PGLAB/standby/postgresql.auto.conf\" <<CONF\nport = 5441\ncluster_name = 'lab-standby'\nhot_standby = on\narchive_mode = off\nlogging_collector = off\nCONF\n\n# 3. The backup also copied the primary's log file. Throw it away and give the\n#    standby its own, so every line you read from now on is the standby's.\nrm -f \"$PGLAB/standby/log/postgresql.log\"\n\nls \"$PGLAB/standby/standby.signal\"          # the file that says \"stay in recovery\"\ncat \"$PGLAB/standby/postgresql.auto.conf\"\n\n# 4. Start it and read the four lines that matter.\npg_ctl -D \"$PGLAB/standby\" -l \"$PGLAB/standby.log\" start -w\ngrep -E 'entering standby mode|consistent recovery state|read-only connections|started streaming' \"$PGLAB/standby.log\"\n\n# 5. Confirm the link from both ends.\npsql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\npsql -h /tmp -p 5441 -d lab -c \"select current_setting('cluster_name'), current_setting('archive_mode')\"\npsql -h /tmp -p 5441 -d lab -x -c 'select status, sender_host, sender_port, slot_name, received_tli from pg_stat_wal_receiver'\npsql -h /tmp -p 5440 -d lab -x -c 'select pid, application_name, state, sync_state, sent_lsn, write_lsn, flush_lsn, replay_lsn from pg_stat_replication'\n\n# 6. Prove it is live: write on 5440, read on 5441.\npsql -h /tmp -p 5440 -d lab -c 'create table if not exists rep_hello(id int, note text)'\npsql -h /tmp -p 5440 -d lab -c \"insert into rep_hello values (1, 'written on the primary')\"\nsleep 1\npsql -h /tmp -p 5441 -d lab -c 'select * from rep_hello'\npsql -h /tmp -p 5441 -d lab -c \"insert into rep_hello values (2, 'written on the standby')\"\n\nss -ltn | grep -E '5440|5441'",
+    "expectedResult": "pg_basebackup prints a progress line ending 358330/358330 kB (100%), 1/1 tablespace and takes a few\nseconds. postgresql.auto.conf then reads:\n\n  primary_conninfo = 'user=postgres passfile=... host=''/tmp'' port=5440 sslmode=prefer ...'\n  port = 5441\n  cluster_name = 'lab-standby'\n  hot_standby = on\n  archive_mode = off\n  logging_collector = off\n\npg_ctl says \"server started\" and $PGLAB/standby.log tells the whole startup in four lines:\n\n  LOG:  entering standby mode\n  LOG:  consistent recovery state reached at 1/890001B0\n  LOG:  database system is ready to accept read-only connections\n  LOG:  started streaming WAL from primary at 1/8A000000 on timeline 1\n\n\"consistent recovery state reached\" is the backup end LSN from lesson base-backup: before it the\ncopied files are a smear, after it they are a database. \"started streaming WAL from primary at\n1/8A000000 on timeline 1\" is the walreceiver connecting; the LSN is the start of the next segment,\nbecause streaming resumes at a segment boundary.\n\nFrom the standby: pg_is_in_recovery() is t, timeline_id is 1, cluster_name is lab-standby and\narchive_mode is off. pg_stat_wal_receiver has one row:\n\n  status       | streaming\n  sender_host  | /tmp\n  sender_port  | 5440\n  slot_name    |               (empty: no slot yet, see replication-slot-retains-wal)\n  received_tli | 1\n\nFrom the primary, pg_stat_replication has exactly one row, and it is the same connection seen from\nthe other side:\n\n  application_name | lab-standby\n  state            | streaming\n  sync_state       | async\n  sent_lsn/write_lsn/flush_lsn/replay_lsn | all 1/8A000000\n\napplication_name defaults to cluster_name, which is why naming the standby mattered: that string is\nthe handle you will use in synchronous_standby_names two lessons from now.\n\nThe write test: rep_hello row 1 appears on 5441 within milliseconds. The write attempt on 5441 is\nrefused:\n\n  ERROR:  cannot execute INSERT in a read-only transaction\n\nand ss shows both ports listening. One postmaster per data directory, two data directories, one\nlog.",
+    "systemsLens": "This is a replicated log with a single writer, and every part of it is visible. The primary appends\nrecords to one ordered stream; a walsender process reads that stream and ships bytes; a walreceiver\non the follower writes them to its own copy of the log and fsyncs; a startup process replays them\ninto pages. The follower is not applying SQL, it is applying physical page changes, which is why it\ncannot diverge by executing something differently and why it must run the same major version on the\nsame architecture.\n\nNotice what the standby is: the state machine, replaying the log, permanently. That is exactly the\nRaft/ZooKeeper follower model, minus the election. What PostgreSQL leaves out of the box is\neverything about agreement -- who is the leader, when does a follower take over, how do you stop\nthe old leader from writing. Those are the next four lessons, and every one of them is a place\nwhere a distributed system either has a consensus protocol or has an outage.",
+    "challenge": "Ask the standby what it is missing. Run \"select * from pg_stat_activity where backend_type in\n('startup','walreceiver')\" on 5441 and \"... where backend_type = 'walsender'\" on 5440: two\nprocesses on each side, one TCP connection between them, no quorum, no election, no fencing. Then\nkill the walreceiver on the standby (select pg_terminate_backend(pid) ... backend_type =\n'walreceiver') and watch $PGLAB/standby.log: it reconnects by itself after\nwal_retrieve_retry_interval. What would have happened if the primary had been down instead?",
+    "caution": "This lesson starts a SECOND PostgreSQL server on port 5441 that stays running for the rest of the\nmodule; lesson cascading-and-failback removes it. The standby is a byte copy of the primary, so\nbudget the same disk again (about 350 MB in the lab).\n\nThe one setting you must not inherit is archiving. The primary archives into $PGLAB/archive with\narchive_command 'test ! -f ... && cp ...'. A standby with archive_mode = on does not archive while\nit is in recovery, but the moment you promote it (lesson promote-the-standby) it starts archiving\nits own timeline into the same directory, from a data directory that has now diverged from the\nprimary's. Two servers writing WAL segments into one archive is how you get an archive that cannot\nbe replayed. Set archive_mode = off on the standby and leave the archive to exactly one writer.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 53,
+    "slug": "replication-lag-under-load",
+    "title": "Four LSNs: the pipeline stages of a replicated log",
+    "category": "replication",
+    "difficulty": "intermediate",
+    "tags": [
+      "streaming-replication",
+      "hot-standby",
+      "replicated-log",
+      "consistency",
+      "wal"
+    ],
+    "prerequisites": [
+      52,
+      39
+    ],
+    "overview": "\"Replication lag\" is not one number. pg_stat_replication gives you four LSNs per standby -- sent,\nwrite, flush, replay -- and they are the four stages a WAL record passes through on its way from\nthe primary's memory to a query result on the follower. Each gap between two of them is a different\nfailure story: sent-to-write is the network, write-to-flush is the follower's disk, flush-to-replay\nis the follower's CPU and its conflicting queries.\n\nIn this lesson you freeze exactly one stage. pg_wal_replay_pause() on the standby stops replay\nwhile receiving and flushing continue, so the standby keeps every byte safe on disk and still\nanswers queries from a database that is now minutes old. No error, no warning, just stale reads --\nwhich is the single most important thing to understand before you route traffic at a replica.",
+    "syntaxBreakdown": "On the primary, pg_stat_replication has one row per walsender: sent_lsn (handed to the network),\nwrite_lsn (the standby wrote it to its OS), flush_lsn (the standby fsynced it), replay_lsn (the\nstandby applied it and queries can see it), plus write_lag/flush_lag/replay_lag as time intervals\nmeasured by round trip.\n\nOn the standby, pg_last_wal_receive_lsn() is how far the walreceiver has flushed,\npg_last_wal_replay_lsn() is how far the startup process has applied, and\npg_last_xact_replay_timestamp() is the commit time of the last transaction applied -- the only one\nof the three you can compare with a wall clock, and therefore the one your monitoring should use.\n\npg_wal_replay_pause() / pg_wal_replay_resume() / pg_is_wal_replay_paused() stop and restart the\napply stage on a standby. pg_wal_lsn_diff(a, b) is a byte count, and LSNs also subtract with the\nminus operator.",
+    "setup": "drop table if exists rep_lag;\ncreate table rep_lag(id int primary key, pad text);\nselect pg_sleep(1);",
+    "code": "-- Session A (primary, port 5440). The four stages, all equal on an idle lab.\nselect application_name, state, sync_state, sent_lsn, write_lsn, flush_lsn, replay_lsn,\n       pg_wal_lsn_diff(sent_lsn, replay_lsn) as sent_minus_replay_bytes\nfrom pg_stat_replication;\nselect pg_current_wal_lsn() as lsn_before \\gset\n\n-- Session B. Every session starts on the primary, so the first thing Session B\n-- does is move to the standby on 5441. (The conninfo form of the same thing is\n-- \\c \"port=5441 host=/tmp dbname=lab\"; this one carries whatever database you\n-- are already using.)\nselect current_database() as labdb \\gset\n\\c :labdb - /tmp 5441\nselect current_setting('cluster_name') as cluster, pg_is_in_recovery();\nselect count(*) as rows_on_standby from rep_lag;\nselect pg_last_wal_receive_lsn() as received, pg_last_wal_replay_lsn() as replayed,\n       pg_last_xact_replay_timestamp() as last_commit_applied;\n\n-- The only error a replica owes you: it is read-only, forever, by construction.\ninsert into rep_lag values (0, 'from the standby');\n\n-- Freeze the last stage. Receiving and flushing keep running.\nselect pg_wal_replay_pause();\nselect pg_is_wal_replay_paused();\n\n-- Session A: 100k rows, about 30 MB of WAL, while replay is frozen.\ninsert into rep_lag select g, repeat('p', 200) from generate_series(1, 100000) g;\nselect pg_current_wal_lsn() as lsn_after \\gset\nselect pg_size_pretty(pg_wal_lsn_diff(:'lsn_after', :'lsn_before')) as wal_written;\nselect count(*) as rows_on_primary from rep_lag;\nselect application_name, sent_lsn, write_lsn, flush_lsn, replay_lsn,\n       pg_size_pretty(pg_wal_lsn_diff(flush_lsn, replay_lsn)) as durable_but_not_visible,\n       replay_lag\nfrom pg_stat_replication;\n\n-- Session B: the standby has every byte on disk and shows none of it.\nselect pg_last_wal_receive_lsn() as received, pg_last_wal_replay_lsn() as replayed,\n       pg_size_pretty(pg_wal_lsn_diff(pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn()))\n         as received_not_replayed;\nselect count(*) as rows_on_standby_while_paused from rep_lag;\nselect pg_last_xact_replay_timestamp() as last_commit_applied, now() - pg_last_xact_replay_timestamp() as apparent_lag;\n\n-- Session B: let it catch up and watch the gap close.\nselect pg_wal_replay_resume();\nselect count(*) as rows_on_standby from rep_lag \\watch i=1 c=3\n\n-- Session A: back to zero, and now measure the honest lag of a live pipeline.\nselect application_name, sent_lsn, replay_lsn,\n       pg_wal_lsn_diff(sent_lsn, replay_lsn) as sent_minus_replay_bytes,\n       write_lag, flush_lag, replay_lag\nfrom pg_stat_replication;\ninsert into rep_lag select g, repeat('p', 200) from generate_series(100001, 150000) g;\nselect application_name,\n       pg_wal_lsn_diff(sent_lsn, replay_lsn) as sent_minus_replay_bytes,\n       write_lag, flush_lag, replay_lag\nfrom pg_stat_replication \\watch i=1 c=3",
+    "expectedResult": "On an idle lab the four LSNs are one number, which is what \"caught up\" looks like:\n\n  application_name |   state   | sync_state |  sent_lsn  | write_lsn  | flush_lsn  | replay_lsn | sent_minus_replay\n  lab-standby      | streaming | async      | 1/8CFE2AE0 | 1/8CFE2AE0 | 1/8CFE2AE0 | 1/8CFE2AE0 |                 0\n\nSession B lands on cluster_name lab-standby with pg_is_in_recovery() = t, sees rep_lag with 0 rows\n(the setup's CREATE TABLE has already replayed), and reports receive and replay at the same LSN\nwith a last_commit_applied timestamp a second old. The write attempt fails immediately:\n\n  ERROR:  cannot execute INSERT in a read-only transaction\n\nThen pg_wal_replay_pause() returns and pg_is_wal_replay_paused() is t.\n\nNow the interesting part. Session A writes 100000 rows -- wal_written is 32 MB -- and\npg_stat_replication shows the pipeline stretched out, each stage a different distance behind:\n\n  application_name |  sent_lsn  | write_lsn  | flush_lsn  | replay_lsn | durable_but_not_visible |   replay_lag\n  lab-standby      | 1/8BE40000 | 1/8BDE0000 | 1/8B960000 | 1/8A025D00 | 25 MB                   | 00:00:00.594985\n\nsent, write and flush are within a few hundred kB of each other -- the network and the standby's\ndisk are keeping up -- while replay_lsn has not moved since the pause. 25 MB of committed\ntransactions are fsynced on the standby's disk and invisible to every query on it.\n\nSession B confirms it from the other side, and this is the line to remember:\n\n  received   |  replayed  | received_not_replayed\n  1/8B960000 | 1/8A025D00 | 25 MB\n\n  rows_on_standby_while_paused = 0\n\nNot an error, not a warning, not a partial result: zero rows, cheerfully, from a database that\nholds all 100000 of them on its disk. The only signal is pg_last_xact_replay_timestamp(), whose\napparent_lag is 00:00:01.72334 and climbing.\n\npg_wal_replay_resume() and the \\watch show how fast the backlog drains: 0 rows at the first\nsample, 100000 at the second, one second later. 25 MB of replay took under a second.\n\nAfterwards the pipeline is flat again -- sent_minus_replay_bytes = 0 -- and the *_lag columns show\nwhat a healthy local standby costs: write_lag 0.00022 s, flush_lag 0.001013 s, replay_lag\n0.001185 s. During the second insert of 50000 rows the \\watch catches the pipeline mid-flight at\n8861608 bytes (8.4 MB) sent but not replayed, replay_lag 0.121282, and back to 0 one second later.\nThat is the difference between a standby that is behind and a standby that is paused: on a standby\nthat is merely behind, the number moves.",
+    "systemsLens": "The four LSNs are the four durability levels of the same record, and they are what\nsynchronous_commit's settings actually name: local is \"the primary flushed it\", remote_write is the\nstandby's write_lsn, on is its flush_lsn, remote_apply is its replay_lsn. Choosing a replication\nmode is choosing which of these four numbers a client's COMMIT is allowed to return before.\n\nThe paused standby is the general shape of every follower-read problem. The follower is not broken,\nnot disconnected, and not lying -- it is answering correctly as of a snapshot that is minutes old,\nand there is nothing in the query result to tell the client that. Any system that lets you read\nfrom a replica is a system where you have to decide, per read, whether stale is acceptable, and\nwhere you need a freshness signal (here pg_last_xact_replay_timestamp, elsewhere a read-your-writes\ntoken or a bounded-staleness contract) to make that decision. Module 14's read-your-writes lesson\npicks this up.\n\nNote also which gap grew: flush kept up, replay did not. On a real standby the same asymmetry shows\nup whenever replay is single-threaded and the primary's writes are not -- one recovery process\nagainst N committing backends. Replay being a single sequential stream is what makes a standby\ncheap and deterministic, and it is also the reason a standby can fall behind a primary that is not\neven near its own I/O limit.",
+    "challenge": "Leave replay paused and keep writing on the primary until the standby's pg_wal fills the disk --\nexcept do not, because nothing stops it: a paused standby keeps receiving. Instead, measure the\nrate. Pause replay, write 100k rows, and compare pg_wal_lsn_diff(receive, replay) against the size\nof the standby's pg_wal directory (select sum(size) from pg_ls_waldir()). Who is holding those\nbytes, and what is the standby's max_wal_size doing about it?",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 54,
+    "slug": "synchronous-replication-blocks-commit",
+    "title": "Synchronous replication: pay for durability in commit latency",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "synchronous-replication",
+      "durability",
+      "availability",
+      "quorum",
+      "consistency"
+    ],
+    "prerequisites": [
+      53,
+      41
+    ],
+    "overview": "So far the standby has been asynchronous: the primary commits, tells the client \"done\", and ships\nthe bytes whenever it gets round to it. If the primary's disk dies one millisecond after a commit,\nthat transaction is acknowledged and gone.\n\nSynchronous replication closes that window by making COMMIT wait for the standby. You name the\nstandby in synchronous_standby_names and pick how far it must get -- remote_write, on (flush), or\nremote_apply -- and every commit now costs a network round trip instead of a local fsync. Then you\nfind out what it costs when the standby is not there: with one synchronous standby named and no\nstandby answering, commits stop. Not fail: stop. You will make that happen, watch a commit hang,\nand rescue the primary from a second session by taking the standby's name back out.",
+    "syntaxBreakdown": "synchronous_standby_names lists the application_name of standbys whose acknowledgement a commit\nwaits for, and the richer forms ANY 2 (s1, s2, s3) and FIRST 2 (s1, s2) are how you express a\nquorum. It is a SIGHUP setting: ALTER SYSTEM plus pg_reload_conf() is enough, no restart.\n\nThe value has its own little grammar, and an unquoted name in it must look like an identifier. Our\nstandby is called lab-standby, so the name has to be double-quoted INSIDE the single-quoted GUC\nstring: '\"lab-standby\"'. Without the inner quotes ALTER SYSTEM rejects it outright with\n\"syntax error at or near -\", the setting is never written, and every commit silently stays\nasynchronous -- a failure mode worth meeting here rather than during an audit.\n\nsynchronous_commit is per-transaction and chooses the stage from the previous lesson: off (do not\neven wait for the local WAL flush), local (local flush only), remote_write, on (local flush plus\nthe standby's flush; the default), remote_apply (plus the standby has applied it, so a read on the\nstandby immediately after the commit returns will see it).\n\npg_stat_replication.sync_state becomes sync for a named standby, async otherwise. A backend waiting\nfor a synchronous standby shows wait_event_type = IPC, wait_event = SyncRep in pg_stat_activity,\nand its transaction is already committed locally and durable -- it is the acknowledgement to the\nclient that is being withheld.\n\nDO blocks may COMMIT (PostgreSQL 11 and later), so a loop of 200 single-row inserts inside DO is\n200 real commits and \\timing measures their total cost.",
+    "setup": "drop table if exists rep_sync;\ncreate table rep_sync(id serial primary key, note text, at timestamptz default clock_timestamp());\nselect pg_sleep(1);",
+    "code": "-- Session A (primary). Make the standby synchronous. 'lab-standby' is the\n-- application_name from pg_stat_replication, which came from its cluster_name.\nalter system set synchronous_standby_names = '\"lab-standby\"';\nselect pg_reload_conf();\nselect pg_sleep(1);\nselect application_name, sync_state, sync_priority, state from pg_stat_replication;\n\n-- The price list. Each DO block is 200 separate commits.\n\\timing on\nset synchronous_commit = local;\ndo $$ begin for i in 1..200 loop insert into rep_sync(note) values ('local'); commit; end loop; end $$;\nset synchronous_commit = on;\ndo $$ begin for i in 1..200 loop insert into rep_sync(note) values ('remote flush'); commit; end loop; end $$;\nset synchronous_commit = remote_apply;\ndo $$ begin for i in 1..200 loop insert into rep_sync(note) values ('remote apply'); commit; end loop; end $$;\n\\timing off\nselect note, count(*) from rep_sync group by note order by note;\n\n-- Session B: take the standby out of the conversation. Pausing replay is the\n-- SQL-only version of \"the standby died\": bytes still arrive and are flushed,\n-- but nothing is applied, so remote_apply can never be satisfied. Stopping the\n-- standby process entirely produces the identical hang for every level.\nselect current_database() as labdb \\gset\n\\c :labdb - /tmp 5441\nselect pg_wal_replay_pause(), pg_is_wal_replay_paused();\n\n-- Session A (blocks until the standby applies, or until sync rep is turned off):\ninsert into rep_sync(note) values ('this commit needs the standby');\n\n-- Session B: from a second connection to the PRIMARY, look at the stuck backend\n-- and then rescue it. This is the 3 a.m. runbook entry.\n\\c :labdb - /tmp 5440\nselect pid, state, wait_event_type, wait_event, left(query, 40) as query\nfrom pg_stat_activity where wait_event = 'SyncRep';\nalter system reset synchronous_standby_names;\nselect pg_reload_conf();\nselect pg_sleep(1);\n\n-- Session A: the INSERT above returned as soon as the setting went away. It had\n-- been committed and durable on the primary the whole time.\nselect count(*) as rows_now from rep_sync;\nselect note, at from rep_sync order by id desc limit 1;\nshow synchronous_commit;\n\n-- Session B: resume the standby and watch it catch up on its own.\n\\c :labdb - /tmp 5441\nselect pg_wal_replay_resume();\nselect count(*) as rows_on_standby from rep_sync \\watch i=1 c=3\n\n-- Session A: put everything back. postgresql.auto.conf must end up with no\n-- settings in it at all.\nreset synchronous_commit;\nalter system reset synchronous_standby_names;\nselect pg_reload_conf();\nselect application_name, sync_state from pg_stat_replication;\nselect pg_read_file('postgresql.auto.conf') as auto_conf;",
+    "expectedResult": "The reload takes effect immediately and pg_stat_replication changes its mind about the standby:\n\n  application_name | sync_state | sync_priority |   state\n  lab-standby      | sync       |             1 | streaming\n\n(If sync_state stays async, read the server log: ALTER SYSTEM rejected the value. Without the inner\ndouble quotes you get ERROR: invalid value for parameter \"synchronous_standby_names\":\n\"lab-standby\", DETAIL: syntax error at or near \"-\", the setting is never written, and every commit\ncarries on asynchronously while you believe otherwise.)\n\nThree DO loops, 200 commits each, with \\timing on:\n\n  Time: 223.151 ms     -- synchronous_commit = local        (1.1 ms per commit)\n  Time: 739.881 ms     -- synchronous_commit = on           (3.7 ms per commit)\n  Time: 894.432 ms     -- synchronous_commit = remote_apply (4.5 ms per commit)\n\nA local fsync on this machine costs about a millisecond; adding a round trip to a standby on the\nsame host over a unix socket triples it, and waiting for that standby to apply the record adds\nanother 0.8 ms. On real hardware substitute your network round trip for the 2.6 ms and you have\nthe whole cost model: synchronous replication converts commit latency into network latency, which\nmakes a synchronous standby in another region a decision about your p99, not just about durability.\n\nThen Session B pauses replay and Session A's single INSERT does not come back. From the second\nconnection the primary says exactly what it is doing:\n\n  pid    | state  | wait_event_type | wait_event | query\n  143007 | active | IPC             | SyncRep    | insert into rep_sync(note) values ('this\n\nwait_event = SyncRep is the whole diagnosis: that backend is not blocked on a lock, not waiting on\nI/O, and not stuck in the planner -- it has committed and is waiting for permission to say so.\nALTER SYSTEM RESET plus pg_reload_conf() releases it within a second, and the INSERT returns with\nno error and no warning.\n\nThe proof that it was committed the whole time is the row's own timestamp:\n\n   note                          | at\n   this commit needs the standby | 2026-09-03 11:44:26.89722+00\n\nclock_timestamp() was evaluated when the INSERT ran, seconds before it returned. rows_now is 601:\n600 rows from the timing loops plus this one.\n\nSession B resumes replay and the standby reports 601 rows at the very first sample -- it had had\nevery byte all along, it just was not allowed to apply them.\n\nFinally sync_state is back to async and pg_read_file('postgresql.auto.conf') prints only its two\ncomment lines. If it prints a synchronous_standby_names line, you stopped early.",
+    "systemsLens": "This is the availability-versus-durability trade in its most literal form. With\nsynchronous_standby_names empty, the system is available while any one node is up and can lose the\nlast few commits. With one name in it and one standby, the system does not lose acknowledged\ncommits and is available only while BOTH nodes are up -- you have made the cluster strictly less\navailable in order to make it strictly more durable, and with a single standby you have doubled the\nnumber of machines whose failure stops you.\n\nThat is why real quorum systems never use \"wait for that specific node\". ANY 2 (s1, s2, s3) waits\nfor any two of three, which survives one failure and still guarantees that an acknowledged commit\nexists on two disks; it is the same majority-overlap argument as Raft, where a commit needs a\nquorum and a new leader needs an overlapping quorum, so the new leader is guaranteed to have every\nacknowledged entry. PostgreSQL gives you the quorum write but not the quorum election: nothing here\nchooses a new primary, so an operator or an external tool must, and that gap is the whole subject\nof the rest of this module.\n\nThe detail worth carrying away is what the hang actually was. The transaction was committed. Its\nWAL was flushed. Recovery would keep it. The only thing being withheld was the acknowledgement to\nthe client -- and that is correct, because telling a client \"committed\" when the commit might\nvanish is precisely the lie synchronous replication exists to prevent. Note the consequence: if you\ncancel that wait (Ctrl-C) or the primary crashes and restarts, the transaction is still there.\n\"Uncertain to the client, committed on the server\" is the fundamental unavoidable state of any\ndistributed commit, which is why every retryable write needs the idempotency key from module 14.",
+    "challenge": "Turn the knob the other way. Set synchronous_standby_names = 'ANY 2 (\"lab-standby\", \"ghost\")' and try\nto commit: with only one of the two named standbys connected the quorum cannot be met and you hang\nagain. Then work out what FIRST 1 (\"lab-standby\", \"ghost\") would do differently, and what\nsynchronous_commit = off costs you on a single node -- time one of the DO loops with it and compare\nagainst local.",
+    "caution": "Setting synchronous_standby_names on a cluster with one standby means the primary cannot commit\nwithout that standby. The lesson deliberately provokes that hang and then undoes it; if you stop\nearly, run \"alter system reset synchronous_standby_names; select pg_reload_conf();\" on the primary\nbefore you walk away, and check that pg_read_file('postgresql.auto.conf') has no settings left.",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 55,
+    "slug": "hot-standby-query-conflict",
+    "title": "Recovery conflicts: the replica cancels your query",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "hot-standby",
+      "vacuum",
+      "mvcc",
+      "consistency",
+      "gc-horizon"
+    ],
+    "prerequisites": [
+      53,
+      16
+    ],
+    "overview": "A hot standby has two jobs that are in direct conflict. It must replay the primary's WAL as fast as\nit arrives, and it must give its own read-only queries a stable snapshot. When the primary vacuums\naway row versions that a query on the standby is still allowed to see, those two jobs cannot both\nbe done, and PostgreSQL resolves it in favour of replay: it waits max_standby_streaming_delay for\nthe query to finish, and then kills the query.\n\nYou will cause it on purpose. Lower max_standby_streaming_delay to 2 seconds on the standby, start\na long query inside a repeatable-read transaction, then delete and VACUUM the rows on the primary.\nWithin seconds the standby cancels your query with \"canceling statement due to conflict with\nrecovery\", and pg_stat_database_conflicts counts it.",
+    "syntaxBreakdown": "max_standby_streaming_delay is how long replay may wait for conflicting queries before cancelling\nthem (30s by default, -1 means wait forever and let the standby fall arbitrarily far behind). It is\na SIGHUP setting on the STANDBY: ALTER SYSTEM there writes the standby's own postgresql.auto.conf,\nwhich is legal in recovery because it only writes a file.\n\nhot_standby_feedback (off here, and off by default) is the other side of the trade: when on, the\nstandby tells the primary the xmin of its oldest snapshot, and the primary refuses to vacuum rows\nnewer than that -- no conflicts, but the primary now bloats on behalf of a query running somewhere\nelse, which is the xmin-horizon problem of module 03 stretched across a network.\n\npg_stat_database_conflicts counts cancellations per database by cause: confl_snapshot (rows the\nquery needed were removed), confl_lock (a lock the replay needed), confl_tablespace,\nconfl_bufferpin, confl_deadlock, confl_active_logicalslot.",
+    "setup": "drop table if exists rep_conflict;\ncreate table rep_conflict(id int primary key, pad text);\ninsert into rep_conflict select g, repeat('c', 100) from generate_series(1, 50000) g;\nselect pg_sleep(1);",
+    "code": "-- Session B: move to the standby and shorten its patience from 30s to 2s so the\n-- experiment fits in one coffee. This writes the STANDBY's postgresql.auto.conf.\nselect current_database() as labdb \\gset\n\\c :labdb - /tmp 5441\nalter system set max_standby_streaming_delay = '2s';\nselect pg_reload_conf();\nselect pg_sleep(1);\nselect name, setting from pg_settings\nwhere name in ('max_standby_streaming_delay','max_standby_archive_delay','hot_standby_feedback');\nselect datname, confl_snapshot, confl_lock, confl_bufferpin, confl_deadlock\nfrom pg_stat_database_conflicts where datname = current_database();\n\n-- Session B: take a snapshot and hold it inside a long-running query. The\n-- transaction is REPEATABLE READ, so its snapshot survives statement to\n-- statement and its xmin pins every row version it might still need.\nbegin isolation level repeatable read;\nselect count(*) as rows_visible_at_snapshot from rep_conflict;\n\n-- Session B (blocks until replay of the primary's VACUUM kills it):\nselect pg_sleep(25) as never_returns;\n\n-- Session A (primary): make those row versions garbage and collect it. The\n-- VACUUM writes cleanup WAL records carrying \"everything older than this xid is\n-- gone\"; the standby has to apply them.\ndelete from rep_conflict where id % 2 = 0;\nvacuum (verbose) rep_conflict;\nselect pg_current_wal_lsn() as after_vacuum;\n\n-- Session B: the sleep never finished. Read the error, then look at the\n-- counter that recorded it, then give the standby its patience back before\n-- querying again -- while the delay is 2s and replay is still catching up, an\n-- ordinary SELECT can be cancelled a second time for holding a buffer pin.\nrollback;\nselect datname, confl_snapshot, confl_lock, confl_bufferpin, confl_deadlock\nfrom pg_stat_database_conflicts where datname = current_database();\nalter system reset max_standby_streaming_delay;\nselect pg_reload_conf();\nselect pg_sleep(3);\nselect count(*) as rows_after_conflict from rep_conflict;\nselect pg_last_xact_replay_timestamp() as last_commit_applied;\n\n-- Session A: the primary never noticed. hot_standby_feedback = off means the\n-- standby's snapshot was never part of the primary's horizon.\nselect backend_xmin is null as primary_ignores_standby_snapshot\nfrom pg_stat_replication;\nselect n_live_tup, n_dead_tup, last_vacuum is not null as vacuumed\nfrom pg_stat_user_tables where relname = 'rep_conflict';",
+    "expectedResult": "On the standby the reload takes:\n\n  name                        | setting\n  max_standby_streaming_delay | 2000      (milliseconds)\n  max_standby_archive_delay   | 30000\n  hot_standby_feedback        | off\n\npg_stat_database_conflicts starts at zeros on a standby you have not run this on before; the\ncounters are cumulative, so what matters is that confl_snapshot goes up by one.\n\nSession B's repeatable-read transaction sees rows_visible_at_snapshot = 50000 and then parks in\npg_sleep(25). On the primary, VACUUM VERBOSE reports the garbage it collected:\n\n  INFO:  finished vacuuming \"lab.public.rep_conflict\": index scans: 1\n  tuples: 25000 removed, 25000 remain, 0 are dead but not yet removable\n  removable cutoff: 90761, which was 0 XIDs old when operation ended\n  index scan needed: 863 pages from table (100.00% of total) had 25000 dead item identifiers removed\n  WAL usage: 2730 records, 3 full page images, 321711 bytes\n\n\"0 are dead but not yet removable\" is the primary saying it had no reason to keep anything: the\nstandby's snapshot is invisible to it. Those 2730 WAL records are the murder weapon.\n\nAbout two seconds later -- max_standby_streaming_delay, not the default 30 -- the standby kills the\nquery:\n\n  ERROR:  canceling statement due to conflict with recovery\n  DETAIL:  User query might have needed to see row versions that must be removed.\n\nand the counter records it:\n\n  datname | confl_snapshot | confl_lock | confl_bufferpin | confl_deadlock\n  lab     |              1 |          0 |               0 |              0\n\nAfter the delay is reset and replay settles, rows_after_conflict is 25000: the standby is current\nand perfectly usable, it just could not serve a snapshot from before the vacuum. (Query it again\ntoo quickly while the delay is still 2s and you can collect a second cancellation, DETAIL \"User was\nholding shared buffer pin for too long\", counted in confl_bufferpin -- a different conflict class,\nthe same mechanism.)\n\nOn the primary, nothing happened at all: primary_ignores_standby_snapshot is t, because\npg_stat_replication.backend_xmin is null when hot_standby_feedback is off; n_live_tup is 25000 and\nn_dead_tup is 0. The primary collected its garbage on schedule, and a query died on another machine\nfor it.",
+    "systemsLens": "Follower reads are not free, and this is the bill. The replica has to choose between two\ncorrectness properties -- replay must not stall (or the replica stops being a usable failover\ntarget) and a snapshot must stay readable (or queries return wrong answers) -- and no local choice\nsatisfies both. PostgreSQL exposes the choice as three dials that all move the same pain around:\nmax_standby_streaming_delay moves it onto your queries, hot_standby_feedback moves it onto the\nprimary's bloat and vacuum, and a replication slot plus a delayed standby moves it onto disk.\n\nThe general principle is that garbage collection needs a global horizon, and a distributed reader\nis a hold on that horizon which the collector cannot see. Every system with snapshot reads and\nindependent compaction hits it: an old MVCC snapshot pinning an SSTable, a long Spark read against\na compacting table format, a consumer holding a Kafka offset below the retention point. You either\npropagate the reader's horizon back to the collector (hot_standby_feedback, leases on a snapshot)\nand pay in space, or you let the collector win and make readers restartable, which means your\nclient code must expect ERROR 40001-shaped failures and retry -- the same retry loop as module 05,\nfor a completely different reason.\n\nOperationally: a cancelled query on a replica is a normal event, not an incident. Application code\nthat reads from replicas needs the retry, and analysts pointed at a replica need either\nhot_standby_feedback and a bloat budget, or their own replica.",
+    "challenge": "Move the pain. Set hot_standby_feedback = on on the standby, repeat the experiment, and watch two\nthings change: the query survives, and on the primary \"vacuum (verbose) rep_conflict\" now reports\ndead tuples it cannot remove (\"N dead row versions cannot be removed yet, oldest xmin: ...\").\nConfirm with pg_stat_replication.backend_xmin, which is no longer null. Which of the two failure\nmodes would you rather explain to the person who owns the primary's disk?",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 56,
+    "slug": "replication-slot-retains-wal",
+    "title": "A slot is an unbounded promise until you bound it",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "replication-slots",
+      "wal",
+      "capacity",
+      "streaming-replication",
+      "observability"
+    ],
+    "prerequisites": [
+      53,
+      42
+    ],
+    "overview": "The standby you built has no safety net. It streams from wherever the primary happens to still have\nWAL, and the primary recycles segments on its own schedule -- so a standby that is offline long\nenough comes back to \"requested WAL segment has already been removed\" and has to be rebuilt from a\nfresh base backup.\n\nA physical replication slot fixes that by making the primary keep every segment the standby has not\nconfirmed. That promise has no expiry date, which is the other failure mode: one forgotten slot\nfills the primary's disk. You will attach the standby to a slot, create a second slot for a\nconsumer that never comes back, watch pg_wal stop shrinking, and then put a 64 MB bound on the\npromise with max_slot_wal_keep_size and watch the server invalidate the slot rather than run out of\ndisk.",
+    "syntaxBreakdown": "pg_create_physical_replication_slot(name, immediately_reserve) creates a slot; the second argument\ntrue makes it start holding WAL right now instead of when a consumer first connects.\npg_drop_replication_slot(name) removes it -- the only thing that ever does.\n\nIn pg_replication_slots: active/active_pid say whether a consumer is attached, restart_lsn is the\noldest byte the slot still needs (pg_walfile_name(restart_lsn) turns it into a file name),\nsafe_wal_size is how much more WAL may be written before this slot is in danger, and wal_status is\nreserved (fine), extended (past wal_keep_size but still there), unreserved (past the limit, files\nstill present, about to go) or lost (the files are gone; the consumer must be rebuilt).\n\nprimary_slot_name on the standby names the slot its walreceiver should use. It is SIGHUP: reload\nand the walreceiver reconnects using the slot.\n\nmax_slot_wal_keep_size caps what all slots together may pin (-1 = unlimited, the default). When a\ncheckpoint finds a slot below the cutoff, it invalidates it and logs \"invalidating obsolete\nreplication slot\". That is the server choosing to break one consumer instead of the whole cluster.",
+    "setup": "drop table if exists rep_slot_churn;\ncreate table rep_slot_churn(id int primary key, pad text);\nselect slot_name, slot_type, active from pg_replication_slots;",
+    "code": "-- Session A (primary). Today the standby streams with no promise at all.\nselect count(*) as slots_now from pg_replication_slots;\nselect count(*) as wal_files, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\nselect pg_create_physical_replication_slot('rep_standby_slot', true) as created;\nselect slot_name, slot_type, active, restart_lsn, wal_status from pg_replication_slots;\n\n-- Session B: point the standby's walreceiver at the slot and reload. The\n-- walreceiver disconnects and comes back holding the slot.\nselect current_database() as labdb \\gset\n\\c :labdb - /tmp 5441\nalter system set primary_slot_name = 'rep_standby_slot';\nselect pg_reload_conf();\nselect pg_sleep(3);\nselect status, slot_name, sender_port, received_tli from pg_stat_wal_receiver;\n\n-- Session A: the slot is now attached to a live consumer, and a second slot is\n-- created for a consumer that will never connect at all.\nselect slot_name, active, active_pid, restart_lsn, wal_status from pg_replication_slots;\nselect pg_create_physical_replication_slot('rep_ghost', true) as created;\nselect pg_current_wal_lsn() as lsn_at_ghost_creation \\gset\n\n-- Write about 75 MB of WAL, then checkpoint: normally that would let old\n-- segments be recycled.\ninsert into rep_slot_churn select g, repeat('s', 200) from generate_series(1, 250000) g;\ncheckpoint;\nselect count(*) as wal_files, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\nselect slot_name, active, pg_walfile_name(restart_lsn) as oldest_needed_file,\n       pg_size_pretty(pg_current_wal_lsn() - restart_lsn) as wal_retained,\n       wal_status, pg_size_pretty(safe_wal_size) as safe_wal_size\nfrom pg_replication_slots order by slot_name;\n\n-- Bound the promise, then keep writing. 64 MB is far less than the ghost is\n-- already holding.\nselect (pg_stat_file('log/postgresql.log')).size as log_size_before \\gset\nalter system set max_slot_wal_keep_size = '64MB';\nselect pg_reload_conf();\ninsert into rep_slot_churn select g, repeat('s', 200) from generate_series(250001, 400000) g;\ncheckpoint;\ncheckpoint;\nselect slot_name, active, pg_walfile_name(restart_lsn) as oldest_needed_file,\n       pg_size_pretty(pg_current_wal_lsn() - restart_lsn) as wal_retained,\n       wal_status, pg_size_pretty(safe_wal_size) as safe_wal_size\nfrom pg_replication_slots order by slot_name;\nselect count(*) as wal_files, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\n\n-- The server said so in its log.\nselect l from regexp_split_to_table(\n         pg_read_file('log/postgresql.log', :log_size_before, 200000), chr(10))\n         with ordinality as t(l, n)\nwhere l like '%slot%'\norder by n;\n\n-- Session B: the streaming standby was never in danger -- it is caught up, so\n-- its slot never fell behind the cutoff.\nselect status, slot_name, received_tli from pg_stat_wal_receiver;\nselect count(*) as rows_on_standby from rep_slot_churn;\n\n-- Session A: undo everything this lesson set.\nalter system reset max_slot_wal_keep_size;\nselect pg_reload_conf();\nselect pg_drop_replication_slot('rep_ghost');\n\n-- Session B: back to slot-free streaming, so the next lessons start clean.\nalter system reset primary_slot_name;\nselect pg_reload_conf();\nselect pg_sleep(3);\nselect status, slot_name from pg_stat_wal_receiver;\n\n-- Session A: drop the last slot and check the primary is as it was.\nselect pg_sleep(1);\nselect pg_drop_replication_slot('rep_standby_slot');\nselect count(*) as slots_left from pg_replication_slots;\ndrop table rep_slot_churn;\ncheckpoint;\nselect count(*) as wal_files, pg_size_pretty(sum(size)) as pg_wal_bytes from pg_ls_waldir();\nselect pg_read_file('postgresql.auto.conf') as auto_conf;",
+    "expectedResult": "The lab starts with no slots and 17 files / 256 MB in pg_wal. Creating the slot returns the LSN it\nhas pinned:\n\n  created\n  (rep_standby_slot,1/A1698E38)\n\n  slot_name        | slot_type | active | restart_lsn | wal_status\n  rep_standby_slot | physical  | f      | 1/A1698E38  | reserved\n\nactive is f because nothing has connected to it yet. After the standby reloads with\nprimary_slot_name set, its walreceiver reconnects through the slot:\n\n  status    | slot_name        | sender_port | received_tli\n  streaming | rep_standby_slot |        5440 |            1\n\nand on the primary that slot is now active = t with an active_pid and a restart_lsn that tracks the\nstandby.\n\nrep_ghost is then created at the same LSN and nothing ever connects to it. 250000 rows (about\n79 MB of WAL) and a CHECKPOINT later:\n\n  slot_name        | active | oldest_needed_file       | wal_retained | wal_status | safe_wal_size\n  rep_ghost        | f      | 0000000100000001000000A1 | 79 MB        | reserved   |\n  rep_standby_slot | t      | 0000000100000001000000A6 | 0 bytes      | reserved   |\n\nTwo consumers, two stories: the live one is at file A6 and owes nothing, the dead one still holds\nfile A1 with 79 MB behind it, and the CHECKPOINT could not release a byte of it. safe_wal_size is\nnull because max_slot_wal_keep_size is -1 -- with no limit there is no \"how close am I to it\".\npg_wal itself is still 17 files / 256 MB, which is the trap: the lab has enough headroom that the\nnumber on your disk dashboard has not moved yet.\n\nNow the bound. max_slot_wal_keep_size = 64MB, 150000 more rows, two checkpoints:\n\n  slot_name        | active | oldest_needed_file       | wal_retained | wal_status | safe_wal_size\n  rep_ghost        | f      |                          |              | lost       |\n  rep_standby_slot | t      | 0000000100000001000000A9 | 0 bytes      | reserved   | 75 MB\n\nrep_ghost has no restart_lsn at all any more: the server took the promise back. The streaming\nstandby was never in danger -- being caught up, it is 75 MB of safe_wal_size away from the limit.\nAnd pg_wal finally shrinks, 17 files to 16.\n\nThe server logged the decision, which is the line to alert on:\n\n  LOG:  parameter \"max_slot_wal_keep_size\" changed to \"64MB\"\n  LOG:  invalidating obsolete replication slot \"rep_ghost\"\n  DETAIL:  The slot's restart_lsn 1/A1698E38 exceeds the limit by 60191176 bytes.\n  HINT:  You might need to increase max_slot_wal_keep_size.\n\n57 MB past a 64 MB budget, and the consequence is absolute: a consumer whose slot goes to lost\ncannot resume, ever, and must be rebuilt from a new base backup.\n\nThe cleanup leaves slots_left = 0, the standby streaming again with an empty slot_name (back to\nbest-effort retention), pg_wal at 16 files / 240 MB, and postgresql.auto.conf holding only its two\ncomment lines.",
+    "systemsLens": "A slot is a lease with no expiry, granted to a consumer that may never come back. It converts\n\"the follower can fall behind\" into \"the leader keeps everything the follower has not read\", which\nis exactly the guarantee you want during a five-minute standby restart and exactly the guarantee\nthat kills you during a five-day one. The resource being pinned is not obviously a resource --\nnobody's dashboard says \"WAL retained by slots\" until the disk is full -- which is what makes it\nsuch a reliable outage.\n\nEvery log-based system has this dial and every one of them chose a default. Kafka's default is\ntime- and size-based retention: the log drops old segments and a consumer that falls behind gets\nOFFSET_OUT_OF_RANGE and must reset -- availability of the broker over completeness for the\nconsumer. PostgreSQL's default for slots is the opposite, unlimited retention, because losing a\nstandby's position means a full base backup. max_slot_wal_keep_size lets you pick Kafka's answer,\nand wal_status = lost is PostgreSQL's OFFSET_OUT_OF_RANGE.\n\nThe design lesson is that a promise to a consumer you do not control needs a bound, and the bound\nmust be enforced by the party that pays for it. Which one you choose is a question about which\nfailure is cheaper to recover from: rebuilding one consumer, or rebuilding the cluster.",
+    "challenge": "Watch the pin from the other side. Recreate rep_ghost, run \"select pg_walfile_name(restart_lsn)\"\nand then \"select * from pg_ls_waldir() order by name limit 3\": the oldest file on disk is the one\nthe slot names, and it stays there through as many checkpoints as you care to run. Then work out\nwhat monitoring query you would actually page on -- and why \"pg_wal size\" is the wrong one and\n\"pg_current_wal_lsn() - restart_lsn per slot\" is the right one.",
+    "caution": "This lesson writes about 120 MB of WAL into $PGLAB and into the archive, and briefly sets\nmax_slot_wal_keep_size = 64MB on the primary. The last steps reset it, drop both slots, and put the\nstandby back to slot-free streaming; do not stop before them. An orphaned slot on a real primary is\nthe most common cause of \"the database filled the disk\".",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 57,
+    "slug": "promote-the-standby",
+    "title": "Promote the standby, and meet split brain",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "failover",
+      "timelines",
+      "split-brain",
+      "hot-standby",
+      "leader-election"
+    ],
+    "prerequisites": [
+      52,
+      51
+    ],
+    "overview": "Failover in PostgreSQL is one command: pg_ctl promote. The standby stops following, finishes\nreplaying what it has, picks a new timeline ID, and starts accepting writes. It takes about a\nsecond and there is no election, no quorum, and -- this is the part that matters -- nothing\nwhatsoever that stops the old primary from carrying on.\n\nSo you will do the failover the way a panicking operator does it, without touching the old primary\nfirst, and then look at both servers. Each is a primary. Each has its own timeline. Each accepts a\nwrite into the same table and stores something the other will never see -- and they do not even\ncollide on the primary key, because the promoted node's copy of the sequence had already jumped\nahead. That is split brain, in about four commands, and the next two lessons are the cost of\ngetting out of it.",
+    "syntaxBreakdown": "pg_ctl -D DIR promote (or the SQL function pg_promote(), or a file named by promote_trigger_file)\nends recovery. The server writes an end-of-recovery record, allocates the next unused timeline ID,\nwrites a .history file describing where the new timeline branched from the old one, and clears\nstandby.signal so it never goes back into recovery.\n\npg_control_checkpoint().timeline_id and pg_walfile_name(pg_current_wal_lsn()) both show the\ntimeline: WAL file names start with the 8-hex-digit timeline, so the first segment of timeline 2 is\n00000002000000000000....\n\npg_is_in_recovery() is the definitive \"am I a standby\" test, and it is what your application's\nhealth check and your failover tool should both be reading.",
+    "code": "export PATH=/usr/lib/postgresql/16/bin:$PATH\nexport PGLAB=$HOME/pglab\n\n# 1. Before anything diverges: make the primary keep its recent WAL. pg_rewind\n#    (next lesson) reads the rewound node's own WAL from the divergence point\n#    forward, and a shutdown checkpoint would otherwise recycle those segments.\n#    128 MB is 8 segments here. The next lesson's rewrite of\n#    postgresql.auto.conf drops this setting again, and cascading-and-failback\n#    resets everything either way.\npsql -h /tmp -p 5440 -d lab -c \"alter system set wal_keep_size = '128MB'\"\npsql -h /tmp -p 5440 -d lab -c 'select pg_reload_conf()'\npsql -h /tmp -p 5440 -d lab -c 'show wal_keep_size'\n\n# 2. A table whose rows say which node wrote them.\npsql -h /tmp -p 5440 -d lab -c 'drop table if exists rep_split'\npsql -h /tmp -p 5440 -d lab -c 'create table rep_split(id serial primary key, node text, at timestamptz default clock_timestamp())'\npsql -h /tmp -p 5440 -d lab -c \"insert into rep_split(node) values ('primary 5440, before promotion')\"\nsleep 1\npsql -h /tmp -p 5441 -d lab -c 'select id, node from rep_split order by id'\npsql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\n\n# 3. The failover. One command, one second, no coordination with anybody.\npg_ctl -D \"$PGLAB/standby\" promote -w\nsleep 2\ngrep -E 'received promote request|redo done|selected new timeline|ready to accept connections' \"$PGLAB/standby.log\" | tail -5\npsql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id as control_file_timeline from pg_control_checkpoint()'\npsql -h /tmp -p 5441 -d lab -c 'select pg_walfile_name(pg_current_wal_lsn()) as current_wal_file'\n# The control file still says timeline 1: it is only rewritten by a checkpoint.\n# The WAL file name changed the instant the promotion happened.\npsql -h /tmp -p 5441 -d lab -c 'checkpoint'\npsql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\nls \"$PGLAB/standby/pg_wal/\"*.history\ncat \"$PGLAB/standby/pg_wal/00000002.history\"\n\n# 4. Two primaries, same table, one sequence that has already forked.\npsql -h /tmp -p 5441 -d lab -c \"insert into rep_split(node) values ('NEW primary 5441, after promotion')\"\npsql -h /tmp -p 5440 -d lab -c \"insert into rep_split(node) values ('OLD primary 5440, after promotion -- this write is doomed')\"\necho '--- 5440 (old primary) ---'; psql -h /tmp -p 5440 -d lab -c 'select id, node from rep_split order by id'\necho '--- 5441 (new primary) ---'; psql -h /tmp -p 5441 -d lab -c 'select id, node from rep_split order by id'\n\n# 5. Neither node is replicating to anything, and they are on different timelines.\npsql -h /tmp -p 5440 -d lab -c 'select count(*) as standbys_connected, (select timeline_id from pg_control_checkpoint()) as timeline from pg_stat_replication'\npsql -h /tmp -p 5441 -d lab -c 'select count(*) as standbys_connected, (select timeline_id from pg_control_checkpoint()) as timeline from pg_stat_replication'",
+    "expectedResult": "The preparation is quiet: wal_keep_size becomes 128MB with a reload, no restart.\n\nBefore the promotion the row written on 5440 is on both nodes and 5441 is a standby on timeline 1:\n\n   id | node\n    1 | primary 5440, before promotion\n\n  pg_is_in_recovery | timeline_id\n  t                 |           1\n\nThe promotion takes about a second and the standby's log is four lines:\n\n  LOG:  received promote request\n  LOG:  redo done at 1/AE02EC88 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 3.27 s\n  LOG:  selected new timeline ID: 2\n  LOG:  database system is ready to accept connections\n\n\"selected new timeline ID: 2\" is the entire failover. Immediately afterwards:\n\n  pg_is_in_recovery | control_file_timeline        current_wal_file\n  f                 |                     1        0000000200000001000000AE\n\nwhich is worth a pause. pg_is_in_recovery() is already false and WAL is already being written with\na 00000002 prefix, but pg_control still says timeline 1, because the control file is only rewritten\nby a checkpoint. Run CHECKPOINT and timeline_id becomes 2. Monitor failover with\npg_is_in_recovery(), not with pg_control_checkpoint(), or you will be a checkpoint behind reality.\n\nThe new timeline's history file records where it branched:\n\n  $ cat $PGLAB/standby/pg_wal/00000002.history\n  1\t1/AE02ECB8\tno recovery target specified\n\nNow the split brain. Both INSERTs succeed and the two nodes disagree:\n\n  --- 5440 (old primary) ---\n   id | node\n    1 | primary 5440, before promotion\n    2 | OLD primary 5440, after promotion -- this write is doomed\n\n  --- 5441 (new primary) ---\n   id | node\n    1 | primary 5440, before promotion\n   34 | NEW primary 5441, after promotion\n\nLook at the ids: they did not even collide. 5440 handed out 2 and 5441 handed out 34, because\nsequence values are WAL-logged 32 at a time and the standby had replayed a record reserving up to\n33. One logical table, two disjoint id ranges, no way to merge them.\n\nBoth nodes report standbys_connected = 0 -- the replication link died with the promotion -- on\ntimelines 1 and 2 respectively. There is no error anywhere. Neither server is unhappy. That is what\nmakes this failure mode dangerous: the only evidence is that two servers answer the same question\ndifferently, and nobody is asking.",
+    "systemsLens": "Promotion is the moment a replicated log system needs consensus and PostgreSQL does not have any.\nEverything up to here was mechanically safe: one writer, one log, followers that can only replay\nwhat the writer produced. The instant a second node decides it is the writer, safety depends\nentirely on something outside the database making sure the first one has stopped.\n\nThe timeline ID is PostgreSQL's version of a term or epoch number, and it does the job it does in\nRaft: it makes two divergent histories detectably different, so no server will ever replay the\nwrong branch's records by accident. What it does not do -- and what a term number in Raft does --\nis prevent the divergence in the first place, because nothing revokes the old primary's right to\nwrite. In Raft a leader with a stale term cannot get a quorum to accept its entries, so it cannot\ncommit anything; here the old primary has a quorum of one, its own disk, and it commits happily.\n\nThat gap is why production failover always involves an external component -- Patroni with etcd,\nrepmgr with a witness, a cloud provider's control plane -- and why the very first thing that\ncomponent does is fence: STONITH, revoke the VIP, take the storage away, kill the process. Fencing\nis not a nicety on top of failover; it is the part that makes failover correct, and everything else\nis bookkeeping. Look at rep_split on the two nodes: 5440 has id 2 and 5441 has id 34,\nboth inserted after the split, and no algorithm can tell you which one was \"right\" -- both were, at\nthe time, on the node that thought it was in charge. The gap in the ids is its own small lesson:\nsequences are WAL-logged 32 values at a time, so a promoted standby starts allocating from beyond\nwhatever the old primary had logged. Even the identifiers of the two histories cannot be merged,\nonly chosen between. Module 14's fencing-tokens lesson is the same problem solved at the\napplication level with a monotonic counter.",
+    "challenge": "How long is the write window? Instrument it: promote, then immediately run a loop of inserts\nagainst the old primary and see how many succeed before you notice. Then decide what your\napplication's health check would have to look at -- pg_is_in_recovery(), a VIP, a token in a table\n-- to make those writes fail instead of succeed, and how it behaves during a network partition\nwhere the old primary can still see its clients but not its standby.",
+    "caution": "This lesson leaves the lab with two divergent primaries on purpose, and the two lessons after it\nput the lab back. Do not stop in the middle: the module ends with a single primary on 5440 again.\n\nNote also that the promoted standby has archive_mode = off (from lesson build-a-streaming-standby),\nso it does NOT write its new timeline's segments or its 00000002.history into $PGLAB/archive. That\nis the whole point of turning it off: two divergent servers archiving into one directory produce an\narchive from which neither history can be replayed.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 58,
+    "slug": "rewind-the-old-primary",
+    "title": "pg_rewind: rejoin a diverged primary without a new base backup",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "failover",
+      "timelines",
+      "recovery",
+      "fencing",
+      "split-brain"
+    ],
+    "prerequisites": [
+      57
+    ],
+    "overview": "The old primary has a write the new primary never saw. It cannot simply start following the new\nprimary: their histories diverged, and physical replication has no way to un-apply a page change.\nThe safe, slow answer is to throw the old primary away and take a fresh base backup -- 350 MB here,\nterabytes in production.\n\npg_rewind is the fast answer. It asks the new primary \"where did our timelines diverge\", then reads\nthe old primary's WAL from that point forward to find every block it touched afterwards, copies\njust those blocks back from the new primary, and rewinds the control file to the divergence point.\nWhat is left is a data directory that can replay the new primary's history. The doomed row from the\nprevious lesson disappears -- physically, silently, with no error anywhere -- which is what\n\"resolving split brain\" always means: somebody's committed data is chosen for deletion.",
+    "syntaxBreakdown": "pg_rewind --target-pgdata=DIR --source-server=CONNINFO rewinds a cleanly shut down data directory\nso it can follow the source. The target MUST be stopped cleanly (pg_rewind refuses on a crashed\none; start it and stop it again if necessary). The source can be a live server (--source-server) or\na stopped data directory (--source-pgdata).\n\nIt requires the cluster to have been initialised with data checksums or with wal_log_hints = on,\nbecause otherwise hint-bit writes are not WAL-logged and pg_rewind cannot tell which blocks\nchanged. The lab has checksums (module 01), so it works.\n\n-R writes standby.signal and primary_conninfo, exactly like pg_basebackup -R. --dry-run does\neverything except write. -P prints progress.\n\nThe footgun: pg_rewind synchronises the whole data directory, and configuration files live in the\ndata directory. postgresql.conf and postgresql.auto.conf are copied from the SOURCE, and files that\nexist only on the target are deleted. Here that means the old primary would come back configured as\nthe standby -- port 5441 -- unless you rewrite postgresql.auto.conf afterwards, which the script\nbelow does.",
+    "code": "export PATH=/usr/lib/postgresql/16/bin:$PATH\nexport PGLAB=$HOME/pglab\n\n# 0. pg_rewind needs a cleanly shut down target. This is also, finally, the\n#    fencing: the old primary stops writing.\npsql -h /tmp -p 5440 -d lab -c 'select id, node from rep_split order by id'\npg_ctl -D \"$PGLAB/primary\" stop -m fast -w\npg_controldata -D \"$PGLAB/primary\" | grep -E 'cluster state|TimeLineID|Latest checkpoint location'\npg_controldata -D \"$PGLAB/standby\" | grep -E 'cluster state|TimeLineID|Latest checkpoint location'\n\n# 1. Dry run first: it prints the divergence point without touching anything.\npg_rewind --target-pgdata=\"$PGLAB/primary\" --source-server='host=/tmp port=5441 user=postgres dbname=postgres' --dry-run -P\n\n# 2. For real, writing standby.signal and primary_conninfo on the way out.\npg_rewind --target-pgdata=\"$PGLAB/primary\" --source-server='host=/tmp port=5441 user=postgres dbname=postgres' -R -P\n\n# 3. Undo the footgun: the source's postgresql.auto.conf came along for the\n#    ride and says port 5441, cluster_name lab-standby, archive_mode off. Keep\n#    only the primary_conninfo line pg_rewind appended.\necho '--- postgresql.auto.conf as pg_rewind left it ---'\ncat \"$PGLAB/primary/postgresql.auto.conf\"\n# tail -1: there are two primary_conninfo lines now -- the source's, pointing at\n# 5440, and the one pg_rewind just appended, pointing at 5441. The last wins.\nCONNINFO=$(grep '^primary_conninfo' \"$PGLAB/primary/postgresql.auto.conf\" | tail -1)\nprintf '%s\\n%s\\n%s\\n' '# Do not edit this file manually!' '# It will be overwritten by the ALTER SYSTEM command.' \"$CONNINFO\" > \"$PGLAB/primary/postgresql.auto.conf\"\necho '--- and as it must be ---'\ncat \"$PGLAB/primary/postgresql.auto.conf\"\nls \"$PGLAB/primary/standby.signal\"\n\n# 4. Start the old primary as a standby of the new one.\npg_ctl -D \"$PGLAB/primary\" -l \"$PGLAB/primary.log\" start -w\nsleep 3\ngrep -E 'entering standby mode|new target timeline|consistent recovery state|started streaming' \"$PGLAB/primary/log/postgresql.log\" | tail -6\npsql -h /tmp -p 5440 -d lab -x -c 'select pg_is_in_recovery(), (select timeline_id from pg_control_checkpoint()) as control_file_timeline, (select received_tli from pg_stat_wal_receiver) as streaming_timeline'\npsql -h /tmp -p 5441 -d lab -x -c 'select application_name, state, sync_state, sent_lsn, replay_lsn from pg_stat_replication'\n\n# 5. The doomed row is gone from the rewound node, and both nodes agree again.\necho '--- 5440 (rewound, now a standby) ---'; psql -h /tmp -p 5440 -d lab -c 'select id, node from rep_split order by id'\necho '--- 5441 (primary) ---'; psql -h /tmp -p 5441 -d lab -c 'select id, node from rep_split order by id'\npsql -h /tmp -p 5441 -d lab -c \"insert into rep_split(node) values ('written on 5441 while 5440 follows it')\"\nsleep 1\npsql -h /tmp -p 5440 -d lab -c 'select id, node from rep_split order by id'",
+    "expectedResult": "The old primary shuts down cleanly and pg_controldata shows the two histories side by side:\n\n  target ($PGLAB/primary)   Database cluster state: shut down       TimeLineID: 1\n                            Latest checkpoint location: 1/AF000028\n  source ($PGLAB/standby)   Database cluster state: in production   TimeLineID: 2\n                            Latest checkpoint location: 1/AE030D30\n\nThe dry run prints exactly what the real run will do, stopping just short of writing:\n\n  pg_rewind: connected to server\n  pg_rewind: servers diverged at WAL location 1/AE02ECB8 on timeline 1\n  pg_rewind: rewinding from last common checkpoint at 1/AD000060 on timeline 1\n  pg_rewind: reading source file list\n  pg_rewind: reading target file list\n  pg_rewind: reading WAL in target\n  pg_rewind: need to copy 69 MB (total source directory size is 441 MB)\n  71608/71608 kB (100%) copied\n  pg_rewind: creating backup label and updating control file\n  pg_rewind: syncing target data directory\n  pg_rewind: Done!\n\n\"servers diverged at WAL location 1/AE02ECB8 on timeline 1\" is the same LSN as the branch point in\n00000002.history from the previous lesson; pg_rewind found it by reading the source's timeline\nhistory, not by guessing. \"need to copy 69 MB (total source directory size is 441 MB)\" is the whole\nvalue of the tool: 69 MB instead of 441 MB, and most of those 69 MB are the churn tables earlier\nlessons left behind, not the one divergent row.\n\nIf you instead get \"could not open file .../pg_wal/0000000100000001000000A9: No such file or\ndirectory\" followed by \"could not find previous WAL record\", the old primary recycled the WAL that\npg_rewind needs to read and the rewind is impossible. That is exactly what wal_keep_size in the\nprevious lesson prevents; pg_rewind -c (--restore-target-wal, which uses the target's\nrestore_command to fetch segments from the archive) is the other way out.\n\nThen the configuration footgun, in full:\n\n  --- postgresql.auto.conf as pg_rewind left it ---\n  primary_conninfo = '... host=/tmp port=5440 ...'     <- copied from the source\n  port = 5441                                          <- copied from the source\n  cluster_name = 'lab-standby'                         <- copied from the source\n  hot_standby = on\n  archive_mode = off\n  logging_collector = off\n  primary_conninfo = '... host=/tmp port=5441 ...'     <- appended by pg_rewind -R\n\nStarted as it stands, the old primary would come up on port 5441 calling itself lab-standby. After\nthe rewrite the file holds only the primary_conninfo pointing at 5441, and standby.signal exists.\n\nThe restarted server is a standby of the node that replaced it:\n\n  LOG:  entering standby mode\n  LOG:  consistent recovery state reached at 1/AE035F88\n  LOG:  started streaming WAL from primary at 1/AE000000 on timeline 2\n\n  pg_is_in_recovery     | t\n  control_file_timeline | 1     (still 1 until its first restartpoint)\n  streaming_timeline    | 2\n\nand from 5441 it looks like any other standby: application_name lab-primary, state streaming,\nsent_lsn = replay_lsn = 1/AE035FC0.\n\nThe point of the lesson is one missing row:\n\n  --- 5440 (rewound, now a standby) ---   --- 5441 (primary) ---\n    1 | primary 5440, before promotion      1 | primary 5440, before promotion\n   34 | NEW primary 5441, after promotion   34 | NEW primary 5441, after promotion\n\nid 2, \"OLD primary 5440, after promotion -- this write is doomed\", is gone. It was committed, it\nwas fsynced, a client was told it had succeeded, and nothing anywhere raised an error when it was\ndeleted. The final INSERT on 5441 shows up on 5440 a second later as id 35: one history again.",
+    "systemsLens": "pg_rewind is a log-diff-and-repair, and the reason it can exist is the same reason PITR can exist:\nthe WAL is a complete, ordered record of every block that changed, so \"which blocks did I touch\nafter we diverged\" is a question the log can answer exactly. It copies those blocks and nothing\nelse, which is why it takes seconds where a base backup takes hours. Merkle-tree repair in\nCassandra, rsync against a snapshot, and a Raft follower truncating its log to the leader's last\ncommon index are all the same move: find the divergence point, and repair only the delta.\n\nThe important part is what it costs. Un-fencing a diverged node means deleting whatever it\ncommitted alone, and there is no merge and no conflict resolution, because physical replication\ndoes not know what a row is. Every operational consequence follows from that. It is why the old\nprimary must be stopped -- and stopped cleanly -- before you rewind it; why \"just start it back up\nand see\" is the worst possible response to a failover; and why a system that lets two nodes accept\nwrites must either prevent divergence up front (a quorum, a lease, a fencing token) or accept that\nrecovering from it will delete someone's acknowledged data.\n\nNotice the asymmetry that made this cheap: the divergence was seconds old. pg_rewind's cost is\nproportional to how much the two nodes wrote after they split, not to database size, so a\nsplit-brain caught in seconds is a seconds-long repair, and one caught in a day may be worse than a\nfull base backup. Detection latency is not just an availability metric; it is the thing that\ndecides which recovery procedure you get to use.",
+    "challenge": "Read what pg_rewind actually did. Run it with --debug on a second divergence and count the blocks\nit copied, then compare that with the size of the WAL between the divergence point and the old\nprimary's end of log. Then break it on purpose: crash the target with pg_ctl stop -m immediate\ninstead of -m fast and watch pg_rewind refuse with \"target server must be shut down cleanly\". Why\nis that check not optional?",
+    "caution": "pg_rewind deliberately destroys committed data on the target: everything the old primary wrote\nafter the divergence point is gone. In production you take a backup of the diverged node first if\nthe lost transactions might matter, because this is your only chance to read them.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  },
+  {
+    "ordinal": 59,
+    "slug": "cascading-and-failback",
+    "title": "Cascade, fail back, and put the lab away",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "failover",
+      "streaming-replication",
+      "timelines",
+      "availability",
+      "lab"
+    ],
+    "prerequisites": [
+      58
+    ],
+    "overview": "Two things are left. The first is cascading: a standby is also a WAL sender, so you can chain\nreplicas, and 5440 -- which is currently a standby -- can feed a third node without the primary\nknowing or caring. You will build one on port 5442, watch a write travel 5441 to 5440 to 5442, and\nthen throw it away.\n\nThe second is failback, and it is the whole reason this module can be run twice. The lab must end\nexactly as module 01 built it: one primary on 5440 with its data in $PGLAB/primary, nothing on\n5441, no standby directory, no replication slots, and a postgresql.auto.conf with no settings in\nit. So you will reverse the roles one more time -- stop the primary on 5441 cleanly, confirm 5440\nhas replayed everything, promote it, and delete the rest. The only trace left is the timeline: the\nlab started on timeline 1 and ends on timeline 3, one branch per promotion, which is exactly what\nthe .history files in pg_wal say.",
+    "syntaxBreakdown": "Cascading needs no configuration at all: point a new standby's primary_conninfo at another standby.\nThe middle node runs a walreceiver and a walsender at the same time, so pg_is_in_recovery() is true\nthere while pg_stat_replication has rows. A cascading standby follows its parent's timeline\nswitches, which is why the chain survives a promotion of the top node.\n\nFor the failback, the ordering is the whole safety argument: stop the current primary first (a fast\nshutdown flushes its WAL and sends it to connected standbys), then confirm\npg_last_wal_replay_lsn() on the standby has reached the primary's final LSN, and only then promote.\nPromoting before the old primary is down is how you get the split brain of two lessons ago.\n\nALTER SYSTEM RESET ALL empties postgresql.auto.conf of every setting, including the\nprimary_conninfo pg_rewind wrote, leaving only the two comment lines. Promotion has already removed\nstandby.signal, so the node stays a primary across restarts.",
+    "code": "export PATH=/usr/lib/postgresql/16/bin:$PATH\nexport PGLAB=$HOME/pglab\n\n# ============ part 1: a cascading standby, 5441 -> 5440 -> 5442 ============\n# Take the base backup from 5440, which is itself a standby. Nothing special is\n# required for that: a standby serves replication connections like any node.\npg_basebackup -R -D \"$PGLAB/cascade\" -h /tmp -p 5440 -U postgres -c fast -X stream -P\ncat >> \"$PGLAB/cascade/postgresql.auto.conf\" <<CONF\nport = 5442\ncluster_name = 'lab-cascade'\nhot_standby = on\narchive_mode = off\nlogging_collector = off\nCONF\nrm -f \"$PGLAB/cascade/log/postgresql.log\"\npg_ctl -D \"$PGLAB/cascade\" -l \"$PGLAB/cascade.log\" start -w\nsleep 2\ngrep -E 'entering standby mode|consistent recovery state|started streaming' \"$PGLAB/cascade.log\"\n\n# The middle node is a follower and a leader at the same time.\npsql -h /tmp -p 5440 -d lab -c 'select pg_is_in_recovery() as node_5440_is_a_standby, (select count(*) from pg_stat_replication) as standbys_it_feeds'\npsql -h /tmp -p 5440 -d lab -x -c 'select application_name, state, sent_lsn, replay_lsn from pg_stat_replication'\npsql -h /tmp -p 5442 -d lab -x -c 'select status, sender_port, received_tli from pg_stat_wal_receiver'\n\n# One write on the real primary reaches the end of the chain.\npsql -h /tmp -p 5441 -d lab -c \"insert into rep_split(node) values ('written on 5441, replicated through 5440 to 5442')\"\nsleep 2\npsql -h /tmp -p 5442 -d lab -c 'select id, node from rep_split order by id'\n\n# Take the cascade away again.\npg_ctl -D \"$PGLAB/cascade\" stop -m fast -w\nrm -rf \"$PGLAB/cascade\" \"$PGLAB/cascade.log\"\n\n# ==================== part 2: fail back to 5440 ====================\n# Stop the primary FIRST. A fast shutdown writes a shutdown checkpoint and lets\n# the walsender ship it, so the standby ends up holding every byte.\npsql -h /tmp -p 5441 -d lab -c 'select pg_current_wal_lsn() as primary_lsn_before_shutdown'\npg_ctl -D \"$PGLAB/standby\" stop -m fast -w\nsleep 2\npsql -h /tmp -p 5440 -d lab -c 'select pg_last_wal_receive_lsn() as received, pg_last_wal_replay_lsn() as replayed'\npg_controldata -D \"$PGLAB/standby\" | grep -E 'cluster state|Latest checkpoint location'\n\n# Now, and only now, promote the original node back into its original role.\npg_ctl -D \"$PGLAB/primary\" promote -w\nsleep 2\ngrep -E 'received promote request|selected new timeline|ready to accept connections' \"$PGLAB/primary/log/postgresql.log\" | tail -4\npsql -h /tmp -p 5440 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\npsql -h /tmp -p 5440 -d lab -c \"insert into rep_split(node) values ('written on 5440 after failback')\"\npsql -h /tmp -p 5440 -d lab -c 'select id, node from rep_split order by id'\ncat \"$PGLAB/primary/pg_wal/00000003.history\"\n\n# ================ part 3: put the lab back exactly as it was ================\nrm -rf \"$PGLAB/standby\" \"$PGLAB/standby.log\"\npsql -h /tmp -p 5440 -d lab -c 'alter system reset all'\npsql -h /tmp -p 5440 -d lab -c 'select pg_reload_conf()'\npsql -h /tmp -p 5440 -d lab -c 'select pg_drop_replication_slot(slot_name) from pg_replication_slots'\npsql -h /tmp -p 5440 -d lab -c 'select count(*) as slots_left from pg_replication_slots'\npsql -h /tmp -p 5440 -d lab -c \"select pg_read_file('postgresql.auto.conf') as auto_conf\"\npsql -h /tmp -p 5440 -d lab -c \"select name, setting from pg_settings where name in ('synchronous_standby_names','max_slot_wal_keep_size','wal_keep_size','primary_slot_name','max_standby_streaming_delay','archive_mode')\"\npsql -h /tmp -p 5440 -d lab -c 'select pg_is_in_recovery() as in_recovery, timeline_id, redo_lsn from pg_control_checkpoint()'\nls \"$PGLAB\"\nss -ltn | grep -E '5440|5441|5442'\ndf -h /var/lib/postgresql",
+    "expectedResult": "PART 1, the cascade. pg_basebackup runs against 5440 -- itself a standby -- with no special flags,\ncopies 405 MB, and the third node starts:\n\n  LOG:  entering standby mode\n  LOG:  consistent recovery state reached at 1/AE0360F0\n  LOG:  started streaming WAL from primary at 1/AE000000 on timeline 2\n\nNote \"from primary\": the walreceiver's message does not care that its sender is a standby. The\nmiddle node is both roles at once, which is the thing to see:\n\n  node_5440_is_a_standby | standbys_it_feeds\n  t                      |                 1\n\n  application_name | lab-cascade\n  state            | streaming\n  sent_lsn         | 1/AE0360F0\n  replay_lsn       | 1/AE0360F0\n\npg_is_in_recovery() is true on 5440 and pg_stat_replication has a row on it at the same time. On\n5442, pg_stat_wal_receiver reports sender_port 5440 and received_tli 2 -- it is following timeline\n2 through a node that is not on the end of it.\n\nOne insert on the real primary reaches the bottom of the chain within seconds:\n\n   id | node\n   36 | written on 5441, replicated through 5440 to 5442\n\nPART 2, the failback. The primary's last LSN before shutdown is 1/AE036210; after the fast shutdown\nthe standby reports\n\n  received   |  replayed\n  1/AE036288 | 1/AE036288\n\nwhich is past the number the primary printed, because a fast shutdown writes a shutdown checkpoint\nand ships it to connected standbys before exiting. (The standby's own log records the other side of\nthat: \"FATAL: could not send end-of-streaming message to primary: server closed the connection\nunexpectedly\", then a failed reconnect. Those two lines are the walreceiver noticing its source is\ngone, not a problem.) received = replayed = the source's final\nposition is the check that means \"promoting now loses nothing\", and pg_controldata on the stopped\nnode confirms \"Database cluster state: shut down\".\n\nThe promotion is the same single command as the unplanned one, and produces the third timeline:\n\n  LOG:  received promote request\n  LOG:  selected new timeline ID: 3\n  LOG:  database system is ready to accept connections\n\n  pg_is_in_recovery | timeline_id\n  f                 |           3\n\n(timeline_id is 3 straight away this time: a standby that was already caught up runs its\nend-of-recovery checkpoint immediately.) A write on 5440 succeeds and gets id 67, another 32-value\njump for the same reason as the first promotion. The history file now lists both branches:\n\n  $ cat $PGLAB/primary/pg_wal/00000003.history\n  1\t1/AE02ECB8\tno recovery target specified\n  2\t1/AE036288\tno recovery target specified\n\nTwo lines, two promotions: timeline 2 branched from timeline 1 at the failover, timeline 3 branched\nfrom timeline 2 at the failback. Note the second branch point is the same LSN the standby had\nreplayed to -- a switchover branches at the end of the history, not in the middle of it, which is\nwhy no rewind was needed this time.\n\nPART 3, the receipt. ALTER SYSTEM RESET ALL leaves postgresql.auto.conf with nothing but its two\ncomment lines, pg_drop_replication_slot returns 0 rows, slots_left is 0, and every setting this\nmodule touched is back to its default:\n\n  name                        | setting\n  archive_mode                | on\n  max_slot_wal_keep_size      | -1\n  max_standby_streaming_delay | 30000\n  primary_slot_name           |\n  synchronous_standby_names   |\n  wal_keep_size               | 0\n\n  in_recovery | timeline_id |  redo_lsn\n  f           |           3 | 1/AE0362B8\n\n$PGLAB holds archive, backup1, primary and primary.log and nothing else; ss lists only 5440; df is\nback where it was before the cascade. The lab is module 01's lab again, three timelines older.",
+    "systemsLens": "Failback is failover run deliberately, and the difference between the two is the ordering. Here you\nstopped the writer, verified the follower had caught up, and only then promoted -- three steps that\nbetween them guarantee no divergence, which is why this lesson needed no pg_rewind afterwards. The\nunplanned version two lessons ago skipped all three and cost a rewind and somebody's committed row.\nNearly every \"controlled switchover\" feature in every replicated system is that ordering wrapped in\na command: quiesce the leader, wait for the follower's log to match, transfer leadership, and only\nthen let the new leader accept writes.\n\nCascading is worth noticing for what it costs the primary: nothing. Replication here is pull-based\nfrom the follower's side and stateless from the sender's, so a chain of ten replicas costs the\nprimary one connection, and fan-out is the follower's problem. That is why read replicas scale\nreads and why they do not scale writes, and it is the same shape as a CDN or a Kafka follower-fetch\ntopology. It also carries the same tail-latency property: lag composes down the chain, so the\nbottom of a cascade is behind by the sum of every hop.\n\nThe timeline history is the module's receipt. 00000003.history lists both branch points, so any\nserver or archive can tell exactly which history a WAL segment belongs to and refuse to mix them.\nThe lab now runs on timeline 3 and can never accidentally replay a timeline-1 or timeline-2 record\nfrom after the branches, which is precisely the property an epoch number buys you in a consensus\nprotocol: not the prevention of divergence, but the permanent, unforgeable ability to detect it.",
+    "challenge": "Do the switchover properly, with no promotion at all. Instead of stopping 5441 and promoting 5440,\ntry the sequence a tool like Patroni uses: pause writes, checkpoint, verify the standby's replay\nLSN equals the primary's flush LSN, promote the standby, and rewind the old primary with pg_rewind\n-- then measure how long the whole thing takes with a client running inserts in a loop, and count\nhow many of its transactions failed. That number is your real RTO for a planned switchover.",
+    "caution": "This lesson is mandatory, not optional: it is what returns the lab to the layout every other module\nassumes. When it finishes, check the list at the end -- 5440 in recovery = false, $PGLAB holding\nonly archive, backup1, primary and primary.log, nothing listening on 5441 or 5442, no replication\nslots, and postgresql.auto.conf with no settings.\n\nOne thing does not come back: $PGLAB/archive is now a complete history of timeline 1 only. The\npromoted standby ran with archive_mode = off (deliberately, see build-a-streaming-standby), so its\ntimeline-2 segments were never archived, and the only timeline-2 WAL that exists is inside\n$PGLAB/primary. Point-in-time recovery from the archive can therefore still reach any moment on\ntimeline 1 but cannot follow the branch. In production each node archives to its own namespaced\nlocation and you keep them all; in a lab with one archive directory, one writer is the only safe\nrule.",
+    "safetyLevel": "dangerous",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 35,
+    "revision": 1
+  },
+  {
+    "ordinal": 60,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -1470,7 +1716,7 @@
     "revision": 1
   },
   {
-    "ordinal": 53,
+    "ordinal": 61,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -1483,7 +1729,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      52
+      60
     ],
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
     "syntaxBreakdown": "pg_replication_slots.confirmed_flush_lsn is the position the consumer has acknowledged;\nrestart_lsn is the oldest WAL the server must keep for this slot. catalog_xmin is the oldest\ntransaction whose catalog rows vacuum may not remove, so the decoder can still resolve column\ntypes. pg_replication_slot_advance(name, lsn) moves the offset forward without reading, i.e. skips\ndata. pg_current_wal_lsn() minus an LSN is a bytes value (pg_lsn subtraction returns numeric).",
@@ -1500,7 +1746,7 @@
     "revision": 1
   },
   {
-    "ordinal": 54,
+    "ordinal": 62,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -1512,7 +1758,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      53
+      61
     ],
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
     "syntaxBreakdown": "CREATE PUBLICATION names a set of tables and which operations to publish. CREATE SUBSCRIPTION\nstores a connection string and a publication name, creates a replication slot on the publisher, and\nstarts an apply worker. WITH (create_slot = false, slot_name = ...) tells it to use a slot you\nalready created, and WITH (copy_data = true) (the default) copies the existing rows first.\npg_stat_replication shows the walsender feeding a subscriber; pg_stat_subscription shows the apply\nworker on the other side. In psql, \\gset captures a query result into a variable, \\set builds a\nstring out of several pieces, and :'var' interpolates it as a quoted literal.",
@@ -1530,7 +1776,7 @@
     "revision": 1
   },
   {
-    "ordinal": 55,
+    "ordinal": 63,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -1542,7 +1788,7 @@
       "consistency"
     ],
     "prerequisites": [
-      54
+      62
     ],
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
     "syntaxBreakdown": "ALTER PUBLICATION ... ADD TABLE changes the publisher's table set; the subscriber only notices when\nyou run ALTER SUBSCRIPTION ... REFRESH PUBLICATION. pg_subscription_rel.srsubstate is the per-table\nstate: i = initialize, d = data is being copied, f = finished the copy, s = synchronized with the\napply worker, r = ready (streaming normally). srsublsn is the LSN at which the table's copy ended\nand streaming took over. Each table sync uses its own temporary slot and its own snapshot, so it\nneeds a consistent snapshot on the publisher before it can start copying.",
@@ -1559,7 +1805,7 @@
     "revision": 1
   },
   {
-    "ordinal": 56,
+    "ordinal": 64,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -1571,7 +1817,7 @@
       "observability"
     ],
     "prerequisites": [
-      55
+      63
     ],
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
     "syntaxBreakdown": "pg_stat_subscription_stats has one row per subscription with apply_error_count and\nsync_error_count, both cumulative since stats_reset. pg_stat_subscription.pid is null while the\napply worker is dead. The server log records the failing statement with a CONTEXT line naming the\nreplication origin, the message type, and the transaction's finish LSN, which is the information\nyou need to skip it. ALTER SUBSCRIPTION ... SKIP (lsn = ...) and pg_replication_origin_advance()\ndiscard the stuck transaction; deleting the offending local row instead lets it apply.",
@@ -1588,7 +1834,7 @@
     "revision": 1
   },
   {
-    "ordinal": 57,
+    "ordinal": 65,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -1601,7 +1847,7 @@
       "observability"
     ],
     "prerequisites": [
-      56
+      64
     ],
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
     "syntaxBreakdown": "ALTER SUBSCRIPTION ... DISABLE stops the apply worker, which disconnects the walsender and makes\nthe slot inactive; the slot itself survives. pg_replication_slots.restart_lsn is the oldest WAL\nbyte the slot needs and pg_walfile_name(restart_lsn) turns it into a file name in pg_wal.\nwal_status is reserved / extended / unreserved / lost, and safe_wal_size is how much more WAL can\nbe written before this slot starts losing data -- both are governed by max_slot_wal_keep_size,\nwhich is -1 (unlimited retention) by default. pg_ls_waldir() lists the segment files.\nDropping cleanly: DISABLE, SET (slot_name = none), DROP SUBSCRIPTION, then drop the slot yourself.",
@@ -1618,7 +1864,7 @@
     "revision": 1
   },
   {
-    "ordinal": 58,
+    "ordinal": 66,
     "slug": "explain-analyze-buffers",
     "title": "Read a plan: estimate vs actual, cost vs time, buffers vs rows",
     "category": "query-planning",
@@ -1649,7 +1895,7 @@
     "revision": 1
   },
   {
-    "ordinal": 59,
+    "ordinal": 67,
     "slug": "statistics-drive-plans",
     "title": "Where row estimates come from, and three ways they go wrong",
     "category": "query-planning",
@@ -1660,7 +1906,7 @@
       "explain"
     ],
     "prerequisites": [
-      58
+      66
     ],
     "overview": "The planner never looks at your data; it looks at a sampled summary of your data in pg_statistic.\nThis lesson makes that summary visible and then breaks it three ways: a table that has never been\nanalyzed (default selectivity constants), a table whose statistics are stale (a snapshot of a\npopulation that has changed), and two columns that are correlated (the independence assumption).\nThe third one is the failure mode that ruins real production plans.",
     "syntaxBreakdown": "ANALYZE samples default_statistics_target * 300 = 30000 rows and stores per-column stats.\npg_stats is the readable view over pg_statistic: null_frac, avg_width, n_distinct (a count, or a\nnegative fraction of the row count when distinctness scales with size), most_common_vals /\nmost_common_freqs (the MCV list), histogram_bounds (equal-frequency buckets for everything not in\nthe MCV list), and correlation (how well physical order matches logical order, -1..1).\npg_class.relpages / reltuples are the table-level counters; reltuples = -1 means \"never analyzed\".\nCREATE STATISTICS ... (dependencies, ndistinct) ON a, b FROM t builds a multi-column statistics\nobject, read back from pg_statistic_ext_data.",
@@ -1677,7 +1923,7 @@
     "revision": 1
   },
   {
-    "ordinal": 60,
+    "ordinal": 68,
     "slug": "index-scan-vs-seq-scan-crossover",
     "title": "The crossover: when an index stops being worth it",
     "category": "query-planning",
@@ -1689,7 +1935,7 @@
       "explain"
     ],
     "prerequisites": [
-      59
+      67
     ],
     "overview": "An index is not \"faster\". It is a random-access strategy that wins below some selectivity and loses\nabove it, and the crossover point is a function of how many rows match, how well the heap is\nordered, and what the planner believes about your disks. Here you sweep the selectivity of one\npredicate from 0.1% to 80%, watch the plan change shape, force the losing plan to see what it would\nhave cost, and then move the crossover by changing a single hardware constant.",
     "syntaxBreakdown": "An Index Scan walks the btree and fetches each matching heap tuple immediately: one random page per\nrow, in index order. A Bitmap Index Scan collects all matching TIDs into a bitmap first, then the\nBitmap Heap Scan visits the heap in physical order, once per page - \"Heap Blocks: exact=N\" counts\nthose pages, and \"Recheck Cond\" is re-applied because a lossy bitmap may only remember pages. A Seq\nScan reads every page and filters. enable_seqscan, enable_bitmapscan and enable_indexscan are\nper-session switches that add a huge penalty to a path rather than truly removing it; they are\ndebugging tools, not tuning. random_page_cost is the planner's belief about the cost of a random\npage relative to a sequential one (default 4.0; on SSDs people set 1.1).",
@@ -1706,7 +1952,7 @@
     "revision": 1
   },
   {
-    "ordinal": 61,
+    "ordinal": 69,
     "slug": "join-strategies",
     "title": "Three ways to join, and the memory that decides between them",
     "category": "query-planning",
@@ -1719,7 +1965,7 @@
       "query-planning"
     ],
     "prerequisites": [
-      60
+      68
     ],
     "overview": "PostgreSQL has exactly three join algorithms and they are the same three every database has: nested\nloop (probe the inner side once per outer row), hash join (build a hash table on the smaller side,\nstream the larger through it), merge join (consume both sides in sorted order and zip). Which one\nwins depends on the row estimates from lesson 2 and on work_mem. Here you force all three over the\nsame two tables, read the per-node evidence for each, and then shrink work_mem until the hash table\nno longer fits and the join splits into batches.",
     "syntaxBreakdown": "\"loops=N\" on a node means the node was executed N times, and its \"actual rows\" and \"actual time\"\nare PER LOOP averages - always multiply. A Hash node reports \"Buckets: N  Batches: M  Memory\nUsage: kB\"; Batches > 1 means the build side did not fit in work_mem and both inputs were\npartitioned to temporary files, which show up as \"temp read=/written=\" blocks. Memoize is a cache\nin front of a nested loop's inner side, reporting Hits/Misses/Evictions. enable_nestloop,\nenable_hashjoin, enable_mergejoin and enable_memoize let you force a shape. work_mem is per node\nper execution, not per query and not per backend.",
@@ -1736,7 +1982,7 @@
     "revision": 1
   },
   {
-    "ordinal": 62,
+    "ordinal": 70,
     "slug": "work-mem-spills-to-disk",
     "title": "work_mem: quicksort, top-N heapsort, external merge, and hash spill",
     "category": "query-planning",
@@ -1748,7 +1994,7 @@
       "capacity"
     ],
     "prerequisites": [
-      61
+      69
     ],
     "overview": "work_mem is the single most misunderstood PostgreSQL setting: it is a limit per plan node per\nexecution, not per query and not per connection, and crossing it does not fail - it silently\nswitches the algorithm and starts writing temporary files. Here you run the same sort at three\nmemory sizes, watch it move between three different algorithms, do the same for a hash aggregate,\nand then find the evidence a DBA would actually see: temp_files in pg_stat_database and a line in\nthe server log.",
     "syntaxBreakdown": "\"Sort Method: quicksort  Memory: NkB\" means it all fit. \"top-N heapsort\" is the LIMIT special case:\nonly the best N rows are ever kept, so a huge sort can run in kilobytes. \"external merge  Disk:\nNkB\" means the input was cut into sorted runs written to temporary files and merged. A HashAggregate\nreports \"Planned Partitions: N  Batches: M  Memory Usage: kB  Disk Usage: kB\" when it spills.\ntemp read=/written= in BUFFERS counts 8 kB temp blocks. pg_stat_database.temp_files and temp_bytes\nare cumulative counters per database; log_temp_files = 0 logs every temporary file the session\ncreates, and pg_current_logfile() plus pg_read_file() read the log back without leaving psql.",
@@ -1765,7 +2011,7 @@
     "revision": 1
   },
   {
-    "ordinal": 63,
+    "ordinal": 71,
     "slug": "parallel-query",
     "title": "Parallel query: Gather, workers planned vs launched, and when it hurts",
     "category": "query-planning",
@@ -1778,7 +2024,7 @@
     ],
     "prerequisites": [
       4,
-      58
+      66
     ],
     "overview": "A parallel plan is scatter-gather inside one query: the leader starts N background worker\nprocesses, each scans a disjoint slice of the same table, and a Gather node merges their output.\nThree separate limits decide how many workers you actually get, and the plan tells you when each\none bit. On this single-CPU lab you will also see the honest result: the workers launch, do their\nshare, and the query gets SLOWER.",
     "syntaxBreakdown": "A Gather node collects rows from workers in arrival order; Gather Merge keeps them sorted. \"Workers\nPlanned\" is what the planner asked for, \"Workers Launched\" is what the worker pool actually gave.\nUnder a Gather, loops = launched workers + 1 because the leader also runs the subplan, and actual\nrows is the PER LOOP average. max_parallel_workers_per_gather caps one Gather (0 disables\nparallelism), max_parallel_workers is the cluster-wide pool, max_worker_processes is the hard slot\nlimit fixed at startup. min_parallel_table_scan_size (8MB) is the size below which a scan is not\nworth splitting; parallel_setup_cost (1000) and parallel_tuple_cost (0.1) are the modelled price of\nstarting workers and shipping rows through the queue. A function declared PARALLEL UNSAFE forbids\nparallelism for any query that calls it.",
@@ -1796,7 +2042,7 @@
     "revision": 1
   },
   {
-    "ordinal": 64,
+    "ordinal": 72,
     "slug": "pg-stat-statements-as-tracing",
     "title": "pg_stat_statements: normalized queries as aggregate tracing",
     "category": "query-planning",
@@ -1809,7 +2055,7 @@
     ],
     "prerequisites": [
       3,
-      58
+      66
     ],
     "overview": "EXPLAIN tells you about one query you already suspect. pg_stat_statements tells you which query to\nsuspect. It normalizes every statement into a fingerprint - literals replaced by $1, $2 - and keeps\nrunning totals per fingerprint: calls, total and mean and stddev execution time, rows, and the\nshared-buffer hit and read counts. In this lesson you reset it, run a small workload, rank it, and\nthen find the two ways an aggregate view lies to you: means that hide bimodal distributions, and\nfingerprints that split when they should not.",
     "syntaxBreakdown": "pg_stat_statements requires shared_preload_libraries (already set in this lab) and CREATE EXTENSION.\npg_stat_statements_reset(userid, dbid, queryid) zeroes counters; passing 0 for a parameter means\n\"all\", so reset(0, <this database oid>, 0) leaves other databases alone. Columns: queryid (the\nfingerprint hash), calls, total_exec_time / mean_exec_time / min_exec_time / max_exec_time /\nstddev_exec_time in ms, rows (total rows returned across all calls), shared_blks_hit and\nshared_blks_read, temp_blks_read/written, and total_plan_time (zero unless\npg_stat_statements.track_planning is on). The view holds pg_stat_statements.max entries and evicts\nthe least-used, so a workload with unbounded distinct query texts can push out the entries you\ncare about.",
@@ -1827,7 +2073,7 @@
     "revision": 1
   },
   {
-    "ordinal": 65,
+    "ordinal": 73,
     "slug": "btree-page-anatomy",
     "title": "Open a B-tree: metapage, root, internal pages, leaves",
     "category": "indexes",
@@ -1857,7 +2103,7 @@
     "revision": 1
   },
   {
-    "ordinal": 66,
+    "ordinal": 74,
     "slug": "index-only-scan-needs-visibility-map",
     "title": "Index-only scans: covering the columns is only half of it",
     "category": "indexes",
@@ -1870,7 +2116,7 @@
       "vacuum"
     ],
     "prerequisites": [
-      65,
+      73,
       21
     ],
     "overview": "An index-only scan needs two independent things to be true: the index must contain every column the\nquery touches, and the heap pages behind the entries must be marked all-visible. Break either one\nand the executor goes to the heap. Here you will watch the same 2000-row query cost 8 buffers, then\n1340 buffers when you add a column the index does not carry, then 144 buffers when a plain INSERT\nleaves fresh pages unmarked - three very different queries that all say \"index\" in the plan.",
@@ -1888,7 +2134,7 @@
     "revision": 1
   },
   {
-    "ordinal": 67,
+    "ordinal": 75,
     "slug": "create-index-concurrently-and-invalid-indexes",
     "title": "CREATE INDEX CONCURRENTLY: build, wait, validate, flip",
     "category": "indexes",
@@ -1901,7 +2147,7 @@
       "btree"
     ],
     "prerequisites": [
-      65,
+      73,
       35
     ],
     "overview": "CREATE INDEX takes a lock that blocks every writer for the whole build, so production migrations use\nCREATE INDEX CONCURRENTLY instead. The price is that CIC is not one operation but a small protocol:\ncreate the catalog entry, wait, build, wait, validate, then mark valid. Every one of those waits is\na wait for other people's transactions - and if the statement dies in the middle, the half-built\nindex survives in the catalog with indisvalid = false. In this lesson Session B holds a snapshot\nopen and you watch Session A's build park in \"waiting for old snapshots\" with the index already\nbuilt but not yet usable; then you make a build fail outright and inspect the wreckage.",
@@ -1920,7 +2166,7 @@
     "revision": 1
   },
   {
-    "ordinal": 68,
+    "ordinal": 76,
     "slug": "partial-and-covering-indexes",
     "title": "Index less, or index more: partial and covering indexes",
     "category": "indexes",
@@ -1932,7 +2178,7 @@
       "btree"
     ],
     "prerequisites": [
-      66
+      74
     ],
     "overview": "Two ways to change what an index costs. A partial index stores only the rows matching a predicate -\nhere 1% of the table, for 1/43 of the bytes - but the planner may only use it when it can prove your\nWHERE clause implies that predicate. A covering index (INCLUDE) stores extra columns in the leaf\nentries so the heap never has to be visited, and charges you for them on every insert. You will\nmeasure both: sizes in bytes, and the same query at 1003 buffers and at 6.",
     "syntaxBreakdown": "CREATE INDEX ... WHERE predicate builds a partial index; the planner uses it only if it can prove\nthe query's restrictions imply the predicate (the proof is syntactic, so status = 'pending' implies\nit and status <> 'done' does not). When the proof succeeds the predicate is dropped from the plan,\nso the Index Cond line may disappear entirely.\nCREATE INDEX ... INCLUDE (cols) adds non-key payload columns to leaf tuples only: they cannot be\nsearched or used for ordering, but they can satisfy an index-only scan. Non-key columns do not\nappear on internal pages, so they do not cost fanout.",
@@ -1949,7 +2195,7 @@
     "revision": 1
   },
   {
-    "ordinal": 69,
+    "ordinal": 77,
     "slug": "index-bloat-from-churn",
     "title": "Index bloat is a steady state, and REINDEX is how you leave it",
     "category": "indexes",
@@ -1962,7 +2208,7 @@
       "write-amplification"
     ],
     "prerequisites": [
-      65,
+      73,
       18
     ],
     "overview": "Update an indexed column and the B-tree cannot update in place either: it inserts a new entry, and\nthe old one stays until VACUUM removes it, by which point the page has split. Here you churn the\nsame 100000 rows twice and watch the index double in size while its leaf pages end up less than\nhalf full, then watch the second round of exactly the same churn cost nothing more - bloat\nconverges instead of growing without bound. Then REINDEX CONCURRENTLY packs it back down, into a\nnew file.",
@@ -1980,7 +2226,7 @@
     "revision": 1
   },
   {
-    "ordinal": 70,
+    "ordinal": 78,
     "slug": "unique-index-enforcement-under-concurrency",
     "title": "Uniqueness is a B-tree property: a partial unique index as a lease",
     "category": "indexes",
@@ -1994,7 +2240,7 @@
     ],
     "prerequisites": [
       38,
-      68
+      76
     ],
     "overview": "A UNIQUE constraint has no storage of its own: it is a row in pg_constraint pointing at a unique\nB-tree index, and the index is what actually decides. Because the decision lives in the index, it\ncan be scoped by a predicate - a partial unique index enforces \"at most one active row per\nresource\", which is a single-holder lease. Here two sessions both check that a shard is free, both\ntry to claim it, and the index - not the check - is what stops the second one.",
     "syntaxBreakdown": "pg_constraint.conindid is the index that implements a unique or primary key constraint;\npg_index.indisunique marks the index itself, and pg_get_expr(indpred, indrelid) prints a partial\nindex's predicate. A unique index without a constraint enforces exactly the same rule; only the\ncatalog bookkeeping differs. CREATE UNIQUE INDEX ... WHERE predicate makes the rule conditional:\nrows outside the predicate are not in the index and are not constrained by it.\nGENERATED ALWAYS AS IDENTITY draws from a sequence, which is not transactional.",
@@ -2011,7 +2257,7 @@
     "revision": 1
   },
   {
-    "ordinal": 71,
+    "ordinal": 79,
     "slug": "wait-events-tell-you-where-time-goes",
     "title": "Wait events: where a backend's time actually goes",
     "category": "observability",
@@ -2041,7 +2287,7 @@
     "revision": 1
   },
   {
-    "ordinal": 72,
+    "ordinal": 80,
     "slug": "pg-stat-io-by-backend-type",
     "title": "pg_stat_io: who reads, who writes, who extends",
     "category": "observability",
@@ -2071,7 +2317,7 @@
     "revision": 1
   },
   {
-    "ordinal": 73,
+    "ordinal": 81,
     "slug": "connection-saturation",
     "title": "Run out of connections and watch the door close",
     "category": "observability",
@@ -2084,7 +2330,7 @@
     ],
     "prerequisites": [
       4,
-      71
+      79
     ],
     "overview": "max_connections is not a tuning knob, it is a hard capacity limit backed by an array of shared\nmemory slots sized at postmaster startup. When it is reached the server does not queue you, does\nnot slow down and does not degrade gracefully: it closes the socket with a FATAL before you have\neven authenticated. That is the failure mode you need to have seen once, because the first thing\nyou try during the incident - opening a psql to look at pg_stat_activity - is exactly the thing\nthat fails.\n\nYou will lower max_connections to 15, restart, open connections in a loop until the server\nrefuses, and read the two different refusals PostgreSQL has: one for ordinary roles, when the\nlast superuser_reserved_connections slots are gone, and one for everybody, when nothing is left\nat all. Then you put the setting back.",
     "syntaxBreakdown": "max_connections has context = postmaster: shared memory is sized from it at startup, so ALTER\nSYSTEM SET must be followed by a full restart, not pg_reload_conf(). pg_ctl restart -m fast -w\nstops with a shutdown checkpoint, waits, and starts again. superuser_reserved_connections (3 by\ndefault) carves the last few slots out for roles with SUPERUSER, so an operator can still get in\nafter the application has eaten the pool; PostgreSQL 16 phrases that refusal as \"remaining\nconnection slots are reserved for roles with the SUPERUSER attribute\", and only when even those\nare gone does it say \"sorry, too many clients already\". Both are FATAL, both are logged with the\nrole and database in the line prefix, and neither is retryable by the connection itself.\npg_stat_activity counts what is currently connected, so\ncount(*) filter (where backend_type = 'client backend') is your live utilisation.",
@@ -2101,7 +2347,7 @@
     "revision": 1
   },
   {
-    "ordinal": 74,
+    "ordinal": 82,
     "slug": "idle-in-transaction-kills-you",
     "title": "Timeouts: idle in transaction, and statements that never end",
     "category": "observability",
@@ -2113,7 +2359,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      71,
+      79,
       34
     ],
     "overview": "An open transaction that nobody is using is the most expensive idle object in a PostgreSQL\ncluster. It pins the xmin horizon so VACUUM cannot clean anything newer, it holds every lock it\ntook, and it occupies a connection slot - all while the server waits on Client:ClientRead for a\nclient that may have gone to lunch or died behind a load balancer. PostgreSQL's answer is not\npoliteness: idle_in_transaction_session_timeout terminates the whole connection with a FATAL.\n\nYou will watch a session get killed mid-transaction, confirm from the other session that its\nlocks and its xmin horizon were released, then meet the gentler sibling, statement_timeout, which\ncancels a single statement with an ERROR and leaves the session alive.",
@@ -2131,7 +2377,7 @@
     "revision": 1
   },
   {
-    "ordinal": 75,
+    "ordinal": 83,
     "slug": "table-and-index-usage-counters",
     "title": "Per-table counters: seq scans, index scans, and the unused index",
     "category": "observability",
@@ -2143,8 +2389,8 @@
       "buffer-cache"
     ],
     "prerequisites": [
-      60,
-      72
+      68,
+      80
     ],
     "overview": "pg_stat_io told you what the cluster did. pg_stat_user_tables tells you what each table did, and\nit answers the two questions you ask first about a schema you did not write: which tables are\nbeing sequentially scanned in a loop, and which indexes has nobody used since the server started.\n\nHere you reset the counters for one table, run a workload you can count from memory - four seq\nscans, a thousand index lookups, some inserts, updates and deletes - and check that every counter\nequals what you did. Then you read the cache-hit side of the same story in pg_statio_user_tables,\nand confirm that the index nobody queries has idx_scan = 0, which is how you find dead indexes\nthat cost you write amplification for nothing.",
     "syntaxBreakdown": "pg_stat_user_tables: seq_scan / seq_tup_read (sequential scans and the rows they returned),\nidx_scan / idx_tup_fetch, n_tup_ins / n_tup_upd / n_tup_del / n_tup_hot_upd, n_live_tup and\nn_dead_tup (estimates maintained by the same counters, and the inputs autovacuum thresholds are\ncomputed from), plus last_vacuum / last_autovacuum / vacuum_count. pg_stat_user_indexes breaks\nidx_scan down per index. pg_statio_user_tables reports heap_blks_read (had to go to the OS) vs\nheap_blks_hit (found in shared buffers), and the same pair for indexes and TOAST.\npg_stat_reset_single_table_counters(oid) zeroes one table's row - always prefer it to\npg_stat_reset(), which throws away the whole database's history including autovacuum's inputs.\nStatistics are accumulated per backend and flushed to shared memory at transaction end, no more\nthan once a second, so a counter can lag a statement you just ran; end the transaction and wait a\nsecond before reading. Within one transaction a backend also caches its view of the stats\n(stats_fetch_consistency = cache), and pg_stat_clear_snapshot() discards that cache.",
@@ -2161,7 +2407,7 @@
     "revision": 1
   },
   {
-    "ordinal": 76,
+    "ordinal": 84,
     "slug": "read-the-server-log",
     "title": "The server log is the ground truth for a postmortem",
     "category": "observability",
@@ -2174,7 +2420,7 @@
     ],
     "prerequisites": [
       48,
-      74
+      82
     ],
     "overview": "Statistics views tell you what is true now. The log tells you what was true at 03:14 last\nTuesday, which is the only question a postmortem ever asks. PostgreSQL will write a line for\nevery lock wait longer than deadlock_timeout, every statement slower than a threshold you choose,\nevery checkpoint, every connection failure and every slow autovacuum - but most of that is off by\ndefault, so the log you find during an incident is the log you configured before it.\n\nIn this lesson you set those thresholds for your session, cause each phenomenon deliberately, and\nthen read your own log lines back from inside psql. By the end you can look at four lines of text\nand reconstruct which backend waited for which transaction, for how long, and on which row.",
     "syntaxBreakdown": "log_line_prefix defines the columns of every line; this lab uses \"%m [%p] %u@%d \" - timestamp\nwith milliseconds, PID in brackets, user@database. Add %a (application_name) and %x (transaction\nid) in production. log_lock_waits (superuser, on in this lab) logs a \"still waiting\" line for any\nheavyweight lock held longer than deadlock_timeout and an \"acquired\" line when the wait ends, so\ndeadlock_timeout doubles as the lock-logging threshold. log_min_duration_statement logs any\nstatement slower than N ms together with its text; 0 logs everything, -1 disables. Both are\nsettable per session, per role and per database with SET / ALTER ROLE ... SET / ALTER DATABASE\n... SET, which is the right granularity: log every statement for one reporting role without\ndrowning the OLTP path. log_checkpoints (on here) prints a starting and a complete line per\ncheckpoint. pg_read_file(path, offset, length) reads a file relative to the data directory, so\n(pg_stat_file('log/postgresql.log')).size captured before the experiment gives you an offset to\nread from, and regexp_split_to_table(..., chr(10)) turns the tail into rows you can filter with\nSQL.",
@@ -2191,7 +2437,7 @@
     "revision": 1
   },
   {
-    "ordinal": 77,
+    "ordinal": 85,
     "slug": "transactional-outbox",
     "title": "Transactional outbox: one commit for the row and the message",
     "category": "distributed-patterns",
@@ -2222,7 +2468,7 @@
     "revision": 1
   },
   {
-    "ordinal": 78,
+    "ordinal": 86,
     "slug": "idempotency-keys",
     "title": "Idempotency keys: make the retry a no-op, not a second charge",
     "category": "distributed-patterns",
@@ -2235,7 +2481,7 @@
     ],
     "prerequisites": [
       38,
-      77
+      85
     ],
     "overview": "A client that does not get an answer must retry, and it cannot tell \"the request never arrived\"\nfrom \"the answer was lost\". So the server has to make the second request harmless. The whole\nmechanism is a unique index on a key the client chooses plus ON CONFLICT DO NOTHING, which turns\n\"this already happened\" from an error into zero rows. You will run the retry three ways - the naive\nINSERT that errors, the idempotent one that no-ops, and the read-back that returns the original\nanswer - and then race two retries concurrently to watch the second one wait on the first\ntransaction's fate before it learns it lost.",
     "syntaxBreakdown": "A PRIMARY KEY or UNIQUE constraint on the idempotency key is what makes the pattern work; ON\nCONFLICT (col) DO NOTHING needs that arbiter index and does nothing when it fires. RETURNING is\nessential: it is the only way to distinguish \"I inserted it\" (one row) from \"somebody already had\"\n(zero rows), because psql runs with -q here and suppresses command tags. A data-modifying CTE\n(WITH ins AS (INSERT ... RETURNING ...)) is executed exactly once no matter how often you reference\nit, which is what lets one statement mean \"insert if new, otherwise fetch the existing answer\".\nERRCODE 23505 is unique_violation, the error the naive version raises.",
@@ -2252,7 +2498,7 @@
     "revision": 1
   },
   {
-    "ordinal": 79,
+    "ordinal": 87,
     "slug": "two-phase-commit",
     "title": "Two-phase commit: a transaction with no process",
     "category": "distributed-patterns",
@@ -2267,7 +2513,7 @@
     "prerequisites": [
       43,
       16,
-      78
+      86
     ],
     "overview": "PREPARE TRANSACTION splits COMMIT in half. The first half does everything a commit does except\nbecome visible: it writes the changes to WAL, fsyncs them, keeps every lock, and then detaches the\nwhole thing from your session. What is left is a transaction with no backend, no connection and no\ntimeout, sitting in pg_prepared_xacts until somebody says COMMIT PREPARED or ROLLBACK PREPARED.\nThat is exactly the guarantee an external coordinator needs to run 2PC across several databases -\nand exactly the operational hazard, because a coordinator that dies leaves a transaction that holds\nlocks and pins the xmin horizon forever. You will build one, watch it block a writer, watch it\nstall VACUUM, kill the server underneath it, find it still there after recovery, and finally\nresolve it.\n\nThe feature is off by default: max_prepared_transactions is 0 on a stock cluster, and it is a\npostmaster-level setting, so turning it on needs a restart, not a reload. The lab's postgresql.conf\nfrom module 01 already sets it to 10; the first block changes it anyway so you can watch a config\nreload fail to take effect.",
     "syntaxBreakdown": "PREPARE TRANSACTION 'gid' ends the current transaction block and leaves a prepared transaction\nnamed by that global identifier. COMMIT PREPARED 'gid' and ROLLBACK PREPARED 'gid' resolve it from\nany session. pg_prepared_xacts lists gid, prepared (the timestamp), owner, database and transaction\n(the xid). In pg_locks a prepared transaction's locks have pid = NULL and a virtualtransaction of\n-1/xid, where backend id -1 means \"no backend\". ALTER SYSTEM writes postgresql.auto.conf;\npg_reload_conf() sends SIGHUP, after which pg_settings.pending_restart tells you the value on disk\ndiffers from the running one. VACUUM (VERBOSE) prints \"N are dead but not yet removable\" and a\n\"removable cutoff\", which is the cluster's xmin horizon. pg_ctl stop -m immediate is the crash;\nrecovery logs \"recovering prepared transaction N from shared memory\".",
@@ -2285,7 +2531,7 @@
     "revision": 1
   },
   {
-    "ordinal": 80,
+    "ordinal": 88,
     "slug": "optimistic-concurrency-with-version-columns",
     "title": "Optimistic concurrency: zero rows updated is the conflict",
     "category": "distributed-patterns",
@@ -2298,7 +2544,7 @@
     ],
     "prerequisites": [
       26,
-      78
+      86
     ],
     "overview": "Two editors read the same document, both edit, both save. Under read committed the second write\nsimply overwrites the first and nobody finds out - the lost update you caused in module 05. The\noptimistic fix costs one integer: carry the version you read into the WHERE clause of the write. If\nsomebody got there first the predicate no longer matches, the UPDATE affects zero rows, and zero\nrows is the conflict signal your application retries on. You will cause both halves - the\noptimistic version where the loser learns it lost, and the pessimistic FOR UPDATE version where the\nloser waits instead - and see the read-committed detail that makes the guard work at all: a blocked\nUPDATE re-evaluates its WHERE clause against the row the other transaction committed.",
     "syntaxBreakdown": "UPDATE ... WHERE id = ? AND version = ? RETURNING is the whole pattern, and RETURNING is what makes\n\"zero rows\" observable (psql runs with -q, so the UPDATE 0 command tag is suppressed). Under READ\nCOMMITTED, an UPDATE that finds a row locked by another transaction waits, and once that\ntransaction commits it re-reads the NEW row version and re-checks the WHERE clause - the\nEvalPlanQual (EPQ) recheck, and the reason version = 1 stops matching. SELECT ... FOR UPDATE is the\npessimistic alternative: it takes the row lock during the read, so the second reader blocks before\nit has even decided what to write.",
@@ -2315,7 +2561,7 @@
     "revision": 1
   },
   {
-    "ordinal": 81,
+    "ordinal": 89,
     "slug": "fencing-tokens-with-a-monotonic-counter",
     "title": "Fencing tokens: why a lease alone is not mutual exclusion",
     "category": "distributed-patterns",
@@ -2329,7 +2575,7 @@
     ],
     "prerequisites": [
       36,
-      80
+      88
     ],
     "overview": "The advisory-lock lease in module 06 had a hole: the lock dies when the session dies, but the\nprocess holding it does not necessarily know. A worker that is GC-paused, swapped out, or on the\nwrong side of a network partition can wake up believing it is still the leader and write. The lock\nmanager cannot stop it, because by then the lock belongs to somebody else and the old holder is\njust another client with a valid connection. The fix is not a better lock: it is to make every\nwrite carry the token it was authorised with, and to have the storage refuse tokens it has already\nmoved past. You will play both workers, cause the stale write, watch the guard reject it, then\nremove the guard and watch the same write silently win.",
     "syntaxBreakdown": "The lease table holds one row per resource with a monotonically increasing epoch; acquiring the\nlease is UPDATE ... SET epoch = epoch + 1 RETURNING epoch, which is atomic and hands the winner a\nnumber nobody else will ever get. Every write then carries that number: UPDATE ... WHERE\nepoch <= :mine, so a token older than the one already recorded matches nothing - zero rows, the\nsame conflict signal as the previous lesson. pg_try_advisory_xact_lock(hashtext(resource)) gives\nshort-term mutual exclusion around the acquisition itself. A BEFORE UPDATE trigger that raises when\nNEW.epoch < OLD.epoch moves the guard out of the writer and into the storage so a writer cannot\nforget it; RAISE EXCEPTION ... USING ERRCODE = 'check_violation' gives it SQLSTATE 23514.",
@@ -2346,7 +2592,7 @@
     "revision": 1
   },
   {
-    "ordinal": 82,
+    "ordinal": 90,
     "slug": "read-your-writes-on-a-replica",
     "title": "Read your writes: carry an LSN from the primary to the replica",
     "category": "distributed-patterns",
@@ -2358,8 +2604,8 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      54,
-      80
+      62,
+      88
     ],
     "overview": "The cheapest way to scale reads is to send them to a replica, and the first bug it causes is always\nthe same: a user saves a change, the redirect issues a read, the read lands on a replica that has\nnot applied it yet, and the change appears to have been lost. Eventual consistency is not the\nproblem - the problem is that the client has no way to say \"I need at least the state I already\nsaw\". The fix is a session token: take the write position from the primary, carry it with the\nrequest, and make the replica wait until it has applied at least that position before answering.\n\nThe lab has no standby yet (module 09 builds one), so you will do the same handshake with logical\nreplication between the lab database and a second database, lab_rr, in this same cluster. The token\nis an LSN either way, and so is the comparison; the only difference is that a physical standby\nreports its position as pg_last_wal_replay_lsn() while a logical subscriber reports it as the\nremote_lsn of its replication origin. You will deliberately stop the replica, observe the stale\nread, and then watch the LSN comparison flip from false to true at exactly the moment the row\nappears.",
     "syntaxBreakdown": "pg_current_wal_lsn() is the primary's write position; captured with \\gset it becomes a psql\nvariable, and psql variables survive \\c - which is exactly what a real client does when it carries\nthe LSN from its write connection to its read connection. On the subscriber,\npg_replication_origin_status reports external_id (the origin name, pg_ plus the subscription's oid)\nand remote_lsn, how far into the publisher's WAL this subscriber has durably applied. LSNs are the\npg_lsn type and compare with the ordinary operators, so remote_lsn >= :'write_lsn'::pg_lsn is the\nwhole staleness check. ALTER SUBSCRIPTION ... DISABLE / ENABLE stops and restarts the apply worker\nwithout dropping the slot, so the replica falls behind on demand. As in module 10, the pgoutput\nslot is created by hand and the subscription is told create_slot = false: inside one cluster,\nletting CREATE SUBSCRIPTION create its own slot deadlocks against its own transaction.",
@@ -2377,7 +2623,7 @@
     "revision": 1
   },
   {
-    "ordinal": 83,
+    "ordinal": 91,
     "slug": "listen-notify-as-a-bus",
     "title": "LISTEN/NOTIFY: a bus with no memory",
     "category": "distributed-patterns",
@@ -2390,7 +2636,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      77
+      85
     ],
     "overview": "LISTEN/NOTIFY is the one piece of pub/sub built into PostgreSQL, and it is genuinely useful: it\nremoves the polling loop from the outbox relay you built in the first lesson. It is also the most\nfrequently misused feature in the database, because it looks like a message queue and is not one.\nIn this lesson you establish the two properties that decide where it belongs: delivery happens at\nCOMMIT, in the same instant the data becomes visible, and delivery reaches only whoever is\nlistening at that instant. Nothing is stored. A listener that is disconnected, restarting, or\nsimply not subscribed yet misses the message permanently, and there is no offset, no\nacknowledgement and no redelivery.",
     "syntaxBreakdown": "LISTEN channel subscribes the session; UNLISTEN channel (or UNLISTEN *) stops it; NOTIFY channel,\n'payload' queues a notification for the current transaction. Notifications are delivered only when\nthat transaction commits, and identical (channel, payload) pairs within one transaction are\ncollapsed into a single delivery. psql prints each one as an \"Asynchronous notification ... received\nfrom server process with PID n\" line the next time it processes something, which is why the\nlistener runs a dummy query to check for mail. pg_notify(channel, payload) is the function form,\nusable from a trigger. pg_notification_queue_usage() returns the fraction of the fixed, cluster-wide\nasync queue currently in use - the number that climbs when a listener stops consuming.",

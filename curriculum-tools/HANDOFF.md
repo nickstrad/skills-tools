@@ -1,6 +1,6 @@
 # Handoff: PostgreSQL systems curriculum + general tutor engine
 
-Last updated: 2026-09-03 11:32 UTC. **Update this file after every module and before any risky
+Last updated: 2026-09-03 12:02 UTC. **Update this file after every module and before any risky
 step.**
 
 ## What the user asked for
@@ -48,6 +48,12 @@ python3 -c "import json;print(json.load(open('/root/Software/skills-tools/curric
 su - postgres -c 'bash /tmp/lesson1.sh'
 cd /root/Software/skills-tools/curriculum-tools && deno run -A tools/validate.ts postgres 3   # reinstalls extensions
 ```
+
+Archive growth: `archive_mode = on` keeps every WAL segment in `$PGLAB/archive` forever. When disk
+gets tight, delete everything older than the newest base backup's start segment (from
+`$PGLAB/backup1/backup_label`, "START WAL LOCATION ... (file X)"):
+`su - postgres -c 'export PATH=/usr/lib/postgresql/16/bin:$PATH; pg_archivecleanup $HOME/pglab/archive X'`
+(done 2026-09-03 11:35 with X=0000000100000000000000A3: 6.2 GB -> 3.6 GB).
 
 Machine limits: was 1 CPU / ~960 MB RAM when modules 01-07 were written; on 2026-09-03 01:45 the
 droplet reports 4 CPUs, 8 GB RAM, ~11 GB disk free. Docker is installed for scripts/docker/test.sh
@@ -102,13 +108,13 @@ changed from the spec and why.
 | 06 | 06-locking.ts       | locks, queues, deadlocks, DDL                               | 8       | DONE, subagent-validated, Fable re-ran deadlock/lock-queue/ddl-behind-long-query OK (23:45)                                                                                               |
 | 07 | 07-wal.ts           | WAL records, durability, crash redo                         | 7       | DONE; Fable re-ran 4 harness lessons OK 01:35 (crash/pg_waldump/pgbench lessons validated by hand by the subagent; crash lesson needs Session B commit to force the ghost record to disk) |
 | 08 | 08-checkpoints.ts   | checkpoints, recovery, PITR                                 | 6       | DONE; Fable re-ran anatomy/max-wal-size/timeline OK 01:55. Leaves $PGLAB/backup1 (330 MB) for module 09; archive is 2.7 GB and growing (archive_mode on), watch `df`                      |
-| 09 | 09-replication.ts   | physical streaming replication, failover                    | 8       | IN PROGRESS (opus subagent, standby on 5441 under $PGLAB/standby, started 11:32)                                                                                                          |
+| 09 | 09-replication.ts   | physical streaming replication, failover                    | 8       | DONE; Fable rebuilt the standby from lesson 52 and re-ran lag/conflict OK 12:00, then removed it. Primary is now on timeline 3 (promote + rewind + failback)                              |
 | 10 | 10-logical.ts       | logical decoding, CDC, pub/sub                              | 6       | DONE; Fable re-ran decode/pubsub/slot-lag OK 01:05 (lesson 6 switched to lg_orders so it does not depend on lesson 4 state)                                                               |
 | 11 | 11-planner.ts       | planner, statistics, execution                              | 7       | DONE; Fable re-ran stats/spill/parallel OK 01:02                                                                                                                                          |
 | 12 | 12-indexes.ts       | btree internals, concurrent builds, bloat                   | 6       | DONE; Fable re-ran cic/bloat OK 01:00 (lesson 3 uses 3 sessions: RR snapshot cannot see the new pg_index row)                                                                             |
 | 13 | 13-observability.ts | wait events, pg_stat_io, capacity                           | 6       | DONE; Sonnet validated + corrected expected results (pg_stat_io needs parallel query off, idx_tup_fetch small because of index-only scans), Fable re-ran 3 lessons OK                     |
 | 14 | 14-patterns.ts      | distributed patterns: outbox, queues, 2PC, fencing          | 7       | DONE; Fable re-ran outbox/OCC/fencing/notify OK 11:30 (2PC lesson single-session with 3 restarts; read-your-writes uses logical replication to lab_rr)                                    |
-| 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | ~5      | TODO (cluster-level, serial)                                                                                                                                                              |
+| 15 | 15-incidents.ts     | capstone incidents: slot fills disk, corruption, wraparound | 5       | IN PROGRESS (opus subagent, cluster-level, started 12:02)                                                                                                                                 |
 
 ## Ship (after all modules validated)
 
@@ -121,7 +127,8 @@ changed from the spec and why.
    `~/.codex/skills/pg-systems-tutor` symlink (it points at the 100-lesson tool).
 4. Refine `skills/curriculum-author/SKILL.md` with what the postgres pass taught (harness tips,
    subagent workflow), and install it too.
-5. Final handoff update.
+5. Final commit: delete this HANDOFF.md from the repo (user request); the README and docs are the
+   durable documentation.
 
 ## Decisions and constraints
 
