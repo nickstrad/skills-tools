@@ -95,12 +95,25 @@ class Session {
   }
   async send(text: string, wait: boolean, step: number): Promise<boolean> {
     const marker = `__STEP_${step}_DONE__`;
-    const done = new Promise<void>((resolve) => this.waiters.push({ marker, resolve }));
+    let waiter!: { marker: string; resolve: () => void };
+    const done = new Promise<void>((resolve) => {
+      waiter = { marker, resolve };
+      this.waiters.push(waiter);
+    });
     const echo = repl.echo.replace("{marker}", marker);
     await this.writer.write(new TextEncoder().encode(`${text}\n${echo}\n`));
     if (!wait) return true;
-    const timer = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeoutMs));
-    return await Promise.race([done.then(() => true), timer]);
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+    const timer = new Promise<boolean>((resolve) => {
+      timerId = setTimeout(() => resolve(false), timeoutMs);
+    });
+    const completed = await Promise.race([done.then(() => true), timer]);
+    if (timerId !== undefined) clearTimeout(timerId);
+    if (!completed) {
+      const i = this.waiters.indexOf(waiter);
+      if (i >= 0) this.waiters.splice(i, 1);
+    }
+    return completed;
   }
   async close() {
     try {

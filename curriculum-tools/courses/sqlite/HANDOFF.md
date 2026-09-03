@@ -13,6 +13,7 @@ and a scoped git commit that includes this handoff file.
 
 ## Completed
 
+- Checkpoint `dbac358` records this plan/handoff and the safe SQLite REPL wrapper/config.
 - Course-local REPL wrapper at `bin/sqlite-repl`:
   - opens the database selected by `TUTOR_SQLITE_DB`;
   - requires an absolute path to a `.db` below a writable existing directory;
@@ -21,13 +22,25 @@ and a scoped git commit that includes this handoff file.
   - validation: accepted a unique `/tmp/.../valid.db`; rejected unset, relative, `/danger.db`, and
     symlink paths with the expected nonzero exits. `sh -n` and Deno formatting passed.
 - The implementation plan is recorded in `PLAN.md`.
+- Validation-harness timeout cleanup:
+  - `tools/validate.ts` now cancels a successful step's pending timeout and removes a timed-out
+    waiter;
+  - this was a demonstrated engine defect: one successful SQLite lesson printed completion but the
+    process remained alive for 30.19 seconds;
+  - after the fix the same real lesson exits in 0.33 seconds;
+  - `deno check tools/validate.ts` and all 9 `deno task test` tests pass.
 
 ## In progress
 
-- Luna/high authoring stream: modules 01-03 (`01-lab-file.ts`, `02-pages.ts`, `03-journals.ts`).
-- Luna/high authoring stream: modules 04-06 (`04-concurrency.ts`, `05-wal.ts`, `06-recovery.ts`).
-- Luna/high authoring stream: modules 07-09 (`07-performance.ts`, `08-local-systems.ts`,
-  `09-capstone.ts`).
+- All 48 lessons have an author draft and `deno task build sqlite` currently succeeds.
+- Modules 01-03 are in runtime correction after validation found SQLite has no `.close` command; the
+  lesson must switch to `:memory:` before inspecting the closed file. Safe lessons 2-13 otherwise
+  produced the planned page, B-tree, overflow, freelist, journal, and isolation evidence.
+- Modules 04-06 passed all safe harness runs. Their final correction is capability-aware recovery:
+  this SQLite build advertises `.recover` but reports `no such table: sqlite_dbpage`; the lesson now
+  records that fact and falls back to partial `.dump` salvage. Dangerous rerun is pending.
+- Modules 07-09 are in correction after independent review found the WAL incident did not actually
+  grow the WAL and the offline capstone did not yet prove two-replica convergence.
 - Nine-file module topology and `curriculum/mod.ts` registration exist in the working tree but are
   not complete or committed yet because the lesson batches are still being authored.
 - Main-agent integration review has already required:
