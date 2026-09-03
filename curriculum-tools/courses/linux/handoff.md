@@ -28,8 +28,8 @@
 | Scaffold and fixed-slug plan | primary | verified | `courses/linux/*` |
 | Modules 1-3 | Luna/high `modules_01_03` + primary review | verified | module files 01-03 |
 | Modules 4-6 | Luna/high `modules_04_06` + primary review | verified | module files 04-06 |
-| Modules 7-9 | Luna/high `modules_07_09` | active | module files 07-09 |
-| Modules 10-12 | Luna/high `modules_10_12` | active | module files 10-12 |
+| Modules 7-9 | Luna/high `modules_07_09` + primary review | verified | module files 07-09 |
+| Modules 10-12 | Luna/high `modules_10_12` | authored; primary review pending | module files 10-12 |
 
 ## Validation evidence
 
@@ -61,6 +61,12 @@
 - Privileged lessons 34-36 passed serially: tmpfs reported 32 MiB total/8 MiB used; bounded ext4
   returned ENOSPC with zero free bytes; deleted-open space rose from 12,283,904 to 24,866,816 bytes
   only after close. Post-run checks found no lab mount, loop device, process, or file.
+- Modules 7-9: all 15 unprivileged lessons passed primary validation. Evidence included 4096 then 0
+  minor faults, 146152-vs-18236 KiB VSZ/RSS, four bounded runnable workers, niceness 0-vs-10 on CPU
+  0, exact affinity, idle I/O class, RLIMIT_FSIZE at 1 MiB, CPU-limit status 137, and cgroup2fs.
+- Privileged lessons 41, 42, and 54 passed serially after correction: `memory.high` events rose
+  0→699 below a 96 MiB max, the 64 MiB cgroup recorded one local OOM kill with child status 137,
+  and the 8-PID group recorded four `pids.max` events. Every exact cgroup was removed.
 
 ## Active lab resources
 
@@ -79,6 +85,14 @@
   readiness, changed atomic rename reads from 3000 child processes to Bash `read`, and made writes
   inside root-owned lab mounts use exact `sudo -n` operations. Lessons 34-36 then passed serially and
   cleanup checks confirmed no `tmpfs-$UID`, `full-mount-$UID`, or `recover-mount-$UID` remained.
+- Primary review of modules 7-9 made cgroup paths derive from the discovered cgroup2 mount, added a
+  48 MiB `memory.high` threshold and event assertion below the 96 MiB maximum, disabled swap for the
+  bounded OOM domain, and made the CPU-limit assertion reject watchdog-only termination. Before
+  privileged validation, confirm no `linux-tutor-$UID-*` cgroup exists.
+- The first reclaim run observed 563 high events but timed out because the throttled helper was
+  awaited. Its exact cgroup was still populated; primary used only that cgroup's `cgroup.kill`,
+  removed its two marker files and group, then changed all cgroup lessons to kill/reap bounded
+  helpers and remove their exact group before reporting cleanup. The corrected run finished in 3.7s.
 
 ## Commits and pushes
 
