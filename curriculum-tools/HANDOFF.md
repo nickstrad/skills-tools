@@ -138,8 +138,9 @@ changed from the spec and why.
 ## Resume checklist
 
 1. `cd /root/Software/skills-tools && git status && git log --oneline | head` (all verified modules
-   are committed and pushed; only this file should be untracked, and it is in .git/info/exclude so
-   it is never committed -- the user does not want it in the repo).
+   and this file are committed and pushed after each batch; on a new machine clone the repo to
+   /root/Software/skills-tools, install Deno 2 and PostgreSQL 16 + contrib, and rebuild the lab per
+   "The lab" before validating anything).
 2. `cd curriculum-tools && /root/.deno/bin/deno task check && /root/.deno/bin/deno task test`.
 3. `su - postgres -c 'pg_isready -h /tmp -p 5440'`; if down, first try
    `su - postgres -c 'export PATH=/usr/lib/postgresql/16/bin:$PATH; pg_ctl -D $HOME/pglab/primary -l $HOME/pglab/primary.log start -w'`
@@ -148,4 +149,4 @@ changed from the spec and why.
    more than the 9-line stub and whether it builds; finish/validate it before the next one.
 5. Remaining serial order: 07 -> 08 -> 13 -> 14 -> 09 -> 15, then "Ship".
 6. After each verified module: update the status table here, then
-   `git add curriculum-tools && git commit && git push` (never add this file).
+   `git add curriculum-tools && git commit && git push`.
