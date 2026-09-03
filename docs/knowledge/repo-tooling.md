@@ -5,7 +5,7 @@ Where the tools are, which checks to run, and the test rigs that exist. Last upd
 ## What happened
 
 - `deno` is installed at `/root/.deno/bin/deno` and is not on `PATH` for non-login shells.
-  Every `deno task ...` must run from `curriculum-tools/` (or `pg-systems-tutor/`).
+  Every `deno task ...` must run from `curriculum-tools/`.
 - `deno task check` runs `fmt --check` over the whole engine, so one unformatted file in any
   course fails the check for everyone. During the Linux course build this made another
   session's `deno task check` fail for hours.

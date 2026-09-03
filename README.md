@@ -26,19 +26,6 @@ courses.
   and complete Linux Systems course (72 lessons in 12 modules)
 - Per-course wrapper skills under `courses/<course>/skill/`
 
-### `pg-systems-tutor/`
-
-The original standalone PostgreSQL curriculum and progress tracker.
-
-- Dedicated CLI: `bin/pgtutor <command>`
-- Complete 100-lesson dataset in `data/lessons.json`
-- Codex skill under `skill/pg-systems-tutor/`
-- CLI and skill tests
-
-The standalone project remains useful as the complete original curriculum. The
-generalized engine is the path for authoring new courses and the newer
-experiment-driven PostgreSQL curriculum.
-
 ## Requirements
 
 - Deno 2
@@ -62,10 +49,6 @@ cd ~/Software/skills-tools
 ./curriculum-tools/bin/tutor linux init
 ./curriculum-tools/bin/tutor linux modules
 ./curriculum-tools/bin/tutor linux pretty 1
-
-# Standalone PostgreSQL tutor
-./pg-systems-tutor/bin/pgtutor init
-./pg-systems-tutor/bin/pgtutor pretty
 ```
 
 Use `--db PATH` with course commands when you want isolated progress. Displaying
@@ -87,8 +70,6 @@ ln -sfn /root/Software/skills-tools/curriculum-tools/courses/sqlite/skill/sqlite
   ~/.codex/skills/sqlite-tutor
 ln -sfn /root/Software/skills-tools/curriculum-tools/courses/linux/skill/linux-tutor \
   ~/.codex/skills/linux-tutor
-ln -sfn /root/Software/skills-tools/pg-systems-tutor/skill/pg-systems-tutor \
-  ~/.codex/skills/pg-systems-tutor
 ```
 
 If the repository is cloned elsewhere, replace `/root/Software/skills-tools` in
@@ -113,10 +94,6 @@ deno task build postgres
 deno task build linux
 deno task check
 deno task test
-
-cd ../pg-systems-tutor
-deno task check
-deno task test
 ```
 
 See `curriculum-tools/docs/AUTHORING.md` for the lesson contract and pedagogy,
@@ -130,7 +107,6 @@ skills-tools/
 ├── scripts/                machine bootstrap (lab-setup.sh) and utilities
 ├── curriculum-tools/       generalized engine, courses, authoring skill, and validation tools
 ├── docs/knowledge/         findings for future agents; read the index before starting work
-├── pg-systems-tutor/       standalone PostgreSQL CLI, 100 lessons, and skill
 ├── .gitignore              excludes runtime state, secrets, logs, and editor files
 └── README.md
 ```

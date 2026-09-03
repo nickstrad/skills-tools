@@ -1,7 +1,0 @@
-interface:
-  display_name: "PostgreSQL Systems Tutor"
-  short_description: "Practice PostgreSQL internals with tracked progress"
-  default_prompt: "Use $pg-systems-tutor to show my next unfinished PostgreSQL systems lesson."
-
-policy:
-  allow_implicit_invocation: true
