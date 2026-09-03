@@ -65,7 +65,17 @@ pg_wal/, transaction status in pg_xact/, and control metadata in global/pg_contr
 it lets you treat the database like any other stateful service you might operate: something you
 can kill, copy, replay, and replicate rather than a black box behind a connection string.`,
       caution: code`
-This is a throwaway cluster. If port 5440 is taken, change it consistently in every lesson.`,
+This is a throwaway cluster. If port 5440 is taken, change it consistently in every lesson.
+
+archive_mode = on means every finished 16 MB WAL segment is copied into $PGLAB/archive and never
+deleted: the course needs that copy for point-in-time recovery (module 08), for reading replayed
+records with pg_waldump (module 07), and for the timeline history files (modules 08, 09, 15), but
+it grows by the full WAL volume of every experiment (several GB over the course). Nothing reads
+segments older than the start of your newest base backup, so when df gets tight, prune up to that
+segment (the file named in $PGLAB/backup1/backup_label, "START WAL LOCATION ... (file X)"; before
+module 08 there is no backup yet and everything can go):
+  pg_archivecleanup $PGLAB/archive X
+Run it as the postgres OS user with /usr/lib/postgresql/16/bin on PATH. Never point it at pg_wal.`,
       challenge: code`
 Read $PGLAB/primary/postgresql.conf from the top and note which settings need a restart
 (context = postmaster) versus a reload: select name, context from pg_settings where name in
