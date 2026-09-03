@@ -79,6 +79,11 @@ $SUDO apt-get install -y \
     fzf \
     tree \
     htop \
+    procps \
+    psmisc \
+    util-linux \
+    coreutils \
+    findutils \
     strace \
     lsof \
     less \

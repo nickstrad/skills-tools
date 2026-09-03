@@ -21,10 +21,12 @@ What it installs:
   discovered from go.dev.
 - **Containers**: Docker Engine, Buildx, and Compose from the official Docker
   Apt repository, enabled as a service.
-- **Systems tools**: strace, lsof, htop, perf, bpftrace, tcpdump, socat,
-  netcat, sysstat, ripgrep, fzf, fd, bat, jq, tree, hyperfine, HTTPie,
-  build-essential, bubblewrap, curl, wget, zip/unzip, DNS and networking
-  utilities.
+- **Systems tools**: procps (`ps`, `pgrep`, `pmap`, `free`, `vmstat`), psmisc
+  (`pstree`), util-linux (`findmnt`, `lsblk`, `lsns`, `unshare`, `nsenter`,
+  `taskset`, `ionice`), coreutils, findutils, strace, lsof, htop, perf,
+  bpftrace, tcpdump, socat, netcat, sysstat (`iostat`), iproute2 (`ip`, `ss`),
+  ripgrep, fzf, fd, bat, jq, tree, hyperfine, HTTPie, build-essential,
+  bubblewrap, curl, wget, zip/unzip, DNS and networking utilities.
 - **Shell config**: a marked block appended once to `~/.bashrc` with the PATH
   entries for Go, Deno, DuckDB, Claude Code, and NVM, plus `fd`/`bat` aliases
   for the Ubuntu package names.
@@ -63,21 +65,22 @@ scripts/docker/test.sh
 It builds `scripts/docker/Dockerfile` (an `ubuntu:24.04` image that runs
 `lab-setup.sh` as root during the build), then runs the resulting image so the
 toolchain verification happens again at container runtime. The build fails if
-`lab-setup.sh` fails, and `scripts/docker/verify.sh` fails the build if any of
-psql, node, npm, codex, claude, deno, duckdb, go, sqlite3, tmux, mosh, docker,
-rg, jq, hyperfine, http or bpftrace is missing or not runnable. The script
+`lab-setup.sh` fails, and `scripts/docker/verify.sh` fails the build if any
+installed tool or Linux systems command is missing or not runnable. The script
 exits non-zero on any failure.
 
 Two conveniences, both handled by an `EXIT` trap so they also run when the
 build fails:
 
-- **Docker on demand.** If the Docker daemon is not active, the test starts it
-  and stops `docker.service`, `docker.socket` and `containerd.service` again
-  when it finishes. A daemon that was already running is left running.
-- **No leftovers.** The test image is removed and `docker system prune -a -f
-  --volumes` clears every image, container, network, volume and build-cache
-  entry, so a run leaves no disk behind. The trade-off is that each run is a
-  cold build: allow 15-25 minutes.
+- **Docker on demand.** The test first checks the daemon with `docker info`.
+  If it is unavailable, the test starts Docker through `systemctl` or
+  `service` when possible, then restores the prior unit state on exit. A
+  daemon that was already running is left running.
+- **No unrelated cleanup.** Each run gets a unique image tag, container name,
+  and Buildx builder. On exit, only those resources are removed; the test
+  never runs a host-wide `docker system prune`, and pre-existing images,
+  containers, volumes, networks, and build cache remain untouched. A run
+  still takes roughly 15-25 minutes on a cold cache.
 
 Inside a container there is no systemd and the kernel belongs to the host, so
 `lab-setup.sh` installs the Docker and PostgreSQL packages without starting
