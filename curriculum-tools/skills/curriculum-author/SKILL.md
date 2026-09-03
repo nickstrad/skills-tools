@@ -79,6 +79,25 @@ pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementat
   lesson on whatever the learner is currently reading about.
 - Nothing in a lesson may target a database or directory the learner did not create in the lab.
 
+## Lessons from the PostgreSQL pass
+
+- The harness only detects timeouts. A lesson whose SQL errors still "passes", so grep every
+  validation run for `ERROR` before trusting it, and read the output against `expectedResult`
+  yourself; subagents routinely report PASS on lessons that printed an error mid-way.
+- Validate each lesson on its own, not only in module order. A lesson may only depend on state that
+  its own `setup` recreates or that an explicit prerequisite lesson leaves behind and says so.
+- Lessons that crash, restart, or reconfigure the server cannot run through the harness; split them
+  into a tool part, a shell part, and a tool part, validate the pieces by hand, and run that module
+  alone on the cluster.
+- Two-session lessons that inspect catalogs need a third session when one session holds a
+  repeatable-read snapshot: it cannot see rows the other session created after the snapshot.
+- Tool-specific traps are worth recording in `PLAN.md` conventions as they are found (for
+  PostgreSQL: `xid` has no ordering operator, use `age(xid)`; same-cluster logical subscriptions
+  hang unless the slot is created first; `\watch` must be bounded; statistics resets should be
+  scoped so parallel authors do not erase each other's counters).
+- Quote real numbers in `expectedResult` and say which ones move between runs and by how much; costs
+  and record types reproduce exactly, timings and sampled estimates do not.
+
 ## Do not
 
 - Do not hand-edit `lessons.json` or `progress.sqlite`.

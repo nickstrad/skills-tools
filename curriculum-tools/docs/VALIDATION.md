@@ -18,9 +18,9 @@ waits, serialization failures, deadlocks) run exactly as a learner would run the
    `deno run -A tools/validate.ts postgres --from 5 --to 13`
    `deno run -A tools/validate.ts postgres write-skew serializable-ssi`
 4. Compare every session's output with the lesson's `expectedResult`. The harness only knows about
-   timeouts; a lesson that prints the wrong thing still "passes". Fix the lesson (or the
-   expectation) until the text describes what really happens, then rebuild with
-   `deno task build postgres` and rerun.
+   timeouts; a lesson that prints the wrong thing, or an `ERROR:` line, still "passes", so grep the
+   output for `ERROR` and read it. Fix the lesson (or the expectation) until the text describes what
+   really happens, then rebuild with `deno task build postgres` and rerun.
 5. Shell lessons (`runIn: "shell"`) are listed and skipped. Run those by hand as the lab OS user and
    paste the real output into `expectedResult`.
 
