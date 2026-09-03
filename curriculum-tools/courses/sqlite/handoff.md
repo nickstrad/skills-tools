@@ -1,72 +1,98 @@
 # SQLite course review fixes: working handoff
 
-Started 2026-09-03. Review of the 48-lesson SQLite Systems course found the issues below. This file
-tracks what is fixed, validated, and committed so work can resume from scratch. Delete it when the
-list is complete and everything is pushed.
+Started 2026-09-03. A review of the 48-lesson SQLite Systems course found the issues below. This
+file tracks what is fixed, validated, and committed so work can resume from scratch. Delete it when
+the list is complete and everything is pushed.
 
-Rules for this work:
+## Rules for this work
 
 - Only touch `curriculum-tools/courses/sqlite/**`. Unrelated `courses/linux` changes in the working
-  tree belong to another session; never stage them (`git add curriculum-tools/courses/sqlite`).
-- After editing lessons: `cd curriculum-tools && deno task build sqlite && deno task check`, then
-  validate the changed lessons with a fresh disposable lab:
-  `mkdir -p /tmp/sqlite-fix-XX && TUTOR_SQLITE_DB=/tmp/sqlite-fix-XX/lab.db deno run -A tools/validate.ts sqlite <slug...>`
-  (tool lessons only; shell lessons run manually with `bash` and the same `TUTOR_SQLITE_DB`).
-  Compare real output against `expectedResult`; a timeout-free run alone is not a pass.
+  tree belong to another session; never stage them (use `git add curriculum-tools/courses/sqlite`).
+- `deno task check` currently fails on the other session's linux files. Use the scoped equivalent:
+  `deno fmt --check courses/sqlite && deno lint courses/sqlite src && deno check courses/sqlite/curriculum/*.ts src/*.ts`.
+- After editing lessons: `cd curriculum-tools && deno task build sqlite`, then validate the changed
+  lessons with a fresh disposable lab:
+  `mkdir -p $DIR && TUTOR_SQLITE_DB=$DIR/lab.db deno run -A tools/validate.ts sqlite <slug...>`.
+  Shell lessons are skipped by the harness; extract their code from `lessons.json` and run them with
+  `bash` and the same `TUTOR_SQLITE_DB`. Compare real output against `expectedResult`; a
+  timeout-free run alone is not a pass.
+- The `code` tag is `String.raw`: write `\n` once in a lesson source, never `\\n`. sqlite3's
+  `.shell` re-splits its arguments on spaces and re-quotes them, so avoid backslash escapes and
+  nested double quotes inside a `.shell` line (use `echo` instead of `printf '...\n'`).
 - Deno: `/root/.deno/bin/deno`. SQLite on this host: 3.45.1, has dbstat, no sqlite_dbpage (so
   `.recover` fails).
+- Bump a lesson's `revision` when its code or expected result changes materially, so learners who
+  completed the old version see it as stale.
 - Commit and push after each chunk. Commit message prefix `sqlite:`.
 
 ## Findings and status
 
-Legend: [ ] open, [x] fixed + validated + committed.
+Status: DONE = fixed, validated on a fresh lab, and committed.
 
 ### Bugs
 
-- [ ] 1. `recover-damaged-copy` zeroes fixed offset 4096; at the lab's 1024-byte pages that is a
-      free page, so integrity_check says ok and nothing is corrupted. Compute the offset from
-      rootpage and page_size. (Being redesigned together with 11.)
-- [ ] 2. `deferred-write-race` claims busy_timeout bounds the wait; SQLite returns SQLITE_BUSY
-      immediately (deadlock avoidance) when a reader-with-open-txn upgrades while another holds
-      RESERVED. Rewrite to show the 0 ms return with `.timer on` and teach the rule. Mention the same
-      immediate return in `busy-snapshot-upgrade`.
-- [ ] 3. `busy-timeout-bounds-wait`: `.shell sleep 0.4` is dead, challenge is wrong, success path
-      missing. Redesign with a background holder so B succeeds with a long timeout and fails with a
-      short one.
-- [ ] 4. `measure-the-writer-envelope`: holder 3 s vs racer `timeout 2` means every attempt is busy
-      and the racer is killed. Holder 1 s / racer timeout 5 s; fix expected result and caution.
-- [ ] 5. Module 1 lesson 4 and all module 2 setups must force `PRAGMA journal_mode=DELETE`
-      (page_size is ignored in WAL; main-file cp/stat is wrong in WAL).
-- [ ] 6. Setups that switch WAL->DELETE (`unsafe-live-copy`, `vacuum-into-snapshot`,
-      `recover-damaged-copy`, module 4) fail with "database is locked" if any other session is open.
-      Setups print the resulting mode; SKILL.md coaches closing other sessions before setup.
+1. DONE `recover-damaged-copy` zeroed fixed offset 4096; at the lab's 1024-byte pages that was a
+   free page. Now redesigned (see 11): the damaged page is chosen from dbstat and its offset
+   computed from page_size.
+2. DONE `deferred-write-race` claimed busy_timeout bounds the wait. SQLite returns SQLITE_BUSY at
+   once (deadlock avoidance) when a connection holding a read transaction asks for RESERVED while
+   another holds it. Lesson now uses `.timeout 2000` plus `.timer on`, expects `real 0.000`, and
+   teaches the rule. `busy-snapshot-upgrade` got the same timer and note.
+3. DONE `busy-timeout-bounds-wait` redesigned as one session with a background holder started from
+   `.shell`: round 1 waits about 0.4 s and succeeds under a 2 s budget; round 2 fails after 150 ms
+   under a 1 s hold; retry succeeds. Old dead `sleep` and wrong challenge removed.
+4. DONE `measure-the-writer-envelope`: holder 1 s, racer `timeout 5`, prints busy_attempts plus
+   racer_rows (validated 7 busy, 43 rows). Caution no longer claims the holder is terminated.
+5. DONE Module 1 lesson 4 and every module 2 setup force `PRAGMA journal_mode=DELETE` first.
+   Validated from a WAL lab: page_size takes effect and stat bytes equal page_size times page_count.
+6. DONE Setups that switch WAL->DELETE (`unsafe-live-copy`, `vacuum-into-snapshot`,
+   `recover-damaged-copy`, module 4 lessons 1-4) print "close every other sqlite3 session first: the
+   next line must print delete"; SKILL.md coaches closing sessions before Setup.
 
 ### Learner traps
 
-- [ ] 7. SKILL.md never says how to open a session (`export TUTOR_SQLITE_DB=...; sqlite3
-      "$TUTOR_SQLITE_DB"` per terminal, or `bin/sqlite-repl`). Add it.
-- [ ] 8. `rollback-reader-writer-blocking`: B's COMMIT `.timeout 2000` gives a human two seconds;
-      a failed COMMIT leaves B's txn open. Raise to 30000 and say so.
-- [ ] 9. `decode-database-header`: `.open :memory:` strands the REPL; drop it.
-- [ ] 10. `journal-modes` leaves PERSIST plus a stale journal; reset to DELETE at the end.
+7. DONE SKILL.md has an "Open the lab sessions" section (exports plus `sqlite3 "$TUTOR_SQLITE_DB"`
+   per terminal; "the wrapper" explained; close other sessions before Setup).
+8. DONE `rollback-reader-writer-blocking`: B's COMMIT timeout is 30 s; caution explains the window
+   and that a timed-out COMMIT leaves B's transaction open.
+9. DONE `decode-database-header` no longer runs `.open :memory:`.
+10. DONE `journal-modes` resets to DELETE at the end and shows the persisted journal is gone.
 
 ### Weak lessons
 
-- [ ] 11. Recovery lessons (`recover-damaged-copy`, capstone recovery section) document that
-      salvage yields nothing on this build. Redesign to show real partial salvage without
-      `.recover`: corrupt a non-root leaf of a multi-page table; key-range probes return rows from
-      intact leaves while a full scan fails. Keep `.recover` as an optional path.
-- [ ] 12. `durable-job-claims`: two sessions, no overlap. Make it a real bounded contention demo
-      (A claims without COMMIT, B's BEGIN IMMEDIATE times out, A commits, B claims job 2).
-- [ ] 13. `online-cli-backup` challenge repeats the lesson; replace.
-- [ ] 14. `immediate-reserves-writer` prints "B entered" after B failed; relabel.
+11. DONE `recover-damaged-copy` now inserts 3000 rows, zeroes one non-root leaf chosen from dbstat,
+    shows quick_check and a full scan failing, then salvages by 100-row key ranges through ATTACH
+    into a recovered file (2900 rows at 1 KiB pages, 2700-2800 at 4 KiB); `.recover` is reported as
+    an optional extra. `offline-agent-capstone` no longer pretends to salvage: it detects the
+    damaged candidate with integrity_check and restores from the verified backup
+    (recovered_tables=4, balance 90).
+12. DONE `durable-job-claims` is a real bounded contention demo (B's BEGIN IMMEDIATE fails after 250
+    ms, then claims job 2 after A commits).
+13. DONE `online-cli-backup` challenge now asks for the rollback-mode variant.
+14. DONE `immediate-reserves-writer` label reads "B refused admission, still autocommit".
 
 ### Minor
 
-- [ ] 15. Double-quoted string literals in `offline-agent-capstone` and
-      `sqlite-architecture-decision` scripts; use single quotes.
-- [ ] 16. Capstone crash pipeline `sleep 5` after `timeout 1`; use `sleep 2`.
+15. DONE Double-quoted SQL string literals replaced with single quotes in both capstone scripts.
+16. DONE Capstone crash pipeline sleeps 2 s instead of 5 s.
+
+Revision bumped to 2: decode-database-header, journal-modes, deferred-write-race,
+busy-timeout-bounds-wait, busy-snapshot-upgrade, recover-damaged-copy, measure-the-writer-envelope,
+durable-job-claims, offline-agent-capstone.
+
+## Validation evidence (2026-09-03)
+
+- Harness, fresh lab: lessons 1-14 (modules 1-3), 18-23 (module 4), 27, 30-34 (module 6), 39-45
+  (module 8): all outputs matched expectedResult, no "Error" or "locked" other than the deliberate
+  busy failures.
+- WAL-start reruns of decode-database-header, pages-and-dbstat, freelist-vacuum-and-reuse: setup
+  prints delete, page sizes correct.
+- recover-damaged-copy on a 1024-byte-page lab: damaged_leaf_page=4, one unreadable chunk,
+  recovered_rows 2900.
+- Shell lessons run manually: measure-the-writer-envelope, offline-agent-capstone,
+  sqlite-architecture-decision all matched.
 
 ## Commit log
 
-- (none yet)
+- 22eb382 sqlite: add review-fix handoff
+- (next) sqlite: fix review findings 1-16 (see this file)

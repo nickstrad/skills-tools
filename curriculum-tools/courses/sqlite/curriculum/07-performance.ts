@@ -175,30 +175,31 @@ WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)
 INSERT INTO writes(worker, payload) SELECT 'batch', x FROM n;
 COMMIT;
 SQL
-echo '--- two bounded competing writers ---'
-(printf '%s\n' 'PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ("holder","lock");'; sleep 3; printf '%s\n' 'ROLLBACK;') | sqlite3 "$db" >/dev/null &
+echo '--- two competing writers: holder keeps the lock 1 s, racer budget 100 ms per attempt ---'
+(printf '%s\n' 'PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ("holder","lock");'; sleep 1; printf '%s\n' 'ROLLBACK;') | sqlite3 "$db" >/dev/null &
 holder=$!
 sleep 0.2
 set +e
-timeout 2 sh -c 'i=1; while [ "$i" -le 50 ]; do sqlite3 "$1" "PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\"racer\",\"$i\"); COMMIT;" >/dev/null || echo busy; i=$((i + 1)); done' sh "$db" >"$lab_dir/writer-racer.out"
+time timeout 5 sh -c 'i=1; while [ "$i" -le 50 ]; do sqlite3 "$1" "PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\"racer\",\"$i\"); COMMIT;" >/dev/null 2>&1 || echo busy; i=$((i + 1)); done' sh "$db" >"$lab_dir/writer-racer.out"
 racer_status=$?
 set -e
 wait "$holder"
-printf 'racer_exit=%s busy_lines=%s rows=%s pages=%s\n' "$racer_status" "$(wc -l < "$lab_dir/writer-racer.out")" "$(sqlite3 "$db" 'SELECT count(*) FROM writes')" "$(sqlite3 "$db" 'PRAGMA page_count')"
+printf 'racer_exit=%s busy_attempts=%s racer_rows=%s rows=%s pages=%s\n' "$racer_status" "$(wc -l < "$lab_dir/writer-racer.out")" "$(sqlite3 "$db" "SELECT count(*) FROM writes WHERE worker='racer'")" "$(sqlite3 "$db" 'SELECT count(*) FROM writes')" "$(sqlite3 "$db" 'PRAGMA page_count')"
 rm -f "$db" "$db-journal" "$db-wal" "$db-shm"
 `,
       expectedResult:
-        "The script prints timings for 200 autocommit transactions and one 200-row transaction, then a bounded competing-writer result. The batch normally takes less transaction-boundary work than autocommit. writer-racer.out may contain busy lines depending on scheduling and the configured timeout; rows and page count remain valid integers, and the timeout prevents an indefinite wait. Record the exact host-specific numbers as the measured envelope.",
+        "The script prints timings for 200 autocommit transactions and one 200-row transaction; the batch takes far less transaction-boundary work than autocommit (on the validated host about 0.15 s versus several seconds). The competing-writer run then prints racer_exit=0 with busy_attempts plus racer_rows equal to 50: while the holder keeps the lock for its first second, each 100 ms attempt fails (about 7 to 9 busy attempts), and every attempt after the holder rolls back succeeds, so rows is 400 plus racer_rows. Record the exact host-specific numbers as the measured envelope; a racer_exit of 124 means the 5 s bound cut the loop short and the host is slower than expected.",
       systemsLens:
-        "SQLite has one writer at a time. Batching amortizes commit work, while competing writers turn the serialization point into a queue whose throughput, wait budget, and failure rate must be measured for the actual workload.",
+        "SQLite has one writer at a time. Batching amortizes commit work, while competing writers turn the serialization point into a queue whose throughput, wait budget, and failure rate must be measured for the actual workload: the same 50 attempts split into failures and successes purely by when the holder released.",
       challenge:
-        "Repeat with batches of 10, 50, and 500 and graph rows per second against batch size. Identify the point where transaction latency or lock hold time becomes unacceptable.",
+        "Repeat with batches of 10, 50, and 500 and graph rows per second against batch size. Then raise the racer's busy_timeout to 2000 and predict busy_attempts and the total elapsed time before running it.",
       caution:
-        "Run this only with a uniquely named disposable path. The holder process is intentionally terminated and the outputs are workload evidence, not a durability or power-loss test.",
+        "Run this only with a uniquely named disposable path. The holder releases its lock by rolling back after one second, the racer loop is bounded by timeout, and the outputs are workload evidence, not a durability or power-loss test.",
       safetyLevel: "locking",
       runIn: "shell",
       sessions: 1,
       minVersion: "3.45",
+      revision: 2,
       estimatedMinutes: 30,
     },
   ],

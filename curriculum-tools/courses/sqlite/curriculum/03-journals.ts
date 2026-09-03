@@ -62,6 +62,7 @@ COMMIT;
       safetyLevel: "writes-data",
       runIn: "tool",
       estimatedMinutes: 18,
+      revision: 2,
       overview:
         code`Run bounded writes under DELETE, TRUNCATE, and PERSIST, observing sidecar existence and size while checking that committed logical data is equivalent.`,
       syntaxBreakdown:
@@ -88,9 +89,12 @@ COMMIT;
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'PERSIST exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'PERSIST absent'; fi
 
 .headers on
-SELECT mode, count(*) AS rows FROM mode_rows GROUP BY mode ORDER BY mode;`,
+SELECT mode, count(*) AS rows FROM mode_rows GROUP BY mode ORDER BY mode;
+.print -- restore DELETE so later lessons start from the default mode
+PRAGMA journal_mode=DELETE;
+.shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'after_reset exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'after_reset absent'; fi`,
       expectedResult:
-        code`All three transactions commit their rows. DELETE normally prints journal absent; TRUNCATE prints an existing journal with bytes=0; PERSIST prints an existing nonzero-sized journal whose contents are reset for reuse. The final query reports exactly two rows for each of DELETE, PERSIST, and TRUNCATE.`,
+        code`All three transactions commit their rows. DELETE normally prints journal absent; TRUNCATE prints an existing journal with bytes=0; PERSIST prints an existing nonzero-sized journal whose contents are reset for reuse. The final query reports exactly two rows for each of DELETE, PERSIST, and TRUNCATE. The closing PRAGMA journal_mode=DELETE prints delete, and the last check prints "after_reset absent": returning to DELETE removes the persisted journal, so later lessons start from the default mode with no stale sidecar.`,
       systemsLens:
         code`Cleanup strategy is independent from the higher-level atomicity interface until failure occurs. The mode changes when and how sidecar space is reclaimed, not whether a committed transaction has one logical outcome.`,
       caution:

@@ -103,9 +103,9 @@ SELECT count(*) AS logical_effects FROM delivery_receipts;
       tags: ["queues", "leases", "locking", "transactions"],
       prerequisites: ["outbox-replay-after-crash"],
       overview:
-        "Use short BEGIN IMMEDIATE transactions to assign queued jobs to workers, then commit before slow work. Two sequential sessions take different jobs and record owner, attempt, and deadline in durable rows; the lesson makes unique claims explicit before adding a contention experiment as a challenge.",
+        "Claim queued jobs with short BEGIN IMMEDIATE transactions and watch a second worker collide with the first. Worker A claims job 1 and holds the writer; worker B's admission attempt fails with a bounded busy timeout, still reads committed state, and only after A commits does B claim job 2.",
       syntaxBreakdown:
-        "BEGIN IMMEDIATE reserves SQLite's writer slot before the claim query. UPDATE ... RETURNING both changes and displays the selected job. julianday provides a portable numeric deadline for this bounded exercise.",
+        "BEGIN IMMEDIATE reserves SQLite's single writer slot before the claim query, so contention surfaces at admission rather than mid-update. .timeout N is that session's busy budget in milliseconds and .timer on measures the wait actually spent. UPDATE ... RETURNING both changes and displays the selected job, and julianday provides a portable numeric deadline.",
       setup: code`
 DROP TABLE IF EXISTS durable_jobs;
 CREATE TABLE durable_jobs(job_id INTEGER PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'queued', owner TEXT, attempt INTEGER NOT NULL DEFAULT 0, lease_until REAL);
@@ -113,10 +113,21 @@ INSERT INTO durable_jobs(job_id, payload) VALUES (1, 'resize-image'), (2, 'send-
 `,
       code: code`
 -- Session A
+.timeout 100
 BEGIN IMMEDIATE;
 WITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)
 UPDATE durable_jobs SET state = 'claimed', owner = 'worker-a', attempt = attempt + 1, lease_until = julianday('now') + 1.0 / 1440.0 WHERE job_id IN next_job RETURNING job_id, owner, attempt, state;
+
+-- Session B
+.timeout 250
+.timer on
+BEGIN IMMEDIATE;
+.timer off
+SELECT 'B sees committed state', job_id, state, owner FROM durable_jobs ORDER BY job_id;
+
+-- Session A
 COMMIT;
+
 -- Session B
 BEGIN IMMEDIATE;
 WITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)
@@ -125,17 +136,18 @@ COMMIT;
 SELECT job_id, state, owner, attempt FROM durable_jobs ORDER BY job_id;
 `,
       expectedResult:
-        "Session A claims job 1 and commits; the sequential Session B then claims job 2 and commits. Each claim has attempt = 1 and a non-NULL lease_until. No job has two owners, and job 3 remains queued. Because these sessions are sequential in the harness, this run demonstrates unique short claims, not a measured lock race; the challenge adds bounded contention.",
+        "Session A's claim returns job 1 for worker-a with attempt 1 while its transaction stays open. Session B's first BEGIN IMMEDIATE returns database is locked after roughly 250 ms, as measured by the timer, because A holds the writer. B's read of committed state still shows job 1 as queued with a NULL owner. After A commits, B's BEGIN IMMEDIATE succeeds and its claim must pick job 2, since job 1 is no longer queued. The final rows are job 1 claimed by worker-a, job 2 claimed by worker-b, both with attempt = 1 and a non-NULL lease_until, and job 3 still queued. No job has two owners.",
       systemsLens:
         "A durable queue separates an ownership transition from the work it authorizes. BEGIN IMMEDIATE makes admission explicit, while the lease and attempt fields make recovery and observability possible after a worker disappears.",
       challenge:
-        "Add a third worker and a partial index on queued jobs. Then hold a write transaction briefly and observe the bounded busy behavior of another claimant.",
+        "Make A hold the claim longer than B's budget: add `.shell sleep 0.5` inside A's open transaction, before COMMIT, to stand in for slow work done while the writer slot is held. B's 250 ms admission attempt now fails against a holder that will not release in time. What latency budget should this queue publish, and does the slow work belong inside the claim transaction at all?",
       caution:
         "A lease is not fencing by itself: a worker that holds an old lease can still finish late unless every completion checks the ownership token. The next lesson adds that guard.",
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
       minVersion: "3.45",
+      revision: 2,
       estimatedMinutes: 25,
     },
     {

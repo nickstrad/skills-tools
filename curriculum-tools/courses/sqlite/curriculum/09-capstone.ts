@@ -117,7 +117,7 @@ INSERT INTO accounts VALUES (1, 100);
 SQL
 echo '--- process termination before commit ---'
 set +e
-(printf '%s\n' 'BEGIN; INSERT INTO accounts VALUES (2, 50);'; sleep 5; printf '%s\n' 'COMMIT;') 2>/dev/null | timeout 1 sqlite3 "$db" >/dev/null
+(printf '%s\n' 'BEGIN; INSERT INTO accounts VALUES (2, 50);'; sleep 2; printf '%s\n' 'COMMIT;') 2>/dev/null | timeout 1 sqlite3 "$db" >/dev/null
 crash_status=$?
 set -e
 sqlite3 "$db" 'PRAGMA integrity_check; SELECT count(*) AS account_rows_after_crash FROM accounts;'
@@ -164,33 +164,32 @@ echo "source_integrity=$(sqlite3 "$db" 'PRAGMA integrity_check;')"
 echo "backup_integrity=$(sqlite3 "$backup" 'PRAGMA integrity_check;')"
 echo "backup_user_version=$(sqlite3 "$backup" 'PRAGMA user_version;')"
 echo "backup_balance=$(sqlite3 "$backup" 'SELECT balance FROM accounts WHERE id = 1;')"
+echo '--- damaged restore candidate: detect, reject, restore from the verified backup ---'
 cp "$backup" "$damaged"
 dd if=/dev/zero of="$damaged" bs=1 seek=100 count=8 conv=notrunc status=none
 set +e
 sqlite3 "$damaged" 'PRAGMA integrity_check;' >"$lab_dir/damaged-check.out" 2>&1
 damaged_status=$?
-sqlite3 "$damaged" '.recover' >"$lab_dir/recover.sql" 2>"$lab_dir/recover.err"
-recover_status=$?
 set -e
 echo "damaged_integrity_exit=$damaged_status"
-echo "recover_status=$recover_status"
-cat "$lab_dir/recover.err"
-if grep -q 'sqlite_dbpage' "$lab_dir/recover.err"; then
-  echo 'recover_fallback=dump'
-  sqlite3 "$damaged" '.dump' >"$lab_dir/dump.sql" 2>"$lab_dir/dump.err" || true
-  sqlite3 "$recovered" <"$lab_dir/dump.sql" || true
+head -n 2 "$lab_dir/damaged-check.out"
+if [ "$damaged_status" -ne 0 ]; then
+  echo 'restore_source=verified-backup (damaged candidate rejected before restore)'
+  sqlite3 "$backup" ".backup '$recovered'"
 else
-  echo 'recover_fallback=none'
-  sqlite3 "$recovered" <"$lab_dir/recover.sql" || true
+  echo 'restore_source=candidate (unexpected: the damaged copy passed integrity_check)'
+  sqlite3 "$damaged" ".backup '$recovered'"
 fi
-echo "recovered_integrity=$(sqlite3 "$recovered" 'PRAGMA integrity_check;' 2>&1 || true)"
-echo "recovered_tables=$(sqlite3 "$recovered" 'SELECT count(*) FROM sqlite_master WHERE type = "table";' 2>&1 || true)"
+echo "recovered_integrity=$(sqlite3 "$recovered" 'PRAGMA integrity_check;')"
+echo "recovered_tables=$(sqlite3 "$recovered" "SELECT count(*) FROM sqlite_master WHERE type = 'table';")"
+echo "recovered_balance=$(sqlite3 "$recovered" 'SELECT balance FROM accounts WHERE id = 1;')"
+echo "recovered_user_version=$(sqlite3 "$recovered" 'PRAGMA user_version;')"
 rm -f "$replica_b" "$replica_b-journal" "$replica_b-wal" "$replica_b-shm"
 `,
       expectedResult:
-        "The bounded terminated process exits 124, but source integrity_check is ok and account_rows_after_crash is 1, so the uncommitted account row is absent. Replica B's first receipt is 1, duplicate_receipt is 0, logical_receipts is 1, and its balance becomes 90 exactly once; the sender outbox advances to sent = 1 after the lost acknowledgement is retried. Replica B receives one oplog row, and replica_balances=90/90 reports convergence=converged. The stale worker update changes 0 rows; agent-b token 2 completes the job. Source and engine-created backup integrity are both ok; backup_user_version=1 and backup_balance=90. The damaged copy reports a nonzero integrity exit. On SQLite 3.45.1, recover_status=1 and stderr contains sql error: no such table: sqlite_dbpage (1), so the script selects recover_fallback=dump; that fallback prints recovered_integrity=ok and recovered_tables=0. Builds with sqlite_dbpage instead load the captured .recover SQL and print their actual recovered integrity/table count. Salvage is evidence only, not a backup guarantee.",
+        "The bounded terminated process exits 124, but source integrity_check is ok and account_rows_after_crash is 1, so the uncommitted account row is absent. Replica B's first receipt is 1, duplicate_receipt is 0, logical_receipts is 1, and its balance becomes 90 exactly once; the sender outbox advances to sent = 1 after the lost acknowledgement is retried. Replica B receives one oplog row, and replica_balances=90/90 reports convergence=converged. The stale worker update changes 0 rows; agent-b token 2 completes the job. Source and engine-created backup integrity are both ok; backup_user_version=1 and backup_balance=90. The damaged candidate prints a nonzero damaged_integrity_exit with a malformed-image error, so the script prints restore_source=verified-backup and restores from the intact backup instead: recovered_integrity=ok, recovered_tables=4, recovered_balance=90, recovered_user_version=1. Salvaging bytes from the damaged copy is not attempted here; the recover-damaged-copy lesson shows what salvage can and cannot return, and the guarantee comes from the verified backup.",
       systemsLens:
-        "Reliable local systems compose small invariants at transaction boundaries: intent with state, receipts with deduplication, ownership with fencing, and recovery with verified copies. SQLite supplies local atomicity and recovery machinery; delivery, failure domains, and convergence policy still belong to the application.",
+        "Reliable local systems compose small invariants at transaction boundaries: intent with state, receipts with deduplication, ownership with fencing, and recovery with verified copies. A restore path must verify its candidate before trusting it; the integrity check is the gate that turns a damaged file into a rejected candidate instead of a restored corruption. SQLite supplies local atomicity and recovery machinery; delivery, failure domains, and convergence policy still belong to the application.",
       challenge:
         "Add a schema migration that increments user_version, then rehearse restore into a clean directory and measure elapsed recovery time. Define which missing remote effects belong in the RPO statement.",
       caution:
@@ -199,6 +198,7 @@ rm -f "$replica_b" "$replica_b-journal" "$replica_b-wal" "$replica_b-shm"
       runIn: "shell",
       sessions: 1,
       minVersion: "3.45",
+      revision: 2,
       estimatedMinutes: 45,
     },
     {
@@ -247,7 +247,7 @@ SQL
 restore_start=$(date +%s%N)
 sqlite3 "$test_db" ".backup '$backup'"
 sqlite3 "$backup" ".backup '$restored'"
-sqlite3 "$restored" 'PRAGMA integrity_check; SELECT count(*) FROM events WHERE tenant = "tenant-7";' >"$lab_dir/restore-check.out"
+sqlite3 "$restored" "PRAGMA integrity_check; SELECT count(*) FROM events WHERE tenant = 'tenant-7';" >"$lab_dir/restore-check.out"
 restore_end=$(date +%s%N)
 restore_ms=$(( (restore_end - restore_start) / 1000000 ))
 echo '# SQLite architecture decision' >"$decision"

@@ -16,8 +16,9 @@ export const PAGES: Module = {
       overview:
         code`Grow a table with fixed-size rows, then correlate page_count, file bytes, and the dbstat virtual table.`,
       syntaxBreakdown:
-        code`PRAGMA page_size/page_count report pager geometry; dbstat exposes one row per B-tree page; pagetype distinguishes leaf, internal, and overflow pages.`,
-      setup: code`PRAGMA page_size=1024;
+        code`PRAGMA page_size/page_count report pager geometry; dbstat exposes one row per B-tree page; pagetype distinguishes leaf, internal, and overflow pages. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS samples;
 CREATE TABLE samples(id INTEGER PRIMARY KEY, value TEXT NOT NULL);`,
@@ -46,8 +47,9 @@ SELECT name, pagetype, count(*) AS pages, sum(ncell) AS cells FROM dbstat WHERE 
       overview:
         code`Insert ordered batches while sampling page count and B-tree depth. Discrete allocation steps reveal structural splits and root growth.`,
       syntaxBreakdown:
-        code`A recursive CTE generates deterministic batches; dbstat.path describes page ancestry; page_count samples allocated pages after each batch.`,
-      setup: code`PRAGMA page_size=1024;
+        code`A recursive CTE generates deterministic batches; dbstat.path describes page ancestry; page_count samples allocated pages after each batch. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS ordered;
 CREATE TABLE ordered(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);`,
@@ -78,8 +80,9 @@ SELECT max(length(path) - length(replace(path, '/', ''))) AS observed_depth FROM
       overview:
         code`Store equivalent records in a normal rowid table, an INTEGER PRIMARY KEY alias, and a table with a secondary unique index; compare their B-tree page footprints.`,
       syntaxBreakdown:
-        code`INTEGER PRIMARY KEY aliases the table's rowid; a secondary index is another B-tree; dbstat aggregates page counts by object name.`,
-      setup: code`PRAGMA page_size=1024;
+        code`INTEGER PRIMARY KEY aliases the table's rowid; a secondary index is another B-tree; dbstat aggregates page counts by object name. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS normal;
 DROP TABLE IF EXISTS alias;
@@ -117,8 +120,9 @@ SELECT (SELECT count(*) FROM normal) AS normal_rows, (SELECT count(*) FROM alias
       overview:
         code`Build equivalent composite-key tables with and without WITHOUT ROWID, then compare their page use and lookup plans.`,
       syntaxBreakdown:
-        code`PRIMARY KEY(a,b) on a rowid table creates a separate unique index; WITHOUT ROWID makes the declared composite key the table's B-tree key; EXPLAIN QUERY PLAN reports access paths.`,
-      setup: code`PRAGMA page_size=1024;
+        code`PRIMARY KEY(a,b) on a rowid table creates a separate unique index; WITHOUT ROWID makes the declared composite key the table's B-tree key; EXPLAIN QUERY PLAN reports access paths. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS with_rowid;
 DROP TABLE IF EXISTS without_rowid;
@@ -152,8 +156,9 @@ EXPLAIN QUERY PLAN SELECT payload FROM without_rowid WHERE a=12 AND b=34;`,
       overview:
         code`Insert poorly compressible values larger than a page and inspect dbstat's payload and page types.`,
       syntaxBreakdown:
-        code`randomblob creates high-entropy bytes; hex doubles their textual representation; dbstat pagetype=overflow identifies chained overflow pages and mx_payload reports the largest record.`,
-      setup: code`PRAGMA page_size=1024;
+        code`randomblob creates high-entropy bytes; hex doubles their textual representation; dbstat pagetype=overflow identifies chained overflow pages and mx_payload reports the largest record. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS blobs;
 CREATE TABLE blobs(id INTEGER PRIMARY KEY, value TEXT NOT NULL);`,
@@ -183,8 +188,9 @@ SELECT count(*) AS overflow_page_count FROM dbstat WHERE name='blobs' AND pagety
       overview:
         code`Delete most rows, observe free pages and unchanged file size, reuse some pages with new inserts, and run VACUUM on a uniquely named copy.`,
       syntaxBreakdown:
-        code`freelist_count counts reusable pages; VACUUM rewrites a compact database; .shell cp preserves the source before the rewrite; page_count and stat expose size.`,
-      setup: code`PRAGMA page_size=1024;
+        code`freelist_count counts reusable pages; VACUUM rewrites a compact database; .shell cp preserves the source before the rewrite; page_count and stat expose size. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
+      setup: code`PRAGMA journal_mode=DELETE;
+PRAGMA page_size=1024;
 VACUUM;
 DROP TABLE IF EXISTS retained;
 CREATE TABLE retained(id INTEGER PRIMARY KEY, payload TEXT);

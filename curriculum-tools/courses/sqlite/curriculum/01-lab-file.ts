@@ -122,11 +122,13 @@ SELECT count(*) AS b_after_rollback FROM messages;`,
       safetyLevel: "read-only",
       runIn: "mixed",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
-        code`Correlate SQLite's page metadata with bytes on disk. Switch the CLI to an in-memory database before inspecting the file so the header and file length describe a stable state.`,
+        code`Correlate SQLite's page metadata with bytes on disk. The setup commits before you look, so in rollback mode the file on disk is a stable state and the connection can stay open while you inspect it.`,
       syntaxBreakdown:
-        code`PRAGMA page_size and page_count expose pager geometry; stat -c %s reports bytes; xxd -l 100 prints the first 100 bytes. SQLite format 3 begins at byte zero and uses a power-of-two page size.`,
+        code`PRAGMA page_size and page_count expose pager geometry; stat -c %s reports bytes; xxd -l 100 prints the first 100 bytes. SQLite format 3 begins at byte zero and uses a power-of-two page size. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.`,
       setup: code`.print -- The wrapper has already opened $TUTOR_SQLITE_DB
+PRAGMA journal_mode=DELETE;
 PRAGMA page_size=4096;
 VACUUM;
 DROP TABLE IF EXISTS records;
@@ -135,12 +137,10 @@ WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 20) IN
       code: code`.headers on
 .mode box
 SELECT page_size, page_count, page_size * page_count AS expected_bytes FROM pragma_page_size, pragma_page_count;
-.print -- switch away from the file before shell inspection
-.open :memory:
 .shell stat -c 'actual_bytes=%s' "$TUTOR_SQLITE_DB"
 .shell xxd -l 100 -g 1 "$TUTOR_SQLITE_DB"`,
       expectedResult:
-        code`The query reports a power-of-two page size (4096 in a fresh file) and page_count > 1. After .open :memory: switches away from the file, actual_bytes equals page_size multiplied by page_count. The hex dump starts with ASCII "SQLite format 3" followed by a NUL; the remaining header bytes include page size and schema metadata.`,
+        code`The query reports a power-of-two page size (4096 in a fresh file) and page_count > 1. actual_bytes equals page_size multiplied by page_count. The hex dump starts with ASCII "SQLite format 3" followed by a NUL; the remaining header bytes include page size and schema metadata.`,
       systemsLens:
         code`Durable abstractions have byte-level compatibility contracts. Page geometry is not an implementation detail when it determines I/O units, file sizing, and whether another implementation can open the file.`,
       challenge:

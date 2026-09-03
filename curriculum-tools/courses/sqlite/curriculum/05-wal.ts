@@ -142,7 +142,7 @@ SELECT 'A after transaction', count(*) FROM log;`,
       overview:
         code`Let A read an old snapshot, let B commit, and then ask A to write. SQLite rejects the stale snapshot upgrade instead of risking a write based on obsolete state.`,
       syntaxBreakdown:
-        code`SQLite documents SQLITE_BUSY_SNAPSHOT for a WAL reader-to-writer upgrade after another connection commits. Here that extended-code mapping is a documented inference; the primary evidence is the CLI's database is locked result.`,
+        code`SQLite documents SQLITE_BUSY_SNAPSHOT for a WAL reader-to-writer upgrade after another connection commits. Here that extended-code mapping is a documented inference; the primary evidence is the CLI's database is locked result. .timer shows that the failure is immediate: no amount of busy timeout can make a stale snapshot current, so the busy handler is not consulted.`,
       setup: code`PRAGMA journal_mode=WAL;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs(id INTEGER PRIMARY KEY, body TEXT);
@@ -157,19 +157,21 @@ UPDATE docs SET body='v2' WHERE id=1;
 SELECT 'B committed', body FROM docs WHERE id=1;
 
 -- Session A
+.timer on
 UPDATE docs SET body='A stale write' WHERE id=1;
+.timer off
 SELECT 'A still snapshot', body FROM docs WHERE id=1;
 ROLLBACK;
 SELECT 'A retry view', body FROM docs WHERE id=1;`,
       expectedResult:
-        code`A first reads v1. B commits v2. A's UPDATE returns the primary CLI evidence database is locked; mapping it to the documented stale-snapshot SQLITE_BUSY_SNAPSHOT condition is an inference. After rollback, a fresh A query sees v2.`,
+        code`A first reads v1. B commits v2. A's UPDATE returns the primary CLI evidence database is locked with Run Time: real 0.000, well inside the 100 ms budget, because the snapshot can never become current by waiting; mapping it to the documented stale-snapshot SQLITE_BUSY_SNAPSHOT condition is an inference. A still reads v1 inside its transaction; after rollback, a fresh A query sees v2.`,
       systemsLens:
         code`A stale read cannot become a write without revalidation. This is the same optimistic-concurrency rule behind compare-and-swap and conflict-aware retries.`,
       challenge:
         code`Retry A with BEGIN IMMEDIATE after rolling back. Why does admission plus a fresh read avoid the stale upgrade?`,
       caution:
         code`The default CLI exposes the primary error text; bindings can inspect the extended SQLITE_BUSY_SNAPSHOT result code.`,
-      revision: 1,
+      revision: 2,
       minVersion: "3.45",
     },
     {

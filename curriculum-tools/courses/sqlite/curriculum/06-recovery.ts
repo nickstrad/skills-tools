@@ -18,7 +18,8 @@ export const RECOVERY: Module = {
         code`Keep a source connection open with committed frames in WAL, copy only the main file, and compare the disposable destination with the source.`,
       syntaxBreakdown:
         code`The shell cp command copies bytes without asking SQLite for a consistent snapshot. The course REPL already opens TUTOR_SQLITE_DB; WAL mode stores recent committed pages in the -wal sidecar.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS records;
 CREATE TABLE records(id INTEGER PRIMARY KEY, value TEXT);
 INSERT INTO records VALUES (1, 'main-file-baseline');
@@ -87,7 +88,7 @@ SELECT 'source final', count(*) FROM events;`,
       systemsLens:
         code`Online backup turns a moving file set into a consistent recovery artifact. The snapshot point defines RPO; the time to produce and restore it contributes to RTO.`,
       challenge:
-        code`Run .backup while B holds a bounded write transaction. Which operation waits, and how does that differ from guessing an ordering of cp calls?`,
+        code`Close B, switch the lab to journal_mode=DELETE, and repeat the same sequence. In rollback mode B's COMMIT needs an EXCLUSIVE lock while the backup holds a SHARED lock. Predict which side waits this time, then explain what WAL removed and what it did not (the single writer).`,
       caution:
         code`A backup is only as current as its capture point; schedule and monitor it rather than treating it as continuous replication.`,
       revision: 1,
@@ -107,7 +108,8 @@ SELECT 'source final', count(*) FROM events;`,
         code`Create free pages, then use VACUUM INTO to produce a separate compact database and compare size and logical contents.`,
       syntaxBreakdown:
         code`freelist_count reports pages available for reuse. VACUUM INTO rewrites a consistent database into a new filename without changing the source.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS blobs;
 CREATE TABLE blobs(id INTEGER PRIMARY KEY, payload TEXT);
 WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100)
@@ -185,36 +187,36 @@ SELECT 'domain ready count', count(*) FROM child WHERE state='ready';
       sessions: 1,
       estimatedMinutes: 25,
       overview:
-        code`Preserve an original, corrupt only a uniquely named copy, run checks, and use .recover to salvage readable rows into a third database.`,
+        code`Preserve an original, corrupt one leaf page of a multi-page table in a uniquely named copy, watch structural checks and a full scan fail, then salvage every intact leaf by key range into a third database. The B-tree's own key routing is the salvage tool; .recover is tried as an optional extra.`,
       syntaxBreakdown:
-        code`.recover emits SQL that reconstructs readable tables. .output redirects that SQL to a file, .read executes it, and dd changes selected bytes in the disposable copy.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+        code`dbstat lists the table's leaf pages; dd zeroes the chosen page's header in the copy. A full scan must visit every leaf, but WHERE id BETWEEN a AND b descends only into leaves that hold that key range, so ranges that avoid the damaged leaf still read. ATTACH lets one INSERT ... SELECT move each readable range into the recovered file. .recover needs the sqlite_dbpage extension and is reported either way.`,
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS observations;
 CREATE TABLE observations(id INTEGER PRIMARY KEY, reading TEXT NOT NULL);
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<40)
-INSERT INTO observations SELECT x, printf('reading-%02d', x) FROM n;`,
+WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<3000)
+INSERT INTO observations SELECT x, printf('reading-%04d', x) FROM n;`,
       code: code`-- Session A
-.shell rm -f "$TUTOR_SQLITE_DB.damaged.db" "$TUTOR_SQLITE_DB.recovered.db" "$TUTOR_SQLITE_DB.recover.sql" "$TUTOR_SQLITE_DB.recover.err" "$TUTOR_SQLITE_DB.recover.status" "$TUTOR_SQLITE_DB.dump.sql" "$TUTOR_SQLITE_DB.dump.err" "$TUTOR_SQLITE_DB.observations.present"
+.shell rm -f "$TUTOR_SQLITE_DB.damaged.db" "$TUTOR_SQLITE_DB.recovered.db" "$TUTOR_SQLITE_DB.recover.sql" "$TUTOR_SQLITE_DB.recover.err"
 .shell cp "$TUTOR_SQLITE_DB" "$TUTOR_SQLITE_DB.damaged.db"
-.shell dd if=/dev/zero of="$TUTOR_SQLITE_DB.damaged.db" bs=1 seek=4096 count=128 conv=notrunc
-.shell sqlite3 "$TUTOR_SQLITE_DB.damaged.db" "PRAGMA quick_check; PRAGMA integrity_check;"
-.shell sqlite3 "$TUTOR_SQLITE_DB.damaged.db" ".recover" >"$TUTOR_SQLITE_DB.recover.sql" 2>"$TUTOR_SQLITE_DB.recover.err"; rc=$?; echo recover_status=$rc; printf "%s" "$rc" >"$TUTOR_SQLITE_DB.recover.status"
-.shell cat "$TUTOR_SQLITE_DB.recover.err"
-.shell if grep -q sqlite_dbpage "$TUTOR_SQLITE_DB.recover.err"; then sqlite3 "$TUTOR_SQLITE_DB.damaged.db" ".dump" >"$TUTOR_SQLITE_DB.dump.sql" 2>"$TUTOR_SQLITE_DB.dump.err"; sqlite3 "$TUTOR_SQLITE_DB.recovered.db" <"$TUTOR_SQLITE_DB.dump.sql"; else sqlite3 "$TUTOR_SQLITE_DB.recovered.db" <"$TUTOR_SQLITE_DB.recover.sql"; fi
-.shell sqlite3 "$TUTOR_SQLITE_DB.recovered.db" "PRAGMA integrity_check;"
-.shell sqlite3 "$TUTOR_SQLITE_DB.recovered.db" "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='observations';" >"$TUTOR_SQLITE_DB.observations.present"
-.shell if grep -q '^1$' "$TUTOR_SQLITE_DB.observations.present"; then sqlite3 "$TUTOR_SQLITE_DB.recovered.db" "SELECT 'recovered observation rows', count(*) FROM observations;"; else echo 'recovered observation rows|0 (absent)'; fi
+.shell sqlite3 "$TUTOR_SQLITE_DB.damaged.db" "SELECT 'leaf_pages=' || count(*) FROM dbstat WHERE name='observations' AND pagetype='leaf';"
+.shell page=$(sqlite3 "$TUTOR_SQLITE_DB.damaged.db" "SELECT pageno FROM dbstat WHERE name='observations' AND pagetype='leaf' ORDER BY pageno LIMIT 1 OFFSET 1"); psz=$(sqlite3 "$TUTOR_SQLITE_DB.damaged.db" 'PRAGMA page_size'); echo "damaged_leaf_page=$page page_size=$psz"; dd if=/dev/zero of="$TUTOR_SQLITE_DB.damaged.db" bs=1 seek=$(( (page - 1) * psz )) count=256 conv=notrunc status=none
+.shell sqlite3 "$TUTOR_SQLITE_DB.damaged.db" "PRAGMA quick_check; SELECT 'full_scan_rows', count(*) FROM observations;"
+.shell sqlite3 "$TUTOR_SQLITE_DB.recovered.db" "CREATE TABLE observations(id INTEGER PRIMARY KEY, reading TEXT NOT NULL);"
+.shell for start in $(seq 1 100 3000); do end=$((start + 99)); sqlite3 "$TUTOR_SQLITE_DB.damaged.db" "ATTACH '$TUTOR_SQLITE_DB.recovered.db' AS rec; INSERT INTO rec.observations SELECT id, reading FROM observations WHERE id BETWEEN $start AND $end;" 2>/dev/null || echo "chunk $start-$end unreadable"; done
+.shell sqlite3 "$TUTOR_SQLITE_DB.recovered.db" "PRAGMA integrity_check; SELECT 'recovered_rows', count(*), min(id), max(id) FROM observations;"
+.shell if sqlite3 "$TUTOR_SQLITE_DB.damaged.db" .recover >"$TUTOR_SQLITE_DB.recover.sql" 2>"$TUTOR_SQLITE_DB.recover.err"; then echo "recover_available=yes sql_lines=$(wc -l <$TUTOR_SQLITE_DB.recover.sql)"; else echo recover_available=no; head -c 120 "$TUTOR_SQLITE_DB.recover.err"; echo; fi
 .shell sqlite3 "$TUTOR_SQLITE_DB" "PRAGMA integrity_check; SELECT 'source_rows', count(*) FROM observations;"
       `,
       expectedResult:
-        code`The source remains untouched and the damaged copy's checks report corruption or an error. The lesson prints one recover_status=N line, captures .recover SQL and stderr, and then validates the third artifact. On builds with sqlite_dbpage, a successful .recover is loaded and prints recovered observation rows|N. On the installed SQLite 3.45.1 build, .recover prints recover_status=1 with stderr containing no such table: sqlite_dbpage; the documented .dump fallback yields integrity_check ok and recovered observation rows|0 (absent). The final source check prints ok and source_rows|40.`,
+        code`leaf_pages is about 60 at a 1 KiB page size or about 15 at 4 KiB, and damaged_leaf_page names the leaf that was zeroed. quick_check on the copy reports a btreeInitPage error for that page and the full scan fails with database disk image is malformed (the CLI also notes that the system command returned a nonzero status). The chunk loop prints unreadable for only the 100-row ranges that touch the damaged leaf: one chunk at 1 KiB pages, two or three at 4 KiB depending on where the leaf boundary falls. The recovered file passes integrity_check and holds 3000 minus 100 per unreadable chunk (for example 2900 or 2800 rows), with min/max ids showing the surviving range. On the installed SQLite 3.45.1 build .recover prints recover_available=no followed by no such table: sqlite_dbpage; a build with that extension prints yes and a line count. The source still prints ok and source_rows|3000.`,
       systemsLens:
-        code`Recovery tools maximize readable evidence after an incident; only a verified, engine-coordinated backup can support a stated RPO/RTO restoration guarantee.`,
+        code`Recovery tools maximize readable evidence after an incident: the structure that survives (here, key routing through intact interior pages) bounds what can be salvaged, and the loss is measured, not guessed. Only a verified, engine-coordinated backup can support a stated RPO/RTO restoration guarantee.`,
       challenge:
-        code`Run .recover against a copy damaged in a different page and compare which rows survive. Record the corruption location and salvage rate.`,
+        code`Zero the table's root page (rootpage in sqlite_schema) instead of a leaf and rerun the chunk loop. Explain why the salvage rate collapses even though most leaf bytes are untouched, and what that says about where backups must be verified.`,
       caution:
         code`This deliberately corrupts only the uniquely named TUTOR_SQLITE_DB.damaged.db copy and preserves the source. Never point dd or .recover at a production database.`,
-      revision: 1,
+      revision: 2,
       minVersion: "3.45",
     },
   ],

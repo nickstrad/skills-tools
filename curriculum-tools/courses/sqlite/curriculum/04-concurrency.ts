@@ -15,20 +15,21 @@ export const CONCURRENCY: Module = {
       sessions: 2,
       estimatedMinutes: 15,
       overview:
-        code`Two DEFERRED transactions can both read before either has reserved the single writer slot. Create that race and observe that the conflict is reported when one reader tries to become a writer.`,
+        code`Two DEFERRED transactions can both read before either has reserved the single writer slot. Create that race and observe that the loser is told immediately, even with a generous busy timeout, because waiting inside an open read transaction could deadlock.`,
       syntaxBreakdown:
-        code`BEGIN DEFERRED starts a transaction without immediately taking a RESERVED write lock. A busy timeout bounds waiting, and changes() reports whether the preceding write changed a row.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+        code`BEGIN DEFERRED starts a transaction without taking the RESERVED write lock. .timeout sets the busy handler's wait budget, and .timer prints how long a statement really took. SQLite skips the busy handler when a connection that already holds a read transaction asks for RESERVED while another connection holds it: the holder's commit would need this reader gone, so waiting cannot help.`,
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS counter;
 CREATE TABLE counter(id INTEGER PRIMARY KEY, value INTEGER NOT NULL);
 INSERT INTO counter VALUES (1, 0);`,
       code: code`-- Session A
-PRAGMA busy_timeout=100;
+.timeout 2000
 BEGIN DEFERRED;
 SELECT 'A snapshot', value FROM counter WHERE id=1;
 
 -- Session B
-PRAGMA busy_timeout=100;
+.timeout 2000
 BEGIN DEFERRED;
 SELECT 'B snapshot', value FROM counter WHERE id=1;
 
@@ -37,8 +38,10 @@ UPDATE counter SET value=value+1 WHERE id=1;
 SELECT 'A changes', changes();
 
 -- Session B
+.timer on
 UPDATE counter SET value=value+1 WHERE id=1;
-SELECT 'B first changes (may be 0 after SQLITE_BUSY)', changes();
+.timer off
+SELECT 'B still inside its read transaction', value FROM counter WHERE id=1;
 
 -- Session A
 ROLLBACK;
@@ -48,14 +51,14 @@ UPDATE counter SET value=value+1 WHERE id=1;
 COMMIT;
 SELECT 'committed value', value FROM counter WHERE id=1;`,
       expectedResult:
-        code`Both sessions initially print value 0. A's update reports 1. B's first update normally prints a database-is-locked error; after A rolls back, B can update and commit, leaving value 1.`,
+        code`Both sessions initially print value 0 and A's update reports changes 1. B's timed update prints database is locked with Run Time: real 0.000 (a few microseconds), not after the 2 second budget: the busy handler was never invoked. B's transaction is still open and still reads 0. After A rolls back, B's retry succeeds and the committed value is 1.`,
       systemsLens:
-        code`DEFERRED acquisition is optimistic admission control: work can begin before the serialization point is secured, so a retry must know whether application work is safe to repeat.`,
+        code`DEFERRED acquisition is optimistic admission control: work begins before the serialization point is secured, and the engine refuses to queue a reader that wants to become a writer because queueing it could deadlock the writer that is ahead of it. A retry loop that never releases its read transaction spins forever; the correct retry is ROLLBACK, then begin again.`,
       challenge:
-        code`Repeat with A committing instead of rolling back. Predict which transaction can finish and why.`,
+        code`Repeat with A running COMMIT instead of ROLLBACK while B still holds its read transaction. A's commit needs an EXCLUSIVE lock that B's SHARED lock blocks. Predict which side waits for its full timeout, which side fails instantly, and which one must give up for either to finish.`,
       caution:
-        code`The exact busy error text is CLI/version dependent; the lock boundary, not the wording, is the evidence.`,
-      revision: 1,
+        code`The exact busy error text is CLI/version dependent; the lock boundary and the measured zero wait, not the wording, are the evidence.`,
+      revision: 2,
       minVersion: "3.45",
     },
     {
@@ -72,7 +75,8 @@ SELECT 'committed value', value FROM counter WHERE id=1;`,
         code`Compare BEGIN IMMEDIATE with the deferred race: the second writer learns it cannot enter at the transaction boundary, before doing write work.`,
       syntaxBreakdown:
         code`BEGIN IMMEDIATE obtains a RESERVED lock up front. .timeout controls how long sqlite3 waits for a lock before returning SQLITE_BUSY.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS events;
 CREATE TABLE events(id INTEGER PRIMARY KEY, note TEXT);
 INSERT INTO events(note) VALUES ('baseline');`,
@@ -86,7 +90,7 @@ INSERT INTO events(note) VALUES ('A owns writer');
 .timer on
 BEGIN IMMEDIATE;
 .timer off
-SELECT 'B entered', changes();
+SELECT 'B refused admission, still autocommit', count(*) AS committed_rows FROM events;
 
 -- Session A
 COMMIT;
@@ -97,7 +101,7 @@ INSERT INTO events(note) VALUES ('B after admission');
 COMMIT;
 SELECT id, note FROM events ORDER BY id;`,
       expectedResult:
-        code`B's timed first BEGIN IMMEDIATE returns database is locked after roughly the configured 250 ms (the timer reports the measured wait), while A remains the only writer. After A commits, B can begin and commit; final rows are baseline, A owns writer, and B after admission.`,
+        code`B's timed first BEGIN IMMEDIATE returns database is locked after roughly the configured 250 ms (the timer reports the measured wait), while A remains the only writer; B is left in autocommit and reads committed_rows = 1. After A commits, B can begin and commit; final rows are baseline, A owns writer, and B after admission.`,
       systemsLens:
         code`An explicit admission point makes overload visible before expensive application work and defines a clean retry boundary.`,
       challenge:
@@ -121,7 +125,8 @@ SELECT id, note FROM events ORDER BY id;`,
         code`Hold a rollback-mode reader open while a writer changes data. The writer can prepare changes, but its commit needs an exclusive lock and waits for the reader.`,
       syntaxBreakdown:
         code`A read transaction keeps a SHARED lock. A writer's COMMIT is the blocking operation in rollback mode; .timeout makes the wait finite.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS messages;
 CREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT);
 INSERT INTO messages(body) VALUES ('before');`,
@@ -131,11 +136,11 @@ BEGIN;
 SELECT 'A sees', count(*) FROM messages;
 
 -- Session B
-.timeout 2000
+.timeout 30000
 BEGIN IMMEDIATE;
 INSERT INTO messages(body) VALUES ('after');
 
--- Session B (blocks until A ends its read)
+-- Session B (blocks until A ends its read; run A's COMMIT within 30 seconds)
 COMMIT;
 
 -- Session A
@@ -151,7 +156,7 @@ SELECT 'B committed', count(*) FROM messages;`,
       challenge:
         code`Switch both sessions to WAL and repeat. Which step stops blocking, and which single-writer constraint remains?`,
       caution:
-        code`A's transaction must remain open between SELECT and COMMIT; an autocommit SELECT releases its lock immediately.`,
+        code`A's transaction must remain open between SELECT and COMMIT; an autocommit SELECT releases its lock immediately. B's COMMIT waits up to 30 seconds, so switch to A and commit while it waits. If it does time out, B's transaction is still open (a failed COMMIT does not roll back): commit A, then run B's COMMIT again.`,
       revision: 1,
       minVersion: "3.45",
     },
@@ -162,44 +167,46 @@ SELECT 'B committed', count(*) FROM messages;`,
       tags: ["busy", "locking", "retries", "backpressure"],
       prerequisites: ["rollback-reader-writer-blocking"],
       safetyLevel: "locking",
-      runIn: "tool",
-      sessions: 2,
+      runIn: "mixed",
+      sessions: 1,
       estimatedMinutes: 15,
       overview:
-        code`Make one writer hold the lock longer than a peer's wait budget, then release it and retry. Observe a bounded failure instead of an indefinite hang.`,
+        code`Start a background writer that holds the lock for a known time, then contend with it twice: once with a wait budget larger than the hold, once with a budget smaller than it. The timer shows a short wait followed by success, then a bounded failure instead of an indefinite hang.`,
       syntaxBreakdown:
-        code`.timeout N sets sqlite3's busy timeout in milliseconds. A retry is a new statement after the lock holder has released its transaction.`,
-      setup: code`PRAGMA journal_mode=DELETE;
+        code`.shell runs a host command; the command starts a second sqlite3 process in the background that holds BEGIN IMMEDIATE for a fixed sleep and then commits. .timeout N sets this session's busy timeout in milliseconds. .timer on prints how long the statement actually waited. A retry is a new statement after the holder has released its transaction.`,
+      setup: code`.print -- close every other sqlite3 session first: the next line must print delete
+PRAGMA journal_mode=DELETE;
 DROP TABLE IF EXISTS work;
 CREATE TABLE work(id INTEGER PRIMARY KEY, done INTEGER NOT NULL);
 INSERT INTO work VALUES (1, 0);`,
-      code: code`-- Session A
-BEGIN IMMEDIATE;
-UPDATE work SET done=1 WHERE id=1;
-.shell sleep 0.4
-
--- Session B
-.timeout 150
+      code: code`.print -- round 1: holder keeps the lock 0.5 s, our budget is 2 s
+.shell (echo 'BEGIN IMMEDIATE; UPDATE work SET done=1 WHERE id=1;'; sleep 0.5; echo 'COMMIT;') | sqlite3 "$TUTOR_SQLITE_DB" >/dev/null 2>&1 &
+.shell sleep 0.1
+.timeout 2000
 .timer on
 UPDATE work SET done=2 WHERE id=1;
 .timer off
-SELECT 'B after first attempt', done FROM work;
-
--- Session A
-COMMIT;
-
--- Session B
-UPDATE work SET done=2 WHERE id=1;
-SELECT 'B retry', changes(), done FROM work;`,
+SELECT 'within budget', changes() AS changed, done FROM work;
+.print -- round 2: holder keeps the lock 1 s, our budget is 150 ms
+.shell (echo 'BEGIN IMMEDIATE; UPDATE work SET done=3 WHERE id=1;'; sleep 1; echo 'COMMIT;') | sqlite3 "$TUTOR_SQLITE_DB" >/dev/null 2>&1 &
+.shell sleep 0.1
+.timeout 150
+.timer on
+UPDATE work SET done=4 WHERE id=1;
+.timer off
+SELECT 'over budget, still committed value', done FROM work;
+.shell sleep 1
+UPDATE work SET done=4 WHERE id=1;
+SELECT 'retry after release', changes() AS changed, done FROM work;`,
       expectedResult:
-        code`B's first timed UPDATE reports database is locked after approximately 150 ms (the timer reports the measured wait) and its read still sees committed value 0. A then commits. B's retry succeeds and reports changes() = 1 with done = 2.`,
+        code`Round 1: the timed UPDATE succeeds after a measured wait of roughly 0.4 s (the remainder of the holder's 0.5 s hold), and within budget prints changed = 1, done = 2. Round 2: the timed UPDATE prints database is locked after roughly 0.15 s, the bounded budget, and the following read still shows the committed value 2. After the holder commits and the sleep passes, the retry prints changed = 1, done = 4.`,
       systemsLens:
-        code`Every queue needs a wait and cancellation budget. Busy timeout plus retry policy turns lock contention into bounded backpressure rather than unbounded latency.`,
+        code`Every queue needs a wait and cancellation budget. Busy timeout plus retry policy turns lock contention into bounded backpressure: the budget decides whether a caller waits for the holder or is told to come back, and neither outcome is an indefinite hang.`,
       challenge:
-        code`Change A's sleep to 0.05 seconds. Predict whether B succeeds on the first attempt with the same timeout.`,
+        code`Set round 2's budget to 1500 ms and predict the measured wait. Then set the holder's sleep to 5 s: what does a caller learn from a 150 ms budget, and what does it cost the caller that waits the whole time?`,
       caution:
-        code`The sleep is only a deterministic demonstration delay; it is not a durability or power-loss test.`,
-      revision: 1,
+        code`The background holder is a disposable sqlite3 process that commits or exits on its own within a few seconds; the sleeps are demonstration delays, not a durability or power-loss test.`,
+      revision: 2,
       minVersion: "3.45",
     },
     {

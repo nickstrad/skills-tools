@@ -54,6 +54,21 @@ they saw, compare it with `Expected result:` and explain any difference through 
 Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
 structured fields are needed.
 
+## Open the lab sessions
+
+Before the first tool lesson, have the user run this in every terminal (lesson 1 creates the
+directory; lesson code calls `.shell` with `$TUTOR_SQLITE_DB`):
+
+```
+export SQLITE_LAB="$PWD/sqlite-lab"
+export TUTOR_SQLITE_DB="$SQLITE_LAB/lab.db"
+sqlite3 "$TUTOR_SQLITE_DB"
+```
+
+"The wrapper" in lesson text is this opened `sqlite3`; `bin/sqlite-repl` is only the harness's
+launcher. Before a lesson's `Setup:`, have the user `.quit` every other `sqlite3` session on the lab
+(journal-mode switches fail with "database is locked"); multi-session lessons then reopen theirs.
+
 ## Progress invariants
 
 - The lesson `ordinal` is the number the user sees.
