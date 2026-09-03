@@ -7,8 +7,7 @@
   "revision": 1,
   "repl": {
     "command": [
-      "sqlite3",
-      "-batch"
+      "courses/sqlite/bin/sqlite-repl"
     ],
     "echo": ".print {marker}",
     "quit": ".quit",

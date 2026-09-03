@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+db_path=${TUTOR_SQLITE_DB-}
+
+if [ -z "$db_path" ]; then
+  echo "sqlite-repl: TUTOR_SQLITE_DB must name a disposable database" >&2
+  exit 64
+fi
+
+case "$db_path" in
+  /*) ;;
+  *)
+    echo "sqlite-repl: TUTOR_SQLITE_DB must be an absolute path" >&2
+    exit 64
+    ;;
+esac
+
+db_parent=${db_path%/*}
+db_name=${db_path##*/}
+if [ "$db_parent" = "" ] || [ "$db_parent" = "/" ] || [ "$db_name" = "" ]; then
+  echo "sqlite-repl: refuse a database directly under /" >&2
+  exit 64
+fi
+case "$db_name" in
+  *.db) ;;
+  *)
+    echo "sqlite-repl: disposable database name must end in .db" >&2
+    exit 64
+    ;;
+esac
+if [ ! -d "$db_parent" ] || [ ! -w "$db_parent" ]; then
+  echo "sqlite-repl: parent directory must already exist and be writable: $db_parent" >&2
+  exit 73
+fi
+if [ -L "$db_path" ]; then
+  echo "sqlite-repl: refuse a symbolic-link database path" >&2
+  exit 64
+fi
+if [ -e "$db_path" ] && [ ! -f "$db_path" ]; then
+  echo "sqlite-repl: existing path is not a regular file" >&2
+  exit 64
+fi
+
+exec sqlite3 -batch "$db_path"
