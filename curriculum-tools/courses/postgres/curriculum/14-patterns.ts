@@ -6,8 +6,16 @@ export const PATTERNS: Module = {
   lessons: [
     {
       slug: "transactional-outbox",
-      tags: ["outbox", "queues", "skip-locked", "idempotency", "distributed-patterns"],
+      tags: [
+        "outbox",
+        "queues",
+        "skip-locked",
+        "idempotency",
+        "distributed-patterns",
+      ],
       title: "Transactional outbox: one commit for the row and the message",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 13 "Row-Level Locks".`,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -25,15 +33,47 @@ In this lesson you cause the whole life cycle, including the failure the pattern
 the relay can crash after delivering and before marking, so delivery is at-least-once and the
 consumer must dedupe.`,
       syntaxBreakdown: code`
-The outbox table holds one row per event with a nullable sent_at as the completion marker.
-GENERATED ALWAYS AS IDENTITY gives each message a monotonically issued id - the dedupe key the
-consumer will use. The relay's claim is SELECT ... WHERE sent_at IS NULL ORDER BY msg_id FOR UPDATE
-SKIP LOCKED LIMIT n; locked rows are invisible to other relays, so two relays never claim the same
-message. Marking a message sent is an ordinary UPDATE, so the mark is durable only if the relay's
-transaction commits. On the consumer side, INSERT ... ON CONFLICT DO NOTHING RETURNING against a
-primary key of message ids turns a duplicate delivery into zero rows. Note that psql runs with -q
-here, so command tags like UPDATE 1 are suppressed: every statement below uses RETURNING so the row
-count shows up as real rows.`,
+### In plain terms
+
+This experiment asks how an application can commit a database change and an event together without pretending a broker shares the database transaction. The order and outbox rows become visible together, a relay claims the event, and a simulated crash reopens at-least-once delivery. A consumer table makes applying the same event twice harmless.
+
+### What you are learning
+
+- **Transactional outbox:** Store the event beside the business row so one commit controls both.
+- **SKIP LOCKED:** Concurrent relays take different unsent rows without waiting.
+- **At-least-once delivery:** A relay can publish and die before marking sent, so duplicates are expected.
+- **Consumer idempotency:** A primary key turns a duplicate event into zero inserted rows.
+
+### Piece by piece
+
+- **GENERATED ALWAYS AS IDENTITY** (automatic key)
+  - What it is: It assigns database-generated values to msg_id.
+  - What it does here: Each event gets a stable message and dedupe ID.
+  - What it gives us: RETURNING exposes msg_id to the relay and consumer.
+- **sent_at** and **attempts** (delivery columns)
+  - What they are: sent_at records a committed delivery mark; attempts counts tries.
+  - What they do here: NULL identifies work and rollback restores attempts to zero.
+  - What they give us: sent = t and attempts = 1 prove the second attempt committed.
+- **payload jsonb** and **payload ->> 'event'** (structured data)
+  - What they are: jsonb stores event data; ->> extracts a JSON value as text.
+  - What they do here: The relay prints a simulated publication.
+  - What they give us: PUBLISH order_created shows the external side effect.
+- **FOR UPDATE SKIP LOCKED LIMIT 10** (claim clause)
+  - What it is: FOR UPDATE locks rows; SKIP LOCKED ignores rows another relay owns; LIMIT bounds a batch.
+  - What it does here: B claims work and A's competing relay sees none.
+  - What it gives us: Zero rows means busy work was skipped, not permanently absent.
+- **RETURNING** and **ON CONFLICT DO NOTHING** (result and dedupe clauses)
+  - What they are: RETURNING emits changed rows; ON CONFLICT ignores an existing primary key.
+  - What they do here: They expose relay and consumer outcomes while quiet psql suppresses command tags.
+  - What they give us: One row means applied; zero means duplicate.
+- **BEGIN, COMMIT, and ROLLBACK** (transaction boundaries)
+  - What they are: They start, publish, or undo a transaction.
+  - What they do here: The first commit publishes order and message together; rollback simulates relay death.
+  - What they give us: sent_at remains NULL after rollback while publishing already happened.
+- **pg_stat_user_tables.n_dead_tup**, **pgstattuple(...)**, and partial index (challenge)
+  - What they are: They expose dead rows, physical bloat, and an index restricted to sent_at IS NULL.
+  - What they do here: They compare deleting with marking sent.
+  - What they give us: EXPLAIN shows whether sent rows are avoided.`,
       setup: code`
 drop table if exists pat_outbox;
 drop table if exists pat_orders;
@@ -140,8 +180,15 @@ scan the sent ones.`,
     },
     {
       slug: "idempotency-keys",
-      tags: ["idempotency", "unique-constraints", "retries", "distributed-patterns"],
+      tags: [
+        "idempotency",
+        "unique-constraints",
+        "retries",
+        "distributed-patterns",
+      ],
       title: "Idempotency keys: make the retry a no-op, not a second charge",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 "Relation-Level Locks".`,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -157,13 +204,43 @@ INSERT that errors, the idempotent one that no-ops, and the read-back that retur
 answer - and then race two retries concurrently to watch the second one wait on the first
 transaction's fate before it learns it lost.`,
       syntaxBreakdown: code`
-A PRIMARY KEY or UNIQUE constraint on the idempotency key is what makes the pattern work; ON
-CONFLICT (col) DO NOTHING needs that arbiter index and does nothing when it fires. RETURNING is
-essential: it is the only way to distinguish "I inserted it" (one row) from "somebody already had"
-(zero rows), because psql runs with -q here and suppresses command tags. A data-modifying CTE
-(WITH ins AS (INSERT ... RETURNING ...)) is executed exactly once no matter how often you reference
-it, which is what lets one statement mean "insert if new, otherwise fetch the existing answer".
-ERRCODE 23505 is unique_violation, the error the naive version raises.`,
+### In plain terms
+
+This experiment asks how a server makes a retry safe when a client cannot tell whether the first request succeeded. A primary key names the request, ON CONFLICT turns a repeat into a no-op, and a read-back returns the original answer. A concurrent retry waits for the first transaction's decision before learning whether it lost.
+
+### What you are learning
+
+- **Idempotency key:** A client-chosen name identifies one logical request across retries.
+- **Unique enforcement:** The unique index serializes competing uses of a key.
+- **Zero rows versus an answer:** RETURNING shows whether this attempt inserted; a read-back supplies the stored result.
+- **Retry discipline:** A waiter can receive success, a no-op, or unique_violation depending on the SQL pattern.
+
+### Piece by piece
+
+- **pat_payments PRIMARY KEY** (uniqueness constraint)
+  - What it is: It rejects two rows with the same idem_key.
+  - What it does here: req-7 and req-8 stand for retried requests.
+  - What it gives us: Duplicate attempts have a deterministic identity.
+- **ON CONFLICT (idem_key) DO NOTHING** (conflict clause)
+  - What it is: It uses the key's unique index and skips an existing row.
+  - What it does here: A retry completes without charging again.
+  - What it gives us: RETURNING gives one row for creation and zero for a no-op.
+- **RETURNING** (result clause)
+  - What it is: It emits inserted or updated rows.
+  - What it does here: It exposes the original charged_at timestamp.
+  - What it gives us: A client can distinguish new work from an existing result.
+- **WITH ins AS (...)** (data-modifying CTE)
+  - What it is: It executes the INSERT once and exposes its returned row as a temporary result.
+  - What it does here: UNION ALL falls back only when ins is empty.
+  - What it gives us: created = t or f tells whether this attempt charged.
+- **SQLSTATE 23505 / unique_violation** (error identity)
+  - What it is: The code for a duplicate unique key.
+  - What it does here: The naive retry demonstrates the unsafe alternative.
+  - What it gives us: Applications can classify the error without parsing prose.
+- **Concurrent BEGIN, pg_sleep(1), and COMMIT** (race timing)
+  - What they are: A keeps req-8 uncommitted; sleep lets B be observed; COMMIT decides the key.
+  - What they do here: B's INSERT waits on A's transaction.
+  - What they give us: Lock/transactionid in pg_stat_activity proves uniqueness waited for a commit.`,
       setup: code`
 drop table if exists pat_payments;
 create table pat_payments(
@@ -252,14 +329,26 @@ NOTHING - the "harmless" retry still writes a new row version every time it fire
     },
     {
       slug: "two-phase-commit",
-      tags: ["two-phase-commit", "transactions", "durability", "gc-horizon", "recovery"],
+      tags: [
+        "two-phase-commit",
+        "transactions",
+        "durability",
+        "gc-horizon",
+        "recovery",
+      ],
       title: "Two-phase commit: a transaction with no process",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 "Pages and Tuples".`,
       difficulty: "advanced",
       safetyLevel: "dangerous",
       runIn: "mixed",
       sessions: 1,
       estimatedMinutes: 35,
-      prerequisites: ["crash-and-redo", "xmin-horizon-blocks-cleanup", "idempotency-keys"],
+      prerequisites: [
+        "crash-and-redo",
+        "xmin-horizon-blocks-cleanup",
+        "idempotency-keys",
+      ],
       overview: code`
 PREPARE TRANSACTION splits COMMIT in half. The first half does everything a commit does except
 become visible: it writes the changes to WAL, fsyncs them, keeps every lock, and then detaches the
@@ -276,15 +365,47 @@ postmaster-level setting, so turning it on needs a restart, not a reload. The la
 from module 01 already sets it to 10; the first block changes it anyway so you can watch a config
 reload fail to take effect.`,
       syntaxBreakdown: code`
-PREPARE TRANSACTION 'gid' ends the current transaction block and leaves a prepared transaction
-named by that global identifier. COMMIT PREPARED 'gid' and ROLLBACK PREPARED 'gid' resolve it from
-any session. pg_prepared_xacts lists gid, prepared (the timestamp), owner, database and transaction
-(the xid). In pg_locks a prepared transaction's locks have pid = NULL and a virtualtransaction of
--1/xid, where backend id -1 means "no backend". ALTER SYSTEM writes postgresql.auto.conf;
-pg_reload_conf() sends SIGHUP, after which pg_settings.pending_restart tells you the value on disk
-differs from the running one. VACUUM (VERBOSE) prints "N are dead but not yet removable" and a
-"removable cutoff", which is the cluster's xmin horizon. pg_ctl stop -m immediate is the crash;
-recovery logs "recovering prepared transaction N from shared memory".`,
+### In plain terms
+
+This experiment asks what remains after a transaction is prepared but no session owns it. PREPARE makes changes durable without making them visible, then leaves locks and the transaction horizon until another session resolves the global ID. A crash and restart show that this promise survives process and server failure.
+
+### What you are learning
+
+- **Two-phase commit:** Preparation records a participant's promise; a later prepared commit or rollback finishes it.
+- **Prepared state:** It has no client backend but still holds locks and prevents cleanup.
+- **Postmaster settings:** max_prepared_transactions sizes shared memory and needs restart.
+- **Recovery durability:** WAL and two-phase state files restore unresolved prepared work.
+
+### Piece by piece
+
+- **max_prepared_transactions** (postmaster setting)
+  - What it is: It limits prepared transactions and reserves shared memory.
+  - What it does here: ALTER SYSTEM changes disk configuration while reload leaves pending_restart true.
+  - What it gives us: SHOW before and after restart proves reload was insufficient.
+- **ALTER SYSTEM**, **pg_reload_conf()**, and **pending_restart** (configuration controls)
+  - What they are: ALTER SYSTEM writes postgresql.auto.conf; reload rereads it; pending_restart flags a restart-only difference.
+  - What they do here: They show running 10 while the requested value is 20.
+  - What they give us: source, setting, and pending_restart explain the delayed change.
+- **PREPARE TRANSACTION**, **COMMIT PREPARED**, and **ROLLBACK PREPARED** (2PC commands)
+  - What they are: PREPARE detaches a transaction; the others resolve its global ID.
+  - What they do here: pat-xfer-1 remains pending through a crash, then commits.
+  - What they give us: Balances stay 100/100 until commit, then become 75/125.
+- **pg_prepared_xacts** (prepared-transaction view)
+  - What it is: It lists gid, timestamp, owner, database, and xid.
+  - What it does here: It proves state remains without a session.
+  - What it gives us: A gid and transaction number for recovery.
+- **pg_locks virtualtransaction and pid** (lock evidence)
+  - What they are: They identify ownership; pid is empty for detached state and virtualtransaction becomes -1/xid after recovery.
+  - What they do here: The account update blocks and times out.
+  - What they give us: A relation lock with no live process.
+- **VACUUM (VERBOSE)** and **removable cutoff** (cleanup evidence)
+  - What they are: Verbose vacuum reports removed and non-removable rows and its horizon cutoff.
+  - What they do here: The prepared xid keeps 500 dead rows from being reclaimed.
+  - What they give us: Counts and cutoff move only after COMMIT PREPARED.
+- **pg_ctl stop -m immediate / start** (crash and recovery)
+  - What they are: immediate stops without clean shutdown; start launches the cluster.
+  - What they do here: The unresolved transaction is recovered.
+  - What they give us: recovering prepared transaction in the log proves durability.`,
       caution: code`
 This lesson restarts the lab cluster three times and crashes it once with SIGQUIT, and it leaves a
 prepared transaction holding locks in between. Run it only against the $PGLAB cluster on port 5440,
@@ -486,8 +607,16 @@ n_dead_tup grow without bound.`,
     },
     {
       slug: "optimistic-concurrency-with-version-columns",
-      tags: ["optimistic-concurrency", "lost-update", "read-committed", "retries"],
+      tags: [
+        "optimistic-concurrency",
+        "lost-update",
+        "read-committed",
+        "retries",
+      ],
       title: "Optimistic concurrency: zero rows updated is the conflict",
+      reading: code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Read Committed")`,
+      readingNotes: code`
+Chapter 2 explains Read Committed visibility and the recheck after a concurrent update. This lesson applies that mechanism to a version-column compare-and-swap, then contrasts it with SELECT FOR UPDATE. Read the chapter before or after; the race makes its recheck rule visible.`,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -504,13 +633,39 @@ optimistic version where the loser learns it lost, and the pessimistic FOR UPDAT
 loser waits instead - and see the read-committed detail that makes the guard work at all: a blocked
 UPDATE re-evaluates its WHERE clause against the row the other transaction committed.`,
       syntaxBreakdown: code`
-UPDATE ... WHERE id = ? AND version = ? RETURNING is the whole pattern, and RETURNING is what makes
-"zero rows" observable (psql runs with -q, so the UPDATE 0 command tag is suppressed). Under READ
-COMMITTED, an UPDATE that finds a row locked by another transaction waits, and once that
-transaction commits it re-reads the NEW row version and re-checks the WHERE clause - the
-EvalPlanQual (EPQ) recheck, and the reason version = 1 stops matching. SELECT ... FOR UPDATE is the
-pessimistic alternative: it takes the row lock during the read, so the second reader blocks before
-it has even decided what to write.`,
+### In plain terms
+
+This experiment asks how two editors can prevent one save from silently overwriting the other. Each update includes the version read earlier, so a stale writer matches zero rows; the retry rereads and succeeds. SELECT FOR UPDATE instead makes the second reader wait for the newer version.
+
+### What you are learning
+
+- **Compare-and-swap:** A write is allowed only if the row still has the version observed by the client.
+- **Read Committed recheck:** A blocked UPDATE rechecks its WHERE clause against the newly committed row.
+- **Optimistic versus pessimistic control:** Optimism detects and retries; locking prevents conflict by waiting.
+- **RETURNING as a signal:** One row means success; zero rows means the version no longer matched.
+
+### Piece by piece
+
+- **version int NOT NULL DEFAULT 1** (schema version)
+  - What it is: A required integer with an initial value.
+  - What it does here: It records the revision each editor read.
+  - What it gives us: Version 1 becomes 2 after A; B’s version-1 predicate matches nothing.
+- **UPDATE ... WHERE id = 1 AND version = 1 RETURNING** (guarded write)
+  - What it is: WHERE is a compare condition; RETURNING emits the changed row.
+  - What it does here: B waits for A, then rechecks against version 2.
+  - What it gives us: One row for A and zero for B.
+- **pg_stat_activity wait fields** (race observation)
+  - What they are: Activity rows report why a backend is waiting.
+  - What it does here: A selects rows with wait_event_type = Lock.
+  - What it gives us: transactionid identifies the xid B awaits.
+- **SELECT ... FOR UPDATE** (pessimistic row lock)
+  - What it is: It locks selected rows for the transaction.
+  - What it does here: B’s read waits until A commits.
+  - What it gives us: B reads A’s committed version and sees no conflict.
+- **REPEATABLE READ and SQLSTATE 40001** (challenge)
+  - What they are: A stricter snapshot and serialization-failure code.
+  - What they do here: The same race fails B’s transaction.
+  - What they give us: Retry the whole transaction, not only the statement.`,
       setup: code`
 drop table if exists pat_docs;
 create table pat_docs(id int primary key, title text, body text, version int not null default 1);
@@ -606,14 +761,25 @@ HOT-pruned or frozen tuple changes xmin under you.`,
     },
     {
       slug: "fencing-tokens-with-a-monotonic-counter",
-      tags: ["fencing", "leases", "leader-election", "split-brain", "advisory-locks"],
+      tags: [
+        "fencing",
+        "leases",
+        "leader-election",
+        "split-brain",
+        "advisory-locks",
+      ],
       title: "Fencing tokens: why a lease alone is not mutual exclusion",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 14 "Miscellaneous Locks".`,
       difficulty: "advanced",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 20,
-      prerequisites: ["advisory-locks-as-leases", "optimistic-concurrency-with-version-columns"],
+      prerequisites: [
+        "advisory-locks-as-leases",
+        "optimistic-concurrency-with-version-columns",
+      ],
       overview: code`
 The advisory-lock lease in module 06 had a hole: the lock dies when the session dies, but the
 process holding it does not necessarily know. A worker that is GC-paused, swapped out, or on the
@@ -624,14 +790,43 @@ write carry the token it was authorised with, and to have the storage refuse tok
 moved past. You will play both workers, cause the stale write, watch the guard reject it, then
 remove the guard and watch the same write silently win.`,
       syntaxBreakdown: code`
-The lease table holds one row per resource with a monotonically increasing epoch; acquiring the
-lease is UPDATE ... SET epoch = epoch + 1 RETURNING epoch, which is atomic and hands the winner a
-number nobody else will ever get. Every write then carries that number: UPDATE ... WHERE
-epoch <= :mine, so a token older than the one already recorded matches nothing - zero rows, the
-same conflict signal as the previous lesson. pg_try_advisory_xact_lock(hashtext(resource)) gives
-short-term mutual exclusion around the acquisition itself. A BEFORE UPDATE trigger that raises when
-NEW.epoch < OLD.epoch moves the guard out of the writer and into the storage so a writer cannot
-forget it; RAISE EXCEPTION ... USING ERRCODE = 'check_violation' gives it SQLSTATE 23514.`,
+### In plain terms
+
+This experiment asks why a lease or advisory lock cannot stop an old worker that wakes up late. Worker A gets token 1, worker B takes token 2, and A's guarded write is rejected; removing the guard lets stale data overwrite B. A trigger then makes storage enforce the rule even when a writer forgets.
+
+### What you are learning
+
+- **Lease versus fencing:** A lease says who should act; fencing makes the resource reject old actors.
+- **Monotonic tokens:** Every takeover gets a larger epoch that can be compared without synchronized clocks.
+- **Compare-and-swap writes:** A token predicate turns a stale write into zero rows.
+- **Storage-side enforcement:** A trigger prevents unsafe unguarded writes.
+
+### Piece by piece
+
+- **epoch = epoch + 1 RETURNING** (token issuance)
+  - What it is: An atomic counter increment that returns its new value.
+  - What it does here: A receives epoch 1 and B receives epoch 2.
+  - What it gives us: A value that orders lease ownership.
+- **pg_try_advisory_xact_lock(hashtext(...))** (transaction advisory lock)
+  - What it is: hashtext makes an integer key; try-lock returns immediately.
+  - What it does here: It serializes acquisition only until COMMIT.
+  - What it gives us: got_mutex = t without making the lock the authority.
+- **epoch <= token in UPDATE** (fencing predicate)
+  - What it is: A write condition requiring the stored epoch not to be newer.
+  - What it does here: A’s token 1 matches zero rows after B records 2.
+  - What it gives us: Zero rows is a safe stale-write signal.
+- **BEFORE UPDATE trigger, NEW, and OLD** (storage guard)
+  - What they are: The trigger runs before each update; NEW and OLD are proposed and existing values.
+  - What they do here: pat_fence raises when NEW.epoch is lower than OLD.epoch.
+  - What they give us: A loud failure instead of silent clobbering.
+- **RAISE EXCEPTION ... ERRCODE = 'check_violation'** (PL/pgSQL error)
+  - What it is: It aborts the statement with SQLSTATE 23514.
+  - What it does here: It reports token 1 is older than 2.
+  - What it gives us: A machine-classifiable stale-worker failure.
+- **CREATE TRIGGER ... EXECUTE FUNCTION** (trigger installation)
+  - What it is: It attaches pat_fence to updates of pat_state.
+  - What it does here: Even the later unguarded UPDATE is checked.
+  - What it gives us: Current epoch 2 succeeds while epoch 1 fails.`,
       setup: code`
 drop table if exists pat_state;
 drop table if exists pat_lease;
@@ -747,8 +942,15 @@ watch two workers walk away with the same token.`,
     },
     {
       slug: "read-your-writes-on-a-replica",
-      tags: ["logical-replication", "consistency", "replication-slots", "distributed-patterns"],
+      tags: [
+        "logical-replication",
+        "consistency",
+        "replication-slots",
+        "distributed-patterns",
+      ],
       title: "Read your writes: carry an LSN from the primary to the replica",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       difficulty: "advanced",
       safetyLevel: "privileged",
       runIn: "tool",
@@ -774,16 +976,47 @@ remote_lsn of its replication origin. You will deliberately stop the replica, ob
 read, and then watch the LSN comparison flip from false to true at exactly the moment the row
 appears.`,
       syntaxBreakdown: code`
-pg_current_wal_lsn() is the primary's write position; captured with \gset it becomes a psql
-variable, and psql variables survive \c - which is exactly what a real client does when it carries
-the LSN from its write connection to its read connection. On the subscriber,
-pg_replication_origin_status reports external_id (the origin name, pg_ plus the subscription's oid)
-and remote_lsn, how far into the publisher's WAL this subscriber has durably applied. LSNs are the
-pg_lsn type and compare with the ordinary operators, so remote_lsn >= :'write_lsn'::pg_lsn is the
-whole staleness check. ALTER SUBSCRIPTION ... DISABLE / ENABLE stops and restarts the apply worker
-without dropping the slot, so the replica falls behind on demand. As in module 10, the pgoutput
-slot is created by hand and the subscription is told create_slot = false: inside one cluster,
-letting CREATE SUBSCRIPTION create its own slot deadlocks against its own transaction.`,
+### In plain terms
+
+This experiment asks how a user can read a change immediately after writing when reads may go to a lagging replica. The primary returns a log position, the client carries it to the replica, and the replica is trusted only after its applied position reaches that token. Disabling logical apply creates the stale-read window; enabling it closes it.
+
+### What you are learning
+
+- **Read-your-writes guarantee:** A client can require a replica to have applied the state produced by its write.
+- **LSN tokens:** A log sequence number is an ordered WAL position that travels with a request.
+- **Logical apply position:** remote_lsn reports how far the subscriber has applied publisher changes.
+- **Replication cleanup:** Slots retain WAL, so disabled subscriptions must be detached and dropped.
+
+### Piece by piece
+
+- **CREATE PUBLICATION ... FOR TABLE** (publisher definition)
+  - What it is: It declares which table changes are offered to subscribers.
+  - What it does here: pat_profile changes become publishable.
+  - What it gives us: A name for CREATE SUBSCRIPTION.
+- **pg_create_logical_replication_slot** and **pg_drop_replication_slot** (slot functions)
+  - What they are: A slot reserves WAL until a consumer receives it; these functions create and remove it.
+  - What they do here: A hand-created pgoutput slot avoids same-cluster creation deadlock.
+  - What they give us: slot_name and lsn identify the stream; zero slots proves cleanup.
+- **CREATE SUBSCRIPTION ... create_slot = false, slot_name, copy_data** (subscriber setup)
+  - What it is: It connects lab_rr to pat_pub, copies existing rows, then streams changes.
+  - What it does here: It reuses the hand-created slot and copies v0.
+  - What it gives us: A subscriber table and apply worker.
+- **ALTER SUBSCRIPTION ... DISABLE / ENABLE** (apply control)
+  - What it is: It stops or starts the apply worker without dropping the slot.
+  - What it does here: DISABLE creates lag; ENABLE lets remote_lsn catch up.
+  - What it gives us: caught_up changes from false to true.
+- **pg_current_wal_lsn()**, **\gset**, **pg_replication_origin_status**, and **remote_lsn** (position handshake)
+  - What they are: The first returns primary WAL position; \gset stores it; the view reports subscriber progress.
+  - What they do here: The token is compared with remote_lsn.
+  - What they give us: caught_up = f means stale is possible; t means the write is applied.
+- **\c**, **\set conn**, and **\watch i=1 c=4** (psql controls)
+  - What they are: \c changes database; \set stores a variable; \watch repeats a query.
+  - What they do here: One session moves between databases and watches apply progress.
+  - What they give us: The LSN variable survives the connection switch.
+- **DROP SUBSCRIPTION**, **pg_drop_replication_slot**, and **DROP DATABASE** (cleanup)
+  - What they are: They detach subscription, release the slot, and remove the scratch database.
+  - What they do here: They prevent retained WAL and leftover connections.
+  - What they give us: slots_left = 0 and lab_rr_left = 0.`,
       caution: code`
 This lesson creates a database (lab_rr) and a replication slot, and the last block drops both. If
 you stop early, drop them by hand: an abandoned logical slot retains WAL until the disk fills.`,
@@ -910,8 +1143,16 @@ reader latency only when it is behind, remote_apply costs every writer latency a
     },
     {
       slug: "listen-notify-as-a-bus",
-      tags: ["listen-notify", "queues", "outbox", "durability", "distributed-patterns"],
+      tags: [
+        "listen-notify",
+        "queues",
+        "outbox",
+        "durability",
+        "distributed-patterns",
+      ],
       title: "LISTEN/NOTIFY: a bus with no memory",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 "Introduction".`,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -928,14 +1169,43 @@ listening at that instant. Nothing is stored. A listener that is disconnected, r
 simply not subscribed yet misses the message permanently, and there is no offset, no
 acknowledgement and no redelivery.`,
       syntaxBreakdown: code`
-LISTEN channel subscribes the session; UNLISTEN channel (or UNLISTEN *) stops it; NOTIFY channel,
-'payload' queues a notification for the current transaction. Notifications are delivered only when
-that transaction commits, and identical (channel, payload) pairs within one transaction are
-collapsed into a single delivery. psql prints each one as an "Asynchronous notification ... received
-from server process with PID n" line the next time it processes something, which is why the
-listener runs a dummy query to check for mail. pg_notify(channel, payload) is the function form,
-usable from a trigger. pg_notification_queue_usage() returns the fraction of the fixed, cluster-wide
-async queue currently in use - the number that climbs when a listener stops consuming.`,
+### In plain terms
+
+This experiment asks whether LISTEN/NOTIFY can replace a durable queue. A notification arrives only after the sending transaction commits, at the same time its row becomes visible, but it is not stored for an absent listener. The useful pattern is a durable table for truth and NOTIFY as a wake-up bell.
+
+### What you are learning
+
+- **Commit-time delivery:** Notifications from an uncommitted transaction do not reach listeners.
+- **At-most-once signalling:** Duplicates collapse and missed notifications are not replayed.
+- **Table plus doorbell:** The table stores the event; NOTIFY reduces polling delay.
+- **Queue pressure:** A listener that stops consuming can hold space in the shared notification queue.
+
+### Piece by piece
+
+- **LISTEN**, **UNLISTEN**, and **NOTIFY** (session commands)
+  - What they are: LISTEN subscribes; UNLISTEN removes the subscription; NOTIFY queues a channel/payload signal for commit.
+  - What they do here: B listens before A commits, then stops before a later event.
+  - What they give us: Two order-1 lines show duplicate collapse; the missed event produces no line.
+- **pg_notify(channel, payload)** (function)
+  - What it is: The function form of NOTIFY, usable in triggers.
+  - What it does here: The challenge attaches a signal to an insert.
+  - What it gives us: A row ID can identify what to inspect, but is not durable alone.
+- **Asynchronous notification output** (psql behaviour)
+  - What it is: psql prints pending notifications while processing a later command.
+  - What it does here: Dummy SELECT statements poll the connection.
+  - What it gives us: The sender PID may appear after the query result.
+- **pg_notification_queue_usage()** (queue metric)
+  - What it is: It returns the fraction of the cluster-wide queue in use.
+  - What it does here: The lesson checks queue pressure.
+  - What it gives us: A growing value signals a stuck listener.
+- **BEGIN, COMMIT, and SELECT** (visibility proof)
+  - What they are: Transaction boundaries control when writes and notifications become visible.
+  - What they do here: A inserts and notifies before commit, then B reads after commit.
+  - What they give us: Row visibility and delivery happen together.
+- **8000-byte payload limit** (challenge boundary)
+  - What it is: PostgreSQL limits one notification payload to about 8000 bytes.
+  - What it does here: An oversized payload fails instead of becoming a durable message.
+  - What it gives us: Send a key and read the table rather than embedding the full event.`,
       setup: code`
 drop table if exists pat_bus_orders;
 create table pat_bus_orders(id int primary key, customer text not null);`,

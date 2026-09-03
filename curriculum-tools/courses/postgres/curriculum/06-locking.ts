@@ -21,11 +21,52 @@ disk, not by shared memory. A second writer that hits a locked row therefore doe
 "row lock": it waits on the locker's transaction id. You will see both halves - the stamp in the
 tuple via pgrowlocks, and the wait on a transactionid in pg_stat_activity.`,
       syntaxBreakdown: code`
-SELECT ... FOR UPDATE takes the strongest row lock (blocks other writers and other FOR UPDATE).
-pgrowlocks('t') scans a table and decodes every locked tuple: locked_row (the ctid), locker (the
-xid), multi (whether it is a MultiXactId), xids, modes, pids. pg_current_xact_id() materialises the
-current transaction's id. pg_stat_activity.wait_event_type / wait_event name what a backend is
-waiting on; Lock / transactionid means "waiting for another transaction to end".`,
+### In plain terms
+
+This experiment asks where PostgreSQL stores a row lock. Locking row 1 records transaction
+information in the row's tuple header, while a competing writer waits for that transaction's final
+decision. You will inspect the stamp with pgrowlocks and inspect the wait with the activity and lock
+views, so “waiting for a row” becomes a concrete transaction-id wait.
+
+### What you are learning
+
+- **Tuple-level lock state** is stored with row versions rather than in one lock table.
+- **Transaction-ID waits** let a writer wait for the locker's commit or rollback.
+- **pgrowlocks and system views** expose the tuple, backend, and wait evidence from different angles.
+
+### Piece by piece
+
+- **SELECT ... FOR UPDATE** (SQL row-locking clause): Reads matching rows and takes the strongest ordinary row lock.
+  - What it does here: Session A locks id 1 and keeps the lock until COMMIT.
+  - What it gives us: One locked tuple that blocks B's UPDATE.
+- **pgrowlocks('lk_t')** (extension function): Scans a table and decodes row-lock metadata.
+  - What it does here: Session B inspects the locked row while A's transaction is open.
+  - What it gives us: locked_row (ctid), locker (xid), multi, xids, modes, and pids; modes = {For Update} names the lock.
+- **pg_current_xact_id()** (SQL function): Returns the current transaction's ID.
+  - What it does here: Gives A's xid for comparison with pgrowlocks and pg_locks.
+  - What it gives us: a_xid, which should match locker.
+- **pg_backend_pid()** (SQL function): Returns this connection's server process ID.
+  - What it does here: Identifies A and lets you match it to activity rows.
+  - What it gives us: a_pid and the pids array in pgrowlocks.
+- **pg_sleep(1)** (SQL function): Pauses the current backend for one second.
+  - What it does here: Keeps the lock and B's wait visible long enough to inspect.
+  - What it gives us: A wait_event of Timeout/PgSleep for A, not a lock wait.
+- **pg_stat_activity** (system view): Lists one row per connected backend and its current state.
+  - What it does here: Filters for backends waiting on locks.
+  - What it gives us: B as active with wait_event_type = Lock and wait_event = transactionid.
+- **pg_locks** (system view): Lists held and requested lock records.
+  - What it does here: Shows each backend's own xid lock and B's request on A's xid.
+  - What it gives us: transactionid, mode, and granted = false for B's ShareLock request.
+- **COMMIT** (SQL transaction command): Publishes A's work and releases its transaction locks.
+  - What it does here: Lets B's blocked UPDATE finish.
+  - What it gives us: B writes the row and pgrowlocks reports still_locked = 0.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (sections "Lock Design", "Row-Level Locking Modes"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
+      readingNotes: code`
+Chapters 12 and 13 explain that row locks are represented through tuple metadata and waits on the
+locker transaction ID. This lesson shows the same mechanism live through pgrowlocks, pg_stat_activity,
+and pg_locks; read the chapters before running it to recognize the xid and lock-mode vocabulary.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -87,9 +128,52 @@ in arrival order, and pg_blocking_pids() reports the edges of the resulting wait
 the queue drain one transaction at a time, and notice that the second waiter is still stuck after
 the first holder commits.`,
       syntaxBreakdown: code`
-pg_blocking_pids(pid) returns the array of backend PIDs that the given backend is waiting for -
-this is the wait-for graph the deadlock detector walks. cardinality() gives an array's length.
-Joining pg_stat_activity to it turns the graph into a human-readable queue.`,
+### In plain terms
+
+Three sessions queue for one row. The first waiter waits on the holder, while the next waiter waits
+behind that first waiter, creating a wait-for graph (a directed list of who blocks whom). The query
+turns that graph into rows you can read before and after the first transaction commits.
+
+### What you are learning
+
+- **Wait queues** preserve arrival order when conflicting lock requests compete.
+- **Wait-for graphs** show the immediate blocker for each waiting backend.
+- **Head-of-line blocking** means releasing the first holder does not release everyone behind it.
+
+### Piece by piece
+
+- **SELECT ... FOR UPDATE** (SQL row-lock clause): Locks id 2 for Session A.
+  - What it does here: Creates the initial holder that B must wait for.
+  - What it gives us: A's backend PID as the first blocker.
+- **UPDATE ... WHERE id = 2** (SQL data change): Requests the same row lock while changing val.
+  - What it does here: B queues behind A, and C later queues behind B.
+  - What it gives us: Lock/transactionid for B and Lock/tuple for C at the first observation.
+- **pg_backend_pid()** (SQL function): Returns a connection's backend PID.
+  - What it does here: Labels A, B, and C for matching graph edges.
+  - What it gives us: a_pid, b_pid, and c_pid values in the waiting_for arrays.
+- **pg_sleep(1)** (SQL function): Pauses a backend so the queue can settle.
+  - What it does here: Gives B and C time to become blocked before inspection.
+  - What it gives us: A stable snapshot of two waiting backends.
+- **pg_blocking_pids(pid)** (SQL function): Returns the PIDs directly blocking the supplied backend.
+  - What it does here: Builds the waiting_for array for every active backend.
+  - What it gives us: B -> A first, then C -> B after A commits.
+- **cardinality(pg_blocking_pids(pid)) > 0** (array function and filter): Tests whether the blocker array has any members.
+  - What it does here: Keeps only backends that are actually waiting.
+  - What it gives us: A compact view of the queue rather than unrelated sessions.
+- **pg_stat_activity** (system view): Provides wait_event_type and wait_event alongside each PID.
+  - What it does here: Adds the reason for each wait to the graph.
+  - What it gives us: Lock/transactionid versus Lock/tuple as the queue advances.
+- **COMMIT** (SQL transaction command): Releases the current holder's row lock.
+  - What it does here: Wakes B, but C remains behind B until B commits.
+  - What it gives us: The second observation proving one-step-at-a-time queue draining.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Wait Queue"); Chapter 12 "Relation-Level Locks" (section "Wait Queue")`,
+      readingNotes: code`
+The wait-queue sections of Chapters 12 and 13 explain why a blocked lock request has a blocker and
+why later requests remain queued. This lesson adds pg_blocking_pids and wait-event output as an
+operational view of that graph; read the chapters first, then use this experiment to practice
+identifying the current head of the queue.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -164,10 +248,45 @@ PostgreSQL does not prevent deadlocks; it detects them. A backend that has waite
 with ERROR: deadlock detected. Build the textbook cycle - A holds row 1 and wants row 2, B holds
 row 2 and wants row 1 - and read the DETAIL that names both processes and both statements.`,
       syntaxBreakdown: code`
-deadlock_timeout is how long a backend waits before running the (relatively expensive) cycle check;
-it is a latency knob, not a correctness knob. The victim is the backend that ran the check, so
-which transaction dies depends on timing. ERRCODE 40P01 (deadlock_detected) is retryable: the
-application is expected to redo the whole transaction.`,
+### In plain terms
+
+This experiment creates a cycle: A holds row 1 and requests row 2 while B holds row 2 and requests
+row 1. A deadlock is a wait where nobody can proceed, so PostgreSQL waits briefly, detects the cycle,
+and aborts one transaction. The surviving transaction can commit, while the client must retry the
+aborted unit of work.
+
+### What you are learning
+
+- **Deadlocks** are cycles in a wait-for graph, not merely long waits.
+- **deadlock_timeout** controls when PostgreSQL checks for a cycle; it does not prevent one.
+- **40P01** identifies a retryable deadlock victim and the whole transaction must be redone.
+
+### Piece by piece
+
+- **SHOW deadlock_timeout** (SQL inspection command): Reads the server/session deadlock-check delay.
+  - What it does here: Establishes the wait threshold before the detector runs.
+  - What it gives us: Usually 1s, though the lab's configured value is authoritative.
+- **UPDATE lk_t ... WHERE id = 1 or 2** (SQL row update): Takes a row lock while changing a row.
+  - What it does here: Gives A row 1 and B row 2, then makes each request the other's row.
+  - What it gives us: The two edges needed for a cycle.
+- **pg_sleep(1)** (SQL function): Pauses B while A's conflicting request is already queued.
+  - What it does here: Makes the deadlock ordering reproducible.
+  - What it gives us: Enough elapsed time for the detector to report the cycle.
+- **deadlock_timeout** (server/session setting): Sets how long a lock wait lasts before a deadlock search.
+  - What it does here: Determines when B's second UPDATE is checked.
+  - What it gives us: A roughly one-second delay before ERROR: deadlock detected.
+- **ROLLBACK** (SQL transaction command): Aborts the victim and releases its locks.
+  - What it does here: Cleans up B after the error so A can proceed.
+  - What it gives us: A's updates can commit; B's pending change disappears.
+- **COMMIT** (SQL transaction command): Publishes the surviving transaction and releases its locks.
+  - What it does here: Lets A finish after B is aborted.
+  - What it gives us: Rows 1 and 2 contain A's values.
+`,
+      reading: code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Deadlocks")`,
+      readingNotes: code`
+Chapter 13's deadlock section explains the cycle formed by conflicting row updates and the detector's
+victim behavior. This lesson reproduces that cycle and records the DETAIL and CONTEXT diagnostics;
+read the section before running it, then compare its abstract graph with the two concrete statements.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -229,10 +348,50 @@ three different ways: lock_timeout cancels the statement after a deadline, NOWAI
 immediately, and SKIP LOCKED silently returns the rows nobody else holds. Trigger all three against
 the same locked row.`,
       syntaxBreakdown: code`
-SET lock_timeout = '500ms' aborts any statement that has waited that long for a lock (ERRCODE
-55P03, lock_not_available). FOR UPDATE NOWAIT raises the same error class without waiting at all.
-FOR UPDATE SKIP LOCKED omits locked rows from the result instead of erroring. statement_timeout is
-the blunter cousin: it also kills statements that are merely slow.`,
+### In plain terms
+
+This experiment compares three ways to handle a busy row: wait only briefly, fail immediately, or
+choose other unlocked rows. lock_timeout limits time spent waiting; NOWAIT refuses instantly; SKIP
+LOCKED omits busy rows. These choices matter because an unbounded wait can consume a connection even
+when the application has useful work elsewhere.
+
+### What you are learning
+
+- **lock_timeout** limits lock acquisition time and returns an error when the limit is reached.
+- **NOWAIT** fails immediately, while **SKIP LOCKED** succeeds with a partial result.
+- **statement_timeout** measures total statement runtime, not just time waiting for a lock.
+
+### Piece by piece
+
+- **SET lock_timeout = '500ms'** (session setting command): Configures the maximum lock wait for this connection.
+  - What it does here: Limits B's UPDATE against A's locked row.
+  - What it gives us: “canceling statement due to lock timeout” after about half a second.
+- **RESET lock_timeout** (session setting command): Restores the setting's default value.
+  - What it does here: Removes the artificial timeout before testing NOWAIT and SKIP LOCKED.
+  - What it gives us: Those clauses, rather than the setting, determine the result.
+- **SELECT ... FOR UPDATE** (SQL row-lock clause): Reads and locks id 3.
+  - What it does here: A holds the row that all B variants test.
+  - What it gives us: A controlled conflict.
+- **FOR UPDATE NOWAIT** (SQL locking option): Requests a row lock without waiting.
+  - What it does here: B immediately tries locked id 3, then retries after A commits.
+  - What it gives us: A lock-not-available error first and id = 3 after release.
+- **FOR UPDATE SKIP LOCKED** (SQL locking option): Ignores rows whose locks cannot be acquired immediately.
+  - What it does here: Reads all rows while silently omitting id 3.
+  - What it gives us: ids 1, 2, 4, 5; the plain count remains 5 because no rows were deleted.
+- **SET/RESET statement_timeout** (session setting in the challenge): Controls total runtime of a statement.
+  - What it does here: Contrasts a runtime timeout with the lock-only timeout.
+  - What it gives us: A slow query can be killed even when it is not waiting on a lock.
+- **COMMIT** (SQL transaction command): Releases A's row lock.
+  - What it does here: Lets B's final NOWAIT query succeed.
+  - What it gives us: id = 3 is available after the commit.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "No-Wait Locks")`,
+      readingNotes: code`
+Chapter 13 describes no-wait row-lock behavior and the alternatives to blocking. This lesson
+compares NOWAIT and SKIP LOCKED with the operational lock_timeout setting, which the book does not
+demonstrate as a timeout policy. Read the chapter before running it, then treat the output as a
+decision table for contention handling.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -292,10 +451,51 @@ waiting ALTER also blocks every reader that arrives after it, even though those 
 have conflicted with the query that is actually running. This is how a one-line migration takes a
 production database down.`,
       syntaxBreakdown: code`
-pg_locks has one row per held or requested lock: relation (an oid, cast from 'lk_t'::regclass),
-mode, and granted. granted = false means "queued". AccessShareLock is taken by SELECT,
-RowExclusiveLock by INSERT/UPDATE/DELETE, AccessExclusiveLock by most forms of ALTER TABLE, TRUNCATE
-and DROP. The lock modes and their conflict matrix are in the "Explicit Locking" chapter.`,
+### In plain terms
+
+This experiment asks why a harmless-looking SELECT can be delayed by a schema change. A long SELECT
+holds a shared table lock; ALTER TABLE requests an exclusive lock and queues; later readers queue
+behind that writer even though they would be compatible with the first SELECT. This is head-of-line
+blocking: the queued exclusive request makes the whole line wait.
+
+### What you are learning
+
+- **AccessShareLock** protects a table while SELECT reads it.
+- **AccessExclusiveLock** conflicts with every table lock and is used by many ALTER TABLE operations.
+- **Fair lock queues** can make compatible readers wait behind an incompatible request.
+
+### Piece by piece
+
+- **SELECT pg_sleep(8) FROM lk_t WHERE id = 1** (SQL query and sleep function): Reads the table while pausing for eight seconds.
+  - What it does here: Keeps A's AccessShareLock held during the inspection.
+  - What it gives us: A with wait_event Timeout/PgSleep, showing it is slow rather than lock-blocked.
+- **ALTER TABLE ... ADD COLUMN IF NOT EXISTS x int** (DDL statement and idempotent clause): Requests a schema change, creating x only if absent.
+  - What it does here: B queues for AccessExclusiveLock behind A.
+  - What it gives us: B's pg_locks row with mode AccessExclusiveLock and granted = false.
+- **DROP COLUMN IF EXISTS x** (DDL statement and conditional clause)
+  - What it is: Removes x only when it exists, avoiding a setup error on reruns.
+  - What it does here: Resets the table before and after the experiment.
+  - What it gives us: A repeatable lab with no extra column left behind.
+- **pg_locks** (system view): Lists held and requested lock records.
+  - What it does here: Shows relation, mode, and granted for lk_t.
+  - What it gives us: granted = true for A's AccessShareLock and false for B's AccessExclusiveLock.
+- **'lk_t'::regclass** (PostgreSQL catalog-name cast): Resolves the table name to its relation OID.
+  - What it does here: Filters pg_locks to this table rather than every relation.
+  - What it gives us: Only lock rows for lk_t.
+- **pg_stat_activity** (system view): Reports each backend's PID and wait state.
+  - What it does here: Joins lock rows to the query and wait information.
+  - What it gives us: B waiting on Lock/relation and A waiting on Timeout/PgSleep.
+- **COMMIT** (SQL transaction command): Ends A's transaction and releases its table lock.
+  - What it does here: Lets B's ALTER run, then allows C's queued SELECT to run.
+  - What it gives us: rows_now = 5 and x_values = 0 after the column exists.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 12 "Relation-Level Locks" (sections "Relation-Level Locks", "Wait Queue")`,
+      readingNotes: code`
+Chapter 12 explains relation-level lock modes and the wait queue that makes an AccessExclusiveLock
+request block later readers. This lesson demonstrates the operational head-of-line effect with
+pg_locks and pg_stat_activity; read the chapter first, then use the three sessions to see why a
+queued migration can affect queries that do not conflict with the original reader.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -365,11 +565,50 @@ guarantees only one session holds it. They are how people implement leader elect
 cron jobs and per-entity mutexes on top of a database they already have. Take one in two scopes -
 session and transaction - and watch exactly when it is released.`,
       syntaxBreakdown: code`
-pg_try_advisory_lock(key) returns true or false immediately and never waits; pg_advisory_lock(key)
-waits. Session-scoped locks live until pg_advisory_unlock(key) or the session ends - not until
-commit. pg_advisory_xact_lock(key) is released automatically at end of transaction and cannot be
-unlocked early. In pg_locks they appear as locktype = 'advisory' with classid = 0 and the key in
-objid; objsubid = 1 marks the single-bigint key space (2 marks the two-int form).`,
+### In plain terms
+
+An advisory lock is a coordination token chosen by the application, not a lock attached to a table
+row. Here key 42 acts as a lease: one session gets it, another immediately learns it is busy, and a
+session-scoped lock survives COMMIT. A transaction-scoped lock on key 99 instead disappears at the
+transaction boundary.
+
+### What you are learning
+
+- **Session-scoped advisory locks** live until explicit unlock or connection end.
+- **Transaction-scoped advisory locks** release automatically at COMMIT or ROLLBACK.
+- **try versus blocking acquisition** lets applications fail fast or wait deliberately.
+
+### Piece by piece
+
+- **pg_try_advisory_lock(42)** (SQL advisory-lock function): Attempts an exclusive session lock without waiting.
+  - What it does here: A succeeds and B returns false immediately for the same key.
+  - What it gives us: a_got_the_lease = t and b_got_the_lease = f.
+- **pg_advisory_lock(key)** (SQL advisory-lock function): Takes a session-scoped lock and waits if needed.
+  - What it does here: It is the blocking counterpart described for variations of this experiment.
+  - What it gives us: A lock held until explicit unlock or connection termination, not COMMIT.
+- **pg_locks WHERE locktype = 'advisory'** (system view and filter): Lists advisory lock records.
+  - What it does here: Shows key 42's metadata and owner PID.
+  - What it gives us: classid = 0, objid = 42, objsubid = 1, mode ExclusiveLock, granted = true.
+- **pg_advisory_unlock_all()** (SQL advisory-lock function): Releases all session advisory locks for this connection.
+  - What it does here: Drops A's re-entrant lock count at once.
+  - What it gives us: a_holds_now = 0 and B can acquire key 42.
+- **pg_advisory_unlock(42)** (SQL advisory-lock function): Releases one acquisition of a session lock.
+  - What it does here: Lets B clean up its key after acquiring it.
+  - What it gives us: No lingering session lock for key 42.
+- **BEGIN / COMMIT** (SQL transaction commands): Open and finish a transaction.
+  - What they do here: Scope the lock on key 99 to B's transaction.
+  - What they give us: after_commit = 0 without an unlock call.
+- **pg_advisory_xact_lock(99)** (SQL transaction-scoped advisory function): Takes an exclusive lock released automatically at transaction end.
+  - What it does here: Holds key 99 only while B's transaction is open.
+  - What it gives us: A pg_locks row inside the transaction and none afterward.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 14 "Miscellaneous Locks" (section "Advisory Locks")`,
+      readingNotes: code`
+Chapter 14 describes advisory locks as application-chosen lock keys and distinguishes their scope
+from ordinary relation or row locks. This lesson makes session and transaction scope visible in
+pg_locks and adds the nonblocking try function; read the chapter before running it, then consider
+the lease failure modes described in the lesson's systems lens.`,
       code: code`
 -- Session A
 begin;
@@ -430,9 +669,53 @@ has claimed, and the claim is held by the transaction, so a crashed worker's job
 released. Run two workers against the same table with and without SKIP LOCKED and see the
 difference between a queue and a convoy.`,
       syntaxBreakdown: code`
-SELECT ... ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1 is the claim: it locks and returns the first
-unlocked candidate row. The lock lives until COMMIT or ROLLBACK, so "the worker died" and "the
-worker rolled back" are the same event. pgrowlocks shows who currently holds each claim.`,
+### In plain terms
+
+This experiment turns a table into a small work queue. Each worker selects and locks the first
+unfinished row it can get, while SKIP LOCKED makes a second worker move to another job instead of
+waiting. A claim lasts only until COMMIT or ROLLBACK, so a rolled-back or crashed worker leaves its
+job available again.
+
+### What you are learning
+
+- **SKIP LOCKED** lets competing workers take different jobs without queueing behind a busy row.
+- **Transaction-held claims** become durable only when the worker commits its done flag.
+- **Plain FOR UPDATE** creates a convoy when workers choose the same first unlocked row.
+
+### Piece by piece
+
+- **WHERE not done** (SQL boolean filter): Keeps only jobs whose done flag is false.
+  - What it does here: Selects work that has not been completed.
+  - What it gives us: Jobs 1–4 initially, then only jobs 3–4 after the first pair commits.
+- **ORDER BY id** (SQL ordering clause): Sorts candidates by their numeric job id.
+  - What it does here: Makes “first job” deterministic.
+  - What it gives us: A normally gets 1 and B gets 2 when SKIP LOCKED is used.
+- **FOR UPDATE SKIP LOCKED LIMIT 1** (SQL locking, skip, and limit clauses): Locks one candidate and ignores candidates already locked.
+  - What it does here: Claims one different row per worker without waiting.
+  - What it gives us: Two locked tuples with different pids and no blocking.
+- **pgrowlocks('lk_jobs')** (extension function): Decodes row-lock metadata for the queue table.
+  - What it does here: Shows who holds each live claim.
+  - What it gives us: locked_row, locker, modes, and pids for jobs 1 and 2.
+- **UPDATE lk_jobs SET done = true WHERE id = ...** (SQL data change): Marks a claimed job complete.
+  - What it does here: Changes each worker's selected row before commit.
+  - What it gives us: Final states 1/t, 2/t, 3/f, 4/f.
+- **COMMIT / ROLLBACK** (SQL transaction commands): Publish or discard the claim and its done update.
+  - What they do here: First pair commits; the plain-FOR-UPDATE comparison rolls back.
+  - What they give us: Committed jobs stay done, while job 3 becomes available after A rolls back.
+- **FOR UPDATE LIMIT 1** (SQL locking without SKIP LOCKED): Locks the first candidate and waits if it is busy.
+  - What it does here: Makes B queue behind A rather than choosing another job.
+  - What it gives us: B waits on Lock/transactionid and later receives job 3.
+- **pg_stat_activity** (system view): Reports backend wait events.
+  - What it does here: Confirms the plain-lock worker is blocked.
+  - What it gives us: B's PID with wait_event_type = Lock.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "No-Wait Locks"); Chapter 8 "Rebuilding Tables and Indexes" (section "Precautions")`,
+      readingNotes: code`
+Chapter 13 covers no-wait row-lock variants, including the behavior behind SKIP LOCKED; Chapter 8's
+precautions discuss the operational consequences of holding locks while work proceeds. The lesson
+extends those mechanisms into a transactional queue pattern and shows pgrowlocks evidence. Read
+Chapter 13 first, then run the experiment; use Chapter 8 as an operational follow-up.`,
       setup: code`
 create table if not exists lk_jobs(id int primary key, payload text, done boolean not null default false);
 truncate lk_jobs;
@@ -504,10 +787,56 @@ inserter's transaction id, exactly like a row lock, and only then learns its fat
 then the error, then repeat with ON CONFLICT DO NOTHING to see the same wait produce a different
 outcome.`,
       syntaxBreakdown: code`
-A B-tree unique index enforces uniqueness by inserting the index entry and then, if it finds a
-conflicting entry from an in-progress transaction, waiting on that transaction's xid (a ShareLock on
-transactionid, visible in pg_locks). ERRCODE 23505 is unique_violation. INSERT ... ON CONFLICT DO
-NOTHING performs the same wait and then simply inserts zero rows.`,
+### In plain terms
+
+This experiment asks how a unique constraint behaves when two sessions insert the same key at once.
+The index cannot know whether the first insert will commit, so the second insert waits for that
+transaction's decision. After commit it either reports duplicate key or, with ON CONFLICT DO
+NOTHING, safely inserts zero rows.
+
+### What you are learning
+
+- **Unique indexes** serialize competing inserts at the index entry.
+- **Transaction-ID waits** delay the second insert until the first transaction commits or rolls back.
+- **ON CONFLICT DO NOTHING** turns a duplicate into an explicit no-op instead of an error.
+
+### Piece by piece
+
+- **lk_uniq(k int primary key, who text)** (table and primary-key constraint): Creates a unique index on k and records the writer.
+  - What it does here: Provides the key whose duplicate insert will race.
+  - What it gives us: A clean table and a uniqueness invariant.
+- **INSERT INTO lk_uniq VALUES (1, 'A')** (SQL insert): Adds A's key inside an uncommitted transaction.
+  - What it does here: Creates the in-progress index entry B must check.
+  - What it gives us: A row that exists for A but is not yet committed for other transactions.
+- **pg_backend_pid()** (SQL function): Returns the connection's backend process ID.
+  - What it does here: Labels the two competing sessions.
+  - What it gives us: a_pid and b_pid for activity and lock inspection.
+- **pg_sleep(1)** (SQL function): Pauses A so B's wait remains visible.
+  - What it does here: Creates time to inspect the waiting insert.
+  - What it gives us: B remains active on Lock/transactionid.
+- **pg_stat_activity** (system view): Lists backend state and wait event.
+  - What it does here: Finds B's blocked insert.
+  - What it gives us: wait_event_type = Lock and wait_event = transactionid.
+- **pg_locks WHERE locktype = 'transactionid'** (system view and filter): Shows locks on transaction IDs.
+  - What it does here: Exposes B's ShareLock request on A's xid.
+  - What it gives us: B's granted = false request alongside each backend's granted ExclusiveLock.
+- **COMMIT / ROLLBACK** (SQL transaction commands): Publish or discard A's candidate row and release its xid lock.
+  - What they do here: A commits key 1, then rolls back B; A commits key 2 in the second round.
+  - What they give us: A duplicate-key error in round one and a conflict no-op in round two.
+- **INSERT ... ON CONFLICT DO NOTHING** (SQL conflict clause): Suppresses a uniqueness conflict without changing the existing row.
+  - What it does here: B retries key 2 while A's insert is still uncommitted.
+  - What it gives us: INSERT 0 0 after A commits and exactly one row for key 2.
+- **ORDER BY k** (SQL ordering clause): Sorts the final key list.
+  - What it does here: Makes the two winning A rows easy to compare.
+  - What it gives us: (1, A) and (2, A), with no B row.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs"); Chapter 19 "Index Access Methods" (section "Indexing Engine Interface")`,
+      readingNotes: code`
+Chapter 12 explains waits on transaction IDs, and Chapter 19 describes index access-method properties
+including uniqueness enforcement. This lesson combines those mechanisms in a two-inserter race and
+adds the user-facing ON CONFLICT outcome, which the book does not present as a full exercise. Read
+the chapters before running it, then use pg_locks to connect the index decision to xid state.`,
       setup: code`
 create table if not exists lk_uniq(k int primary key, who text);
 truncate lk_uniq;`,

@@ -6,30 +6,92 @@ export const INDEXES: Module = {
   lessons: [
     {
       slug: "btree-page-anatomy",
-      tags: ["btree", "index-access-methods", "pages-and-tuples", "index-scans"],
+      tags: [
+        "btree",
+        "index-access-methods",
+        "pages-and-tuples",
+        "index-scans",
+      ],
       title: "Open a B-tree: metapage, root, internal pages, leaves",
       difficulty: "intermediate",
       safetyLevel: "ddl",
       runIn: "tool",
       estimatedMinutes: 20,
-      prerequisites: ["page-header-and-line-pointers", "install-lab-extensions"],
+      prerequisites: [
+        "page-header-and-line-pointers",
+        "install-lab-extensions",
+      ],
       overview: code`
 An index is a file of 8 KB pages, like a table, but the pages are arranged as a tree: block 0 is a
 metapage that names the root, internal pages hold downlinks, and the leaf level is a doubly linked
 list holding (key, heap ctid) pairs. In this lesson you build two indexes over the same 100k rows -
 one on a 4-byte int, one on a 40-byte text - read their metapages, count their levels, and then
 find, by hand, the exact leaf page and item that points at one particular heap tuple.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 25 "B-tree" (sections "Overview", "Page Layout")`,
+      readingNotes: code`
+Chapter 25 explains the B-tree levels, page layout, high keys, and leaf links that this lesson
+opens with pageinspect. The experiment adds a size comparison between integer and wide text keys,
+and uses amcheck to verify the structure. Read the chapter before or after; the block-by-block
+inspection is a useful concrete companion to its diagrams.`,
       syntaxBreakdown: code`
-bt_metap(index) reads block 0: root (block number of the root page), level (height above the leaf
-level, so 1 means root + leaves), fastroot/fastlevel (the effective root after page deletions), and
-allequalimage (whether the opclass allows deduplication).
-bt_page_stats(index, blkno) summarises one page: type (r root, i internal, l leaf, e deleted),
-live_items, avg_item_size, free_size, btpo_prev / btpo_next (the sibling links) and btpo_level.
-bt_page_items(index, blkno) lists that page's items: itemoffset, ctid, itemlen, and data (the key
-bytes, little-endian). On an internal page the ctid is a downlink to a child block; on a leaf page
-it is the heap tuple's address. Item 1 of any page other than the rightmost is the high key: the
-first key that does NOT belong on this page.
-bt_index_check(index) (amcheck) walks the tree and asserts the ordering invariants.`,
+### In plain terms
+
+This experiment opens an index file as a tree of 8 KB pages. You compare a narrow integer key with a
+wide text key, identify the root and leaf levels, and follow one key to the heap row it references.
+The output turns the abstract idea of an index into pages, links, item offsets, and physical row
+addresses that can be checked for consistency.
+
+### What you are learning
+
+- **B-tree fanout:** Wider keys fit fewer entries per page, increasing index size and sometimes height.
+- **Internal versus leaf pages:** Internal pages choose child blocks; leaves hold searchable keys and heap addresses.
+- **High keys and sibling links:** Boundary entries and links let scans move between leaf pages in key order.
+- **Structural checking:** amcheck validates ordering and downlink invariants rather than returning query results.
+
+### Piece by piece
+
+- **pg_relation_size(...) / 8192** (size function and page conversion)
+  - What it is: pg_relation_size returns relation bytes; dividing by 8192 converts them to PostgreSQL pages.
+  - What it does here: It compares heap and index footprints for equal row counts.
+  - What it gives us: Page counts showing the storage cost of wide keys.
+- **bt_metap(index)** (pageinspect function)
+  - What it is: It decodes block zero, the B-tree metapage.
+  - What it does here: It identifies root, level, fastroot, fastlevel, and allequalimage for each index.
+  - What it gives us: Tree height and root block; level 1 means root plus leaves.
+- **bt_page_stats(index, blkno)** (pageinspect function)
+  - What it is: It summarizes one B-tree page by block number.
+  - What it does here: It groups the wide index by btpo_level and inspects root and leaf blocks.
+  - What it gives us: type, live_items, avg_item_size, free_size, btpo_prev, btpo_next, and btpo_level.
+- **bt_page_items(index, blkno)** (pageinspect function)
+  - What it is: It lists individual items stored on one index page.
+  - What it does here: It shows internal downlinks, leaf heap tuple addresses, item lengths, and key bytes.
+  - What it gives us: itemoffset, ctid, itemlen, and data; item 1 is a high key except on the rightmost page.
+- **generate_series and LATERAL** (SQL row generator and per-row subquery)
+  - What they are: generate_series emits candidate block numbers; LATERAL lets page inspection use each number.
+  - What they do here: They census every non-metapage block and search all leaves for one heap ctid.
+  - What they give us: A per-level page count and the exact leaf/item containing id 50000.
+- **ctid** (system column)
+  - What it is: A physical tuple address written as block and item offset.
+  - What it does here: The heap ctid is matched to the index item's ctid.
+  - What it gives us: The bridge from an indexed key to its table page and tuple slot.
+- **\gset and :leaf** (psql variable capture and substitution)
+  - What they are: \gset saves a single-row query's columns as psql variables; :leaf substitutes one later.
+  - What they do here: They capture the discovered leaf block instead of hard-coding it.
+  - What they give us: Repeatable inspection of the exact page found by the search.
+- **bt_index_check(index)** (amcheck function)
+  - What it is: It checks B-tree ordering and link invariants and returns void on success.
+  - What it does here: It validates both indexes after manual inspection.
+  - What it gives us: A successful statement with blank values; corruption would raise an error.
+- **generate_series and lpad** (SQL functions)
+  - What they are: generate_series emits the 100000 test IDs; lpad left-pads text to a fixed width.
+  - What they do here: They create equal-sized narrow and wide index keys.
+  - What they give us: A controlled key-width comparison.
+- **VACUUM (ANALYZE)** (maintenance command)
+  - What it is: It cleans eligible tuples and refreshes planner statistics.
+  - What it does here: It prepares the index inspection with current row counts.
+  - What it gives us: A stable, analyzed table without changing the index layout.
+`,
       setup: code`
 drop table if exists ix_btree;
 create table ix_btree(id int primary key, wide text, payload text) with (autovacuum_enabled = off);
@@ -163,20 +225,69 @@ fourth level - and confirm that the int index would need tens of millions.`,
       safetyLevel: "writes-data",
       runIn: "tool",
       estimatedMinutes: 15,
-      prerequisites: ["btree-page-anatomy", "visibility-map-and-index-only-scans"],
+      prerequisites: [
+        "btree-page-anatomy",
+        "visibility-map-and-index-only-scans",
+      ],
       overview: code`
 An index-only scan needs two independent things to be true: the index must contain every column the
 query touches, and the heap pages behind the entries must be marked all-visible. Break either one
 and the executor goes to the heap. Here you will watch the same 2000-row query cost 8 buffers, then
 1340 buffers when you add a column the index does not carry, then 144 buffers when a plain INSERT
 leaves fresh pages unmarked - three very different queries that all say "index" in the plan.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 20 "Index Scans" (section "Index-Only Scans"); Chapter 6 "Vacuum and Autovacuum" (section "Vacuum")`,
+      readingNotes: code`
+Chapter 20 explains index-only scans and their need to verify heap visibility; Chapter 6 explains
+VACUUM's role in setting visibility information. This experiment holds the index constant while
+changing covered columns and visibility-map bits, then measures Heap Fetches and buffers. Read the
+chapters before running it or use them afterward to interpret the page-level evidence.`,
       syntaxBreakdown: code`
-EXPLAIN (ANALYZE, BUFFERS) reports the node used and, for an Index Only Scan, Heap Fetches: the
-number of index entries whose heap page was not marked all-visible, so the executor had to read the
-tuple anyway. Buffers: shared hit/read counts the 8 KB pages actually touched. SET enable_seqscan =
-off and enable_bitmapscan = off keep the planner on the index so the comparison is apples to apples.
-pg_visibility_map_summary(rel) reports how many pages carry the all_visible bit; only VACUUM (and
-opportunistic page pruning) sets it, and any write to a page clears it.`,
+### In plain terms
+
+An index-only scan can answer a query without visiting the table only when the index contains every
+needed column and PostgreSQL already knows the heap page is all-visible. This lesson breaks each
+condition separately: first by asking for an uncovered column, then by inserting fresh rows without
+vacuuming. Heap Fetches and buffer counts show exactly when the executor must return to the table.
+
+### What you are learning
+
+- **Covering indexes:** An index can carry extra payload columns so a query need not fetch the heap.
+- **Visibility map:** PostgreSQL records which heap pages need no per-row visibility checks.
+- **Heap Fetches:** An index-only plan may still visit the heap for pages lacking the all-visible bit.
+- **VACUUM coupling:** Vacuum restores visibility bits after writes, changing I/O without changing the index.
+
+### Piece by piece
+
+- **CREATE INDEX ix_ios_tenant_amount ON ... (tenant, amount)** (B-tree DDL)
+  - What it is: It creates a searchable index whose key columns are tenant and amount.
+  - What it does here: It covers count(amount) for a tenant filter but not count(note).
+  - What it gives us: A possible Index Only Scan for the first query and a heap-requiring path for the second.
+- **VACUUM (ANALYZE)** (maintenance command)
+  - What it is: VACUUM marks eligible pages all-visible; ANALYZE refreshes planner statistics.
+  - What it does here: It prepares the initial table and later restores bits after inserting rows.
+  - What it gives us: all_visible near heap_pages and Heap Fetches of zero when coverage is complete.
+- **pg_visibility_map_summary(rel)** (extension function)
+  - What it is: It counts heap pages marked all_visible and all_frozen.
+  - What it does here: It measures the visibility state before and after INSERT and VACUUM.
+  - What it gives us: all_visible and all_frozen counts to compare with heap_pages.
+- **EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)** (plan command and options)
+  - What it is: It executes the query, reports page activity, and hides planner cost numbers.
+  - What it does here: It compares index-only and heap-fetching executions.
+  - What it gives us: Index Only Scan or Index Scan, Heap Fetches, and shared buffer totals.
+- **enable_seqscan and enable_bitmapscan = off** (session planner settings)
+  - What they are: Path controls that discourage sequential and bitmap scans.
+  - What they do here: They keep all comparisons on the index path.
+  - What they give us: An apples-to-apples view of whether the heap must be visited.
+- **Heap Fetches** (EXPLAIN metric)
+  - What it is: The number of index entries requiring a heap visit for visibility or uncovered data.
+  - What it does here: It is zero for fully visible covered pages, then rises after the insert.
+  - What it gives us: Direct evidence that an index-only plan still depends on the visibility map.
+- **generate_series and repeat** (SQL functions)
+  - What they are: generate_series emits IDs; repeat creates 60-character note values.
+  - What they do here: They load the table with predictable rows and page density.
+  - What they give us: Enough heap pages to compare all-visible and fresh-page behavior.
+`,
       setup: code`
 drop table if exists ix_ios;
 create table ix_ios(id int primary key, tenant int, amount int, note text)
@@ -244,7 +355,13 @@ justify the extra bytes on every insert and every buffer-cache page?`,
     },
     {
       slug: "create-index-concurrently-and-invalid-indexes",
-      tags: ["index-access-methods", "ddl", "migrations", "relation-locks", "btree"],
+      tags: [
+        "index-access-methods",
+        "ddl",
+        "migrations",
+        "relation-locks",
+        "btree",
+      ],
       title: "CREATE INDEX CONCURRENTLY: build, wait, validate, flip",
       difficulty: "advanced",
       safetyLevel: "ddl",
@@ -260,14 +377,70 @@ a wait for other people's transactions - and if the statement dies in the middle
 index survives in the catalog with indisvalid = false. In this lesson Session B holds a snapshot
 open and you watch Session A's build park in "waiting for old snapshots" with the index already
 built but not yet usable; then you make a build fail outright and inspect the wreckage.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 "Relation-Level Locks".`,
       syntaxBreakdown: code`
-CREATE INDEX CONCURRENTLY cannot run inside a transaction block. It creates the index entry with
-pg_index.indisready = false and indisvalid = false, waits for existing writers, sets indisready
-(the index is now maintained by INSERT/UPDATE but not used by queries), builds it from a snapshot,
-then waits for every transaction whose snapshot is older than the build before setting indisvalid.
-pg_stat_progress_create_index reports phase and current_locker_pid: the backend being waited for.
-A build that fails or is cancelled leaves the index behind; DROP INDEX CONCURRENTLY removes it
-without blocking readers. REINDEX INDEX CONCURRENTLY is the same protocol for an existing index.`,
+### In plain terms
+
+CREATE INDEX CONCURRENTLY is an online-build protocol rather than one instant operation. One session
+holds a repeatable-read snapshot while another builds, so you can watch the builder wait and inspect
+the index catalog entry before it becomes valid. A deliberately duplicated value then makes a unique
+build fail, leaving an invalid index that must be removed safely.
+
+### What you are learning
+
+- **Concurrent index phases:** Build, validation, and catalog state changes happen in separate phases.
+- **Snapshot waits:** An old transaction can delay the moment an index becomes valid for queries.
+- **Invalid-index cleanup:** A failed build can leave a physical index entry behind.
+- **Online DDL trade-off:** Concurrent builds reduce blocking but require more time, state, and disk.
+
+### Piece by piece
+
+- **CREATE INDEX CONCURRENTLY** (online DDL command)
+  - What it is: It builds an index while allowing ordinary reads and writes, using multiple transactions.
+  - What it does here: Session A waits for Session B's old snapshot, then completes after B commits.
+  - What it gives us: A usable index after the wait, or an invalid catalog row after the duplicate failure.
+- **BEGIN ISOLATION LEVEL REPEATABLE READ and COMMIT** (transaction commands)
+  - What they are: BEGIN opens a transaction with one stable snapshot; COMMIT ends it and releases resources.
+  - What they do here: Session B keeps an old snapshot alive until Session A's build is observable.
+  - What they give us: A reproducible waiting phase and the unblocking event.
+- **pg_index.indisready and indisvalid** (catalog columns)
+  - What they are: Flags saying whether an index is maintained for new writes and valid for query planning.
+  - What they do here: They reveal the half-finished state and the failed unique build.
+  - What they give us: indisready true with indisvalid false means maintenance happens but the planner cannot trust it.
+- **pg_stat_progress_create_index** (progress view)
+  - What it is: A live view of index-build phases and progress.
+  - What it does here: It identifies the current phase and locker PID while the build waits.
+  - What it gives us: phase, current_locker_pid, blocks_done, and blocks_total.
+- **pg_stat_activity** (activity view)
+  - What it is: One row per backend and its current state or wait event.
+  - What it does here: It finds the CREATE INDEX CONCURRENTLY backend waiting on the old snapshot.
+  - What it gives us: pid, state, wait_event_type, wait_event, and a shortened query text.
+- **pg_relation_size(indexrelid)** (size function)
+  - What it is: It returns an index's physical size in bytes.
+  - What it does here: It confirms a half-built or invalid index occupies disk.
+  - What it gives us: bytes for comparing finished and failed catalog entries.
+- **CREATE UNIQUE INDEX CONCURRENTLY** (unique online DDL)
+  - What it is: It builds a concurrent index while enforcing uniqueness.
+  - What it does here: The duplicate email causes the build to error.
+  - What it gives us: An invalid index visible through pg_index and \d output.
+- **DROP INDEX CONCURRENTLY** (online cleanup DDL)
+  - What it is: It removes an invalid index without taking the blocking lock of an ordinary drop.
+  - What it does here: It cleans up ix_cic_email_uk after the failed build.
+  - What it gives us: A safe final state; it also cannot run inside a transaction block.
+- **\d ix_cic** (psql relation description command)
+  - What it is: It prints columns, indexes, and constraints for a table.
+  - What it does here: It exposes the failed index in a human-readable table summary.
+  - What it gives us: A quick deployment-style check alongside the catalog query.
+- **generate_series and ::regclass** (SQL function and cast)
+  - What they are: generate_series creates the initial rows; the regclass cast resolves a relation name to its catalog identity.
+  - What they do here: They create the build input and let pg_index filters name ix_cic safely.
+  - What they give us: A repeatable table and catalog lookups tied to that table.
+- **pg_sleep and ILIKE** (SQL function and pattern operator)
+  - What they are: pg_sleep pauses a backend; ILIKE performs case-insensitive pattern matching.
+  - What they do here: The pause keeps the build wait visible and ILIKE locates its query in activity.
+  - What they give us: A window to inspect phase, locker PID, and state.
+`,
       setup: code`
 drop table if exists ix_cic;
 create table ix_cic(id int, email text);
@@ -385,14 +558,67 @@ here 1% of the table, for 1/43 of the bytes - but the planner may only use it wh
 WHERE clause implies that predicate. A covering index (INCLUDE) stores extra columns in the leaf
 entries so the heap never has to be visited, and charges you for them on every insert. You will
 measure both: sizes in bytes, and the same query at 1003 buffers and at 6.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 19 "Index Access Methods" (section "Indexing Engine Interface"); Chapter 20 "Index Scans" (section "Index-Only Scans")`,
+      readingNotes: code`
+Chapter 19 explains index access-method properties and Chapter 20 explains index-only scans. This
+lesson applies those ideas to partial predicates and INCLUDE payload columns, measuring both the
+smaller hot-set index and the wider covering index. Read the chapters before or after; the plan and
+size comparisons show the trade-off the book describes.`,
       syntaxBreakdown: code`
-CREATE INDEX ... WHERE predicate builds a partial index; the planner uses it only if it can prove
-the query's restrictions imply the predicate (the proof is syntactic, so status = 'pending' implies
-it and status <> 'done' does not). When the proof succeeds the predicate is dropped from the plan,
-so the Index Cond line may disappear entirely.
-CREATE INDEX ... INCLUDE (cols) adds non-key payload columns to leaf tuples only: they cannot be
-searched or used for ordering, but they can satisfy an index-only scan. Non-key columns do not
-appear on internal pages, so they do not cost fanout.`,
+### In plain terms
+
+A partial index stores only rows matching a predicate, while a covering index stores extra columns
+so a query can answer from the index alone. PostgreSQL uses a partial index only when it can prove
+the query condition implies the index predicate; logically equivalent wording may fail that proof.
+You will measure the saved index space, the I/O benefit of INCLUDE, and the write cost of carrying it.
+
+### What you are learning
+
+- **Partial indexes:** Indexing only a hot subset can save storage and maintenance work.
+- **Predicate implication:** The planner needs a syntactic proof that the query is covered.
+- **INCLUDE columns:** Payload columns can satisfy reads but cannot search or order the index.
+- **Read/write trade-off:** Covering data reduces heap reads while enlarging every index update.
+
+### Piece by piece
+
+- **CREATE INDEX ... WHERE status = 'pending'** (partial-index DDL)
+  - What it is: It stores entries only for rows satisfying the WHERE predicate.
+  - What it does here: It keeps 1000 pending rows instead of all 100000 orders.
+  - What it gives us: A small index that can answer matching pending queries.
+- **EXPLAIN (ANALYZE, BUFFERS, COSTS OFF)** (plan command and options)
+  - What it is: It executes the query, reports buffers, and hides cost numbers.
+  - What it does here: It tests when the partial and covering indexes are selected.
+  - What it gives us: Index Only Scan or Seq Scan, Heap Fetches, and page totals.
+- **Predicate implication** (planner reasoning)
+  - What it is: A proof that every row requested by a query belongs to the indexed subset.
+  - What it does here: status = 'pending' matches the predicate, while status <> 'done' is logically equivalent for this data but not proved syntactically.
+  - What it gives us: The presence or absence of the partial index in the plan.
+- **CREATE INDEX ... INCLUDE (amount)** (covering-index DDL)
+  - What it is: It adds amount as non-key payload on leaf entries.
+  - What it does here: It lets sum(amount) be answered from ix_orders_tenant_cov.
+  - What it gives us: Index Only Scan and lower buffers, at the cost of a larger index.
+- **pg_relation_size and pg_size_pretty** (size functions)
+  - What they are: The first returns bytes; the second formats bytes for people.
+  - What they do here: They compare full, partial, key-only, and covering index sizes.
+  - What they give us: Byte and kB totals that quantify storage and cache cost.
+- **CREATE INDEX ... ON tenant** (key-only index DDL)
+  - What it is: It indexes tenant without storing amount as payload.
+  - What it does here: It finds matching rows but requires heap access for sum(amount).
+  - What it gives us: The baseline Bitmap Heap Scan and its scattered page reads.
+- **VACUUM (ANALYZE)** (maintenance command)
+  - What it is: It marks visible pages and refreshes planner statistics.
+  - What it does here: It makes the covering index's index-only result have zero Heap Fetches.
+  - What it gives us: A fair buffer comparison between the two index designs.
+- **INCLUDE columns and equality search** (index limitation)
+  - What they are: Included fields are stored data, not ordering keys.
+  - What they do here: amount = 700 cannot use the tenant index as a search structure.
+  - What they give us: A Seq Scan proving that coverage is not the same as lookup ability.
+- **generate_series, repeat, and SUM** (setup function and SQL aggregate)
+  - What they are: generate_series creates rows, repeat supplies note padding, and SUM adds amount values.
+  - What they do here: They build the measured table and the covering query's aggregate.
+  - What they give us: Predictable 100000-row size and a query that needs the amount column.
+`,
       setup: code`
 drop table if exists ix_orders;
 create table ix_orders(id int primary key, tenant int, status text, amount int, note text)
@@ -481,7 +707,13 @@ covering index in place.`,
     },
     {
       slug: "index-bloat-from-churn",
-      tags: ["bloat", "rebuilding-tables-and-indexes", "btree", "vacuum", "write-amplification"],
+      tags: [
+        "bloat",
+        "rebuilding-tables-and-indexes",
+        "btree",
+        "vacuum",
+        "write-amplification",
+      ],
       title: "Index bloat is a steady state, and REINDEX is how you leave it",
       difficulty: "intermediate",
       safetyLevel: "ddl",
@@ -495,14 +727,59 @@ same 100000 rows twice and watch the index double in size while its leaf pages e
 half full, then watch the second round of exactly the same churn cost nothing more - bloat
 converges instead of growing without bound. Then REINDEX CONCURRENTLY packs it back down, into a
 new file.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 5 "Page Pruning and HOT Updates" (section "Page Pruning for Indexes"); Chapter 8 "Rebuilding Tables and Indexes" (sections "Full Vacuuming", "Other Rebuilding Methods"); Chapter 25 "B-tree" (section "Page Layout")`,
+      readingNotes: code`
+Chapter 5 explains dead index entries and page pruning, Chapter 8 explains rebuilding, and Chapter
+25 supplies B-tree page-layout context. This experiment measures bloat after indexed-column churn,
+shows why VACUUM cannot shrink the file, and then uses REINDEX CONCURRENTLY to replace it. Read the
+chapters after the first measurements so density and fragmentation have visible examples.`,
       syntaxBreakdown: code`
-pgstatindex(index) walks a B-tree and reports index_size, tree_level, leaf_pages, empty_pages,
-deleted_pages (leaf pages VACUUM emptied and put on the free list - still in the file), and
-avg_leaf_density (the percentage of a live leaf page that is real entries) plus leaf_fragmentation
-(how often the leaf chain jumps backwards through the file).
-VACUUM removes dead index entries but never shrinks the file; REINDEX rebuilds the index into a new
-relfilenode packed to fillfactor (90% for a leaf, by default), and REINDEX INDEX CONCURRENTLY does
-that without blocking reads or writes.`,
+### In plain terms
+
+Updating an indexed value adds a new index entry; it cannot simply overwrite the old entry because
+other transactions may still need the old row version. Vacuum can remove dead entries, but it does
+not generally return the already-sized index file to the operating system. You will measure the
+steady-state holes caused by churn and then watch a concurrent rebuild pack a fresh copy.
+
+### What you are learning
+
+- **Index bloat:** Dead entries and page splits leave a larger, less dense structure after updates.
+- **Density versus file size:** Removing dead entries does not necessarily reduce the relation's bytes.
+- **Fragmentation:** Leaf links can visit pages in an order that is no longer sequential on disk.
+- **Concurrent rebuilding:** REINDEX CONCURRENTLY creates and swaps a replacement while allowing access.
+
+### Piece by piece
+
+- **pgstatindex('ix_churn_k')** (pgstattuple extension function)
+  - What it is: It scans a B-tree and reports structural and density metrics.
+  - What it does here: It measures the fresh index, both churn rounds, and the rebuilt result.
+  - What it gives us: index_size, tree_level, leaf_pages, empty_pages, deleted_pages, avg_leaf_density, and leaf_fragmentation.
+- **UPDATE of indexed column k** (DML operation)
+  - What it is: It changes the value used as an index key.
+  - What it does here: It rewrites half the keys to scattered positions, causing new entries and page splits.
+  - What it gives us: A larger, lower-density index for pgstatindex to measure.
+- **VACUUM** (index cleanup command)
+  - What it is: It removes index entries whose row versions are no longer needed.
+  - What it does here: It clears dead entries between churn rounds but leaves the relation file size.
+  - What it gives us: A clean measure of persistent empty space rather than live dead tuples.
+- **pg_class.relfilenode** (catalog column)
+  - What it is: The physical file identity for a relation.
+  - What it does here: It is read before and after the rebuild.
+  - What it gives us: A changed number proving the index was replaced by a new file.
+- **REINDEX INDEX CONCURRENTLY** (online rebuild command)
+  - What it is: It constructs a packed replacement index and swaps it in through a concurrent protocol.
+  - What it does here: It reduces the bloated index to its original page count without blocking reads and writes.
+  - What it gives us: Smaller index_size, higher avg_leaf_density, low fragmentation, and a new relfilenode.
+- **pg_index.indisvalid** (catalog flag)
+  - What it is: It says whether the planner may trust an index.
+  - What it does here: The final query verifies the rebuilt index is valid.
+  - What it gives us: indisvalid = true for the surviving index.
+- **generate_series and repeat** (SQL functions)
+  - What they are: generate_series emits IDs; repeat creates fixed-width padding text.
+  - What they do here: They create 100000 keys and predictable row sizes for the churn test.
+  - What they give us: A repeatable baseline for index size and leaf density.
+`,
       setup: code`
 drop table if exists ix_churn;
 create table ix_churn(id int primary key, k int, pad text) with (autovacuum_enabled = off);
@@ -601,13 +878,71 @@ B-tree index, and the index is what actually decides. Because the decision lives
 can be scoped by a predicate - a partial unique index enforces "at most one active row per
 resource", which is a single-holder lease. Here two sessions both check that a shard is free, both
 try to claim it, and the index - not the check - is what stops the second one.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 19 "Index Access Methods" (section "Indexing Engine Interface"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
+      readingNotes: code`
+Chapter 19 explains the indexing-engine uniqueness property, and Chapter 12 explains waits on a
+transaction ID when a conflicting change is uncommitted. This experiment makes a partial unique
+index act as a one-holder lease and observes the losing insert wait and error. Read both chapters
+before or after; use the live wait to connect the index invariant to transaction locking.`,
       syntaxBreakdown: code`
-pg_constraint.conindid is the index that implements a unique or primary key constraint;
-pg_index.indisunique marks the index itself, and pg_get_expr(indpred, indrelid) prints a partial
-index's predicate. A unique index without a constraint enforces exactly the same rule; only the
-catalog bookkeeping differs. CREATE UNIQUE INDEX ... WHERE predicate makes the rule conditional:
-rows outside the predicate are not in the index and are not constrained by it.
-GENERATED ALWAYS AS IDENTITY draws from a sequence, which is not transactional.`,
+### In plain terms
+
+Two clients can both observe that a resource is free, so a check followed by an insert is not enough
+to enforce one owner. A partial unique B-tree puts the rule inside the database's insert path: only
+rows marked active participate, and one wins while the other waits for its transaction's outcome.
+This lesson also demonstrates a safe release-and-claim handover in one transaction.
+
+### What you are learning
+
+- **Unique-index enforcement:** The index, not a separate check query, serializes competing claims.
+- **Partial uniqueness:** A predicate limits the rule to active rows while allowing many released rows.
+- **Transaction-ID wait:** A conflicting uncommitted entry makes the second insert wait before it errors.
+- **Identity sequences:** Generated IDs are not rolled back, so failed attempts leave gaps.
+
+### Piece by piece
+
+- **GENERATED ALWAYS AS IDENTITY** (table column definition)
+  - What it is: It obtains each id from a sequence managed by PostgreSQL.
+  - What it does here: It labels rows without the sessions choosing IDs.
+  - What it gives us: A visible hole after the blocked insert loses, because sequence allocation is not transactional.
+- **CREATE UNIQUE INDEX ... WHERE state = 'active'** (partial unique-index DDL)
+  - What it is: It enforces uniqueness only for rows satisfying the predicate.
+  - What it does here: It permits at most one active row per resource.
+  - What it gives us: The ix_uniq_one_active index that decides the race.
+- **pg_constraint.conindid and pg_index.indisunique/indisprimary** (catalog columns)
+  - What they are: conindid links a declared constraint to its backing index; the pg_index flags describe index properties.
+  - What they do here: The catalog queries contrast the primary-key constraint with the bare partial unique index.
+  - What they give us: Constraint name/type, backing index, uniqueness, primary status, and predicate.
+- **pg_get_expr(indpred, indrelid)** (catalog expression function)
+  - What it is: It reconstructs a stored index predicate as readable SQL.
+  - What it does here: It prints state = active for the partial index.
+  - What it gives us: The exact subset in which uniqueness applies.
+- **BEGIN, COMMIT, and ROLLBACK** (transaction commands)
+  - What they are: They start, publish, or abandon a transaction's changes.
+  - What they do here: A holds the winning insert, B waits, then B rolls back; later release and claim are one transaction.
+  - What they give us: The unblock event and an atomic handover with no two active owners.
+- **SELECT ... FOR UPDATE** (not used; challenge variation)
+  - What it is: A row-locking read that blocks competing writers.
+  - What it does here: The challenge can compare explicit locking with the index-invariant approach.
+  - What it gives us: A different serialization mechanism to contrast with unique enforcement.
+- **pg_stat_activity** (activity view)
+  - What it is: A live row for each backend and its wait state.
+  - What it does here: Session A finds B waiting on the unique insert.
+  - What it gives us: wait_event_type = Lock and wait_event = transactionid.
+- **pg_stat_user_indexes** (index usage view)
+  - What it is: Per-table index scan and tuple counters.
+  - What it does here: It reports the two explicit probes and confirms enforcement itself is not an idx_scan.
+  - What it gives us: idx_scan, idx_tup_read, and idx_tup_fetch for each index.
+- **ON CONFLICT DO NOTHING** (challenge clause)
+  - What it is: It turns a uniqueness conflict into a skipped insert instead of an error.
+  - What it does here: It provides a lease-claim variation where no inserted row signals a lost race.
+  - What it gives us: An idempotent claim primitive to compare with the blocking insert.
+- **expires_at and a sequence-backed token** (challenge lease fields)
+  - What they are: expires_at records a time limit; a monotonically increasing token identifies claim order.
+  - What they do here: They support reclaiming an expired lease and fencing stale owners.
+  - What they give us: A token downstream services can compare before accepting work.
+`,
       setup: code`
 drop table if exists ix_uniq;
 create table ix_uniq(id int generated always as identity primary key,

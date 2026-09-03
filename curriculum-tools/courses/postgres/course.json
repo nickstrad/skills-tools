@@ -4,7 +4,7 @@
   "description": "PostgreSQL internals as hands-on experiments for systems and distributed-systems engineers",
   "tool": "psql",
   "minVersion": "16",
-  "revision": 1,
+  "revision": 2,
   "repl": {
     "command": [
       "psql",

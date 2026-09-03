@@ -19,6 +19,20 @@ Conventions for authors:
   otherwise (other modules may not be built yet).
 - Keep data small: this machine has 1 CPU and under 1 GB RAM. 100k rows is plenty.
 - Every lesson has `tags` from the vocabulary below (book chapter first, then concepts).
+- Every lesson has the exact `reading` line assigned in `docs/reading-map.md`: either a citation to
+  _PostgreSQL 14 Internals_ (Egor Rogov) by chapter number, exact title, and section, or a plain
+  statement that the book does not cover the lesson with the closest background chapter. The chapter
+  digest is `docs/pg14-internals-chapters.md`, and the book itself is
+  `docs/postgresql_internals-14_en.pdf`; use the digest rather than re-reading the PDF so titles and
+  coverage decisions stay consistent.
+- When `reading` cites a chapter, `readingNotes` explains the overlap: which structure, mechanism or
+  section the experiment shows live, what the book explains that the lesson does not, where the
+  lesson differs (PostgreSQL 16 names versus the book's 14), and whether to read the chapter before
+  or after the experiment. Lessons the book does not cover have no `readingNotes`.
+- `syntaxBreakdown` follows the learning template in `../../docs/AUTHORING.md` (`In plain terms:`,
+  `What you are learning:`, `Piece by piece:`), written for a learner who knows basic SQL but not
+  PostgreSQL internals. No five-word blurbs; every command, flag, function, view, setting, and
+  unusual clause gets what it is, what it does here, and what it gives us.
 
 ## Tag vocabulary (for `tags`, `--topic`, and `topics`)
 

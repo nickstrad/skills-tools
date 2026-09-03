@@ -18,12 +18,92 @@ Before any of the clever parts (MVCC, WAL, replication) make sense you need the 
 table is one or more OS files, cut into fixed 8 KB pages, addressed by relfilenode. In this lesson
 you create a table, find its file on disk, and check that the number the server reports and the
 number the filesystem reports are the same number.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 1 "Introduction" (sections "Files and Forks", "Pages")`,
+      readingNotes: code`
+The experiment makes Chapter 1's physical model concrete: a relation has a main file made of pages,
+and its relfilenode identifies that file. The book explains forks, page size, and naming in more
+detail than the queries do; run this lesson first, then read those sections while matching the
+database OID, relfilenode, and fork files on disk.`,
       syntaxBreakdown: code`
-pg_relation_filepath(rel) returns the file path of the main fork, relative to the data directory.
-pg_relation_size(rel) is the size of that fork in bytes; pg_relation_filenode(rel) and
-pg_class.relfilenode are the on-disk identity (which changes when the relation is rewritten, unlike
-the OID). pg_stat_file(path) and pg_ls_dir(path) let a superuser stat the data directory from SQL,
-which is more portable than shelling out. block_size is the compile-time page size, 8192.`,
+### In plain terms
+
+This experiment shows that a PostgreSQL table is stored as files made of fixed-size pages. You create
+rows, ask PostgreSQL where the table and its index live, and compare the server byte count with the
+operating system file size. A relation is PostgreSQL's name for a table or index; relfilenode is the
+file identity, while an OID is the catalog object's identity.
+
+### What you are learning
+
+- Pages and forks: the main heap is divided into 8192-byte blocks, with optional FSM and visibility
+  map forks stored beside it.
+- File identity: relfilenode determines the path, and a rewrite can change it even when the table's
+  OID remains the same.
+- Catalog versus filesystem evidence: SQL functions can inspect the same files that ls would show.
+
+### Piece by piece
+
+- **DROP TABLE IF EXISTS** (DDL cleanup)
+  - What it is: removes an old test relation when present and does nothing when absent.
+  - What it does here: makes setup repeatable before creating st_events.
+  - What it gives us: a known starting table; it must never target a real application table.
+- **CREATE TABLE ... WITH (autovacuum_enabled = off)** (DDL and storage parameter)
+  - What it is: creates a heap table and primary-key index; the parameter disables automatic cleanup.
+  - What it does here: keeps vacuum from changing page evidence while we inspect it.
+  - What it gives us: st_events and st_events_pkey as separate relations.
+- **generate_series(1,1000)** (set-returning SQL function)
+  - What it is: produces one integer for each value in the inclusive range.
+  - What it does here: inserts 1000 predictable rows, making page counts reproducible.
+  - What it gives us: ids 1 through 1000 and payload text in the heap.
+- **ANALYZE st_events** (statistics command)
+  - What it is: samples the table and updates planner statistics.
+  - What it does here: refreshes pg_class's approximate page and row counts.
+  - What it gives us: relpages near 6 and reltuples near 1000; these are catalog estimates.
+- **current_setting('block_size')** (configuration-reading function)
+  - What it is: returns a named server setting.
+  - What it does here: reads PostgreSQL's compiled page size.
+  - What it gives us: page_bytes = 8192.
+- **pg_relation_filepath(rel)** (system function)
+  - What it is: returns a relation's main-fork path relative to the data directory.
+  - What it does here: finds st_events for later file checks.
+  - What it gives us: a path such as base/database_oid/relfilenode.
+- **pg_relation_size(rel, fork)** (system function)
+  - What it is: reports relation bytes, optionally for main, fsm, or vm fork.
+  - What it does here: converts heap bytes to pages and compares each fork.
+  - What it gives us: main size is 49152 bytes or 6 pages; fork sizes show supporting files.
+- **pg_stat_file(path)** (superuser file-stat function)
+  - What it is: reads metadata for a file visible under the data directory.
+  - What it does here: checks the size of the path returned by pg_relation_filepath.
+  - What it gives us: file_size_on_disk, which should equal the main-fork byte count.
+- **pg_ls_dir(path)** (superuser directory-listing function)
+  - What it is: returns names in a server-side directory.
+  - What it does here: lists files beginning with this table's relfilenode.
+  - What it gives us: main, FSM, and possibly VM fork names and their sizes.
+- **pg_class** (system catalog)
+  - What it is: PostgreSQL's catalog describing relations.
+  - What it does here: shows oid, relfilenode, relpages, and reltuples for st_events.
+  - What it gives us: OID and file identity, plus estimates refreshed by ANALYZE.
+- **\\t on / \\t off** (psql tuples-only option)
+  - What it is: suppresses and restores column headers in psql output.
+  - What it does here: leaves only the generated ls command for the shell pipe, then restores display.
+  - What it gives us: clean input to the next shell command.
+- **\\g | sh** (psql pipe command)
+  - What it is: sends the preceding query's output to a shell.
+  - What it does here: runs ls -l against the absolute relation path without leaving psql.
+  - What it gives us: an OS listing whose size should match pg_relation_size.
+- **ls -l** (shell file-list command)
+  - What it is: prints permissions, owner, size, and name for a file.
+  - What it does here: confirms the database file is owned by the postgres OS user.
+  - What it gives us: filesystem size and path evidence independent of SQL catalogs.
+- **pg_relation_filenode(rel)** (system function)
+  - What it is: returns the current on-disk relfilenode number.
+  - What it does here: supplies the prefix used to find table forks and explains dynamic path lookup.
+  - What it gives us: the numeric file identity.
+- **VACUUM FULL, TRUNCATE, and ALTER TABLE rewrites** (relation-rewrite operations)
+  - What they are: operations that can build a replacement relation file.
+  - What they do here: explain why relfilenode can change while OID stays stable.
+  - What they give us: a reason to resolve the path dynamically instead of caching it.
+`,
       setup: code`
 drop table if exists st_events;
 create table st_events(id int primary key, payload text) with (autovacuum_enabled = off);
@@ -107,13 +187,56 @@ Open one 8 KB page with pageinspect and read its layout: a 24-byte header, an ar
 pointers growing forwards, and tuples packed backwards from the end. The gap between them is the
 page's free space. This slotted-page layout is why a row has a stable address (ctid) even though
 the bytes move around inside the page.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Page Structure")`,
+      readingNotes: code`
+Chapter 3 describes the same PageHeaderData, item pointers, free-space gap, and tuple placement
+that pageinspect decodes here. The lesson provides a live page from PostgreSQL 16, while the book's
+examples use PostgreSQL 14; read the section after running it so the field names have physical
+meaning rather than being an unexplained list.`,
       syntaxBreakdown: code`
-get_raw_page(rel, blkno) reads one page as bytea. page_header(page) decodes the 24-byte
-PageHeaderData: lsn (the WAL position that last changed this page), checksum, lower (end of the
-line-pointer array), upper (start of tuple data), special, pagesize, version, prune_xid.
-heap_page_items(page) decodes the line pointers and tuple headers: lp (slot number), lp_off,
-lp_len, lp_flags (1 = normal, 2 = redirect, 3 = dead, 0 = unused), t_xmin, t_xmax, t_ctid.
-A ctid is the pair (block number, line pointer).`,
+### In plain terms
+
+This lesson opens one physical heap page instead of treating a table as an abstract set of rows. You will decode its header, line-pointer slots, tuple headers, and the ctid addresses returned by normal SQL. The gap between the slot array and tuple bytes is reusable page space.
+
+### What you are learning
+
+- A page header records boundaries and page metadata; lower and upper show the free gap.
+- A line pointer is a stable slot whose offset points to tuple bytes that can move.
+- A ctid is a block number plus slot number, not a permanent logical row ID.
+
+### Piece by piece
+
+- **\\x auto** (psql display command)
+  - What it is: automatic expanded output for wide rows.
+  - What it does here: makes the page-header fields readable one per line.
+  - What it gives us: labels such as pagesize, lower, upper, and lsn.
+- **get_raw_page('st_events', 0)** (pageinspect function)
+  - What it is: returns block 0 as raw page bytes.
+  - What it does here: supplies the page that the decoding functions inspect; 0 is the first block.
+  - What it gives us: a bytea page image; a missing extension or invalid block causes an error.
+- **page_header(page)** (pageinspect function)
+  - What it is: decodes the standard 24-byte heap-page header.
+  - What it does here: reports lsn, checksum, lower, upper, special, pagesize, version, and prune_xid.
+  - What it gives us: pagesize 8192 and upper - lower as the free-space gap; lower ends the pointer array and upper begins tuple storage.
+- **heap_page_items(page)** (pageinspect set-returning function)
+  - What it is: decodes each item slot and tuple header in a heap page.
+  - What it does here: returns the first five slots, counts all items, and shows offsets.
+  - What it gives us: lp slot number, lp_off byte offset, lp_len tuple length, lp_flags (1 normal, 2 redirect, 3 dead, 0 unused), transaction IDs, and t_ctid links.
+- **ctid** (system tuple identifier)
+  - What it is: a physical pair of block number and line-pointer slot.
+  - What it does here: compares normal query output with the pageinspect slot addresses.
+  - What it gives us: rows such as (0,1), proving the first rows are on block 0 in slots 1 onward.
+- **ORDER BY lp LIMIT 5** (SQL clauses)
+  - What they are: ordering and row limiting clauses.
+  - What they do here: make the first slots easy to compare.
+  - What they give us: a small, ordered sample rather than every tuple.
+- **upper - lower and (lower - 24) / 4** (page arithmetic)
+  - What it is: calculations using header boundaries and 4-byte line pointers after the 24-byte header.
+  - What it does here: computes free bytes and the number of slots.
+  - What it gives us: a directly checkable layout relationship.
+
+`,
       setup: code`
 drop table if exists st_events;
 create table st_events(id int primary key, payload text) with (autovacuum_enabled = off);
@@ -179,12 +302,56 @@ Update one row twice and then look at the page. You will find three tuples for o
 chained together by t_ctid, with the transaction ids that created and killed each version written
 into the tuple headers. This is the physical fact underneath everything module 03 says about MVCC,
 and the reason bloat exists at all.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Row Version Layout", "Operations on Tuples")`,
+      readingNotes: code`
+The three physical versions expose Chapter 3's row-version layout and its insert/update operations:
+t_xmin records the creating transaction, t_xmax the transaction that replaces a version, and t_ctid
+links the chain. The book explains visibility and tuple header bits more fully; run this experiment
+first, then read the cited sections before module 03 introduces snapshots.
+`,
       syntaxBreakdown: code`
-pg_current_xact_id() assigns and returns the current transaction's id (it forces one to exist).
-\gset captures a single-row result into psql variables. In a tuple header, t_xmin is the
-transaction that created this version, t_xmax the transaction that superseded or deleted it, and
-t_ctid points at the next version of the row (or at itself for the newest one). Bit 0x4000 of
-t_infomask2 is HEAP_HOT_UPDATED, bit 0x8000 is HEAP_ONLY_TUPLE.`,
+### In plain terms
+
+An UPDATE changes a logical row while preserving the old physical version for readers that may still need it. This experiment performs two committed updates, then inspects the page to see three tuple versions linked together. Transaction IDs and flags show which version is current and whether the update stayed on the page.
+
+### What you are learning
+
+- MVCC keeps old row versions rather than overwriting bytes in place.
+- t_xmin, t_xmax, and t_ctid describe who created, replaced, and follows each version.
+- Physical tuple count can exceed visible row count, creating garbage that vacuum must reclaim.
+
+### Piece by piece
+
+- **\\x auto** (psql display command)
+  - What it is: expanded output mode for wide result rows.
+  - What it does here: keeps tuple-header output readable.
+  - What it gives us: one field per line where needed.
+- **pg_current_xact_id()** (SQL function)
+  - What it is: returns the current transaction ID and forces allocation if none exists.
+  - What it does here: records xid1 and xid2 immediately before each update.
+  - What it gives us: psql variables to compare with t_xmin and t_xmax.
+- **BEGIN / COMMIT** (transaction commands)
+  - What they are: start and finish an atomic unit of work.
+  - What they do here: make each update a separate committed transaction.
+  - What they give us: distinct transaction IDs and visible versions after commit.
+- **\\gset and \\echo** (psql commands)
+  - What they are: save a one-row result as variables, then print text with substitution.
+  - What they do here: preserve and display xid1/xid2 for comparison.
+  - What they give us: exact IDs to match in tuple headers.
+- **heap_page_items(get_raw_page(...))** (pageinspect functions)
+  - What they are: decode page 0's item slots and headers.
+  - What they do here: expose t_xmin, t_xmax, t_ctid, and flags for all three versions.
+  - What they give us: old -> new -> current; newest has t_xmax 0 and points to itself.
+- **t_infomask2 & 16384 / & 32768** (bit tests)
+  - What they are: masks for HEAP_HOT_UPDATED and HEAP_ONLY_TUPLE bits.
+  - What they do here: turn raw flags into boolean columns.
+  - What they give us: hot_updated and heap_only true/false values.
+- **pgstattuple('st_versions')** (extension function)
+  - What it is: measures live tuple bytes, dead tuple bytes, and free space.
+  - What it does here: contrasts one visible row with two dead physical versions.
+  - What it gives us: tuple_count 1 and dead_tuple_count 2 in this small table.
+`,
       setup: code`
 drop table if exists st_versions;
 create table st_versions(id int, v text) with (autovacuum_enabled = off);
@@ -253,7 +420,13 @@ visibility is decided at read time from the header, not by hiding the bytes.`,
     },
     {
       slug: "hot-updates-and-fillfactor",
-      tags: ["storage", "hot-updates", "fillfactor", "write-amplification", "indexes"],
+      tags: [
+        "storage",
+        "hot-updates",
+        "fillfactor",
+        "write-amplification",
+        "indexes",
+      ],
       title: "HOT updates: why leaving a page half empty makes writes cheaper",
       difficulty: "advanced",
       safetyLevel: "ddl",
@@ -265,12 +438,70 @@ If a new row version fits on the same page and no indexed column changed, Postgr
 Heap-Only Tuple update: the new version is chained off the old line pointer and no index entry is
 written at all. Run the identical workload against two tables that differ only in fillfactor and
 count how many updates qualify.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 5 "Page Pruning and HOT Updates" (sections "Page Pruning", "HOT Updates")`,
+      readingNotes: code`
+This workload demonstrates the book's HOT condition directly: free space on the same page plus no
+indexed-column change lets PostgreSQL avoid a new index entry, while pruning turns old chain slots
+into redirects or dead items. The book works through chain mechanics in more depth; run the lesson,
+then read both sections to explain the counters and page flags.
+`,
       syntaxBreakdown: code`
-fillfactor is a table storage parameter: the percentage of a page INSERT is allowed to fill, with
-the rest reserved for later updates on that page. 100 means pack it full. pg_stat_user_tables
-counts n_tup_upd (all updates) and n_tup_hot_upd (the subset that stayed on the page and skipped
-the indexes). Cumulative statistics are flushed by the backend shortly after a transaction ends, so
-sleep about a second before reading them.`,
+### In plain terms
+
+These two tables receive the same updates, but one leaves 30 percent of each page empty. PostgreSQL can use that reserved room for a new version when the changed column is not indexed; that is a HOT update. Counters and page slots show the space-for-write trade.
+
+### What you are learning
+
+- Fillfactor reserves page room for future updates and trades initial density for fewer index writes.
+- HOT requires the new version to fit on the same page and no indexed column to change.
+- Statistics count all updates separately from HOT updates, while page flags reveal pruning.
+
+### Piece by piece
+
+- **fillfactor = 100 / fillfactor = 70** (table storage parameter)
+  - What it is: the target percentage of each heap page filled by initial inserts.
+  - What it does here: compares a packed table with one reserving space.
+  - What it gives us: different starting page counts and HOT capacity.
+- **DO ... FOR ... LOOP** (PL/pgSQL block)
+  - What it is: an anonymous server-side procedure with a loop.
+  - What it does here: repeats the non-indexed tag update 20 times for 100 rows in each table.
+  - What it gives us: 2000 updates per table for a fair comparison.
+- **pg_sleep(1)** (SQL function)
+  - What it is: pauses one second.
+  - What it does here: allows cumulative statistics to flush before they are read.
+  - What it gives us: reliable n_tup_upd and n_tup_hot_upd values.
+- **pg_stat_user_tables** (statistics view)
+  - What it is: per-table update counters.
+  - What it does here: reports n_tup_upd, n_tup_hot_upd, and pages.
+  - What it gives us: st_hot near 0 percent HOT and st_hot_ff in the hundreds; exact counts vary.
+- **round(..., 1) and nullif(..., 0)** (SQL functions)
+  - What they are: round formats the percentage to one decimal place, and nullif changes a zero
+    denominator to NULL instead of raising a division-by-zero error.
+  - What they do here: calculate hot_pct safely from the cumulative counters.
+  - What they give us: a readable percentage even if statistics have not flushed yet.
+- **pg_relation_size(rel) / 8192** (size calculation)
+  - What it is: relation bytes divided by one page.
+  - What it does here: compares page growth after updates.
+  - What it gives us: heap-page cost of write amplification.
+- **heap_page_items and get_raw_page** (pageinspect functions)
+  - What they are: decode each block's item slots.
+  - What they do here: count lp_flags after HOT chains are pruned opportunistically.
+  - What they give us: flag 1 normal, 2 redirect, 3 dead, 0 unused; qualitative counts matter more than exact totals.
+- **UNION ALL** (SQL set operator)
+  - What it is: combines result rows while retaining duplicates.
+  - What it does here: puts the two tables' flag counts into one census before ordering them.
+  - What it gives us: side-by-side evidence for st_hot and st_hot_ff.
+- **generate_series and LATERAL** (SQL row generation and correlation)
+  - What they are: generate one block number per page and run pageinspect once per block.
+  - What they do here: census every page in both relations.
+  - What they give us: evidence from all scanned blocks rather than a sample.
+- **ALTER TABLE ... SET (fillfactor = 70); VACUUM FULL** (challenge operations)
+  - What they are: change future fill and rewrite the table.
+  - What they do here: rebuild st_hot before repeating the workload.
+  - What they give us: a test of the HOT prediction; VACUUM FULL takes an exclusive lock.
+
+`,
       setup: code`
 drop table if exists st_hot;
 drop table if exists st_hot_ff;
@@ -372,13 +603,67 @@ A tuple must fit in an 8 KB page, so a 100 KB value cannot be stored inline. Pos
 to compress it, and if it still does not fit, moves it to a side table in chunks and leaves an
 18-byte pointer in the row. Store one compressible and one incompressible 100 KB value and watch
 the two paths diverge.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "TOAST"); Chapter 3 "Pages and Tuples" (section "TOAST")`,
+      readingNotes: code`
+The two values show the TOAST path described in Chapters 1 and 3: compression can keep a large
+datum inline, while an incompressible datum becomes a pointer plus chunks in a side relation. The
+book explains the tuple and chunk layout; this lesson additionally measures detoasting buffers and
+PostgreSQL 16 output. Read after running it, when heap_bytes and toast_bytes have concrete meaning.
+`,
       syntaxBreakdown: code`
-pg_class.reltoastrelid is the OID of the relation's TOAST table (cast to regclass for the name).
-pg_column_size(value) is the on-disk size of the datum including compression; length() is the
-logical size. pg_relation_size counts only the main fork of the heap, pg_total_relation_size counts
-heap + indexes + TOAST. Each TOAST table has columns chunk_id, chunk_seq, chunk_data, and a unique
-index on (chunk_id, chunk_seq). Per-column policy is set with ALTER TABLE ... ALTER COLUMN ... SET
-STORAGE plain | extended | external | main.`,
+### In plain terms
+
+A row cannot contain an arbitrarily large value because it must fit on an 8 KB page. PostgreSQL tries compression first; if the value still does not fit, it stores chunks in a hidden TOAST table and leaves a pointer in the row. This lesson compares a compressible and incompressible value and measures the extra reads.
+
+### What you are learning
+
+- Logical length and on-disk size differ when compression is possible.
+- TOAST uses an indirection pointer, chunk rows, and an index to keep the heap tuple small.
+- Out-of-line values can require more buffer accesses even when the SQL result has one row.
+
+### Piece by piece
+
+- **reltoastrelid::regclass** (catalog field and cast)
+  - What it is: pg_class's OID for the hidden TOAST relation, cast to a readable name.
+  - What it does here: identifies the side table for st_toast.
+  - What it gives us: the toast_table name used to inspect chunks.
+- **repeat and string_agg(md5(...), '')** (SQL functions)
+  - What they are: repeat creates compressible text; md5 plus string_agg creates varied text.
+  - What they do here: make two values of 100000 characters with different compression behavior.
+  - What they give us: small stored_bytes for repeated x and roughly 100000 for varied text.
+- **length(body) and pg_column_size(body)** (SQL functions)
+  - What they are: logical character length versus stored datum size.
+  - What they do here: compare the same logical size after compression.
+  - What they give us: chars 100000 for both and the storage difference.
+- **pg_relation_size and pg_total_relation_size** (size functions)
+  - What they are: heap/main-fork size versus heap plus indexes and TOAST.
+  - What they do here: separate the small heap from chunk-table bytes.
+  - What they give us: heap_bytes, toast_bytes, and total_bytes.
+- **\\gset and \\echo** (psql commands)
+  - What they are: save a single result row into psql variables, then print substituted values.
+  - What they do here: preserve the three size measurements and the TOAST relation name for the
+    following queries.
+  - What they give us: heap=:heap_bytes, toast=:toast_bytes, and total=:total_bytes output that can
+    be compared with the later chunk and EXPLAIN evidence.
+- **heap_page_items(get_raw_page(...))** (pageinspect)
+  - What it is: decodes heap tuple lengths.
+  - What it does here: shows the compressed value inline and the pointer-sized tuple.
+  - What it gives us: lp_len evidence that the logical value is not stored inline.
+- **chunk_id, chunk_seq, chunk_data** (TOAST columns)
+  - What they are: identifier, ordering number, and bytes for each chunk.
+  - What they do here: count and bound chunks for the incompressible value.
+  - What they give us: sequence 0 through 50 and maximum chunk size near 1996 bytes.
+- **EXPLAIN (ANALYZE, BUFFERS, costs off, timing off, summary off)** (plan options)
+  - What it is: executes and reports buffer activity without noisy estimates or timings.
+  - What it does here: compares inline row 1 with out-of-line row 2.
+  - What it gives us: shared hit counts; the TOAST fetch has more hits than inline fetch.
+- **ALTER TABLE ... ALTER COLUMN body SET STORAGE external** (challenge DDL)
+  - What it is: changes the TOAST policy to avoid compression while allowing external storage.
+  - What it does here: forces the compressible value to use chunks when reinserted.
+  - What it gives us: a comparison of stored size and chunk count.
+
+`,
       setup: code`
 drop table if exists st_toast;
 create table st_toast(id int primary key, label text, body text);`,
@@ -454,7 +739,13 @@ full, and which for one it substring()s?`,
     },
     {
       slug: "buffer-cache-and-io",
-      tags: ["storage", "buffer-cache", "checkpoints", "write-back-cache", "io"],
+      tags: [
+        "storage",
+        "buffer-cache",
+        "checkpoints",
+        "write-back-cache",
+        "io",
+      ],
       title: "The buffer cache: hits, reads, dirty pages, and what a checkpoint does",
       difficulty: "intermediate",
       safetyLevel: "writes-data",
@@ -466,13 +757,67 @@ Every page a backend touches goes through shared_buffers. Read a table whose pag
 of the cache and see the reads turn into hits on the second pass; then dirty some pages and watch a
 CHECKPOINT clean them without evicting them. This is a write-back cache with an explicit flush
 point, and the flush point is what bounds crash recovery time.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 9 "Buffer Cache" (sections "Cache Hits", "Cache Misses"); Chapter 10 "Write-Ahead Log" (section "Checkpoint")`,
+      readingNotes: code`
+The EXPLAIN buffer counters and pg_buffercache rows make Chapter 9's cache hits and misses visible,
+while CHECKPOINT connects them to Chapter 10's dirty-page flushing and recovery boundary. The book
+explains eviction and checkpoint design in more depth; run the scans first, then read both chapters
+to interpret hit/read/dirtied and why a checkpoint does not evict pages.
+`,
       syntaxBreakdown: code`
-EXPLAIN (ANALYZE, BUFFERS) reports shared hit (found in shared_buffers), read (had to ask the OS),
-and dirtied (pages this query modified, including hint bits). pg_buffercache has one row per buffer
-in shared memory: relfilenode, reldatabase, relforknumber (0 main, 1 fsm, 2 vm), relblocknumber,
-isdirty, usagecount, pinning_backends. CHECKPOINT writes every dirty buffer to disk and records a
-redo point in WAL. Note that COPY and CREATE TABLE AS use a small ring buffer rather than the whole
-cache, which is how the table below ends up only partly resident right after it is written.`,
+### In plain terms
+
+The buffer cache is shared memory where PostgreSQL keeps recently used pages. The first scan can read pages from the operating system, while the second reuses cached pages; an UPDATE makes buffers dirty, and CHECKPOINT writes them without throwing them away. You will observe all three states.
+
+### What you are learning
+
+- A cache hit avoids a storage read; read and dirtied counters describe work done by the query.
+- Dirty pages can remain cached after their contents are flushed to disk.
+- Checkpoints bound crash recovery, and large sequential writes use a ring to limit cache pollution.
+
+### Piece by piece
+
+- **SET max_parallel_workers_per_gather = 0** (session setting)
+  - What it is: disables parallel query workers for this session.
+  - What it does here: keeps both scans comparable.
+  - What it gives us: one serial aggregate plan.
+- **pg_size_pretty and pg_relation_size** (size functions)
+  - What they are: format bytes for people and return exact relation bytes.
+  - What they do here: report st_cold size, page count, and shared_buffers.
+  - What they give us: the table's scale relative to the cache.
+- **CREATE TABLE AS** (DDL/query form)
+  - What it is: creates a table from a query result.
+  - What it does here: writes 100000 rows through a scan-resistant ring buffer.
+  - What it gives us: a large table whose first read includes misses.
+- **EXPLAIN (ANALYZE, BUFFERS, costs off, timing off, summary off)** (plan options)
+  - What it is: executes and reports buffer counters without noisy estimates or timing.
+  - What it does here: compares the first and second count(*) scans.
+  - What it gives us: first hit + read equals page count; second scan should be all hits.
+- **CHECKPOINT** (server command)
+  - What it is: flushes dirty shared buffers and records a WAL checkpoint position.
+  - What it does here: establishes clean state, then flushes updated st_events pages.
+  - What it gives us: dirty count 0 while buffers remain resident.
+- **pg_buffercache** (extension view)
+  - What it is: one row for each shared buffer slot.
+  - What it does here: filters by relfilenode, database OID, and main fork.
+  - What it gives us: relblocknumber, isdirty, and usagecount; blocks are clean after checkpoint and dirty after update.
+- **count(*) FILTER (WHERE isdirty)** (aggregate and filter clause)
+  - What it is: counts rows satisfying a condition inside an aggregate.
+  - What it does here: counts total relation buffers and only dirty buffers.
+  - What it gives us: a compact clean/dirty comparison.
+- **pg_relation_filenode and current_database** (identity functions)
+  - What they are: resolve the current file identity and database identity.
+  - What they do here: ensure cache rows belong to this table and database.
+  - What they give us: safe filtering when other databases share the cache.
+
+- **LEFT JOIN, coalesce, and LIMIT 10** (challenge query clauses/functions)
+  - What they are: LEFT JOIN keeps buffers with no matching relation, coalesce supplies the label
+    unused when the relation name is null, and LIMIT 10 keeps the largest ten groups.
+  - What they do here: rank cache consumers while retaining unassigned buffer slots.
+  - What they give us: relation names and counts, including unused space that helps judge cache size.
+
+`,
       setup: code`
 drop table if exists st_events;
 create table st_events(id int primary key, payload text) with (autovacuum_enabled = off);
@@ -553,7 +898,13 @@ are still unused, and what does that say about whether shared_buffers is too lar
     },
     {
       slug: "free-space-map-and-reuse",
-      tags: ["storage", "free-space-map", "vacuum", "bloat", "space-reclamation"],
+      tags: [
+        "storage",
+        "free-space-map",
+        "vacuum",
+        "bloat",
+        "space-reclamation",
+      ],
       title: "The free space map: why a heap file almost never shrinks",
       difficulty: "intermediate",
       safetyLevel: "writes-data",
@@ -564,11 +915,57 @@ are still unused, and what does that say about whether shared_buffers is too lar
 Delete half a table and the file stays exactly the same size. Vacuum it and the file still stays
 the same size - but now the free space map knows about the holes, and the next inserts go into old
 pages instead of extending the file. Space is recycled in place, not returned to the OS.`,
+      reading: code`
+PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "Files and Forks"); Chapter 6 "Vacuum and Autovacuum" (section "Vacuum")`,
+      readingNotes: code`
+The lesson separates the relation file's high-water mark from reusable space: Chapter 1 introduces
+the FSM fork, and Chapter 6 explains how VACUUM removes dead tuples and publishes free space. The
+book does not use pg_freespacemap itself, so the view is a course-facing measurement; run first,
+then read the cited sections to connect avail values to vacuum's work.
+`,
       syntaxBreakdown: code`
-pg_freespace(rel) returns (blkno, avail): the free space per page as recorded in the FSM fork, in
-bytes, rounded to a 32-byte granularity. DELETE only sets t_xmax; VACUUM is what removes dead
-tuples and updates the FSM and visibility map. The (ctid::text::point)[0] trick extracts the block
-number from a ctid so you can group rows by page.`,
+### In plain terms
+
+Deleting rows marks their versions dead but does not normally shorten the table file. VACUUM makes that space reusable and records it in the free-space map (FSM), so later inserts fill old holes. VACUUM FULL is different: it rewrites the table and can return pages to the operating system.
+
+### What you are learning
+
+- File size is a high-water mark; reusable holes and filesystem size are separate facts.
+- The FSM reports approximate free bytes per block after vacuum has inspected dead tuples.
+- A rewrite changes relfilenode and can shrink a relation, but needs an exclusive lock.
+
+### Piece by piece
+
+- **pg_relation_size('st_events') / 8192** (size calculation)
+  - What it is: exact heap bytes divided by one page.
+  - What it does here: compares page count through delete, vacuum, and rewrite.
+  - What it gives us: ordinary VACUUM leaves the page count unchanged.
+- **pg_freespace('st_events')** (pg_freespacemap function)
+  - What it is: returns blkno and approximate avail bytes from the FSM fork, rounded to 32 bytes.
+  - What it does here: shows no reusable space after DELETE, then holes after VACUUM.
+  - What it gives us: per-block free-space evidence.
+- **DELETE** (DML operation)
+  - What it is: marks matching row versions deleted for MVCC.
+  - What it does here: removes even IDs, then a later quarter of rows.
+  - What it gives us: fewer visible rows but unchanged file size.
+- **VACUUM st_events** (maintenance command)
+  - What it is: removes reclaimable dead versions and updates FSM and visibility information.
+  - What it does here: makes deleted space available while retaining the file.
+  - What it gives us: larger avail values and reused blocks.
+- **generate_series(2001,2500)** (row generator)
+  - What it is: produces 500 new IDs.
+  - What it does here: inserts rows after vacuum.
+  - What it gives us: ctid block numbers showing old-page reuse rather than a new tail block.
+- **(ctid::text::point)[0]::int** (cast and subscripting expression)
+  - What it is: converts ctid text to a point and extracts its first coordinate, the block number.
+  - What it does here: groups newly inserted rows by heap block.
+  - What it gives us: block distribution proving space reuse.
+- **VACUUM FULL** (rewriting maintenance command)
+  - What it is: compacts a relation by writing a replacement file.
+  - What it does here: runs after the second delete and vacuum.
+  - What it gives us: fewer pages and a different filenode; it needs ACCESS EXCLUSIVE and extra disk space.
+
+`,
       setup: code`
 drop table if exists st_events;
 create table st_events(id int primary key, payload text) with (autovacuum_enabled = off);

@@ -6,7 +6,12 @@ export const REPLICATION: Module = {
   lessons: [
     {
       slug: "build-a-streaming-standby",
-      tags: ["streaming-replication", "hot-standby", "backup", "replicated-log"],
+      tags: [
+        "streaming-replication",
+        "hot-standby",
+        "backup",
+        "replicated-log",
+      ],
       title: "Build a streaming standby from a base backup",
       difficulty: "intermediate",
       safetyLevel: "privileged",
@@ -23,20 +28,65 @@ recovery, permanently a few milliseconds behind, and permanently ready to become
 You will build one under $PGLAB/standby on port 5441, next to the primary on 5440, and confirm the
 link from both ends: pg_stat_replication on the primary (one row per connected standby, state
 streaming) and pg_is_in_recovery() on the standby (true, forever, until you promote it).`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-pg_basebackup -D DIR -h HOST -p PORT -U USER copies the whole data directory over a replication
-connection. -c fast asks for an immediate checkpoint instead of waiting for a spread one, so the
-backup starts now. -X stream opens a second connection that streams the WAL generated during the
-copy, so the backup is self-contained and needs no archive to reach consistency. -R writes
-standby.signal (the file that says "start in standby mode and never leave it") and a
-primary_conninfo line in postgresql.auto.conf.
+### In plain terms
 
-postgresql.auto.conf is written by ALTER SYSTEM and read last, so anything you put there overrides
-postgresql.conf -- which is how one copied data directory becomes a second, differently configured
-server: port 5441, cluster_name lab-standby, its own log file.
+This experiment copies the working database into a second data directory and starts it as a read-only standby. The standby continuously receives and replays the primary's write-ahead log (WAL), the ordered record of changes that makes recovery possible. You will check both ends of the connection and then prove that writes are accepted only on the primary.
 
-hot_standby = on (the default) lets clients connect to a server in recovery and run read-only
-queries. archive_mode = off on the standby is deliberate and is explained below.`,
+### What you are learning
+
+- A physical standby is a copy of files that stays current by replaying WAL bytes, not by rerunning SQL statements.
+- **standby.signal** and **primary_conninfo** tell a copied server to remain in recovery and where to fetch WAL.
+- Hot standby permits safe read-only queries during recovery; promotion is the separate operation that makes a writer.
+
+### Piece by piece
+
+- **pg_basebackup** (shell backup program)
+  - What it is: A PostgreSQL-aware copier that makes a consistent data-directory backup over a replication connection.
+  - What it does here: It creates the standby directory while the primary remains online.
+  - What it gives us: The progress total and successful completion show that the copy finished.
+  - **-R**: Writes standby.signal and connection settings, so the copy starts as a standby.
+  - **-D**: Names the destination data directory; here it is the value under PGLAB.
+  - **-h / -p / -U**: Select the primary's socket host, port 5440, and PostgreSQL user.
+  - **-c fast**: Requests an immediate checkpoint, reducing the time before the backup starts.
+  - **-X stream**: Streams WAL generated during the copy, making the backup usable without first finding an archive file.
+  - **-P**: Prints progress so you can see copied kilobytes and completion.
+- **postgresql.auto.conf** (server configuration file)
+  - What it is: A file written by ALTER SYSTEM and read after postgresql.conf, so later values override earlier ones.
+  - What it does here: Changes the copied server to port 5441, names it lab-standby, enables read-only recovery queries, and disables archiving there.
+  - What it gives us: **cat** shows primary_conninfo, port, and the settings the standby will actually use.
+- **standby.signal** (marker file)
+  - What it is: Its presence tells PostgreSQL to enter standby recovery at startup.
+  - What it does here: Keeps the server replaying WAL instead of opening for writes.
+  - What it gives us: **ls** succeeding proves the copy has the required marker.
+- **pg_ctl** (server-control program)
+  - What it is: Starts and stops a PostgreSQL server for a chosen data directory.
+  - What it does here: Starts the second postmaster and writes startup messages to standby.log.
+  - What it gives us: A successful start and the log lines prove the copied directory became a running server.
+  - **-D** chooses the directory; **-l** chooses the log file; **start** starts it; **-w** waits until startup succeeds.
+- **pg_is_in_recovery()** (SQL status function)
+  - What it is: Reports whether this server is still replaying recovery WAL.
+  - What it does here: The value t confirms that port 5441 is the standby.
+  - What it gives us: t is the role evidence; f would mean the server is writable primary.
+- **pg_control_checkpoint()** (control-file inspection function)
+  - What it is: Exposes checkpoint metadata, including the current timeline identifier.
+  - What it does here: Its timeline_id lets you identify which WAL history the standby follows.
+  - What it gives us: The timeline_id column is the history number to compare with WAL filenames.
+- **pg_stat_wal_receiver** and **pg_stat_replication** (monitoring views)
+  - What they are: The first describes the standby's receiver; the second describes the primary's sender.
+  - What they do here: They show status streaming and the matching ports, application name, and LSN positions.
+  - What it gives us: One row on each side proves the link exists; sent, write, flush, and replay positions show progress.
+- **archive_mode** and **hot_standby** (server settings)
+  - What they are: Settings controlling WAL archiving and read-only access during recovery.
+  - What they do here: archive_mode off avoids two servers writing the same archive; hot_standby on allows SELECT but rejects INSERT.
+  - What it gives us: The displayed setting values explain why this server can answer reads but cannot become a second archive writer.
+- **ss** (socket-inspection shell program)
+  - What it is: Lists listening TCP sockets.
+  - What it does here: **grep -E 5440|5441** filters for the two lab ports, confirming both servers listen.
+  - What it gives us: One listening line per port is host-level evidence that both postmasters are reachable.
+`,
       caution: code`
 This lesson starts a SECOND PostgreSQL server on port 5441 that stays running for the rest of the
 module; lesson cascading-and-failback removes it. The standby is a byte copy of the primary, so
@@ -166,14 +216,23 @@ wal_retrieve_retry_interval. What would have happened if the primary had been do
 
     {
       slug: "replication-lag-under-load",
-      tags: ["streaming-replication", "hot-standby", "replicated-log", "consistency", "wal"],
+      tags: [
+        "streaming-replication",
+        "hot-standby",
+        "replicated-log",
+        "consistency",
+        "wal",
+      ],
       title: "Four LSNs: the pipeline stages of a replicated log",
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 25,
-      prerequisites: ["build-a-streaming-standby", "every-change-is-a-wal-record"],
+      prerequisites: [
+        "build-a-streaming-standby",
+        "every-change-is-a-wal-record",
+      ],
       overview: code`
 "Replication lag" is not one number. pg_stat_replication gives you four LSNs per standby -- sent,
 write, flush, replay -- and they are the four stages a WAL record passes through on its way from
@@ -185,20 +244,63 @@ In this lesson you freeze exactly one stage. pg_wal_replay_pause() on the standb
 while receiving and flushing continue, so the standby keeps every byte safe on disk and still
 answers queries from a database that is now minutes old. No error, no warning, just stale reads --
 which is the single most important thing to understand before you route traffic at a replica.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-On the primary, pg_stat_replication has one row per walsender: sent_lsn (handed to the network),
-write_lsn (the standby wrote it to its OS), flush_lsn (the standby fsynced it), replay_lsn (the
-standby applied it and queries can see it), plus write_lag/flush_lag/replay_lag as time intervals
-measured by round trip.
+### In plain terms
 
-On the standby, pg_last_wal_receive_lsn() is how far the walreceiver has flushed,
-pg_last_wal_replay_lsn() is how far the startup process has applied, and
-pg_last_xact_replay_timestamp() is the commit time of the last transaction applied -- the only one
-of the three you can compare with a wall clock, and therefore the one your monitoring should use.
+Replication lag is a pipeline, not a single delay. This lesson pauses only the standby's replay stage, then writes enough rows to make the bytes received and safely stored differ from the rows visible to a query. That demonstrates why a healthy-looking replica can still return an old answer.
 
-pg_wal_replay_pause() / pg_wal_replay_resume() / pg_is_wal_replay_paused() stop and restart the
-apply stage on a standby. pg_wal_lsn_diff(a, b) is a byte count, and LSNs also subtract with the
-minus operator.`,
+### What you are learning
+
+- WAL passes through sent, written, flushed, and replayed stages, and each gap points to a different bottleneck.
+- A paused standby can have durable bytes on disk while its SQL view remains old.
+- LSNs are log positions; subtracting them gives a byte backlog, while replay timestamps give wall-clock freshness.
+
+### Piece by piece
+
+- **pg_stat_replication** (primary monitoring view)
+  - What it is: One row for each primary walsender and its connected standby.
+  - What it does here: Shows the four pipeline positions and whether the connection is streaming.
+  - What it gives us: sent_lsn is handed to the network, write_lsn reached the standby, flush_lsn is durable there, and replay_lsn is visible to queries. A growing sent-minus-replay value is unapplied WAL.
+  - **write_lag, flush_lag, replay_lag** are time estimates for those stages; they fluctuate with workload.
+- **pg_last_wal_receive_lsn() / pg_last_wal_replay_lsn()** (standby status functions)
+  - What they are: Log positions last received and last applied by recovery.
+  - What they do here: Compare durable input with query-visible output while replay is paused.
+  - What it gives us: received_not_replayed is the bytes safely waiting to be applied.
+- **pg_last_xact_replay_timestamp()** (standby status function)
+  - What it is: The commit time of the newest transaction replayed.
+  - What it does here: **now() - ...** estimates how old the visible data is.
+  - What it gives us: The timestamp and apparent_lag interval quantify how stale a replica read can be.
+- **pg_wal_replay_pause(), pg_wal_replay_resume(), pg_is_wal_replay_paused()** (recovery functions)
+  - What they are: Controls and reports the standby's WAL-apply process.
+  - What they do here: Pause leaves receiving and flushing active; resume lets the backlog drain.
+  - What it gives us: t from the paused check and a later row count demonstrate the stage that was frozen.
+- **pg_wal_lsn_diff(a, b)** (LSN arithmetic function)
+  - What it is: Returns the number of WAL bytes between two log positions.
+  - What it does here: Measures lag in bytes; **pg_size_pretty** formats that number as kB or MB.
+  - What it gives us: A numeric byte gap, or a readable size, tells us how much durable WAL is not visible yet.
+- **generate_series** and **repeat** (SQL row generator and text function)
+  - What they are: generate_series makes numbered rows; repeat creates a predictable padding string.
+  - What they do here: Produce enough WAL to make the pipeline gap visible.
+  - What it gives us: Predictable row counts and padding create a measurable, repeatable workload.
+- **\gset** (psql variable command)
+  - What it is: Stores a one-row query's columns as psql variables.
+  - What it does here: Saves before and after LSNs for later subtraction; values come from pg_current_wal_lsn().
+  - What it gives us: Named variables let later queries calculate exactly how many WAL bytes the insert generated.
+- **\c** (psql connection command)
+  - What it is: Changes the current session's server connection.
+  - What it does here: Moves Session B from port 5440 to standby port 5441; the database name comes from labdb.
+  - What it gives us: The same session can query the standby, making the stale-read comparison explicit.
+- **\watch i=1 c=3** (psql repeat command)
+  - What it is: Re-runs the preceding query at a one-second interval for three samples.
+  - What it does here: Shows the standby count jump as replay catches up instead of hiding the transition.
+  - What it gives us: A sequence of counts shows whether the backlog drains and how quickly.
+- **pg_ls_waldir()** (WAL-directory function)
+  - What it is: Lists WAL segment files in the server's pg_wal directory.
+  - What it does here: The challenge compares its total size with received-not-replayed bytes to show who is holding the backlog.
+  - What it gives us: File count and summed size expose disk space occupied by waiting WAL.
+`,
       setup: code`
 drop table if exists rep_lag;
 create table rep_lag(id int primary key, pad text);
@@ -332,7 +434,13 @@ bytes, and what is the standby's max_wal_size doing about it?`,
 
     {
       slug: "synchronous-replication-blocks-commit",
-      tags: ["synchronous-replication", "durability", "availability", "quorum", "consistency"],
+      tags: [
+        "synchronous-replication",
+        "durability",
+        "availability",
+        "quorum",
+        "consistency",
+      ],
       title: "Synchronous replication: pay for durability in commit latency",
       difficulty: "advanced",
       safetyLevel: "privileged",
@@ -351,29 +459,59 @@ remote_apply -- and every commit now costs a network round trip instead of a loc
 find out what it costs when the standby is not there: with one synchronous standby named and no
 standby answering, commits stop. Not fail: stop. You will make that happen, watch a commit hang,
 and rescue the primary from a second session by taking the standby's name back out.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-synchronous_standby_names lists the application_name of standbys whose acknowledgement a commit
-waits for, and the richer forms ANY 2 (s1, s2, s3) and FIRST 2 (s1, s2) are how you express a
-quorum. It is a SIGHUP setting: ALTER SYSTEM plus pg_reload_conf() is enough, no restart.
+### In plain terms
 
-The value has its own little grammar, and an unquoted name in it must look like an identifier. Our
-standby is called lab-standby, so the name has to be double-quoted INSIDE the single-quoted GUC
-string: '"lab-standby"'. Without the inner quotes ALTER SYSTEM rejects it outright with
-"syntax error at or near -", the setting is never written, and every commit silently stays
-asynchronous -- a failure mode worth meeting here rather than during an audit.
+Asynchronous replication lets the primary tell a client that a commit is done before the standby has it. Synchronous replication changes that promise: COMMIT waits until a named standby reaches a chosen stage. You will measure the latency cost and then pause replay to see a commit wait until an operator changes the setting.
 
-synchronous_commit is per-transaction and chooses the stage from the previous lesson: off (do not
-even wait for the local WAL flush), local (local flush only), remote_write, on (local flush plus
-the standby's flush; the default), remote_apply (plus the standby has applied it, so a read on the
-standby immediately after the commit returns will see it).
+### What you are learning
 
-pg_stat_replication.sync_state becomes sync for a named standby, async otherwise. A backend waiting
-for a synchronous standby shows wait_event_type = IPC, wait_event = SyncRep in pg_stat_activity,
-and its transaction is already committed locally and durable -- it is the acknowledgement to the
-client that is being withheld.
+- **synchronous_commit** selects the durability point a transaction waits for.
+- **synchronous_standby_names** turns a standby into a required acknowledgement, improving durability but reducing availability when it is absent.
+- A SyncRep wait means the transaction is already locally durable; only the reply to the client is delayed.
 
-DO blocks may COMMIT (PostgreSQL 11 and later), so a loop of 200 single-row inserts inside DO is
-200 real commits and \timing measures their total cost.`,
+### Piece by piece
+
+- **synchronous_standby_names** (reloadable server setting)
+  - What it is: A list or quorum expression naming standby application_name values whose acknowledgement is required.
+  - What it does here: The quoted lab-standby name makes commits wait for that connection; reset removes the requirement.
+  - What it gives us: sync_state = sync in pg_stat_replication proves the standby name matched; a missing match leaves it async.
+  - **ANY 2** waits for any two named standbys; **FIRST 2** chooses the first two available by priority.
+- **ALTER SYSTEM SET/RESET** (SQL configuration command)
+  - What it is: Writes a setting to postgresql.auto.conf or removes it.
+  - What it does here: Enables the experiment and later restores the lab. The inner double quotes around lab-standby are required because the name contains a hyphen.
+  - What it gives us: The setting appears in pg_read_file output after SET and disappears after RESET.
+- **pg_reload_conf()** (configuration function)
+  - What it is: Asks the server to reread reloadable settings without restarting.
+  - What it does here: Makes the ALTER SYSTEM change active immediately.
+  - What it gives us: A true return value plus changed replication status shows the reload took effect.
+- **synchronous_commit** (per-transaction setting)
+  - What it is: Chooses how far WAL must progress before COMMIT returns.
+  - What it does here: local waits for local flush, on waits for standby flush, and remote_apply waits until standby replay; off can return before local flush.
+  - What it gives us: **\timing** compares total time for 200 actual commits at each level.
+- **pg_stat_replication.sync_state** (replication status column)
+  - What it is: Reports whether this standby is currently participating synchronously.
+  - What it does here: sync confirms the name matched; async means commits do not wait for it.
+  - What it gives us: The sync_state column is the direct before/after evidence for the durability policy.
+- **pg_stat_activity** (activity view)
+  - What it is: Lists server backends and what they are waiting for.
+  - What it does here: A row with wait_event_type IPC and wait_event SyncRep identifies the deliberately waiting INSERT.
+  - What it gives us: The waiting PID and query text identify the session to diagnose or cancel.
+- **DO ... COMMIT** (procedural SQL block)
+  - What it is: Runs a server-side loop; modern PostgreSQL permits transaction control in a top-level DO block.
+  - What it does here: Makes 200 single-row commits so per-commit network and replay costs become measurable.
+  - What it gives us: The three **Time** results let you compare local, remote flush, and remote apply latency.
+- **clock_timestamp()** (time function)
+  - What it is: Reads the actual current clock, even within one transaction.
+  - What it does here: The inserted timestamp proves the waiting row was created before the client received its response.
+  - What it gives us: Comparing the row's at value with the command return time proves the server committed while the acknowledgement waited.
+- **pg_read_file** (server file-reading function)
+  - What it is: Reads a file from the data directory with server privileges.
+  - What it does here: Confirms the temporary synchronous setting was removed from postgresql.auto.conf.
+  - What it gives us: Only the two comment lines mean the lab has no leftover ALTER SYSTEM override.
+`,
       caution: code`
 Setting synchronous_standby_names on a cluster with one standby means the primary cannot commit
 without that standby. The lesson deliberately provokes that hang and then undoes it; if you stop
@@ -527,7 +665,10 @@ against local.`,
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 30,
-      prerequisites: ["replication-lag-under-load", "xmin-horizon-blocks-cleanup"],
+      prerequisites: [
+        "replication-lag-under-load",
+        "xmin-horizon-blocks-cleanup",
+      ],
       overview: code`
 A hot standby has two jobs that are in direct conflict. It must replay the primary's WAL as fast as
 it arrives, and it must give its own read-only queries a stable snapshot. When the primary vacuums
@@ -539,20 +680,54 @@ You will cause it on purpose. Lower max_standby_streaming_delay to 2 seconds on 
 a long query inside a repeatable-read transaction, then delete and VACUUM the rows on the primary.
 Within seconds the standby cancels your query with "canceling statement due to conflict with
 recovery", and pg_stat_database_conflicts counts it.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-max_standby_streaming_delay is how long replay may wait for conflicting queries before cancelling
-them (30s by default, -1 means wait forever and let the standby fall arbitrarily far behind). It is
-a SIGHUP setting on the STANDBY: ALTER SYSTEM there writes the standby's own postgresql.auto.conf,
-which is legal in recovery because it only writes a file.
+### In plain terms
 
-hot_standby_feedback (off here, and off by default) is the other side of the trade: when on, the
-standby tells the primary the xmin of its oldest snapshot, and the primary refuses to vacuum rows
-newer than that -- no conflicts, but the primary now bloats on behalf of a query running somewhere
-else, which is the xmin-horizon problem of module 03 stretched across a network.
+A standby must replay cleanup changes from the primary while also keeping old row versions available to a long-running read. When those requirements collide, PostgreSQL protects replay by cancelling the standby query after a delay. You will create that conflict and then compare it with feedback, which protects the query by making the primary keep more dead rows.
 
-pg_stat_database_conflicts counts cancellations per database by cause: confl_snapshot (rows the
-query needed were removed), confl_lock (a lock the replay needed), confl_tablespace,
-confl_bufferpin, confl_deadlock, confl_active_logicalslot.`,
+### What you are learning
+
+- Recovery conflicts are normal consequences of serving reads from a replaying copy.
+- **max_standby_streaming_delay** bounds how long replay waits before cancelling a conflicting query.
+- **hot_standby_feedback** trades query survival for primary-side bloat by extending the oldest transaction horizon.
+
+### Piece by piece
+
+- **max_standby_streaming_delay** (standby recovery setting)
+  - What it is: Maximum time replay waits for a conflicting standby query.
+  - What it does here: ALTER SYSTEM sets it to two seconds, so the held repeatable-read query is cancelled quickly; -1 would wait forever.
+  - What it gives us: The query error says canceling statement due to conflict with recovery, and replay then proceeds.
+- **hot_standby_feedback** (standby recovery setting)
+  - What it is: A message from standby to primary carrying the oldest snapshot transaction ID.
+  - What it does here: When enabled, it prevents primary VACUUM from removing row versions that the standby query may still need.
+  - What it gives us: Fewer cancellations, but rising dead tuples and table size on the primary if the reader remains open.
+- **ALTER SYSTEM** and **pg_reload_conf()** (configuration tools)
+  - What they are: The first writes the standby's setting file; the second activates a reloadable change without restart.
+  - What they do here: Apply each delay or feedback value on port 5441, where recovery runs.
+  - What it gives us: pg_settings shows the active value, so you can distinguish a reload failure from a recovery conflict.
+- **pg_stat_database_conflicts** (database statistics view)
+  - What it is: Cumulative counts of queries cancelled by recovery conflicts.
+  - What it does here: Its confl_snapshot column counts removed row-version conflicts; confl_lock, confl_tablespace, confl_bufferpin, confl_deadlock, and confl_active_logicalslot identify other causes.
+  - What it gives us: A counter increasing after cancellation proves recovery, not the SQL client, stopped the query.
+- **VACUUM** and **REPEATABLE READ** (SQL maintenance and isolation choices)
+  - What they are: VACUUM removes obsolete row versions; repeatable read keeps one stable snapshot.
+  - What they do here: The primary cleanup creates the WAL replay event while the standby transaction keeps the old version needed by its SELECT.
+  - What it gives us: The cancellation error and VACUUM's removed-tuple count connect the old snapshot to the cleanup replay record.
+- **pg_stat_activity** (session activity view)
+  - What it is: Lists sessions, transaction state, and wait information.
+  - What it does here: The held standby query remains visible while replay waits; rollback ends its repeatable-read snapshot.
+  - What it gives us: The session state and query text show which reader is holding the conflicting snapshot.
+- **pg_stat_user_tables** (table statistics view)
+  - What it is: Reports estimated live and dead tuple counts and vacuum timestamps.
+  - What it does here: n_dead_tup and last_vacuum show that the primary cleaned its table even though a remote query was cancelled.
+  - What it gives us: The n_live_tup, n_dead_tup, and last_vacuum columns show the primary-side cleanup outcome.
+- **pg_controldata** (control-file shell reader)
+  - What it is: Prints cluster state and checkpoint metadata without connecting to SQL.
+  - What it does here: The challenge can compare standby and primary state after a deliberately conflicting operation.
+  - What it gives us: Cluster-state and checkpoint lines reveal whether the server is still in production or recovery.
+`,
       setup: code`
 drop table if exists rep_conflict;
 create table rep_conflict(id int primary key, pad text);
@@ -680,7 +855,13 @@ modes would you rather explain to the person who owns the primary's disk?`,
 
     {
       slug: "replication-slot-retains-wal",
-      tags: ["replication-slots", "wal", "capacity", "streaming-replication", "observability"],
+      tags: [
+        "replication-slots",
+        "wal",
+        "capacity",
+        "streaming-replication",
+        "observability",
+      ],
       title: "A slot is an unbounded promise until you bound it",
       difficulty: "advanced",
       safetyLevel: "privileged",
@@ -700,23 +881,58 @@ fills the primary's disk. You will attach the standby to a slot, create a second
 consumer that never comes back, watch pg_wal stop shrinking, and then put a 64 MB bound on the
 promise with max_slot_wal_keep_size and watch the server invalidate the slot rather than run out of
 disk.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-pg_create_physical_replication_slot(name, immediately_reserve) creates a slot; the second argument
-true makes it start holding WAL right now instead of when a consumer first connects.
-pg_drop_replication_slot(name) removes it -- the only thing that ever does.
+### In plain terms
 
-In pg_replication_slots: active/active_pid say whether a consumer is attached, restart_lsn is the
-oldest byte the slot still needs (pg_walfile_name(restart_lsn) turns it into a file name),
-safe_wal_size is how much more WAL may be written before this slot is in danger, and wal_status is
-reserved (fine), extended (past wal_keep_size but still there), unreserved (past the limit, files
-still present, about to go) or lost (the files are gone; the consumer must be rebuilt).
+A replication slot is a server-side promise to keep WAL until a consumer has reached a position. This experiment creates an idle slot, generates changes, and watches retained files grow; it then enables a limit so PostgreSQL can invalidate the slot instead of filling the disk forever.
 
-primary_slot_name on the standby names the slot its walreceiver should use. It is SIGHUP: reload
-and the walreceiver reconnects using the slot.
+### What you are learning
 
-max_slot_wal_keep_size caps what all slots together may pin (-1 = unlimited, the default). When a
-checkpoint finds a slot below the cutoff, it invalidates it and logs "invalidating obsolete
-replication slot". That is the server choosing to break one consumer instead of the whole cluster.`,
+- A slot's restart position is a retention obligation, even when no consumer is connected.
+- Slot status distinguishes safely retained WAL from WAL that is approaching or has passed its configured limit.
+- A retention cap protects the cluster by sacrificing an abandoned consumer, which must then be rebuilt.
+
+### Piece by piece
+
+- **pg_create_physical_replication_slot** (SQL slot function)
+  - What it is: Creates a named cursor for a physical WAL consumer.
+  - What it does here: With immediately_reserve true, it starts reserving WAL before a standby connects.
+  - What it gives us: The returned slot name and LSN identify the retention anchor.
+- **pg_replication_slots** (slot monitoring view)
+  - What it is: Lists logical and physical slots and their resource positions.
+  - What it does here: Shows active and active_pid, restart_lsn, safe_wal_size, wal_status, and whether the slot has been invalidated.
+  - What it gives us: restart_lsn is the oldest required byte; safe_wal_size is remaining headroom; wal_status reserved, extended, unreserved, or lost describes safety.
+- **pg_walfile_name(restart_lsn)** (WAL filename function)
+  - What it is: Converts an LSN into the segment filename containing it.
+  - What it does here: Names the files the slot prevents from being removed.
+  - What it gives us: The oldest_needed_file value identifies the segment that should remain on disk.
+- **primary_slot_name** (standby setting)
+  - What it is: The physical slot name a standby's WAL receiver should use.
+  - What it does here: After reload, the standby requests WAL through this slot rather than allowing the primary to forget its position.
+  - What it gives us: pg_stat_wal_receiver.slot_name shows the standby is attached to the intended slot.
+- **max_slot_wal_keep_size** (primary retention setting)
+  - What it is: Maximum WAL space slots may retain; -1 means unlimited.
+  - What it does here: A finite value lets a checkpoint invalidate a slot that has fallen too far behind.
+  - What it gives us: The server log records invalidating obsolete replication slot, and the consumer must be rebuilt.
+- **CHECKPOINT** (SQL durability operation)
+  - What it is: Forces PostgreSQL to write dirty pages and finish a checkpoint.
+  - What it does here: Makes the server evaluate slot retention and recycle eligible WAL, so bounded and unbounded cases are visible.
+  - What it gives us: Comparing pg_wal before and after the checkpoint shows whether retention prevented recycling.
+- **pg_ls_waldir()** and **pg_size_pretty** (WAL inspection and formatting functions)
+  - What they are: The first lists segment files; the second formats byte counts.
+  - What they do here: Compare the number and total size of pg_wal files with each slot's wal_retained value.
+  - What it gives us: wal_files and pg_wal_bytes make disk growth visible in count and readable size units.
+- **pg_stat_file**, **pg_read_file**, and **regexp_split_to_table** (server file-inspection functions)
+  - What they are: Read file metadata, read file text, and turn text into rows by a separator.
+  - What they do here: Capture the log size before the test, then inspect new lines for the slot-invalidation message.
+  - What it gives us: The filtered log row is evidence that PostgreSQL invalidated the obsolete slot at the retention limit.
+- **pg_drop_replication_slot** (cleanup function)
+  - What it is: Removes a slot and its retention obligation.
+  - What it gives us: slots_left = 0 confirms no abandoned consumer can keep WAL after cleanup.
+  - What it does here: Releases the lab's WAL after the observation.
+`,
       caution: code`
 This lesson writes about 120 MB of WAL into $PGLAB and into the archive, and briefly sets
 max_slot_wal_keep_size = 64MB on the primary. The last steps reset it, drop both slots, and put the
@@ -886,7 +1102,13 @@ what monitoring query you would actually page on -- and why "pg_wal size" is the
 
     {
       slug: "promote-the-standby",
-      tags: ["failover", "timelines", "split-brain", "hot-standby", "leader-election"],
+      tags: [
+        "failover",
+        "timelines",
+        "split-brain",
+        "hot-standby",
+        "leader-election",
+      ],
       title: "Promote the standby, and meet split brain",
       difficulty: "advanced",
       safetyLevel: "dangerous",
@@ -905,18 +1127,59 @@ write into the same table and stores something the other will never see -- and t
 collide on the primary key, because the promoted node's copy of the sequence had already jumped
 ahead. That is split brain, in about four commands, and the next two lessons are the cost of
 getting out of it.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-pg_ctl -D DIR promote (or the SQL function pg_promote(), or a file named by promote_trigger_file)
-ends recovery. The server writes an end-of-recovery record, allocates the next unused timeline ID,
-writes a .history file describing where the new timeline branched from the old one, and clears
-standby.signal so it never goes back into recovery.
+### In plain terms
 
-pg_control_checkpoint().timeline_id and pg_walfile_name(pg_current_wal_lsn()) both show the
-timeline: WAL file names start with the 8-hex-digit timeline, so the first segment of timeline 2 is
-00000002000000000000....
+Promotion turns the standby into the new writable primary after the old primary has failed or been deliberately stopped. PostgreSQL records that this server has started a new branch of WAL history, called a timeline, so it can reject stale WAL from the old branch. You will verify the branch and the removal of standby mode.
 
-pg_is_in_recovery() is the definitive "am I a standby" test, and it is what your application's
-health check and your failover tool should both be reading.`,
+### What you are learning
+
+- Promotion ends recovery and creates a new timeline rather than erasing the old history.
+- The timeline ID appears in control metadata and WAL filenames, which makes branches observable.
+- **pg_is_in_recovery()** is the simplest safety check before routing writes.
+
+### Piece by piece
+
+- **pg_ctl promote** (server-control operation)
+  - What it is: Requests that a running standby finish recovery and become primary.
+  - What it does here: Writes the end-of-recovery record, creates the next timeline, and removes standby.signal.
+  - What it gives us: The promotion log lines and a false pg_is_in_recovery() value prove the role changed.
+  - **-D** selects the standby data directory; **promote** selects the operation.
+- **pg_promote()** (SQL promotion function)
+  - What it is: The SQL equivalent of the pg_ctl promotion request.
+  - What it does here: Offers an in-database way to trigger the same transition and returns whether the request was accepted.
+  - What it gives us: Its boolean result tells the operator whether PostgreSQL accepted the request.
+- **promote_trigger_file** (server setting)
+  - What it is: An optional filename whose creation requests promotion.
+  - What it does here: It is an alternative trigger, useful when an external failover tool cannot issue SQL.
+  - What it gives us: The promotion log line and changed role confirm the trigger was observed.
+- **timeline** and **.history file** (WAL history concepts)
+  - What they are: A timeline is a branch identifier; its history file records the parent timeline and fork point.
+  - What they do here: The new ID and history file prove that promotion created a distinct WAL branch.
+  - What it gives us: The timeline number and parent/fork line explain which old history the new branch follows.
+- **pg_control_checkpoint()** and **pg_walfile_name(pg_current_wal_lsn())** (inspection functions)
+  - What they are: The first reads checkpoint metadata; the second formats the current WAL position as a segment filename.
+  - What they do here: timeline_id and the filename's first eight hexadecimal digits should both show the promoted timeline.
+  - What it gives us: The filename changes immediately; the control-file timeline catches up after CHECKPOINT.
+- **standby.signal** (recovery marker)
+  - What it is: The file that causes standby startup behavior.
+  - What it does here: Its absence after promotion prevents the server from returning to recovery on restart.
+  - What it gives us: Checking for the file after promotion verifies the next startup will remain a primary.
+- **CHECKPOINT** (SQL checkpoint command)
+  - What it is: Forces a checkpoint that rewrites control-file checkpoint metadata.
+  - What it does here: Demonstrates why pg_control_checkpoint().timeline_id can remain one timeline behind immediately after promotion.
+  - What it gives us: After it completes, timeline_id should agree with the timeline prefix in the WAL filename.
+- **pg_walfile_name(pg_current_wal_lsn())** (WAL filename expression)
+  - What it is: Formats the current log position as the segment file containing it.
+  - What it does here: Shows the new timeline prefix immediately, before the next checkpoint updates the control file.
+  - What it gives us: The first eight hexadecimal characters are direct evidence of the active WAL branch.
+- **ls, cat, grep, and tail** (shell inspection commands)
+  - What they are: List files, print files, filter matching lines, and keep the last matching lines.
+  - What they do here: Inspect the .history file and promotion log; matching lines identify the new timeline and recovery completion.
+  - What it gives us: The history contents and selected log messages make the promotion transition auditable.
+`,
       caution: code`
 This lesson leaves the lab with two divergent primaries on purpose, and the two lessons after it
 put the lab back. Do not stop in the middle: the module ends with a single primary on 5440 again.
@@ -1075,24 +1338,56 @@ just those blocks back from the new primary, and rewinds the control file to the
 What is left is a data directory that can replay the new primary's history. The doomed row from the
 previous lesson disappears -- physically, silently, with no error anywhere -- which is what
 "resolving split brain" always means: somebody's committed data is chosen for deletion.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-pg_rewind --target-pgdata=DIR --source-server=CONNINFO rewinds a cleanly shut down data directory
-so it can follow the source. The target MUST be stopped cleanly (pg_rewind refuses on a crashed
-one; start it and stop it again if necessary). The source can be a live server (--source-server) or
-a stopped data directory (--source-pgdata).
+### In plain terms
 
-It requires the cluster to have been initialised with data checksums or with wal_log_hints = on,
-because otherwise hint-bit writes are not WAL-logged and pg_rewind cannot tell which blocks
-changed. The lab has checksums (module 01), so it works.
+After failover, the old primary may contain WAL that the promoted standby never received, so the two directories have diverged. **pg_rewind** finds the common history and copies only the changed blocks needed to make the old primary follow the new one. This is a repair step before rejoining it as a standby, not a way to merge two independent writers.
 
--R writes standby.signal and primary_conninfo, exactly like pg_basebackup -R. --dry-run does
-everything except write. -P prints progress.
+### What you are learning
 
-The footgun: pg_rewind synchronises the whole data directory, and configuration files live in the
-data directory. postgresql.conf and postgresql.auto.conf are copied from the SOURCE, and files that
-exist only on the target are deleted. Here that means the old primary would come back configured as
-the standby -- port 5441 -- unless you rewrite postgresql.auto.conf afterwards, which the script
-below does.`,
+- Rejoining a diverged server requires stopping it and finding a shared WAL history.
+- Data checksums or wal_log_hints provide the block-change evidence pg_rewind needs.
+- Rewind also copies configuration and removes target-only files, so settings must be restored afterward.
+
+### Piece by piece
+
+- **pg_rewind** (shell repair program)
+  - What it is: Synchronizes a target data directory with a source after they diverged along related timelines.
+  - What it does here: Rewrites the old primary so it can become a standby of the promoted server.
+  - What it gives us: Its divergence LSN, copied-byte count, and Done message prove the target was repaired.
+  - **--target-pgdata** names the stopped directory to repair; **--source-server** supplies a live source connection; **--source-pgdata** is the alternative for a stopped source.
+  - **-R** writes standby.signal and primary_conninfo after the rewind; **--dry-run** reports work without changing files; **-P** prints progress.
+- **clean shutdown** (server state requirement)
+  - What it is: A shutdown that leaves the data directory consistent and records its final state.
+  - What it does here: Allows pg_rewind to inspect the target; a crashed target must be started and stopped cleanly first.
+  - What it gives us: pg_controldata reports Database cluster state: shut down, the prerequisite evidence.
+- **data checksums** and **wal_log_hints** (block-change evidence)
+  - What they are: Checksums detect page changes; wal_log_hints causes hint-bit changes to be WAL-logged.
+  - What they do here: At least one must have been enabled when the cluster was initialized, otherwise pg_rewind cannot identify changed blocks.
+  - What it gives us: The initialization setting explains why rewind can identify changed pages rather than copying the whole cluster.
+- **postgresql.conf** and **postgresql.auto.conf** (data-directory configuration files)
+  - What they are: Server settings stored inside the directory being synchronized.
+  - What they do here: Source settings can overwrite target port and connection settings, so inspect and rewrite auto.conf before restarting the rejoined node.
+  - What it gives us: cat output exposes the copied port and connection values that would otherwise start the node on the wrong socket.
+- **standby.signal** and **primary_conninfo** (rejoin markers)
+  - What they are: A marker and connection string that make the repaired directory follow its new source.
+  - What they do here: -R creates them; the connection points at the promoted primary rather than the old 5440 role.
+  - What it gives us: File existence plus the host=/tmp port=5441 line prove the old primary will follow the promoted source.
+- **pg_controldata** (control-file shell reader)
+  - What it is: Prints cluster state, timeline, and checkpoint location directly from a data directory.
+  - What it does here: Confirms the target is shut down and shows the target/source histories before rewind.
+  - What it gives us: Cluster state, TimeLineID, and Latest checkpoint location are the before-repair comparison.
+- **--restore-target-wal / -c** (pg_rewind recovery option)
+  - What it is: Allows rewind to fetch missing target WAL through restore_command instead of requiring it in pg_wal.
+  - What it does here: The challenge names this fallback when wal_keep_size was too small and the required segment was recycled.
+  - What it gives us: A successful fallback run proves restore_command supplied the missing history.
+- **grep, tail, printf, cat, and ls** (shell file tools)
+  - What they are: Filter lines, select the last match, write formatted text, print a file, and verify a file exists.
+  - What they do here: Extract the newest primary_conninfo, rewrite auto.conf safely for the rejoined port, and verify standby.signal and startup log lines.
+  - What it gives us: The final file and log output show exactly which source the restarted server follows.
+`,
       caution: code`
 pg_rewind deliberately destroys committed data on the target: everything the old primary wrote
 after the divergence point is gone. In production you take a backup of the diverged node first if
@@ -1241,7 +1536,13 @@ is that check not optional?`,
 
     {
       slug: "cascading-and-failback",
-      tags: ["failover", "streaming-replication", "timelines", "availability", "lab"],
+      tags: [
+        "failover",
+        "streaming-replication",
+        "timelines",
+        "availability",
+        "lab",
+      ],
       title: "Cascade, fail back, and put the lab away",
       difficulty: "advanced",
       safetyLevel: "dangerous",
@@ -1261,20 +1562,71 @@ it. So you will reverse the roles one more time -- stop the primary on 5441 clea
 has replayed everything, promote it, and delete the rest. The only trace left is the timeline: the
 lab started on timeline 1 and ends on timeline 3, one branch per promotion, which is exactly what
 the .history files in pg_wal say.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-Cascading needs no configuration at all: point a new standby's primary_conninfo at another standby.
-The middle node runs a walreceiver and a walsender at the same time, so pg_is_in_recovery() is true
-there while pg_stat_replication has rows. A cascading standby follows its parent's timeline
-switches, which is why the chain survives a promotion of the top node.
+### In plain terms
 
-For the failback, the ordering is the whole safety argument: stop the current primary first (a fast
-shutdown flushes its WAL and sends it to connected standbys), then confirm
-pg_last_wal_replay_lsn() on the standby has reached the primary's final LSN, and only then promote.
-Promoting before the old primary is down is how you get the split brain of two lessons ago.
+Replication does not have to be a star: one standby can forward WAL to another, creating a cascade. This lesson then performs a controlled failback, proving that the old primary is fully caught up before it is promoted or rejoined. The ordering prevents split brain, where two servers accept conflicting writes.
 
-ALTER SYSTEM RESET ALL empties postgresql.auto.conf of every setting, including the
-primary_conninfo pg_rewind wrote, leaving only the two comment lines. Promotion has already removed
-standby.signal, so the node stays a primary across restarts.`,
+### What you are learning
+
+- A cascading standby can receive and send WAL at the same time while still remaining in recovery.
+- Failback is a sequencing problem: stop the writer, verify replay reached its final LSN, then promote or reconfigure.
+- Resetting generated settings is part of cleanup because configuration files live with the data directory.
+
+### Piece by piece
+
+- **primary_conninfo** (standby connection setting)
+  - What it is: Connection information naming the upstream PostgreSQL server.
+  - What it does here: Pointing it at a standby makes that standby the middle node's WAL source.
+  - What it gives us: The middle node can show a walreceiver connection upstream and a walsender connection downstream.
+- **pg_is_in_recovery()** (role check)
+  - What it is: Reports whether a server is still replaying WAL.
+  - What it does here: It remains t on the cascading middle node even while that node serves another standby.
+  - What it gives us: t plus a nonzero standbys_it_feeds count proves the middle node has both roles.
+- **pg_stat_replication** (sender view)
+  - What it is: Lists standbys connected to this server's walsender.
+  - What it does here: Rows prove the middle node is forwarding WAL, not merely receiving it.
+  - What it gives us: application_name, state, sent_lsn, and replay_lsn identify the downstream cascade and its progress.
+- **pg_last_wal_replay_lsn()** (replay-position function)
+  - What it is: Returns the latest WAL position applied by recovery.
+  - What it does here: Compare it with the stopped primary's final LSN; equality or passage proves the old primary's changes are present before failback.
+  - What it gives us: received and replayed values show whether it is safe to promote the node being failed back to.
+- **pg_ctl stop -m fast** (controlled shutdown)
+  - What it is: Stops a server after quickly terminating active sessions and flushing required state.
+  - What it does here: Removes the old writer before promotion so no second writer can continue.
+  - What it gives us: A clean shutdown state and a final WAL position establish the boundary for failback.
+- **ALTER SYSTEM RESET ALL** (configuration cleanup command)
+  - What it is: Removes all ALTER SYSTEM entries from postgresql.auto.conf.
+  - What it does here: Clears inherited primary_conninfo and other temporary settings; inspect the file to confirm only comments remain.
+  - What it gives us: An auto.conf containing only comments proves no old role or port override remains.
+- **standby.signal** (role marker)
+  - What it is: The file that requests recovery on the next startup.
+  - What it does here: Promotion removes it, so a promoted node remains a primary after restart.
+  - What it gives us: Its absence is the durable evidence that the final 5440 server will stay primary.
+- **pg_basebackup** (replication backup program)
+  - What it is: Copies a consistent data directory over a replication connection.
+  - What it does here: Copies the middle standby into cascade, proving a standby can itself be a backup source.
+  - What it gives us: Completion and the cascade startup log prove the third node joined the chain.
+  - **-R, -D, -h, -p, -U, -c fast, -X stream, and -P** have the same meanings as the first lesson; here the source is port 5440 and the destination later listens on 5442.
+- **cat >> ... <<CONF** (shell heredoc append)
+  - What it is: Appends the lines between CONF markers to a file.
+  - What it does here: Gives the cascade its own port, name, and log behavior after the base copy.
+  - What it gives us: The resulting auto.conf values distinguish cascade port 5442 from its copied source.
+- **pg_stat_wal_receiver** (receiver view)
+  - What it is: Reports the upstream endpoint and WAL position for a standby receiver.
+  - What it does here: sender_port 5440 and received_tli 2 prove the cascade follows the middle node's current timeline.
+  - What it gives us: The receiver row identifies the upstream port and timeline actually in use.
+- **rm -rf** (recursive shell removal)
+  - What it is: Deletes a directory and its contents without prompting.
+  - What it does here: Removes only the throwaway cascade and old standby directories after their servers are stopped; never aim it at an unknown path.
+  - What it gives us: A later directory listing and socket check show the removed servers no longer exist or listen.
+- **df -h** and **ss -ltn** (host checks)
+  - What they are: Report filesystem capacity and listening TCP sockets.
+  - What they do here: Confirm cleanup freed the expected directory and only port 5440 remains.
+  - What it gives us: Filesystem and socket output are final operational evidence that the lab is reset.
+`,
       caution: code`
 This lesson is mandatory, not optional: it is what returns the lab to the layout every other module
 assumes. When it finishes, check the list at the end -- 5440 in recovery = false, $PGLAB holding

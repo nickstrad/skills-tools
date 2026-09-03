@@ -6,7 +6,13 @@ export const INCIDENTS: Module = {
   lessons: [
     {
       slug: "abandoned-slot-fills-the-disk",
-      tags: ["replication-slots", "wal", "capacity", "incident", "observability"],
+      tags: [
+        "replication-slots",
+        "wal",
+        "capacity",
+        "incident",
+        "observability",
+      ],
       title: "Incident: an abandoned replication slot eats the disk",
       difficulty: "advanced",
       safetyLevel: "privileged",
@@ -33,23 +39,87 @@ The reproduction bounds the damage with max_slot_wal_keep_size instead of actual
 disk, because filling the disk on a PostgreSQL primary is not a drill you can take back: the WAL
 writer PANICs and the server dies. The real failure text is quoted below so you know it when you
 see it.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`
-pg_replication_slots.wal_status is the whole diagnosis in one column:
-  reserved   - the WAL this slot needs is within max_wal_size; normal.
-  extended   - past max_wal_size, still on disk because the slot (or wal_keep_size) demands it.
-  unreserved - past max_slot_wal_keep_size; the files are still there but the next checkpoint
-               will remove them. safe_wal_size goes negative here.
-  lost       - the files are gone. restart_lsn is null. The consumer can never resume.
-safe_wal_size is bytes of WAL you may still write before this slot enters unreserved; it is null
-when max_slot_wal_keep_size is -1, because with no limit there is nothing to be close to.
+### In plain terms
 
-max_slot_wal_keep_size (default -1 = unlimited) caps what all slots together may pin. It is
-SIGHUP, so a reload is enough. max_wal_size is also SIGHUP; this lesson lowers it to 64MB so that
-"extended" is reachable with a small amount of WAL instead of a gigabyte.
+This incident asks why a healthy PostgreSQL server can keep filling its disk: a replication slot is
+a promise to retain WAL, the write-ahead log, until a consumer catches up. You will create a slot
+whose consumer never returns, generate bounded WAL, watch the slot progress from safe to lost, and
+then remove it. The drill uses a retention limit so the lab demonstrates the failure without filling
+the filesystem.
 
-pg_ls_waldir() lists pg_wal; pg_current_wal_lsn() - restart_lsn is the retention per slot, and it,
-not the size of pg_wal, is the number to alert on. pg_drop_replication_slot(name) is the only
-thing that ever removes a slot.`,
+### What you are learning
+
+- **Replication-slot retention:** A slot pins old WAL even when no consumer is connected.
+- **WAL headroom:** safe_wal_size and WAL retained show the risk earlier than total pg_wal size.
+- **Checkpoint limits:** Checkpoints can delete only WAL that no slot still needs.
+- **Safe recovery:** Dropping the abandoned slot releases the retention promise; deleting WAL files by hand risks data loss.
+
+### Piece by piece
+
+- **pg_replication_slots** (system view)
+  - What it is: One row describes each physical or logical replication slot.
+  - What it does here: The diagnosis and lifecycle queries inspect the ghost slot.
+  - What it gives us: slot_name, active, restart_lsn, wal_status, safe_wal_size, and conflicting; reserved is healthy, extended is beyond max_wal_size, unreserved is past the slot limit, and lost means required WAL is gone.
+- **wal_status, restart_lsn, and safe_wal_size** (slot-state columns)
+  - What they are: wal_status is the retention state; restart_lsn is the oldest WAL position needed; safe_wal_size is remaining writable headroom before invalidation.
+  - What they do here: They show the slot's budget counting down as WAL is written and disappearing after checkpoints remove it.
+  - What they give us: Alert on current WAL LSN minus restart_lsn and on shrinking safe_wal_size, not just directory size.
+- **pg_ls_waldir()** (SQL function)
+  - What it is: It lists files in the server's pg_wal directory.
+  - What it does here: It counts WAL segments and sums their sizes before, during, and after the incident.
+  - What it gives us: File count and pg_wal_bytes; growth proves retention, but a slot's retained range is the earlier signal.
+- **pg_current_wal_lsn() and pg_walfile_name(...)** (WAL functions)
+  - What they are: The first returns the current log sequence number; the second maps an LSN to its segment filename.
+  - What they do here: They calculate retained bytes and name the oldest segment the slot pins.
+  - What they give us: A stable position to compare across checkpoints and logs.
+- **max_wal_size and max_slot_wal_keep_size** (reloadable settings)
+  - What they are: max_wal_size guides checkpoint growth; max_slot_wal_keep_size bounds WAL retained for slots, with -1 meaning unlimited.
+  - What they do here: ALTER SYSTEM lowers them so the four slot states appear after a few segment switches.
+  - What they give us: A bounded reproduction; both take effect after pg_reload_conf sends SIGHUP.
+- **ALTER SYSTEM SET/RESET** (persistent configuration command)
+  - What it is: It writes a setting to postgresql.auto.conf for the cluster.
+  - What it does here: It applies the temporary limits and later removes them.
+  - What it gives us: SHOW values after reload; always run the RESET commands before leaving the lab.
+- **pg_reload_conf() and pg_sleep(1)** (reload and timing functions)
+  - What they are: The first asks the server to reread reloadable settings; the second pauses one second.
+  - What they do here: The pause gives the asynchronous SIGHUP reload time to become visible.
+  - What they give us: SHOW output of 32MB and 96MB instead of stale settings.
+- **pg_create_physical_replication_slot(name, immediately_reserve)** (slot function)
+  - What it is: It creates a physical slot; true reserves WAL immediately.
+  - What it does here: inc_ghost starts retaining WAL like a standby that disconnected.
+  - What it gives us: A slot row with active false, a restart_lsn, and an oldest_needed_file.
+- **CHECKPOINT and pg_switch_wal()** (WAL-control commands/functions)
+  - What they are: CHECKPOINT flushes dirty data and attempts WAL cleanup; pg_switch_wal starts a new WAL segment.
+  - What they do here: Forced switches create predictable 16 MB segments, while checkpoints reveal whether pinned segments can be removed.
+  - What they give us: Transitions from reserved to extended to unreserved and then lost.
+- **pg_logical_emit_message(false, 'inc', 'churn')** (WAL-generating function)
+  - What it is: It writes a logical message into WAL; false means it is not transactional.
+  - What it does here: It creates a small, explicit WAL event before each segment switch.
+  - What it gives us: A deterministic amount of WAL without depending on application speed.
+- **pg_drop_replication_slot('inc_ghost')** (slot-removal function)
+  - What it is: It deletes a replication slot and its retention promise.
+  - What it does here: It is the recovery action after the slot becomes lost.
+  - What it gives us: slots_left = 0 and permission for later checkpoints to reclaim WAL.
+- **\gset, \setenv, and \!** (psql commands)
+  - What they are: \gset saves a query column as a psql variable; \setenv exports one to the process environment; \! runs a shell command.
+  - What they do here: They copy the server's data_directory into DATADIR so df checks the correct filesystem.
+  - What they give us: A safe, current path rather than a guessed directory; never replace it with a path you did not query.
+- **df -h $DATADIR | tail -2** (shell diagnostic)
+  - What it is: df reports filesystem usage in human units; tail keeps the final lines.
+  - What it does here: It measures free space before and during the incident.
+  - What it gives us: The filesystem percentage and available space; it does not identify which slot is responsible.
+- **pg_settings and pg_stat_file** (configuration view and file function)
+  - What they are: pg_settings exposes current GUC values; pg_stat_file reports metadata such as file size.
+  - What they do here: They record settings and mark the log offset before the drill.
+  - What they give us: A baseline and log_mark so later log reading focuses on new evidence.
+- **regexp_split_to_table, chr, and WITH ORDINALITY** (SQL text tools)
+  - What they are: They split log text into rows, create a newline character, and number rows.
+  - What they do here: They filter log lines about slot invalidation and order them chronologically.
+  - What they give us: The server's LOG, DETAIL, and HINT lines that explain why the slot was invalidated.
+`,
       caution: code`
 This lesson writes about 120 MB of WAL into $PGLAB and the archive, and changes two settings with
 ALTER SYSTEM. The last steps drop the slot, reset both settings and drop the table; do not stop
@@ -282,7 +352,13 @@ guess.`,
 
     {
       slug: "corrupt-a-page-and-detect-it",
-      tags: ["checksums", "corruption", "pages-and-tuples", "incident", "backup"],
+      tags: [
+        "checksums",
+        "corruption",
+        "pages-and-tuples",
+        "incident",
+        "backup",
+      ],
       title: "Incident: a corrupt page, and the difference between detecting and repairing it",
       difficulty: "advanced",
       safetyLevel: "dangerous",
@@ -310,25 +386,84 @@ The last part is the honest part. zero_damaged_pages does not repair anything; i
 away. The rows are gone, and the only reason this lesson can put them back is that you copied the
 table first. In production that copy is your base backup plus WAL, and the recovery is the PITR
 from module 08.`,
+      reading: code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (section "Fault Tolerance")`,
+      readingNotes: code`
+Chapter 11's Fault Tolerance section explains data checksums, corruption detection, and the limits
+of protecting non-atomic writes. This lesson damages one heap block offline, verifies it with
+pg_checksums, and demonstrates that an index-only lookup can hide a damaged heap page. The repair
+portion goes beyond the book into zero_damaged_pages, pg_surgery, and restore-from-backup practice;
+read the chapter before the drill, then use the backup copy to understand why detection is not repair.`,
       syntaxBreakdown: code`
-pg_relation_filepath('t') gives the path of a table's file relative to the data directory; the
-ctid of a row is (block, line pointer), so (ctid::text::point)[0] is the block number and lets you
-list exactly which rows live in the block you are about to destroy.
+### In plain terms
 
-dd ... bs=8192 seek=N count=1 conv=notrunc overwrites block N in place and nothing else.
-conv=notrunc is essential: without it dd truncates the rest of the file.
+This is a deliberately dangerous recovery exercise: you identify one table block, stop PostgreSQL,
+overwrite exactly that 8 KB block, and bring the server back to observe the damage. Checksums detect
+the wrong bytes, but an index-only query can avoid reading the damaged heap page; zero_damaged_pages
+can make the table readable by discarding that block, not by restoring its rows. The pre-damage copy
+is the only reason the lost rows can be recovered safely.
 
-pg_checksums --check -D DIR verifies every block of every relation with the server STOPPED (it
-refuses to run against a live cluster). It exits 1 and names file and block on failure.
+### What you are learning
 
-zero_damaged_pages (superuser, session-level) turns the ERROR into a WARNING and hands the reader
-an empty page instead. It only zeroes the copy in shared buffers -- the bad bytes stay on disk
-until something rewrites the file, which is why the repair here is VACUUM FULL, which rewrites the
-whole relation into a new relfilenode.
+- **Checksums detect corruption:** They compare stored and calculated values when a page is read or scanned offline.
+- **Indexes can hide heap damage:** A covered lookup may return from the index without touching the broken table block.
+- **Triage is not repair:** zero_damaged_pages substitutes an empty page and data in that page is lost.
+- **Backups restore data:** A copy made before corruption is what lets the lab replace missing rows.
 
-pg_surgery's heap_force_kill(relation, tid[]) removes tuples by ctid with no regard for
-visibility, and heap_force_freeze() forces them visible. They are for damaged tuple headers, not
-damaged pages, and they can destroy data silently: this lesson uses one only to show its NOTICE.`,
+### Piece by piece
+
+- **pg_relation_filepath('inc_pages')** (SQL function)
+  - What it is: It returns the table's relation-file path relative to the data directory.
+  - What it does here: It identifies the exact file that the offline shell command may modify.
+  - What it gives us: relpath such as base/number/number; use only this returned path, never a guessed catalog path.
+- **ctid and ctid::text::point** (physical tuple address and casts)
+  - What they are: ctid contains a heap block and line-pointer position; the casts expose the block as a number.
+  - What they do here: They count rows in block 3 before it is damaged.
+  - What they give us: rows_in_block_3, the exact set of rows expected to disappear after the block is discarded.
+- **CREATE TABLE AS SELECT** (table-copy DDL)
+  - What it is: It creates a new table populated from a query's result.
+  - What it does here: It makes inc_pages_backup before the dangerous write.
+  - What it gives us: A same-database recovery source containing every original row.
+- **CHECKPOINT** (WAL and data-flush command)
+  - What it is: It flushes dirty pages and records a checkpoint.
+  - What it does here: It ensures block 3 exists on disk before the server is stopped.
+  - What it gives us: Confidence that dd targets a real persisted table block.
+- **dd if=/dev/urandom of="$PGLAB/primary/$RELPATH" bs=8192 seek=3 count=1 conv=notrunc** (dangerous shell command)
+  - What it is: dd copies bytes; /dev/urandom supplies random bytes; the output path is the identified table file.
+  - What it does here: With the server stopped, it overwrites one 8192-byte block at zero-based offset 3 and keeps the rest of the file.
+  - What it gives us: One reproducible corrupt page. Verify PGLAB and RELPATH first; an incorrect path can destroy the cluster.
+- **bs=8192, seek=3, count=1, and conv=notrunc** (dd flags)
+  - What they are: bs sets block size; seek skips three output blocks; count copies one block; conv=notrunc preserves the file's existing length.
+  - What they do here: They limit damage to block 3 and prevent truncation.
+  - What they give us: The intended one-page corruption; omitting notrunc could erase the remainder of the relation file.
+- **pg_ctl stop/start -D DIR -m fast -w -l LOG** (server shell commands and flags)
+  - What they are: pg_ctl controls the cluster; -D selects its data directory, -m fast requests a clean stop, -w waits, and -l names a startup log.
+  - What they do here: They stop PostgreSQL before dd and start it afterward, waiting for readiness.
+  - What they give us: A safe offline window and a known server lifecycle; do not run dd while the server is writing the file.
+- **pg_checksums --check -D DIR** (offline checksum command)
+  - What it is: It scans relation blocks and compares their checksums while the cluster is stopped.
+  - What it does here: It reports the damaged file and block and exits nonzero.
+  - What it gives us: Independent confirmation of corruption; --check verifies rather than repairs.
+- **EXPLAIN (COSTS OFF)** (plan inspection)
+  - What it is: It shows a plan while hiding cost numbers and does not execute the SELECT.
+  - What it does here: It reveals an index-only path for id = 250 before the heap is fetched.
+  - What it gives us: A reason the first lookup may not detect the bad block.
+- **zero_damaged_pages = on** (superuser session setting)
+  - What it is: A recovery setting that turns damaged-page errors into warnings and supplies an empty page.
+  - What it does here: It lets a heap-reading query continue so the lab can count missing rows.
+  - What it gives us: A readable-but-incomplete table; the on-disk corruption remains until a rewrite.
+- **VACUUM FULL** (rewriting maintenance command)
+  - What it is: It rebuilds a table into a new physical file while reclaiming space.
+  - What it does here: It removes the damaged block from the active relation file after zero_damaged_pages is enabled.
+  - What it gives us: A new relfilenode and a readable table, still missing rows from the discarded block.
+- **pg_surgery heap_force_kill and heap_force_freeze** (dangerous extension functions)
+  - What they are: They forcibly remove or mark tuples by physical address, ignoring normal visibility rules.
+  - What they do here: The lesson's optional path demonstrates a NOTICE; they are not a page-repair tool.
+  - What they give us: Evidence about tuple surgery, with a risk of silent data destruction.
+- **INSERT ... SELECT from inc_pages_backup** (restore statement)
+  - What it is: It copies rows from the untouched backup into the damaged table.
+  - What it does here: It restores the rows that occupied the discarded block.
+  - What it gives us: The original row count and a clean checksum scan after the table rewrite.
+`,
       caution: code`
 This lesson deliberately corrupts a data file. Run it ONLY against $PGLAB, only against the table
 it creates, and never against a file under base/ that you did not identify with
@@ -568,7 +703,11 @@ much better thing to have corrupted: what is the repair, and how long does it ta
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 35,
-      prerequisites: ["wraparound-and-freezing", "autovacuum-triggers", "read-the-server-log"],
+      prerequisites: [
+        "wraparound-and-freezing",
+        "autovacuum-triggers",
+        "read-the-server-log",
+      ],
       overview: code`
 The transaction id is 32 bits. Every tuple's visibility is decided by comparing xids modulo 2^31,
 so a tuple whose xmin falls more than 2 billion transactions behind the current xid would suddenly
@@ -585,27 +724,87 @@ mechanism is the production one; only the constant is shrunk.
 Then, because the interesting part of a real wraparound incident is watching a vacuum you cannot
 cancel, you will throttle a manual freeze with vacuum_cost_delay and read
 pg_stat_progress_vacuum from a second session while it crawls.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 7 "Freezing" (sections "Transaction ID Wraparound", "Managing Freezing"); Chapter 6 "Vacuum and Autovacuum" (section "Monitoring")`,
+      readingNotes: code`
+Chapter 7 explains transaction-ID wraparound, freezing ages, and aggressive or forced vacuum; Chapter
+6 explains monitoring vacuum progress. This drill compresses the thresholds to a lab-sized table,
+burns real transaction IDs, and watches the anti-wraparound worker and a throttled vacuum. Read the
+chapters before the drill to understand why the server prioritizes advancing relfrozenxid.`,
       syntaxBreakdown: code`
-age(relfrozenxid) is how many transactions have happened since this relation was last guaranteed
-frozen; it is the metric. pg_class.relfrozenxid is per relation, pg_database.datfrozenxid is the
-minimum over a database, and the cluster's oldest one is what counts.
+### In plain terms
 
-Per-table storage parameters (ALTER TABLE ... SET) let you make one table behave as if the cluster
-were near the wall:
-  autovacuum_freeze_max_age    - age at which an anti-wraparound autovacuum is forced. Minimum
-                                 100000. The GUC default is 200000000.
-  autovacuum_freeze_min_age    - how old a tuple must be for that autovacuum to freeze it.
-  autovacuum_freeze_table_age  - age at which the autovacuum becomes AGGRESSIVE, meaning it
-                                 refuses to skip all-visible pages. This is what changes the log
-                                 line from "automatic vacuum" to "automatic aggressive vacuum".
-  log_autovacuum_min_duration  - 0 logs every autovacuum of this table, whatever the GUC says.
-  autovacuum_vacuum_cost_delay / _limit - throttle, so you can watch it work.
+Transaction IDs eventually wrap around, so PostgreSQL must freeze old row versions before they become
+ambiguous. This drill lowers one table's freeze thresholds, creates many real transactions, and
+observes the anti-wraparound machinery in the log and progress views. The numbers are compressed,
+but the protection mechanism is the same one that prevents a production cluster from losing writes.
 
-vacuum_failsafe_age (default 1600000000) is the point at which VACUUM stops being polite: it
-abandons cost delays and index cleanup to get relfrozenxid moving at any cost.
+### What you are learning
 
-pg_stat_progress_vacuum reports one row per running vacuum: phase, heap_blks_total,
-heap_blks_scanned, index_vacuum_count. It is the only way to answer "how much longer".`,
+- **Transaction age:** age of a frozen-XID marker tells how close a relation is to the wraparound wall.
+- **Freezing thresholds:** Per-table ages control when autovacuum is forced or becomes aggressive.
+- **Global transaction IDs:** Transactions are consumed cluster-wide, not just by the table being watched.
+- **Vacuum progress:** Progress fields distinguish a slow vacuum from one delayed by another transaction.
+
+### Piece by piece
+
+- **age(relfrozenxid) and age(datfrozenxid)** (transaction-age functions)
+  - What they are: They count how many transaction IDs have elapsed since a relation or database marker was frozen.
+  - What they do here: They rank database and table risk before and after the transaction burn.
+  - What they give us: xid_age and pct_of_the_wall; rising age means less time before forced protection.
+- **pg_class.relfrozenxid and pg_database.datfrozenxid** (catalog columns)
+  - What they are: Per-relation and per-database oldest-frozen transaction markers.
+  - What they do here: They identify the table and database horizons the server must protect.
+  - What they give us: Values that explain which relation is driving wraparound risk.
+- **ALTER TABLE ... SET storage parameters** (table configuration DDL)
+  - What it is: It stores maintenance settings on one relation rather than changing the whole cluster.
+  - What it does here: The setup makes inc_freeze trigger at 100000 transactions and makes vacuum slow enough to observe.
+  - What it gives us: A contained scale model; reset or drop the table afterward.
+- **autovacuum_freeze_max_age, autovacuum_freeze_min_age, and autovacuum_freeze_table_age** (freeze settings)
+  - What they are: Ages controlling forced vacuum, eligible tuple freezing, and aggressive scanning.
+  - What they do here: Values 100000, 20000, and 50000 cause the anti-wraparound worker to act quickly.
+  - What they give us: Log wording that distinguishes automatic vacuum from automatic aggressive vacuum.
+- **log_autovacuum_min_duration = 0** (logging setting)
+  - What it is: It logs every autovacuum, including short runs.
+  - What it does here: It makes the worker's anti-wraparound action visible in the server log.
+  - What it gives us: Log lines to correlate with the rising xid_age.
+- **autovacuum_vacuum_cost_delay and autovacuum_vacuum_cost_limit** (autovacuum throttles)
+  - What they are: Delay and work-budget controls that pace automatic vacuum.
+  - What they do here: They keep the worker observable rather than finishing instantly.
+  - What they give us: Time to inspect activity and the log; these settings must not be left on a real hot table accidentally.
+- **current_setting** (SQL function)
+  - What it is: It reads a setting as text for a dashboard-style query.
+  - What it does here: It displays cluster trigger, minimum freeze age, failsafe age, and launcher interval.
+  - What it gives us: The policy values against which xid_age is compared.
+- **DO block, FOR loop, txid_current, and COMMIT** (transaction-burning SQL)
+  - What they are: A DO block runs procedural code; the loop repeats; txid_current consumes an ID; COMMIT ends each transaction.
+  - What they do here: They burn 150000 real transaction IDs without holding one explicit outer transaction.
+  - What they give us: A measurable increase in inc_freeze age and a realistic rate from \timing.
+- **pg_stat_file and \gset** (file marker and psql capture)
+  - What they are: pg_stat_file returns file metadata; \gset saves a single-row result as a psql variable.
+  - What they do here: They mark the log before the burn for later inspection.
+  - What they give us: log_mark, the offset from which new log evidence can be read if needed.
+- **\timing on/off** (psql meta-command)
+  - What it is: It toggles client-side elapsed-time output.
+  - What it does here: It measures how quickly this lab consumes transaction IDs.
+  - What it gives us: A rate for estimating how long a larger cluster would take to reach the wall.
+- **pg_stat_activity and pg_stat_user_tables** (monitoring views)
+  - What they are: They expose backend process state and per-table maintenance timestamps.
+  - What they do here: The second session counts autovacuum workers and reads last_autovacuum for inc_freeze.
+  - What they give us: Worker presence and the time of the latest maintenance run.
+- **\watch i=3 c=10** (psql repetition command)
+  - What it is: It repeats the preceding query every 3 seconds, up to 10 times.
+  - What it does here: It watches xid_age and worker count while the launcher reacts.
+  - What it gives us: A time series in the terminal; stop only after the worker evidence appears or the bounded retries finish.
+- **vacuum_cost_delay, vacuum_cost_limit, and pg_stat_progress_vacuum** (manual-vacuum controls and view)
+  - What they are: The first two throttle a manual vacuum; the view reports its current phase and block progress.
+  - What they do here: The second session watches the deliberately slowed freeze operation.
+  - What they give us: phase, heap_blks_total, heap_blks_scanned, and index_vacuum_count, which distinguish work from waiting.
+- **vacuum_failsafe_age** (failsafe setting)
+  - What it is: The age at which VACUUM abandons throttling and some cleanup work to advance freezing urgently.
+  - What it does here: The dashboard query displays the safety boundary for comparison.
+  - What it gives us: Context for why a severe wraparound incident changes normal vacuum priorities.
+`,
       caution: code`
 This burns 150000 real transaction ids on the whole cluster (they are global, not per-table) and
 writes a few tens of MB of WAL. It is harmless at this scale -- the cluster's own
@@ -839,14 +1038,23 @@ is on the application side.`,
 
     {
       slug: "runaway-query-and-cancel",
-      tags: ["timeouts", "connections", "incident", "observability", "transactions"],
+      tags: [
+        "timeouts",
+        "connections",
+        "incident",
+        "observability",
+        "transactions",
+      ],
       title: "Incident: a runaway query, and the difference between cancel and terminate",
       difficulty: "intermediate",
       safetyLevel: "privileged",
       runIn: "tool",
       sessions: 3,
       estimatedMinutes: 25,
-      prerequisites: ["lock-queue-and-blocking-pids", "idle-in-transaction-kills-you"],
+      prerequisites: [
+        "lock-queue-and-blocking-pids",
+        "idle-in-transaction-kills-you",
+      ],
       overview: code`
 One query is pinning a CPU, the queue behind it is growing, and somebody in the incident channel
 says "just kill it". There are two ways to do that and they are not interchangeable:
@@ -858,24 +1066,70 @@ transaction had already written.
 Then it installs the guardrail that means nobody has to make this decision at 3 a.m.:
 statement_timeout, which is the same cancel, applied automatically, by the server, before anyone is
 paged.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 15 "Locks on Memory Structures".`,
       syntaxBreakdown: code`
-pg_cancel_backend(pid) sends SIGINT: the backend aborts the current statement at its next
-interrupt check and stays connected. The client gets ERROR: canceling statement due to user
-request. Inside an explicit transaction, the transaction survives in the aborted state.
+### In plain terms
 
-pg_terminate_backend(pid) sends SIGTERM: the backend rolls back, disconnects and exits. The client
-gets FATAL: terminating connection due to administrator command and its socket closes.
+When one query consumes a CPU and blocks useful work, an operator must choose between stopping only
+that statement and destroying the whole connection. This experiment first cancels a runaway query,
+then terminates a second connection, so you can compare the client errors and the fate of uncommitted
+rows. Finally, statement_timeout applies the safer cancel automatically.
 
-Both return boolean true if the signal was sent -- that is all it means; true is not "it stopped".
-Both need superuser, pg_signal_backend, or ownership of the target session.
+### What you are learning
 
-statement_timeout aborts any statement that runs too long, with
-ERROR: canceling statement due to statement timeout. Set it per session, per role
-(ALTER ROLE ... SET) or per database. Its two siblings are lock_timeout (waiting for a lock) and
-idle_in_transaction_session_timeout (holding a transaction open while doing nothing).
+- **Cancel versus terminate:** Cancel aborts one statement but keeps the session; terminate rolls back and disconnects it.
+- **Transaction aftermath:** A cancelled statement leaves an explicit transaction aborted until rollback.
+- **Signal confirmation:** A true return means the signal was sent, not that the target has finished reacting.
+- **Timeout guardrails:** statement_timeout automates cancellation, while lock and idle-transaction timeouts protect different waits.
 
-pg_stat_activity.state is the evidence: active, idle, idle in transaction, and
-idle in transaction (aborted) -- the last one is what a cancelled transaction becomes.`,
+### Piece by piece
+
+- **pg_cancel_backend(pid)** (administrative function)
+  - What it is: It sends an interrupt request to a backend identified by PID.
+  - What it does here: Session B stops Session A's long statement while preserving A's connection.
+  - What it gives us: true means the signal was sent; A receives canceling statement due to user request and remains connected.
+- **pg_terminate_backend(pid)** (administrative function)
+  - What it is: It requests that a backend end its connection and roll back its open transaction.
+  - What it does here: Session B destroys Session C after the second runaway query starts.
+  - What it gives us: true means the request was sent; C receives a FATAL termination message and disappears from pg_stat_activity.
+- **pg_backend_pid()** (session identity function)
+  - What it is: It returns the server PID serving the current connection.
+  - What it does here: Sessions A and C print their own PIDs for the operator query to target.
+  - What it gives us: session_a_pid and session_c_pid, which must match the activity rows before signaling.
+- **generate_series(1,2000000000)** (row-producing function)
+  - What it is: It emits integers through a very large inclusive range.
+  - What it does here: The modulo filter creates a deliberately long-running count without requiring a large table.
+  - What it gives us: A reproducible runaway query; cancel it rather than waiting for the range to finish.
+- **pg_stat_activity** (activity view)
+  - What it is: It shows connected backends, their current query, state, and wait information.
+  - What it does here: Session B finds active client backends and later confirms cancellation or termination.
+  - What it gives us: pid, state, xact_age, query_age, and shortened query text; active means executing, idle means connected but not running a query.
+- **xact_start, query_start, date_trunc, and left** (activity timing and formatting expressions)
+  - What they are: The start timestamps identify transaction and statement age; date_trunc rounds them; left shortens text.
+  - What they do here: They make the on-call view readable and expose a long-lived transaction separately from its current query.
+  - What they give us: xact_age, query_age, and a query label to target safely.
+- **BEGIN, ROLLBACK, and transaction-aborted state** (transaction commands and state)
+  - What they are: BEGIN opens a transaction; ROLLBACK abandons it; a statement error marks the transaction unusable until rollback.
+  - What they do here: A's 1000 inserted rows remain uncommitted after cancel and disappear on rollback; C's rows roll back when termination closes it.
+  - What they give us: rows_after_cancel = 0 and a concrete difference between statement and connection cancellation.
+- **statement_timeout** (session timeout setting)
+  - What it is: It cancels any statement running longer than the configured duration.
+  - What it does here: The final query demonstrates automatic cancellation without an operator PID.
+  - What it gives us: canceling statement due to statement timeout, the same class of error as manual cancel.
+- **lock_timeout and idle_in_transaction_session_timeout** (related timeout settings)
+  - What they are: lock_timeout limits waiting for a lock; idle_in_transaction_session_timeout ends an inactive open transaction.
+  - What they do here: They are compared with statement_timeout as separate guardrails.
+  - What they give us: A vocabulary for choosing the timeout that matches the failure mode.
+- **ALTER ROLE ... SET** (role configuration command in the challenge)
+  - What it is: It sets a default for sessions of one database role.
+  - What it does here: The challenge considers a permanent 30-second statement timeout and exceptions for long jobs.
+  - What it gives us: A policy choice; do not apply it to a production role without checking legitimate long statements.
+- **pg_sleep(1)** (SQL delay function)
+  - What it is: It pauses the current backend for one second.
+  - What it does here: It gives the cancellation or termination request time to take effect before the follow-up query.
+  - What it gives us: Stable post-signal activity and row-count observations.
+`,
       setup: code`
 drop table if exists inc_runaway;
 create table inc_runaway(id int primary key, note text);`,
@@ -1083,27 +1337,71 @@ coordinates that place every event in the cluster's history.
 It also teaches the most uncomfortable lesson in postmortem work: some of your evidence is
 destroyed by the recovery itself, and you have to notice that rather than conclude nothing
 happened.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`
-pg_read_file('log/postgresql.log') reads a file relative to the data directory; superusers may
-also pass an absolute path, which is how you reach $PGLAB/archive. pg_stat_file(...).size gives
-its length, and pg_read_file(path, offset, length) reads a window -- important, because the log is
-too big to hand to regexp_split_to_table whole on a busy server.
+### In plain terms
 
-regexp_split_to_table(text, chr(10)) WITH ORDINALITY turns a file into numbered rows, after which
-the log is just a table: filter with ~, extract with substring(x from 'pattern').
+This postmortem starts after the incident, with only server logs and timeline-history files left as
+evidence. You will turn those files into a chronological table of state transitions, log sequence
+numbers, and timeline IDs, then inspect the durable branch records left by failover. The skill is
+knowing which lines prove a crash, recovery, promotion, or readiness instead of treating every log
+line as equally important.
 
-The events that mark state transitions, and the phase each belongs to:
-  crash        was interrupted / was not properly shut down / redo starts at /
-               invalid record length / redo done at
-  standby      entering standby mode / consistent recovery state reached /
-               started streaming WAL from primary at LSN on timeline N
-  disconnect   replication terminated by primary server / invalid resource manager ID
-  promotion    received promote request / selected new timeline ID: N /
-               archive recovery complete
-  open         database system is ready to accept [read-only] connections
+### What you are learning
 
-A .history file is written once per timeline, names its parent timelines and the exact LSN of each
-branch, and is the only durable record of a failover. pg_ls_dir + pg_read_file will print them.`,
+- **Evidence reconstruction:** Logs provide ordered events; filtering them turns noise into an incident timeline.
+- **LSNs and timelines:** An LSN locates a WAL position, while a timeline ID identifies the branch of cluster history.
+- **History files:** A timeline .history file preserves parent and fork-point information after log rotation.
+- **Evidence loss:** Recovery can overwrite or rotate evidence, so a missing line is not proof that an event never happened.
+
+### Piece by piece
+
+- **pg_read_file('log/postgresql.log')** (server file-reading function)
+  - What it is: It reads a file relative to the data directory for a superuser.
+  - What it does here: It loads the primary server log into the reconstruction query.
+  - What it gives us: Raw log lines; on a busy system, reading the whole file may be expensive.
+- **pg_stat_file and pg_stat_file(...).size** (file metadata function)
+  - What it is: It reports metadata such as byte length for a server-side file.
+  - What it does here: It measures log_size before parsing and shows how much evidence exists.
+  - What it gives us: A size to compare with future rotations or bounded reads.
+- **pg_is_in_recovery() and pg_control_checkpoint()** (recovery and control-state functions)
+  - What they are: The first says whether this server is a standby; the second exposes checkpoint timeline and LSN.
+  - What they do here: Setup records whether the current node is still recovering and where its control state is.
+  - What they give us: still_a_standby, current_timeline, and checkpoint_lsn for the ending state.
+- **regexp_split_to_table and chr(10)** (SQL text functions)
+  - What they are: regexp_split_to_table emits one row per text fragment; chr(10) creates a newline delimiter.
+  - What they do here: They turn the log into numbered rows for filtering.
+  - What they give us: One line and ordinal n per record, preserving chronological order.
+- **WITH ORDINALITY** (SQL row-numbering clause)
+  - What it is: It adds a generated position to rows emitted by a set-returning function.
+  - What it does here: It lets the query order matched log events in file order.
+  - What it gives us: n, the source-line position used to reconstruct sequence.
+- **substring(... from 'pattern')** (SQL regular-expression function)
+  - What it is: It extracts the first text matching a regular expression.
+  - What it does here: It pulls timestamp, LSN, and timeline text from selected log messages.
+  - What it gives us: at, lsn, and tli columns; blank values mean that event type did not contain that field.
+- **~, !~, and regular-expression filters** (PostgreSQL pattern operators)
+  - What they are: ~ requires a regex match; !~ rejects a match.
+  - What they do here: They keep only state-transition phrases, real timestamped lines, and non-query text.
+  - What they give us: A concise event list without continuation lines or logged SQL containing the same words.
+- **coalesce, left, and ORDER BY n** (SQL formatting and ordering expressions)
+  - What they are: coalesce substitutes an empty value for null; left truncates text; ORDER BY sorts results.
+  - What they do here: They make missing timeline IDs explicit, keep event text readable, and preserve log order.
+  - What they give us: Stable columns for a postmortem table.
+- **timeline_id and checkpoint_lsn from pg_control_checkpoint** (control-state fields)
+  - What they are: They identify the current WAL branch and the checkpoint's WAL position.
+  - What they do here: They provide a final-state coordinate to compare with reconstructed history.
+  - What they give us: A numeric timeline and an LSN such as 1/ABC123.
+- **pg_ls_dir and .history files** (directory function and timeline artifacts)
+  - What they are: pg_ls_dir lists server-directory entries; each timeline history file records its parent timeline and fork LSN.
+  - What they do here: They locate failover history files in the archive and read their contents.
+  - What they give us: Durable branch evidence that can survive log rotation.
+- **pg_read_file(path, offset, length)** (bounded file read)
+  - What it is: It reads only a byte window from a server-side file.
+  - What it does here: It can inspect a marked log range or archive file without loading everything.
+  - What it gives us: Bounded evidence; offsets must come from a known file size or marker, not a guessed path.
+`,
       setup: code`
 select current_setting('data_directory') as datadir,
        pg_size_pretty((pg_stat_file('log/postgresql.log')).size) as log_size;

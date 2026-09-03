@@ -75,15 +75,16 @@ ln -sfn /root/Software/skills-tools/curriculum-tools/courses/linux/skill/linux-t
 If the repository is cloned elsewhere, replace `/root/Software/skills-tools` in
 the skill files or keep a symlink at that path.
 
-## Knowledge base for agents
+## Documentation and knowledge base for agents
 
-`docs/knowledge/` holds findings from past work here: tooling quirks, how to read the
-validation harness, lesson-writing pitfalls per course, and the subagent workflow
-that has held up. Before starting work in this repository, read
-`docs/knowledge/README.md` (the index) and the files it points to for your task.
-When you finish work that taught you something another agent would otherwise
-rediscover, add a new file there and a row in the index; the index explains the
-format. Updating the knowledge base is part of finishing the work, not optional
+Start with `docs/README.md`. It indexes the reusable book research under
+`docs/books/` and the repository findings under `docs/knowledge/`: tooling
+quirks, how to read the validation harness, lesson-writing pitfalls per course,
+and the subagent workflow that has held up. Before starting work in this
+repository, read the index and the files it points to for your task. When you
+finish work that taught you something another agent would otherwise rediscover,
+add a new file there and a row in the index; the index explains the format.
+Updating the knowledge base is part of finishing the work, not optional
 follow-up.
 
 ## Development and verification

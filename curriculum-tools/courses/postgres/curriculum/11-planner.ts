@@ -20,14 +20,88 @@ actually did (time, rows, loops). Everything else in this module is about the ga
 this lesson you take one seq scan apart, reproduce its total cost by hand from the cost constants
 and pg_class, watch the row estimate miss by a third, and see the buffer counts that are the real
 currency of I/O.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 16 "Query Execution Stages" (section "Simple Query Protocol"); Chapter 18 "Table Access Methods" (section "Sequential Scans"); Chapter 9 "Buffer Cache" (section "Cache Hits")`,
+      readingNotes: code`
+Chapter 16 supplies the parse, plan, and execution vocabulary that this lesson reads in EXPLAIN;
+Chapter 18 explains why the sequential scan visits every heap page, and Chapter 9 explains shared
+buffer hits. The experiment adds a hands-on comparison of estimates, actual rows, and buffer counts,
+plus a rollback proof that EXPLAIN ANALYZE executes writes. Read the chapters before or after; run
+the experiment first if you want the plan lines to provide the examples.`,
       syntaxBreakdown: code`
-EXPLAIN prints the chosen plan; EXPLAIN (ANALYZE) really runs the query and adds actual time,
-rows, and loops. BUFFERS reports shared hit (page found in shared_buffers), read (asked the OS),
-dirtied and written; with track_io_timing on it also prints I/O Timings. Node cost is
-"startup..total" in arbitrary units built from seq_page_cost (1.0), random_page_cost (4.0),
-cpu_tuple_cost (0.01) and cpu_operator_cost (0.0025) applied to pg_class.relpages and
-pg_class.reltuples. "Rows Removed by Filter" is what the scan threw away. COSTS OFF, TIMING OFF and
-SUMMARY OFF trim the output when you only care about shape.`,
+### In plain terms
+
+This experiment asks whether PostgreSQL's prediction of a query matches what actually happens. You
+will compare a full table scan with a primary-key lookup, count the pages each one touches, and
+then deliberately run an UPDATE inside a transaction to prove that EXPLAIN ANALYZE executes work.
+The result is a practical way to distinguish planner cost units from elapsed time and physical I/O.
+
+### What you are learning
+
+- **Estimated versus actual rows:** The planner predicts a result size from statistics; execution
+  reports what it really returned, so their gap is a diagnostic signal.
+- **Plan cost versus time:** Cost is an internal comparison number, not milliseconds or bytes; the
+  actual time lines measure the run on this machine.
+- **Buffers as page evidence:** Shared hits and reads count 8 KB PostgreSQL pages and show whether
+  the work came from PostgreSQL's shared cache or the operating system.
+- **EXPLAIN ANALYZE side effects:** ANALYZE runs the statement, including writes, so a rollback is
+  needed when the experiment must leave the table unchanged.
+
+### Piece by piece
+
+- **EXPLAIN** (plan-inspection command)
+  - What it is: It asks the planner for the plan it would use without executing the query.
+  - What it does here: It prints the sequential-scan estimate for the cancelled orders.
+  - What it gives us: Read cost, rows, and width as estimates, and the Filter line as the condition applied.
+- **EXPLAIN (ANALYZE)** (executing plan-inspection command)
+  - What it is: EXPLAIN with ANALYZE executes the statement and records observed results.
+  - What it does here: It compares estimated rows with actual rows for scans, aggregation, and UPDATE.
+  - What it gives us: Actual time, rows, loops, Rows Removed by Filter, and Execution Time; actual rows is the count returned by that node.
+- **BUFFERS** (EXPLAIN option)
+  - What it is: An option that reports buffer-page activity for the plan.
+  - What it does here: It distinguishes the 1031-page table scan from the few pages needed by the primary-key lookup.
+  - What it gives us: shared hit means an 8 KB page was already in shared_buffers; shared read means PostgreSQL had to obtain it from the OS; dirtied and written indicate changed pages.
+- **COSTS OFF, TIMING OFF, and SUMMARY OFF** (EXPLAIN options)
+  - What they are: Output controls that hide cost numbers, per-node timing, or the summary footer.
+  - What they do here: They are useful when comparing plan shape or reducing noisy output; the main steps leave them enabled.
+  - What they give us: A smaller plan whose remaining node and buffer lines are easier to compare.
+- **seq_page_cost, random_page_cost, cpu_tuple_cost, and cpu_operator_cost** (planner settings)
+  - What they are: Relative prices used by the planner for page access, row processing, and expression evaluation.
+  - What they do here: Their defaults combine with pg_class.relpages and pg_class.reltuples to reproduce a sequential-scan cost.
+  - What they give us: The arithmetic behind the total cost; cost= startup..total is a planner-unit range, not a duration.
+- **current_setting('setting_name')** (SQL function)
+  - What it is: Reads a session setting as text.
+  - What it does here: It supplies the four planner constants to the hand calculation, which casts them to float8 for multiplication.
+  - What it gives us: The exact values used by this session rather than assumed defaults.
+- **pg_class.relpages and pg_class.reltuples** (system catalog columns)
+  - What they are: PostgreSQL's table-level estimates of pages and rows.
+  - What they do here: They provide the scan size and row count used in the cost formula.
+  - What they give us: relpages near 1031 and reltuples near 100000; compare them with Buffers and actual rows.
+- **COUNT(*)** (aggregate function)
+  - What it is: Counts rows without returning each row.
+  - What it does here: It adds an Aggregate node above a full scan.
+  - What it gives us: A simple tree showing that parent-node buffers include pages read by child nodes.
+- **BEGIN and ROLLBACK** (transaction commands)
+  - What they are: BEGIN opens a transaction; ROLLBACK abandons its changes.
+  - What they do here: They contain the UPDATE that ANALYZE executes.
+  - What they give us: rows_actually_updated proves the write ran, while rows_after_rollback proves no change remains.
+- **SET max_parallel_workers_per_gather = 0** (session setting)
+  - What it is: A per-connection limit on workers for one parallel query.
+  - What it does here: It keeps the plan a simple single-process scan so page and cost arithmetic are easy to read.
+  - What it gives us: Reproducible plan nodes without a Gather wrapper.
+- **generate_series(1,100000)** (SQL row-producing function)
+  - What it is: It emits one integer per step in an inclusive range.
+  - What it does here: It creates the synthetic orders used for repeatable page and row counts.
+  - What it gives us: The g value used to derive each order's fields.
+- **autovacuum_enabled = off** (table storage option)
+  - What it is: A relation option that prevents automatic vacuum and analysis for this table.
+  - What it does here: It keeps background maintenance from changing measured pages.
+  - What it gives us: A controlled experiment whose maintenance is explicit ANALYZE only.
+- **SET seq_page_cost and enable_seqscan = off** (challenge settings)
+  - What they are: The first changes the modeled sequential-page price; the second penalizes sequential paths.
+  - What they do here: They test cost and the index alternative without changing data.
+  - What they give us: A changed cost and a forced comparison plan.
+`,
       caution: code`
 EXPLAIN ANALYZE executes the statement, including INSERT, UPDATE, DELETE and DDL. The last step
 below proves it, inside a transaction that rolls back. Never run EXPLAIN ANALYZE on a writing
@@ -155,15 +229,79 @@ This lesson makes that summary visible and then breaks it three ways: a table th
 analyzed (default selectivity constants), a table whose statistics are stale (a snapshot of a
 population that has changed), and two columns that are correlated (the independence assumption).
 The third one is the failure mode that ruins real production plans.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 17 "Statistics" (sections "Basic Statistics", "Most Common Values", "Multivariate Statistics")`,
+      readingNotes: code`
+Chapter 17 explains sampled column summaries, most-common-value lists, histograms, and multivariate
+statistics. This lesson makes those structures visible through pg_stats and pg_statistic_ext_data,
+then demonstrates missing, stale, and correlated statistics. Read the chapter after the first run
+so the estimates you see have a concrete explanation.`,
       syntaxBreakdown: code`
-ANALYZE samples default_statistics_target * 300 = 30000 rows and stores per-column stats.
-pg_stats is the readable view over pg_statistic: null_frac, avg_width, n_distinct (a count, or a
-negative fraction of the row count when distinctness scales with size), most_common_vals /
-most_common_freqs (the MCV list), histogram_bounds (equal-frequency buckets for everything not in
-the MCV list), and correlation (how well physical order matches logical order, -1..1).
-pg_class.relpages / reltuples are the table-level counters; reltuples = -1 means "never analyzed".
-CREATE STATISTICS ... (dependencies, ndistinct) ON a, b FROM t builds a multi-column statistics
-object, read back from pg_statistic_ext_data.`,
+### In plain terms
+
+The planner does not inspect every row each time it chooses a plan; it consults summaries produced
+by ANALYZE. You will see how missing or stale summaries lead to bad row guesses, and how a known
+relationship between two columns defeats the default assumption that they are independent. This
+matters because a wrong row count can make PostgreSQL choose an expensive join or scan strategy.
+
+### What you are learning
+
+- **Sampling:** ANALYZE examines a sample rather than the entire table, trading exactness for a cheap refresh.
+- **Column statistics:** Frequencies, histograms, distinct counts, and physical correlation describe a column's shape.
+- **Stale statistics:** Data can change long before the planner's stored summary does, so estimates can lag reality.
+- **Extended statistics:** Dependencies and distinct-count information teach the planner about correlated columns.
+
+### Piece by piece
+
+- **ANALYZE** (statistics-maintenance command)
+  - What it is: It samples table rows and stores planner statistics.
+  - What it does here: It first analyzes pl_orders and later refreshes pl_fresh and pl_geo after data changes or extended-statistics creation.
+  - What it gives us: Updated reltuples and entries in pg_stats; the sample means estimates can vary slightly.
+- **default_statistics_target** (planner-statistics setting)
+  - What it is: A target controlling the amount of statistics collected.
+  - What it does here: Its default value determines the usual sample size; the challenge raises it to test accuracy and planning overhead.
+  - What it gives us: Larger MCV and histogram summaries, at the cost of more analysis and possibly planning work.
+- **pg_class.relpages and reltuples** (system catalog columns)
+  - What they are: Approximate physical page and row counts for a relation.
+  - What they do here: They reveal reltuples = -1 before pl_fresh is analyzed and show how ANALYZE refreshes the table estimate.
+  - What they give us: The baseline row count the planner multiplies by selectivity.
+- **EXPLAIN (ANALYZE, TIMING OFF, SUMMARY OFF)** (plan command and options)
+  - What it is: It runs the query, suppresses per-node timing, and omits the footer.
+  - What it does here: It keeps attention on estimated rows versus actual rows for missing, stale, and extended statistics.
+  - What it gives us: The rows= estimate beside actual rows, plus filter rows removed.
+- **pg_stats** (readable statistics view)
+  - What it is: A view over PostgreSQL's per-column statistics catalog.
+  - What it does here: It shows null_frac, avg_width, n_distinct, most_common_vals, most_common_freqs, histogram_bounds, and correlation for selected columns.
+  - What it gives us: The stored evidence behind an estimate; MCV frequency multiplied by reltuples approximates expected rows.
+- **most_common_vals and most_common_freqs** (pg_stats arrays)
+  - What they are: Matching arrays of frequently observed values and their fractions.
+  - What they do here: They expose the sampled frequency of cancelled and support the hand estimate.
+  - What they give us: Find cancelled in most_common_vals, then use the same position in most_common_freqs.
+- **histogram_bounds** (pg_stats array)
+  - What it is: Ordered boundaries for equal-frequency buckets outside the MCV list.
+  - What it does here: It shows how amount and created_at ranges are summarized without listing every value.
+  - What it gives us: A compact view of distribution; left truncates its text for readability.
+- **CREATE STATISTICS ... (dependencies, ndistinct)** (extended-statistics DDL)
+  - What it is: It defines a multi-column summary object for relationships ordinary per-column stats miss.
+  - What it does here: pl_geo_stx records that city determines country and counts distinct city/country combinations.
+  - What it gives us: A named object that ANALYZE fills and the final catalog query inspects.
+- **pg_statistic_ext and pg_statistic_ext_data** (system catalogs)
+  - What they are: Catalogs for extended-statistics definitions and collected data.
+  - What they do here: The join finds pl_geo_stx and reads stxddependencies and stxdndistinct.
+  - What they give us: Dependency strength such as 1.0 and the observed number of combinations.
+- **array_position and left** (SQL functions)
+  - What they are: array_position finds an array element's position; left keeps the first characters of text.
+  - What they do here: They locate cancelled's frequency and shorten histogram output.
+  - What they give us: A readable estimate and bounded terminal output.
+- **\x auto** (psql display command)
+  - What it is: It selects expanded output automatically when rows are too wide.
+  - What it does here: It keeps the statistics columns readable while inspecting pg_stats.
+  - What it gives us: One field per line when needed instead of a wrapped wide table.
+- **generate_series and array subscripting** (SQL data-building tools)
+  - What they are: generate_series creates test rows; array subscripting chooses a value by position.
+  - What they do here: They build controlled order and city/country distributions.
+  - What they give us: Known data relationships against which estimates can be checked.
+`,
       setup: code`
 drop table if exists pl_orders;
 create table pl_orders(
@@ -318,7 +456,12 @@ list cost you at planning time (watch the "Planning Time" line)?`,
     },
     {
       slug: "index-scan-vs-seq-scan-crossover",
-      tags: ["index-scans", "query-planning", "index-access-methods", "explain"],
+      tags: [
+        "index-scans",
+        "query-planning",
+        "index-access-methods",
+        "explain",
+      ],
       title: "The crossover: when an index stops being worth it",
       difficulty: "intermediate",
       safetyLevel: "ddl",
@@ -332,15 +475,67 @@ above it, and the crossover point is a function of how many rows match, how well
 ordered, and what the planner believes about your disks. Here you sweep the selectivity of one
 predicate from 0.1% to 80%, watch the plan change shape, force the losing plan to see what it would
 have cost, and then move the crossover by changing a single hardware constant.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 20 "Index Scans" (sections "Regular Index Scans", "Comparison of Various Access Methods"); Chapter 18 "Table Access Methods" (section "Sequential Scans")`,
+      readingNotes: code`
+Chapter 20 compares regular, bitmap, and index-only access paths, while Chapter 18 explains the
+sequential scan and its cost. This experiment sweeps selectivity, disables paths for comparison,
+and changes random_page_cost to show how the hardware model moves the crossover. Read the chapters
+after running the sweep so the plan changes have concrete examples.`,
       syntaxBreakdown: code`
-An Index Scan walks the btree and fetches each matching heap tuple immediately: one random page per
-row, in index order. A Bitmap Index Scan collects all matching TIDs into a bitmap first, then the
-Bitmap Heap Scan visits the heap in physical order, once per page - "Heap Blocks: exact=N" counts
-those pages, and "Recheck Cond" is re-applied because a lossy bitmap may only remember pages. A Seq
-Scan reads every page and filters. enable_seqscan, enable_bitmapscan and enable_indexscan are
-per-session switches that add a huge penalty to a path rather than truly removing it; they are
-debugging tools, not tuning. random_page_cost is the planner's belief about the cost of a random
-page relative to a sequential one (default 4.0; on SSDs people set 1.1).`,
+### In plain terms
+
+An index can avoid reading most table pages, but it may become more expensive than reading the table
+straight through when many rows match. This lesson varies the percentage of matching rows, compares
+index, bitmap, and sequential plans, and then changes the planner's belief about random I/O. You
+will see that a plan change can come from the cost model even when the data never changes.
+
+### What you are learning
+
+- **Selectivity:** The fraction of rows a condition keeps determines whether random lookups are worthwhile.
+- **Bitmap access:** PostgreSQL can collect matching row addresses and visit each heap page once.
+- **Correlation:** Physical ordering changes how many pages an index lookup must fetch.
+- **Planner switches:** enable settings bias path selection for diagnosis; they do not remove an operation.
+
+### Piece by piece
+
+- **EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, SUMMARY OFF)** (plan command and options)
+  - What it is: It executes the query, reports buffers, suppresses timing, and omits the footer.
+  - What it does here: It compares actual rows and page counts at 0.1%, 50%, and 80% selectivity.
+  - What it gives us: Node shape, estimated and actual rows, Heap Blocks: exact, and shared buffer totals.
+- **Index Scan** (plan node)
+  - What it is: It walks the B-tree and fetches each matching heap tuple as it finds the index entry.
+  - What it does here: The forced half-table plan performs many heap visits.
+  - What it gives us: Index Scan in the plan and a high buffer count when matching rows are scattered.
+- **Bitmap Index Scan and Bitmap Heap Scan** (plan nodes)
+  - What they are: The first collects tuple addresses; the second groups those addresses by heap page.
+  - What they do here: They reduce repeated visits for the 100-row and 50000-row predicates.
+  - What they give us: Heap Blocks: exact counts distinct pages; Recheck Cond shows the predicate checked at the heap.
+- **Seq Scan** (plan node)
+  - What it is: A sequential scan reads every table page and tests the filter on each row.
+  - What it does here: It wins when the predicate keeps most rows.
+  - What it gives us: Rows Removed by Filter and shared hit near the table's page count.
+- **enable_seqscan and enable_bitmapscan** (session planner settings)
+  - What they are: Debugging controls that add a large cost penalty to a path when set off.
+  - What they do here: They expose the losing alternative for an apples-to-apples buffer comparison.
+  - What they give us: A forced plan, but not a prohibition; PostgreSQL can still use the disabled path if necessary.
+- **random_page_cost** (planner setting)
+  - What it is: The modeled price of a random page relative to a sequential page.
+  - What it does here: Values 4 and 1.1 make the same query prefer different plans with identical data.
+  - What it gives us: A visible crossover caused by the storage assumption, not by runtime measurements.
+- **CLUSTER ... USING** (table-rewrite command in the challenge)
+  - What it is: It rewrites a table in an index's order.
+  - What it does here: It makes customer_id physically correlated with the index.
+  - What it gives us: Fewer Heap Blocks and a changed pg_stats correlation after ANALYZE.
+- **pg_stats.correlation** (statistics column)
+  - What it is: A value from -1 to 1 describing agreement between logical key order and physical row order.
+  - What it does here: It explains why id ranges are cheaper than scattered customer_id matches.
+  - What it gives us: The correlation values for id and customer_id to connect physical layout to plan cost.
+- **CREATE INDEX and ANALYZE** (index and statistics commands)
+  - What they are: CREATE INDEX builds a searchable B-tree; ANALYZE refreshes planner summaries.
+  - What they do here: The customer_id index supplies index and bitmap paths, and statistics supply selectivity estimates.
+  - What they give us: A repeatable plan comparison over generated orders.
+`,
       setup: code`
 drop table if exists pl_orders;
 create table pl_orders(
@@ -471,7 +666,13 @@ to "Heap Blocks: exact=" and to the forced index scan's buffer count?`,
     },
     {
       slug: "join-strategies",
-      tags: ["nested-loop", "hashing", "sorting-and-merging", "work-mem", "query-planning"],
+      tags: [
+        "nested-loop",
+        "hashing",
+        "sorting-and-merging",
+        "work-mem",
+        "query-planning",
+      ],
       title: "Three ways to join, and the memory that decides between them",
       difficulty: "intermediate",
       safetyLevel: "ddl",
@@ -486,14 +687,59 @@ stream the larger through it), merge join (consume both sides in sorted order an
 wins depends on the row estimates from lesson 2 and on work_mem. Here you force all three over the
 same two tables, read the per-node evidence for each, and then shrink work_mem until the hash table
 no longer fits and the join splits into batches.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 21 "Nested Loop" (section "Nested Loop Joins"); Chapter 22 "Hashing" (section "Hash Joins"); Chapter 23 "Sorting and Merging" (sections "Merge Joins", "Comparison of Join Methods")`,
+      readingNotes: code`
+Chapters 21–23 describe the three join algorithms that this lesson forces over the same tables.
+The experiment adds EXPLAIN buffer evidence, Memoize hit counts, and a deliberately undersized
+work_mem so a hash join spills into batches. Read the chapters before or after; the forced plans
+make the trade-offs especially easy to compare with the book's diagrams.`,
       syntaxBreakdown: code`
-"loops=N" on a node means the node was executed N times, and its "actual rows" and "actual time"
-are PER LOOP averages - always multiply. A Hash node reports "Buckets: N  Batches: M  Memory
-Usage: kB"; Batches > 1 means the build side did not fit in work_mem and both inputs were
-partitioned to temporary files, which show up as "temp read=/written=" blocks. Memoize is a cache
-in front of a nested loop's inner side, reporting Hits/Misses/Evictions. enable_nestloop,
-enable_hashjoin, enable_mergejoin and enable_memoize let you force a shape. work_mem is per node
-per execution, not per query and not per backend.`,
+### In plain terms
+
+A join must match rows from two tables, and PostgreSQL has three different ways to do it. This
+experiment runs the same join as a hash join, merge join, and nested loop, then reduces work_mem so
+the hash table no longer fits in memory. The plan tells you not only which method won, but whether
+it repeatedly probed an index, reused a cache, or wrote temporary batches to disk.
+
+### What you are learning
+
+- **Nested loop:** Repeats an inner lookup for each outer row, so it is best when the outer side is small.
+- **Hash join:** Builds an in-memory key table for one side and probes it with the other side.
+- **Merge join:** Consumes two inputs in key order and avoids sorting when both already provide that order.
+- **Memory-driven batching:** A hash table that exceeds work_mem is partitioned into temporary batches rather than failing.
+
+### Piece by piece
+
+- **EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, SUMMARY OFF)** (plan command and options)
+  - What it is: It executes the join, reports page activity, hides timing, and omits the footer.
+  - What it does here: It makes each forced join shape and its resource use visible.
+  - What it gives us: Node names, actual rows, loops, shared buffers, and temporary blocks.
+- **enable_hashjoin, enable_mergejoin, enable_nestloop, and enable_memoize** (session settings)
+  - What they are: Planner switches used to discourage a join algorithm or the inner-result cache.
+  - What they do here: They isolate one strategy at a time and remove Memoize for the small nested-loop comparison.
+  - What they give us: Comparable plans; reset restores normal planning.
+- **Nested Loop** (join plan node)
+  - What it is: It runs the inner plan once for every row from the outer plan.
+  - What it does here: It repeats primary-key probes for selective and full joins.
+  - What it gives us: The inner node's rows and time are per-loop averages; multiply by loops for total work.
+- **Hash Join and Hash** (join and build nodes)
+  - What they are: Hash Join probes a hash table; Hash builds that table from the smaller input.
+  - What they do here: The 5000 customer rows become the build side, then 100000 orders probe them.
+  - What they give us: Buckets, Batches, and Memory Usage; Batches greater than 1 proves disk partitioning.
+- **Merge Join** (join plan node)
+  - What it is: It advances two sorted inputs and emits matching keys.
+  - What it does here: Existing indexes provide order, avoiding Sort nodes.
+  - What it gives us: Ordered index scans and their Heap Fetches and buffers.
+- **Memoize** (inner-result cache node)
+  - What it is: A cache keyed by values from the outer row.
+  - What it does here: It remembers each customer lookup while 100000 orders repeat 5000 customer IDs.
+  - What it gives us: Hits, Misses, Evictions, and Memory Usage; inner loops reveal misses.
+- **work_mem** (per-node memory setting)
+  - What it is: Memory available to one sort, hash, or similar executor node for one execution.
+  - What it does here: 64kB forces the customer hash table into multiple batches.
+  - What it gives us: A changed Batches value and temp read/written blocks in BUFFERS.
+`,
       setup: code`
 drop table if exists pl_orders;
 create table pl_orders(
@@ -666,14 +912,75 @@ switches the algorithm and starts writing temporary files. Here you run the same
 memory sizes, watch it move between three different algorithms, do the same for a hash aggregate,
 and then find the evidence a DBA would actually see: temp_files in pg_stat_database and a line in
 the server log.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 23 "Sorting and Merging" (section "Sorting"); Chapter 22 "Hashing" (section "Hash Joins"); Chapter 16 "Query Execution Stages" (section "Simple Query Protocol")`,
+      readingNotes: code`
+Chapter 23 describes in-memory and external sorting, and Chapter 22 describes hash operations that
+partition when memory is insufficient. Chapter 16 provides execution-stage context. This lesson
+adds work_mem threshold experiments, cumulative temp counters, and log_temp_files evidence. Read the
+chapters after the run to connect Sort Method and Batches lines to the algorithms.`,
       syntaxBreakdown: code`
-"Sort Method: quicksort  Memory: NkB" means it all fit. "top-N heapsort" is the LIMIT special case:
-only the best N rows are ever kept, so a huge sort can run in kilobytes. "external merge  Disk:
-NkB" means the input was cut into sorted runs written to temporary files and merged. A HashAggregate
-reports "Planned Partitions: N  Batches: M  Memory Usage: kB  Disk Usage: kB" when it spills.
-temp read=/written= in BUFFERS counts 8 kB temp blocks. pg_stat_database.temp_files and temp_bytes
-are cumulative counters per database; log_temp_files = 0 logs every temporary file the session
-creates, and pg_current_logfile() plus pg_read_file() read the log back without leaving psql.`,
+### In plain terms
+
+work_mem is a memory allowance for each executor node, not a single allowance for the whole query.
+This lesson sorts the same rows with plenty of memory, limited memory, and almost no memory, then
+groups rows with a hash table under the same pressure. PostgreSQL switches algorithms and writes
+temporary files while still returning the correct answer instead of raising an error.
+
+### What you are learning
+
+- **In-memory sorting:** Quicksort keeps all rows in RAM when the node fits its allowance.
+- **Top-N sorting:** LIMIT lets PostgreSQL keep only the best N rows rather than sort the whole result.
+- **External sorting:** An undersized sort writes sorted runs to temporary files and merges them.
+- **Spill observability:** EXPLAIN, database counters, and server logs expose work that moved to disk.
+
+### Piece by piece
+
+- **work_mem** (executor memory setting)
+  - What it is: Memory available per plan node per execution.
+  - What it does here: 32MB fits the sort, 4MB spills, and 64kB creates more merge passes; the hash aggregate also spills.
+  - What it gives us: Sort Method and temporary block evidence without a query failure.
+- **generate_series and autovacuum_enabled = off** (setup tools)
+  - What they are: generate_series creates the synthetic rows; the table option disables background cleanup.
+  - What they do here: They make the sort input stable and keep maintenance from hiding temporary-file evidence.
+  - What they give us: 100000 rows and a controlled workload for each memory setting.
+- **ORDER BY amount, id** (SQL ordering clause)
+  - What it is: It requests amount order and uses id to break ties.
+  - What it does here: It makes sorting 100000 rows necessary before OFFSET can discard rows.
+  - What it gives us: Sort Method, Memory or Disk size, and temp buffers.
+- **OFFSET 99999 and LIMIT 10** (result-window clauses)
+  - What they are: OFFSET skips rows; LIMIT caps returned rows.
+  - What they do here: OFFSET forces almost the entire sort while LIMIT enables top-N heapsort.
+  - What they give us: A direct contrast between full/external sorting and a 10-row heap.
+- **EXPLAIN (ANALYZE, BUFFERS, TIMING OFF, SUMMARY OFF)** (plan command and options)
+  - What it is: It executes the statement, reports shared and temporary pages, hides timing, and omits the footer.
+  - What it does here: It shows Sort Method, Disk, Memory, temp read/written, and HashAggregate batching.
+  - What it gives us: Evidence that a node crossed from RAM to temporary files.
+- **HashAggregate** (plan node)
+  - What it is: It groups rows by storing group keys in a hash table.
+  - What it does here: It groups 5000 customer IDs with only 64kB available.
+  - What it gives us: Planned Partitions, actual Batches, Memory Usage, Disk Usage, and temp buffers.
+- **enable_indexscan and enable_indexonlyscan** (session planner settings)
+  - What they are: Controls that discourage index paths.
+  - What they do here: They keep grouping from choosing an ordered index plan that would not spill.
+  - What they give us: A fair hash-spill demonstration; reset restores normal planning.
+- **pg_stat_database.temp_files and temp_bytes** (database statistics columns)
+  - What they are: Cumulative counts and bytes for temporary files created in the database.
+  - What they do here: Before and after readings show that the sort created files.
+  - What they give us: Eventually consistent counters; the difference can lag the statement.
+- **log_temp_files = 0** (logging setting)
+  - What it is: It logs every temporary file, with zero meaning no minimum size.
+  - What it does here: It enables logging for one sort, then reset turns it off.
+  - What it gives us: File path and byte size in the server log.
+- **pg_current_logfile and pg_read_file** (SQL functions)
+  - What they are: The first returns the active log path; the second reads a server-readable file.
+  - What they do here: They read the recent log tail inside psql and filter temporary-file lines.
+  - What they give us: Backend PID and temporary-file size without opening a shell.
+- **regexp_split_to_table, right, WITH ORDINALITY, and \t on/off** (SQL and psql output tools)
+  - What they are: They split log text into numbered lines, keep its tail, and toggle tuples-only output.
+  - What they do here: They print the newest temporary-file entries in reverse order.
+  - What they give us: One readable log line per row with ordinality for recency.
+`,
       setup: code`
 drop table if exists pl_orders;
 create table pl_orders(
@@ -821,16 +1128,79 @@ processes, each scans a disjoint slice of the same table, and a Gather node merg
 Three separate limits decide how many workers you actually get, and the plan tells you when each
 one bit. On this single-CPU lab you will also see the honest result: the workers launch, do their
 share, and the query gets SLOWER.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 18 "Table Access Methods" (sections "Parallel Plans", "Parallel Sequential Scans", "Parallel Execution Limitations")`,
+      readingNotes: code`
+Chapter 18 explains parallel plans, parallel sequential scans, worker limits, and restrictions.
+This lesson makes those limits visible through Workers Planned versus Workers Launched, Gather
+Merge, and an unsafe function, then measures the overhead on a one-CPU lab. Read the chapter before
+or afterward; the plan output is a useful live companion to its parallel diagrams.`,
       syntaxBreakdown: code`
-A Gather node collects rows from workers in arrival order; Gather Merge keeps them sorted. "Workers
-Planned" is what the planner asked for, "Workers Launched" is what the worker pool actually gave.
-Under a Gather, loops = launched workers + 1 because the leader also runs the subplan, and actual
-rows is the PER LOOP average. max_parallel_workers_per_gather caps one Gather (0 disables
-parallelism), max_parallel_workers is the cluster-wide pool, max_worker_processes is the hard slot
-limit fixed at startup. min_parallel_table_scan_size (8MB) is the size below which a scan is not
-worth splitting; parallel_setup_cost (1000) and parallel_tuple_cost (0.1) are the modelled price of
-starting workers and shipping rows through the queue. A function declared PARALLEL UNSAFE forbids
-parallelism for any query that calls it.`,
+### In plain terms
+
+Parallel query divides one scan among several PostgreSQL worker processes and gathers their answers.
+This lesson shows the difference between workers the planner requests and workers the server can
+actually launch, and shows that ordered results need a sorted gather. On this small machine the
+extra processes and messages can make the parallel version slower.
+
+### What you are learning
+
+- **Gather versus Gather Merge:** Gather combines arriving rows; Gather Merge preserves sorted order.
+- **Planned versus launched workers:** Capacity limits can silently reduce parallelism below the plan.
+- **Leader participation:** The leader may process part of the subplan in addition to workers.
+- **Parallel safety and overhead:** One unsafe function forbids parallelism, and process startup is not free.
+
+### Piece by piece
+
+- **Gather and Gather Merge** (parallel plan nodes)
+  - What they are: Gather collects worker output; Gather Merge combines already-sorted streams.
+  - What they do here: The count uses Gather and the ordered query uses the merge variant.
+  - What they give us: Workers Planned and Workers Launched, plus per-participant Sort details.
+- **max_parallel_workers_per_gather** (session setting)
+  - What it is: The maximum workers one Gather may use; zero disables parallel query.
+  - What it does here: It permits four workers and later forces serial timing.
+  - What it gives us: A per-query worker cap visible in the plan and timing comparison.
+- **max_parallel_workers and max_worker_processes** (cluster worker limits)
+  - What they are: The first limits the shared worker pool; the second is the startup-time hard slot limit.
+  - What they do here: Reducing max_parallel_workers to one makes four planned workers compete for one slot.
+  - What they give us: Workers Planned greater than Workers Launched, the key capacity signal.
+- **min_parallel_table_scan_size** (parallel-planning setting)
+  - What it is: Minimum table size for considering a parallel scan.
+  - What it does here: The lab table exceeds the threshold, so parallelism can be considered.
+  - What it gives us: A size comparison explaining why a tiny table stays serial.
+- **parallel_setup_cost and parallel_tuple_cost** (planner costs)
+  - What they are: Prices for starting workers and passing rows through the tuple queue.
+  - What they do here: Setting them to zero exposes a parallel shape that default costs reject.
+  - What they give us: Cost changes without changing data or results.
+- **loops** (EXPLAIN field)
+  - What it is: The number of times a plan node ran.
+  - What it does here: A parallel subplan includes the leader, so loops is workers launched plus one.
+  - What it gives us: Actual rows and time per participant; multiply by loops for total work.
+- **PARALLEL UNSAFE** (function property)
+  - What it is: A declaration that a function cannot safely execute in a parallel worker.
+  - What it does here: pl_unsafe makes the entire count serial.
+  - What it gives us: A plain Aggregate and Seq Scan with no Gather.
+- **\timing on/off** (psql meta-command)
+  - What it is: It toggles client-side elapsed-time display.
+  - What it does here: It measures serial and parallel count executions.
+  - What it gives us: Comparable timings; this one-CPU lab should show parallel overhead.
+- **pg_stat_activity.backend_type** (activity view column)
+  - What it is: The kind of backend process represented by an activity row.
+  - What it does here: The final query counts any still-running parallel workers.
+  - What it gives us: A cleanup check, normally zero after the queries finish.
+- **pg_relation_size and pg_size_pretty** (size functions)
+  - What they are: The first returns relation bytes; the second formats a byte count.
+  - What they do here: They show why the lab table is large enough to consider parallel scanning.
+  - What they give us: A human-readable table_size beside the parallel thresholds.
+- **CREATE FUNCTION ... LANGUAGE sql VOLATILE** (function DDL)
+  - What it is: It defines a SQL function whose result may change between calls and runs the supplied SQL body.
+  - What it does here: Marking it PARALLEL UNSAFE prevents a query that calls pl_unsafe from using workers.
+  - What it gives us: A controlled proof that one unsafe function can remove the Gather node.
+- **generate_series and ANALYZE** (setup tools)
+  - What they are: generate_series emits test rows; ANALYZE refreshes planner statistics.
+  - What they do here: They create the stable 100000-row workload used by the parallel scans.
+  - What they give us: A table large enough for the threshold and a known row count.
+`,
       caution: code`
 Every setting here is changed with a per-session SET. Do not use ALTER SYSTEM on a shared lab: the
 worker pool is cluster-wide and you would be changing it for everyone.`,
@@ -990,7 +1360,12 @@ which leader owns each one.`,
     },
     {
       slug: "pg-stat-statements-as-tracing",
-      tags: ["pg-stat-statements", "observability", "query-planning", "explain"],
+      tags: [
+        "pg-stat-statements",
+        "observability",
+        "query-planning",
+        "explain",
+      ],
       title: "pg_stat_statements: normalized queries as aggregate tracing",
       difficulty: "intermediate",
       safetyLevel: "privileged",
@@ -1005,16 +1380,66 @@ running totals per fingerprint: calls, total and mean and stddev execution time,
 shared-buffer hit and read counts. In this lesson you reset it, run a small workload, rank it, and
 then find the two ways an aggregate view lies to you: means that hide bimodal distributions, and
 fingerprints that split when they should not.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 16 "Query Execution Stages".`,
       syntaxBreakdown: code`
-pg_stat_statements requires shared_preload_libraries (already set in this lab) and CREATE EXTENSION.
-pg_stat_statements_reset(userid, dbid, queryid) zeroes counters; passing 0 for a parameter means
-"all", so reset(0, <this database oid>, 0) leaves other databases alone. Columns: queryid (the
-fingerprint hash), calls, total_exec_time / mean_exec_time / min_exec_time / max_exec_time /
-stddev_exec_time in ms, rows (total rows returned across all calls), shared_blks_hit and
-shared_blks_read, temp_blks_read/written, and total_plan_time (zero unless
-pg_stat_statements.track_planning is on). The view holds pg_stat_statements.max entries and evicts
-the least-used, so a workload with unbounded distinct query texts can push out the entries you
-care about.`,
+### In plain terms
+
+This lesson turns query history into a small tracing table. PostgreSQL replaces literal values with
+placeholders and accumulates counts, times, rows, and page activity for each normalized query shape.
+You will rank a workload, then create a fast and a slow case that share one fingerprint and two
+similar-looking IN queries that do not, exposing what aggregate observability hides.
+
+### What you are learning
+
+- **Normalization:** Literal values become placeholders so repeated query shapes share one row.
+- **Capacity ranking:** Total execution time shows aggregate cost better than call count or mean time.
+- **Distribution loss:** A mean can hide a bimodal workload; min, max, and standard deviation help.
+- **Fingerprint boundaries:** Different IN-list lengths can create separate entries and fragment monitoring.
+
+### Piece by piece
+
+- **CREATE EXTENSION pg_stat_statements** (extension setup)
+  - What it is: It installs the view and functions that collect normalized statement statistics; shared_preload_libraries must load it at server start.
+  - What it does here: The lab setup makes the extension available before the workload runs.
+  - What it gives us: The pg_stat_statements view and reset function.
+- **pg_stat_statements_reset(0, database_oid, 0)** (extension function)
+  - What it is: It clears counters, with zero meaning all users or all query IDs for that argument.
+  - What it does here: It resets only the current database by looking up its OID.
+  - What it gives us: An empty baseline; the function returns void, so a blank result is expected.
+- **pg_stat_statements** (statistics view)
+  - What it is: A cluster-wide view with one aggregate row per normalized statement fingerprint.
+  - What it does here: It ranks statements by total time and displays min, mean, max, standard deviation, planning time, and I/O counters.
+  - What it gives us: calls, total_exec_time, mean_exec_time, rows, shared_blks_hit/read, temp blocks, and query text.
+- **dbid and current_database()** (database identity expressions)
+  - What they are: dbid identifies the database in the view; current_database returns this connection's name.
+  - What they do here: They scope resets and reports so unrelated databases do not pollute the lesson.
+  - What they give us: A filter matching the OID selected from pg_database.
+- **pg_database.oid** (system catalog column)
+  - What it is: PostgreSQL's internal identifier for a database.
+  - What it does here: The scalar subquery supplies the database-specific reset and report filter.
+  - What it gives us: The numeric dbid used by pg_stat_statements.
+- **round, nullif, and left** (SQL functions)
+  - What they are: round formats numbers; nullif avoids division by zero; left shortens query text.
+  - What they do here: They make milliseconds, hit percentage, and fingerprints readable.
+  - What they give us: Stable terminal columns instead of long raw values.
+- **pg_stat_statements.track_planning** (extension setting)
+  - What it is: A switch for collecting planning-time totals in addition to execution time.
+  - What it does here: SHOW demonstrates why total_plan_time remains zero by default.
+  - What it gives us: A setting value explaining whether planning overhead is represented.
+- **pg_stat_statements.max** (extension capacity setting)
+  - What it is: The maximum number of statement entries retained.
+  - What it does here: SHOW exposes the finite cardinality budget.
+  - What it gives us: The eviction limit to consider when query text creates many fingerprints.
+- **\x auto** (psql display command)
+  - What it is: It switches to expanded output when a row is too wide for the terminal.
+  - What it does here: It keeps wide statistics rows readable.
+  - What it gives us: One field per line when needed and compact output otherwise.
+- **generate_series, CREATE INDEX, and ANALYZE** (setup tools)
+  - What they are: The function emits test rows; the command builds the customer index; ANALYZE refreshes estimates.
+  - What they do here: They create the repeatable workload whose statements are recorded by the extension.
+  - What they give us: Known scan and join shapes to rank by calls, time, and buffers.
+`,
       caution: code`
 pg_stat_statements is shared by every database in the cluster. Always scope the reset with the
 database OID, as below, so you do not erase someone else's measurements.`,

@@ -9,7 +9,10 @@ function capture() {
   return {
     stdout,
     stderr,
-    io: { log: (x: string) => stdout.push(x), error: (x: string) => stderr.push(x) },
+    io: {
+      log: (x: string) => stdout.push(x),
+      error: (x: string) => stderr.push(x),
+    },
   };
 }
 
@@ -55,31 +58,47 @@ Deno.test("show, done, next, undone, skip, and status preserve explicit progress
   const { dir, path } = await initTemp();
   try {
     const shown = capture();
-    if (await run([COURSE, "show", "2", "--db", path, "--json"], shown.io) !== 0) {
+    if (
+      await run([COURSE, "show", "2", "--db", path, "--json"], shown.io) !== 0
+    ) {
       throw new Error(shown.stderr[0]);
     }
     const lesson = JSON.parse(shown.stdout[0]);
-    if (lesson.ordinal !== 2 || !lesson.overview || !lesson.syntaxBreakdown || !lesson.code) {
+    if (
+      lesson.ordinal !== 2 || !lesson.overview || !lesson.syntaxBreakdown ||
+      !lesson.code
+    ) {
       throw new Error(shown.stdout[0]);
     }
 
-    await run([COURSE, "done", "1", "--db", path, "--note", "ran it"], capture().io);
+    await run(
+      [COURSE, "done", "1", "--db", path, "--note", "ran it"],
+      capture().io,
+    );
     const next = capture();
     await run([COURSE, "next", "--db", path, "--json"], next.io);
-    if (JSON.parse(next.stdout[0]).ordinal !== 2) throw new Error(next.stdout[0]);
+    if (JSON.parse(next.stdout[0]).ordinal !== 2) {
+      throw new Error(next.stdout[0]);
+    }
 
     await run([COURSE, "skip", "2", "--db", path], capture().io);
     const afterSkip = capture();
     await run([COURSE, "next", "--db", path, "--json"], afterSkip.io);
-    if (JSON.parse(afterSkip.stdout[0]).ordinal !== 3) throw new Error(afterSkip.stdout[0]);
+    if (JSON.parse(afterSkip.stdout[0]).ordinal !== 3) {
+      throw new Error(afterSkip.stdout[0]);
+    }
 
     await run([COURSE, "undone", "1", "--db", path], capture().io);
     const again = capture();
     await run([COURSE, "next", "--db", path, "--json"], again.io);
-    if (JSON.parse(again.stdout[0]).ordinal !== 1) throw new Error(again.stdout[0]);
+    if (JSON.parse(again.stdout[0]).ordinal !== 1) {
+      throw new Error(again.stdout[0]);
+    }
     const one = capture();
     await run([COURSE, "show", "1", "--db", path, "--json"], one.io);
-    if (JSON.parse(one.stdout[0]).notes !== "ran it") throw new Error("note lost by undone");
+    if (JSON.parse(one.stdout[0]).notes !== "ran it") {
+      throw new Error("note lost by undone");
+    }
 
     const status = capture();
     await run([COURSE, "status", "--db", path, "--json"], status.io);
@@ -100,15 +119,28 @@ Deno.test("pretty prints a deterministic lesson ID and the code block", async ()
       throw new Error(selected.stderr[0]);
     }
     const text = selected.stdout[0];
-    if (!text.includes("Syntax breakdown:") || !text.includes("\nLesson ID: 3\n")) {
+    if (
+      !text.includes("\n## Syntax breakdown\n") ||
+      !text.includes("\nLesson ID: 3\n")
+    ) {
       throw new Error(text);
     }
-    if (!text.includes("\nRun:\n") || !text.includes("Expected result:")) throw new Error(text);
+    if (
+      !text.includes("\n## Run\n```") ||
+      !text.includes("\n## Expected result\n")
+    ) {
+      throw new Error(text);
+    }
+    if (text.includes("\x1b[")) {
+      throw new Error("plain output must not carry ANSI codes");
+    }
 
     await run([COURSE, "done", "1", "--db", path], capture().io);
     const next = capture();
     await run([COURSE, "pretty", "--db", path], next.io);
-    if (!next.stdout[0].includes("\nLesson ID: 2\n")) throw new Error(next.stdout[0]);
+    if (!next.stdout[0].includes("\nLesson ID: 2\n")) {
+      throw new Error(next.stdout[0]);
+    }
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
@@ -124,10 +156,14 @@ Deno.test("a revised lesson becomes stale and is served again", async () => {
     const next = capture();
     await run([COURSE, "next", "--db", path, "--json"], next.io);
     const lesson = JSON.parse(next.stdout[0]);
-    if (lesson.ordinal !== 1 || lesson.status !== "stale") throw new Error(next.stdout[0]);
+    if (lesson.ordinal !== 1 || lesson.status !== "stale") {
+      throw new Error(next.stdout[0]);
+    }
     const status = capture();
     await run([COURSE, "status", "--db", path, "--json"], status.io);
-    if (JSON.parse(status.stdout[0]).stale !== 1) throw new Error(status.stdout[0]);
+    if (JSON.parse(status.stdout[0]).stale !== 1) {
+      throw new Error(status.stdout[0]);
+    }
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
@@ -138,18 +174,25 @@ Deno.test("search requires every term, list filters by category, modules summari
   try {
     const search = capture();
     await run([COURSE, "search", "lab cluster", "--db", path], search.io);
-    if (!search.stdout[0].includes("  1  [lab-setup]")) throw new Error(search.stdout[0]);
+    if (!search.stdout[0].includes("  1  [lab-setup]")) {
+      throw new Error(search.stdout[0]);
+    }
     const none = capture();
     await run([COURSE, "search", "zzzz-no-such-term", "--db", path], none.io);
     if (none.stdout[0] !== "No lessons found.") throw new Error(none.stdout[0]);
     const list = capture();
-    await run([COURSE, "list", "--category", "lab-setup", "--db", path], list.io);
+    await run(
+      [COURSE, "list", "--category", "lab-setup", "--db", path],
+      list.io,
+    );
     if (!list.stdout[0].split("\n").every((l) => l.includes("[lab-setup]"))) {
       throw new Error(list.stdout[0]);
     }
     const modules = capture();
     await run([COURSE, "modules", "--db", path], modules.io);
-    if (!modules.stdout[0].startsWith("  1-")) throw new Error(modules.stdout[0]);
+    if (!modules.stdout[0].startsWith("  1-")) {
+      throw new Error(modules.stdout[0]);
+    }
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
@@ -160,21 +203,51 @@ Deno.test("topics lists tags and --topic serves the next unfinished matching les
   try {
     const topics = capture();
     await run([COURSE, "topics", "--db", path], topics.io);
-    if (!topics.stdout[0].split("\n").some((l) => l.startsWith("process-model"))) {
+    if (
+      !topics.stdout[0].split("\n").some((l) => l.startsWith("process-model"))
+    ) {
       throw new Error(topics.stdout[0]);
     }
     const first = capture();
-    await run([COURSE, "next", "--topic", "process model", "--db", path, "--json"], first.io);
+    await run([
+      COURSE,
+      "next",
+      "--topic",
+      "process model",
+      "--db",
+      path,
+      "--json",
+    ], first.io);
     const lesson = JSON.parse(first.stdout[0]);
-    if (!lesson.tags.includes("process-model")) throw new Error(first.stdout[0]);
-    await run([COURSE, "done", String(lesson.ordinal), "--db", path], capture().io);
+    if (!lesson.tags.includes("process-model")) {
+      throw new Error(first.stdout[0]);
+    }
+    await run(
+      [COURSE, "done", String(lesson.ordinal), "--db", path],
+      capture().io,
+    );
     const second = capture();
-    await run([COURSE, "next", "--topic", "process-model", "--db", path, "--json"], second.io);
+    await run([
+      COURSE,
+      "next",
+      "--topic",
+      "process-model",
+      "--db",
+      path,
+      "--json",
+    ], second.io);
     const after = JSON.parse(second.stdout[0]);
-    if (after.ordinal === lesson.ordinal && !after.complete) throw new Error(second.stdout[0]);
+    if (after.ordinal === lesson.ordinal && !after.complete) {
+      throw new Error(second.stdout[0]);
+    }
     const none = capture();
-    await run([COURSE, "pretty", "--topic", "zzzz-no-such-topic", "--db", path], none.io);
-    if (!none.stdout[0].startsWith("No lessons match topic")) throw new Error(none.stdout[0]);
+    await run(
+      [COURSE, "pretty", "--topic", "zzzz-no-such-topic", "--db", path],
+      none.io,
+    );
+    if (!none.stdout[0].startsWith("No lessons match topic")) {
+      throw new Error(none.stdout[0]);
+    }
     const list = capture();
     await run([COURSE, "list", "--topic", "lab", "--db", path], list.io);
     if (!list.stdout[0].split("\n").every((l) => l.includes("lab"))) {
@@ -190,7 +263,9 @@ Deno.test("invalid commands and options fail before creating a database", async 
   const path = `${dir}/never.sqlite`;
   try {
     const bad = capture();
-    if (await run([COURSE, "list", "--bogus", "--db", path], bad.io) !== 2) throw new Error("code");
+    if (await run([COURSE, "list", "--bogus", "--db", path], bad.io) !== 2) {
+      throw new Error("code");
+    }
     const missing = capture();
     if (await run(["no-such-course", "next", "--db", path], missing.io) !== 2) {
       throw new Error("unknown course accepted");
@@ -202,10 +277,24 @@ Deno.test("invalid commands and options fail before creating a database", async 
       if (!(error instanceof Deno.errors.NotFound)) throw error;
     }
     const uninit = capture();
-    if (await run([COURSE, "next", "--db", path], uninit.io) !== 1) throw new Error("uninit");
-    if (!uninit.stderr[0].includes("not initialized")) throw new Error(uninit.stderr[0]);
+    if (await run([COURSE, "next", "--db", path], uninit.io) !== 1) {
+      throw new Error("uninit");
+    }
+    if (!uninit.stderr[0].includes("not initialized")) {
+      throw new Error(uninit.stderr[0]);
+    }
   } finally {
     await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("ANSI and plain output flags are mutually exclusive", async () => {
+  const out = capture();
+  if (await run([COURSE, "pretty", "1", "--ansi", "--plain"], out.io) !== 2) {
+    throw new Error("conflicting styling flags were accepted");
+  }
+  if (!out.stderr[0].includes("--ansi and --plain cannot be used together")) {
+    throw new Error(out.stderr[0]);
   }
 });
 
@@ -239,7 +328,11 @@ Deno.test("buildLessons resolves slug prerequisites and rejects forward referenc
   const modules: Module[] = [{
     category: "c",
     title: "m",
-    lessons: [{ ...draft, slug: "a" }, { ...draft, slug: "b", prerequisites: ["a"] }],
+    lessons: [{ ...draft, slug: "a" }, {
+      ...draft,
+      slug: "b",
+      prerequisites: ["a"],
+    }],
   }];
   const lessons = buildLessons(course, modules);
   if (lessons[1].prerequisites[0] !== 1 || lessons[1].revision !== 3) {
@@ -250,10 +343,140 @@ Deno.test("buildLessons resolves slug prerequisites and rejects forward referenc
     buildLessons(course, [{
       category: "c",
       title: "m",
-      lessons: [{ ...draft, slug: "a", prerequisites: ["b"] }, { ...draft, slug: "b" }],
+      lessons: [{ ...draft, slug: "a", prerequisites: ["b"] }, {
+        ...draft,
+        slug: "b",
+      }],
     }]);
   } catch {
     threw = true;
   }
   if (!threw) throw new Error("forward prerequisite accepted");
+});
+
+Deno.test("build keeps an optional reading line and pretty prints it before the overview", () => {
+  const course: Course = {
+    id: "x",
+    name: "X",
+    description: "",
+    tool: "x",
+    minVersion: "1",
+    revision: 1,
+  };
+  const draft = {
+    title: "t",
+    difficulty: "beginner" as const,
+    overview: "o",
+    syntaxBreakdown: "s",
+    code: "c",
+    expectedResult: "e",
+    systemsLens: "l",
+    safetyLevel: "read-only" as const,
+    runIn: "tool" as const,
+    estimatedMinutes: 1,
+  };
+  const modules: Module[] = [{
+    category: "c",
+    title: "m",
+    lessons: [
+      {
+        ...draft,
+        slug: "a",
+        reading: "\nBook, Chapter 1  ",
+        readingNotes: "n",
+      },
+      { ...draft, slug: "b" },
+    ],
+  }];
+  const lessons = buildLessons(course, modules);
+  if (
+    lessons[0].reading !== "Book, Chapter 1" ||
+    lessons[0].readingNotes !== "n" ||
+    "reading" in lessons[1] || "readingNotes" in lessons[1]
+  ) {
+    throw new Error(JSON.stringify(lessons));
+  }
+});
+
+Deno.test("build rejects malformed reading metadata", () => {
+  const course: Course = {
+    id: "x",
+    name: "X",
+    description: "",
+    tool: "x",
+    minVersion: "1",
+    revision: 1,
+  };
+  const draft = {
+    slug: "a",
+    title: "t",
+    difficulty: "beginner" as const,
+    overview: "o",
+    syntaxBreakdown: "s",
+    code: "c",
+    expectedResult: "e",
+    systemsLens: "l",
+    safetyLevel: "read-only" as const,
+    runIn: "tool" as const,
+    estimatedMinutes: 1,
+  };
+  for (
+    const metadata of [
+      { reading: "Book, Chapter 1\nsection 2" },
+      { readingNotes: "Notes without a citation" },
+    ]
+  ) {
+    let threw = false;
+    try {
+      buildLessons(course, [{
+        category: "c",
+        title: "m",
+        lessons: [{ ...draft, ...metadata }],
+      }]);
+    } catch {
+      threw = true;
+    }
+    if (!threw) {
+      throw new Error(
+        `accepted malformed metadata: ${JSON.stringify(metadata)}`,
+      );
+    }
+  }
+});
+
+Deno.test("pretty prints Reading between Meta and Overview when a lesson has one", async () => {
+  const { dir, path } = await initTemp();
+  try {
+    const db = new DatabaseSync(path);
+    db.prepare(
+      "UPDATE lessons SET reading = ?, reading_notes = ? WHERE ordinal = 1",
+    )
+      .run("Book, Chapter 9", "overlap text");
+    db.close();
+    const out = capture();
+    if (await run([COURSE, "pretty", "1", "--db", path], out.io) !== 0) {
+      throw new Error(out.stderr[0]);
+    }
+    const text = out.stdout[0];
+    const meta = text.indexOf("\n**Meta:** ");
+    const reading = text.indexOf("\n**Reading:** Book, Chapter 9  \n");
+    const overview = text.indexOf("\n## Overview\n");
+    const notes = text.indexOf(
+      "\n## How this overlaps with the book\noverlap text\n",
+    );
+    const breakdown = text.indexOf("\n## Syntax breakdown\n");
+    if (
+      !(meta > 0 && reading > meta && overview > reading && notes > overview)
+    ) {
+      throw new Error(text);
+    }
+    if (breakdown < notes) throw new Error(text);
+    const styled = capture();
+    await run([COURSE, "pretty", "1", "--db", path, "--ansi"], styled.io);
+    if (!styled.stdout[0].includes("\x1b[1;33mSyntax breakdown\x1b[0m")) {
+      throw new Error(styled.stdout[0]);
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
 });

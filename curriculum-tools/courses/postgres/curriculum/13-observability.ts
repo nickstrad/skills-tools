@@ -8,6 +8,10 @@ export const OBSERVABILITY: Module = {
       slug: "wait-events-tell-you-where-time-goes",
       tags: ["wait-events", "observability", "process-model", "row-locks"],
       title: "Wait events: where a backend's time actually goes",
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 15 "Locks on Memory Structures" (sections "Monitoring Waits", "Sampling")`,
+      readingNotes: code`
+Chapter 15 explains wait-event monitoring and sampling as a way to find time spent blocked on locks or internal memory structures. This lesson adds client waits, PgSleep, blocking-pid lookup, and background workers. Read before or after; the experiment supplies concrete examples for the chapter vocabulary.`,
       difficulty: "intermediate",
       safetyLevel: "locking",
       runIn: "tool",
@@ -27,17 +31,51 @@ an open transaction waiting for its client to say something (Client:ClientRead),
 that is "active" but doing nothing at all (Timeout:PgSleep). Then you look at the background
 processes and discover they are described by the same vocabulary.`,
       syntaxBreakdown: code`
-pg_stat_activity has one row per server process. state is what the backend is doing from the
-client's point of view (active, idle, idle in transaction, idle in transaction (aborted)), while
-wait_event_type / wait_event is what it is blocked on right now, and both are NULL when the
-process is genuinely running on a CPU. The types you meet most: Lock (a heavyweight lock -
-transactionid, tuple, relation), LWLock (a short internal latch - BufferContent, WALWrite),
-IO (a real read or write - DataFileRead, WALSync), Client (waiting for the network - ClientRead),
-Timeout (a deliberate sleep - PgSleep), IPC (waiting for another PostgreSQL process), Activity
-(an idle background process, e.g. CheckpointerMain). state_change is when state last changed, so
-now() - state_change is how long a session has been idle in transaction. pg_blocking_pids(pid)
-names the backends a waiter is waiting for. backend_type separates client backends from
-checkpointer, walwriter, autovacuum launcher and friends.`,
+### In plain terms
+
+This experiment asks what a PostgreSQL process is doing when a query looks slow. You create a row lock, watch another session wait for it, and compare that with a session waiting for its client or sleeping on purpose. The result shows why active alone is not a diagnosis: wait details point to a lock, network client, or timer.
+
+### What you are learning
+
+- **Session state versus wait event:** state describes the client conversation, while wait_event_type and wait_event describe what the server process is waiting for.
+- **Blocking relationships:** A waiter can name the backend that owns the lock, so an operator can investigate the cause.
+- **Sampling:** Repeated wait names provide a low-cost profile of where latency is spent.
+- **Background processes:** Checkpointers and WAL writers use the same vocabulary without a connected client.
+
+### Piece by piece
+
+- **pg_stat_activity** (system view)
+  - What it is: It has one row for each backend or background process.
+  - What it does here: The queries list client sessions and server-owned workers.
+  - What it gives us: Read **state**, **wait_event_type**, **wait_event**, **query**, and **backend_type** together; active with a wait event means the query is waiting.
+- **pg_backend_pid()** (identity function)
+  - What it is: It returns the operating-system PID of the current backend.
+  - What it does here: Session A prints the lock holder's identity.
+  - What it gives us: Compare it with the PID in **pg_blocking_pids(pid)** and activity output.
+- **pg_sleep(seconds)** (delay function)
+  - What it is: It pauses the current backend for the requested time.
+  - What it does here: Short sleeps allow observation; pg_sleep(10) creates Timeout:PgSleep.
+  - What it gives us: It returns no rows; inspect the other session while it runs.
+- **state_change**, **now()**, and **extract(epoch)** (time measurement)
+  - What they are: state_change records the last transition; now() gives current time; extract(epoch) converts an interval to seconds.
+  - What they do here: The query calculates and rounds **secs_in_state**.
+  - What they give us: An approximate duration; scheduling makes decimals vary.
+- **pg_blocking_pids(pid)** (blocking lookup)
+  - What it is: It returns PIDs whose locks prevent the supplied PID from proceeding.
+  - What it does here: It is called while B waits for A's update.
+  - What it gives us: **{137609}** identifies a blocker; **{}** means none was found.
+- **backend_type** (activity classification)
+  - What it is: It distinguishes clients from named background workers.
+  - What it does here: One query selects clients and another excludes them.
+  - What it gives us: Activity:CheckpointerMain is a worker main loop; IO or LWLock indicates other work or contention.
+- **\watch i=0.1 c=50** (psql repetition command)
+  - What it is: It repeats the previous query every 0.1 seconds for 50 samples.
+  - What it does here: It counts wait-event pairs during a concurrent workload.
+  - What it gives us: The dominant pair is the first latency cause to investigate.
+- **CHECKPOINT** (challenge command)
+  - What it is: It asks PostgreSQL to flush dirty pages and record a recovery point.
+  - What it does here: It lets you compare wait samples with and without checkpoint work.
+  - What it gives us: The mix may shift toward IO or checkpoint-related waits.`,
       setup: code`
 drop table if exists obs_accounts;
 create table obs_accounts(id int primary key, balance int);
@@ -180,6 +218,8 @@ INSERT-heavy workload, and does that change if you run CHECKPOINT first?`,
       slug: "pg-stat-io-by-backend-type",
       tags: ["pg-stat-io", "buffer-cache", "observability", "checkpoints"],
       title: "pg_stat_io: who reads, who writes, who extends",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 9 "Buffer Cache".`,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -197,18 +237,55 @@ You will snapshot the matrix, run one deliberately cache-hostile workload (a tab
 shared_buffers, written and then read back), and diff the snapshot. Every number in the diff has
 a cause you can point at in the workload.`,
       syntaxBreakdown: code`
-pg_stat_io (PostgreSQL 16+) has one row per backend_type / object / context. context is the
-strategy the buffer was obtained under: normal (ordinary buffer allocation), bulkread (a
-sequential scan of a table bigger than a quarter of shared_buffers, which uses a small ring of
-buffers so it cannot evict the whole cache), bulkwrite (COPY, CREATE TABLE AS), vacuum (VACUUM's
-own ring). The columns: reads = pages fetched from the OS, writes = dirty pages written out,
-extends = pages appended to a relation file, hits = pages found already in shared buffers,
-evictions = a buffer had to be thrown out to make room, reuses = a ring buffer recycled one of
-its own buffers instead of evicting a stranger, fsyncs = fsync calls the process made itself. A
-NULL means the combination is impossible (a checkpointer never extends a relation). Timing
-columns (read_time, write_time) are only populated when track_io_timing is on, which it is in
-this lab. pg_stat_reset_shared('io') resets the whole view; do not - snapshot into a table and
-diff instead, so you never destroy the baseline another tool is using.`,
+### In plain terms
+
+This experiment asks who is doing disk work, not merely how many pages were written. You save a baseline of PostgreSQL 16's I/O matrix, insert a table larger than the cache, force a checkpoint, and scan it back. The before-and-after rows attribute reads, writes, growth, hits, and evictions to a process and buffer strategy.
+
+### What you are learning
+
+- **Dimensioned statistics:** Counters become useful when labelled by process, relation type, and buffer strategy.
+- **Buffer strategies:** Normal, bulkread, bulkwrite, and vacuum contexts choose different cache behaviour.
+- **Cache hits and misses:** A hit reuses shared memory; a read fetches a page from the operating system.
+- **Snapshot-and-diff monitoring:** A private baseline avoids erasing statistics needed by other observers.
+
+### Piece by piece
+
+- **pg_stat_io** (PostgreSQL 16 system view)
+  - What it is: It has one row per backend type, object kind, and buffer context.
+  - What it does here: The lesson stores counters, then subtracts that snapshot from current values.
+  - What it gives us: **reads**, **writes**, **extends**, **hits**, **evictions**, **reuses**, and **fsyncs** identify who touched storage.
+- **shared_buffers** and **track_io_timing** (server settings)
+  - What they are: shared_buffers is the shared page cache size; track_io_timing enables I/O timing.
+  - What they do here: SHOW confirms a 128 MB cache and enabled timing.
+  - What they give us: The table-size comparison explains the bulkread choice.
+- **CREATE TABLE ... AS** (snapshot query)
+  - What it is: It materializes a SELECT result as a table.
+  - What it does here: It records **obs_io_before** without resetting global counters.
+  - What it gives us: A known starting value for every subtraction.
+- **generate_series(...)** and **repeat(...)** (data generators)
+  - What they are: The first generates 1 through 200000; the second makes 700-character padding.
+  - What they do here: They create a roughly 140 MB relation.
+  - What they give us: A repeatable workload larger than the cache.
+- **pg_relation_size(...)** and **pg_size_pretty(...)** (size functions)
+  - What they are: The first returns bytes; the second formats bytes for people.
+  - What they do here: They report table size and convert page counts using 8192 bytes per page.
+  - What they give us: Around 142 MB confirms the table does not fit.
+- **CHECKPOINT** (flush command)
+  - What it is: It asks the checkpointer to write dirty pages.
+  - What it does here: It separates scheduled writes from client writes.
+  - What it gives us: Checkpointer rows with writes and fsyncs show scheduled work.
+- **max_parallel_workers_per_gather = 0** (session setting)
+  - What it is: It disables parallel query workers for this session.
+  - What it does here: It keeps the scan in one client process.
+  - What it gives us: Bulkread counters are not split across workers.
+- **coalesce(...)**, **LEFT JOIN**, and **8192** (diff and units)
+  - What they are: coalesce changes missing values to zero; LEFT JOIN keeps current rows; 8192 is one 8 KiB page.
+  - What they do here: The query computes current minus baseline and converts pages to bytes.
+  - What they give us: Positive differences are post-snapshot work; NULL means not applicable.
+- **pg_sleep(1)** (statistics delay)
+  - What it is: It pauses one second.
+  - What it does here: It allows statistics to reach shared memory.
+  - What it gives us: A more complete diff, though background activity can vary.`,
       setup: code`
 drop table if exists obs_io_load;
 drop table if exists obs_io_before;
@@ -365,6 +442,10 @@ the row count and check it against the rule of thumb (a quarter of shared_buffer
       slug: "connection-saturation",
       tags: ["connections", "capacity", "process-model", "observability"],
       title: "Run out of connections and watch the door close",
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "Clients and the Client-Server Protocol")`,
+      readingNotes: code`
+Chapter 1 explains the client-server protocol and one-backend-per-connection process model behind connection pooling. This lesson extends that background to max_connections exhaustion, reserved-superuser slots, and immediate FATAL rejection. Read before or after; the chapter explains the resource model and this experiment shows the failure boundary.`,
       difficulty: "intermediate",
       safetyLevel: "privileged",
       runIn: "mixed",
@@ -383,16 +464,59 @@ refuses, and read the two different refusals PostgreSQL has: one for ordinary ro
 last superuser_reserved_connections slots are gone, and one for everybody, when nothing is left
 at all. Then you put the setting back.`,
       syntaxBreakdown: code`
-max_connections has context = postmaster: shared memory is sized from it at startup, so ALTER
-SYSTEM SET must be followed by a full restart, not pg_reload_conf(). pg_ctl restart -m fast -w
-stops with a shutdown checkpoint, waits, and starts again. superuser_reserved_connections (3 by
-default) carves the last few slots out for roles with SUPERUSER, so an operator can still get in
-after the application has eaten the pool; PostgreSQL 16 phrases that refusal as "remaining
-connection slots are reserved for roles with the SUPERUSER attribute", and only when even those
-are gone does it say "sorry, too many clients already". Both are FATAL, both are logged with the
-role and database in the line prefix, and neither is retryable by the connection itself.
-pg_stat_activity counts what is currently connected, so
-count(*) filter (where backend_type = 'client backend') is your live utilisation.`,
+### In plain terms
+
+This experiment asks what PostgreSQL does when every connection slot is occupied. You lower the limit, restart the throwaway cluster, open connections until new clients receive FATAL errors, and restore the setting. The key observation is immediate rejection rather than queueing, with reserved slots keeping an administrator able to investigate.
+
+### What you are learning
+
+- **Hard admission control:** max_connections is startup-sized capacity, not a queue.
+- **Reserved operator capacity:** superuser_reserved_connections protects slots from ordinary roles.
+- **Restart-required settings:** A postmaster setting changes shared memory, so reload cannot apply it.
+- **Connection storms:** Immediate reconnects can amplify saturation.
+
+### Piece by piece
+
+- **max_connections** (postmaster setting)
+  - What it is: The maximum number of client backends.
+  - What it does here: The lesson changes it to 15 and checks its context.
+  - What it gives us: Refusal counts show the hard boundary.
+- **superuser_reserved_connections** (capacity setting)
+  - What it is: Slots reserved for superusers.
+  - What it does here: With 15 total and 3 reserved, an ordinary role gets 12.
+  - What it gives us: The ordinary role receives the reserved-slots FATAL while a superuser can connect.
+- **pg_stat_activity** and **FILTER (WHERE ...)** (view and aggregate)
+  - What they are: The view lists processes; FILTER makes count include only matching rows.
+  - What they do here: The query counts clients separately from all processes.
+  - What they give us: client_backends, processes_total, and reserved show live usage.
+- **pg_settings** (configuration view)
+  - What it is: It exposes values, sources, and change contexts.
+  - What it does here: It proves max_connections is postmaster-scoped.
+  - What it gives us: context = postmaster means restart is required.
+- **\! ps -o pid,rss,cmd --ppid ... | head -12** (psql shell escape)
+  - What it is: \! runs an OS command; ps lists processes, -o selects columns, --ppid filters children, and head limits lines.
+  - What it does here: It lists processes under the postmaster PID read by head -1.
+  - What it gives us: One process per client is visible; RSS includes shared pages.
+- **ALTER SYSTEM** and **pg_ctl restart -m fast -w** (configuration and lifecycle)
+  - What they are: ALTER SYSTEM writes a persistent override; pg_ctl controls the cluster; fast requests clean shutdown; -w waits for startup.
+  - What they do here: They set 15 and apply it by restart, then restore the default.
+  - What they give us: SHOW confirms the running value.
+- **seq**, **&**, redirection, **sleep**, and **wait** (shell controls)
+  - What they are: seq generates loop numbers; & backgrounds psql; redirection saves errors; sleep spaces attempts; wait joins children.
+  - What they do here: They create more clients than slots and keep them open with pg_sleep.
+  - What they give us: Error files and refusal counts prove the limit.
+- **psql -h /tmp -p 5440 -U obs_app -d lab -Atc ...** (client invocation)
+  - What it is: -h selects socket directory, -p port, -U role, -d database, -A unaligned, -t tuples only, and -c a command.
+  - What it does here: It tests ordinary and superuser admission.
+  - What it gives us: The two FATAL messages distinguish reserved slots from total exhaustion.
+- **grep -E ...** and **tail -6** (log inspection)
+  - What they are: grep -E searches a regular expression; tail keeps final lines.
+  - What they do here: They find saturation messages in the server log.
+  - What they give us: The prefix identifies role and database.
+- **pg_read_file('postgresql.auto.conf')** (server-file function)
+  - What it is: It reads a data-directory-relative file.
+  - What it does here: The final check proves ALTER SYSTEM RESET removed the override.
+  - What it gives us: Only the standard header comments remain.`,
       caution: code`
 This lesson restarts the lab cluster twice, which drops every open connection to it, and it
 changes a cluster-wide postmaster setting with ALTER SYSTEM. Run the restore step even if you
@@ -568,12 +692,19 @@ max_connections = 5000 and restart: how much shared memory does the server reser
       slug: "idle-in-transaction-kills-you",
       tags: ["timeouts", "connections", "observability", "gc-horizon"],
       title: "Timeouts: idle in transaction, and statements that never end",
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 8 "Rebuilding Tables and Indexes" (section "Precautions"); Chapter 4 "Snapshots" (section "Transaction Horizon")`,
+      readingNotes: code`
+Chapter 4 explains how an old open transaction holds back the transaction horizon, and Chapter 8 warns that long-running or idle transactions interfere with maintenance. This lesson makes both effects visible through a row lock, dead tuples, and a timeout that terminates the idle client. Read before or after; the experiment adds the connection-liveness perspective.`,
       difficulty: "intermediate",
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 20,
-      prerequisites: ["wait-events-tell-you-where-time-goes", "lock-timeout-and-nowait"],
+      prerequisites: [
+        "wait-events-tell-you-where-time-goes",
+        "lock-timeout-and-nowait",
+      ],
       overview: code`
 An open transaction that nobody is using is the most expensive idle object in a PostgreSQL
 cluster. It pins the xmin horizon so VACUUM cannot clean anything newer, it holds every lock it
@@ -585,22 +716,51 @@ You will watch a session get killed mid-transaction, confirm from the other sess
 locks and its xmin horizon were released, then meet the gentler sibling, statement_timeout, which
 cancels a single statement with an ERROR and leaves the session alive.`,
       syntaxBreakdown: code`
-idle_in_transaction_session_timeout terminates a connection that has held an open transaction
-without executing anything for that long: the message is FATAL "terminating connection due to
-idle-in-transaction timeout", and psql then prints "server closed the connection unexpectedly".
-It does not fire on an idle session outside a transaction - that is idle_session_timeout.
-statement_timeout cancels the current statement only: ERROR "canceling statement due to statement
-timeout", SQLSTATE 57014 (query_canceled), leaving the transaction in the aborted state so you
-must ROLLBACK. Both have context = user, so SET, ALTER ROLE ... SET and ALTER DATABASE ... SET
-all work - always prefer those to ALTER SYSTEM, because a timeout that is right for a web request
-is wrong for a nightly report. Zero disables either one. pg_stat_activity.xact_start is when the
-current transaction began, and backend_xmin is the oldest snapshot the backend is holding right
-now. It is NULL for a backend that is between statements in a READ COMMITTED transaction (it only
-re-acquires a snapshot when it next runs a query) - so an idle-in-transaction row's own
-backend_xmin often reads NULL. What actually pins the vacuum horizon is A's transaction itself
-still being open in the process array (it has not committed or aborted): every other backend that
-takes a fresh snapshot while A is open computes its own backend_xmin as no older than A's xid,
-which is how you see the pin from a neighbor's row even when A's own row shows nothing.`,
+### In plain terms
+
+This experiment asks what an unused open transaction costs. Session A updates a row and stops sending commands, so it holds a row lock, keeps a transaction horizon, and occupies a connection; a timeout terminates it. You then compare statement_timeout, which cancels one long statement but leaves its connection alive.
+
+### What you are learning
+
+- **Idle in transaction:** A session can be doing no current SQL while retaining locks and an old transaction.
+- **Session versus statement deadlines:** One timeout destroys a connection; the other cancels one statement.
+- **Vacuum horizon:** Old snapshots determine which dead row versions may be removed.
+- **FATAL versus ERROR:** FATAL ends a connection; ERROR is recoverable after rollback.
+
+### Piece by piece
+
+- **idle_in_transaction_session_timeout** and **statement_timeout** (settings)
+  - What they are: The first limits silence inside an open transaction; the second limits one statement's runtime.
+  - What they do here: SET kills A after two seconds and cancels B's thirty-second sleep after one.
+  - What they give us: A disconnects with FATAL; B receives SQLSTATE 57014 and survives.
+- **pg_stat_activity** fields **state**, **xact_start**, and **backend_xmin** (activity evidence)
+  - What they are: They show conversation state, transaction start, and the oldest snapshot horizon held.
+  - What they do here: B observes A as idle in transaction and measures its age.
+  - What they give us: The listed session and its lock prove the pin; backend_xmin may be blank between statements.
+- **pg_backend_pid()** and **pg_current_xact_id()** (identity functions)
+  - What they are: They return the backend PID and transaction ID.
+  - What they do here: A prints both before becoming idle.
+  - What they give us: Relate activity and log rows to the session and horizon.
+- **pgrowlocks('obs_ledger')** (row-lock function)
+  - What it is: It reports row-level locks for a table.
+  - What it does here: It counts locks before and after A is killed.
+  - What it gives us: locked_rows = 1 then 0 proves timeout cleanup.
+- **pg_stat_file(...)**, **\gset**, and **pg_read_file(...)** (bounded log read)
+  - What they are: pg_stat_file returns size; \gset saves log_size_before; pg_read_file reads a data-directory-relative byte range.
+  - What they do here: The code reads only log bytes appended during this lesson.
+  - What they give us: The filtered FATAL line belongs to this experiment.
+- **regexp_split_to_table(..., chr(10)) WITH ORDINALITY** (line parser)
+  - What it is: It splits log text at newline 10 and numbers each line.
+  - What it does here: It filters lines containing idle-in-transaction.
+  - What it gives us: n is file order and l is the log text.
+- **pg_sleep(4)** and **pg_sleep(30)** (timed demonstrations)
+  - What they are: Delays in the current backend.
+  - What they do here: Four seconds lets A's timeout fire; thirty exceeds B's statement timeout.
+  - What they give us: One connection disappears; the other reports a recoverable error.
+- **FILTER (...)** and **ROLLBACK** (cleanup)
+  - What they are: FILTER counts matching rows; ROLLBACK ends an aborted transaction and discards its writes.
+  - What they do here: The code counts surviving sessions and clears B's failed transaction.
+  - What they give us: Row 99 is absent and the original row is unchanged.`,
       setup: code`
 drop table if exists obs_ledger;
 create table obs_ledger(id int primary key, note text);
@@ -739,11 +899,16 @@ reclaimed pages.`,
       slug: "table-and-index-usage-counters",
       tags: ["statistics", "observability", "index-scans", "buffer-cache"],
       title: "Per-table counters: seq scans, index scans, and the unused index",
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 6 "Vacuum and Autovacuum".`,
       difficulty: "beginner",
       safetyLevel: "writes-data",
       runIn: "tool",
       estimatedMinutes: 20,
-      prerequisites: ["index-scan-vs-seq-scan-crossover", "pg-stat-io-by-backend-type"],
+      prerequisites: [
+        "index-scan-vs-seq-scan-crossover",
+        "pg-stat-io-by-backend-type",
+      ],
       overview: code`
 pg_stat_io told you what the cluster did. pg_stat_user_tables tells you what each table did, and
 it answers the two questions you ask first about a schema you did not write: which tables are
@@ -755,18 +920,55 @@ equals what you did. Then you read the cache-hit side of the same story in pg_st
 and confirm that the index nobody queries has idx_scan = 0, which is how you find dead indexes
 that cost you write amplification for nothing.`,
       syntaxBreakdown: code`
-pg_stat_user_tables: seq_scan / seq_tup_read (sequential scans and the rows they returned),
-idx_scan / idx_tup_fetch, n_tup_ins / n_tup_upd / n_tup_del / n_tup_hot_upd, n_live_tup and
-n_dead_tup (estimates maintained by the same counters, and the inputs autovacuum thresholds are
-computed from), plus last_vacuum / last_autovacuum / vacuum_count. pg_stat_user_indexes breaks
-idx_scan down per index. pg_statio_user_tables reports heap_blks_read (had to go to the OS) vs
-heap_blks_hit (found in shared buffers), and the same pair for indexes and TOAST.
-pg_stat_reset_single_table_counters(oid) zeroes one table's row - always prefer it to
-pg_stat_reset(), which throws away the whole database's history including autovacuum's inputs.
-Statistics are accumulated per backend and flushed to shared memory at transaction end, no more
-than once a second, so a counter can lag a statement you just ran; end the transaction and wait a
-second before reading. Within one transaction a backend also caches its view of the stats
-(stats_fetch_consistency = cache), and pg_stat_clear_snapshot() discards that cache.`,
+### In plain terms
+
+This experiment asks whether a table is read efficiently and whether its indexes earn their keep. You reset one table's counters, run a countable workload, then compare table, index, and cache statistics. The unused amount index is the warning: it adds write and storage cost even when no query uses it.
+
+### What you are learning
+
+- **Cumulative counters:** Differences between readings are more meaningful than one absolute value.
+- **Scan evidence:** seq_scan and seq_tup_read reveal repeated full-table work; idx_scan identifies index use.
+- **Approximate estimates:** n_live_tup and n_dead_tup may be misleading briefly after a reset.
+- **Index cost:** idx_scan = 0 does not mean an index costs nothing on writes.
+
+### Piece by piece
+
+- **pg_stat_reset_single_table_counters('obs_orders'::regclass)** (targeted reset)
+  - What it is: It clears statistics for one table; regclass resolves the name to its catalog identity.
+  - What it does here: It creates a zero baseline without erasing other history.
+  - What it gives us: Initial counters are zero; n_live_tup stays low until ANALYZE refreshes it.
+- **pg_stat_user_tables** (table statistics view)
+  - What it is: It reports scans, row changes, live/dead estimates, and vacuum times.
+  - What it does here: It measures four sequential scans, index access, inserts, updates, and deletes.
+  - What it gives us: Compare seq_scan, seq_tup_read, idx_scan, n_tup_*, and n_dead_tup with the script.
+- **pg_stat_user_indexes** and **pg_statio_user_tables** (index and cache views)
+  - What they are: The first reports each index's use; the second reports blocks read versus hit.
+  - What they do here: They identify the unused amount index and cache behaviour.
+  - What they give us: indexrelname with idx_scan finds dead weight; blks_read and blks_hit show cache effectiveness.
+- **VACUUM ANALYZE** (maintenance command)
+  - What it is: VACUUM makes dead space reusable; ANALYZE refreshes planner statistics.
+  - What it does here: It establishes a baseline and visibility map for index-only scans.
+  - What it gives us: Better plans and a way to resync row estimates.
+- **generate_series(...)**, **LATERAL**, and **nullif(...)** (workload and safe math)
+  - What they are: generate_series makes values; LATERAL lets each subquery use one value; nullif avoids division by zero.
+  - What they do here: They make 1000 primary-key lookups and a safe summary ratio.
+  - What they give us: Counts comparable with the commands issued.
+- **pg_sleep(1)** (stats delay)
+  - What it is: A one-second pause.
+  - What it does here: It lets per-backend statistics reach shared memory.
+  - What it gives us: More stable counts, though background work can vary.
+- **pg_relation_size(indexrelid)** and **pg_size_pretty(...)** (size report)
+  - What they are: They return index bytes and format them.
+  - What they do here: They compare used and unused index footprints.
+  - What they give us: Disk cost beside the zero-use count.
+- **CASE**, **FILTER**, and **round(...)** (report expressions)
+  - What they are: CASE chooses a safe result, FILTER limits an aggregate, and round formats numbers.
+  - What they do here: The summary computes pct_seq and rows_per_seq_scan.
+  - What they give us: High rows_per_seq_scan with repeated seq_scan points to an expensive loop.
+- **ALTER TABLE ... SET autovacuum_...** (challenge setting)
+  - What it is: A per-table override for vacuum trigger thresholds.
+  - What it does here: Threshold 100 and scale factor 0 make 200 deletes trigger quickly.
+  - What it gives us: n_dead_tup rises then falls; last_autovacuum records cleanup.`,
       setup: code`
 drop table if exists obs_orders;
 create table obs_orders(id int primary key, customer int, amount numeric, note text);
@@ -949,12 +1151,19 @@ controls that?`,
       slug: "read-the-server-log",
       tags: ["logging", "observability", "postmortem", "incident"],
       title: "The server log is the ground truth for a postmortem",
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "WAL Setup"); Chapter 15 "Locks on Memory Structures" (section "Monitoring Waits")`,
+      readingNotes: code`
+Chapter 10 shows the logging settings used to observe checkpoints, while Chapter 15 connects wait monitoring with lock contention. This lesson adds duration logging, line prefixes, and a complete wait timeline for a postmortem. Read before or after; the book supplies the mechanisms and the experiment supplies the workflow.`,
       difficulty: "intermediate",
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
       estimatedMinutes: 20,
-      prerequisites: ["max-wal-size-forces-checkpoints", "idle-in-transaction-kills-you"],
+      prerequisites: [
+        "max-wal-size-forces-checkpoints",
+        "idle-in-transaction-kills-you",
+      ],
       overview: code`
 Statistics views tell you what is true now. The log tells you what was true at 03:14 last
 Tuesday, which is the only question a postmortem ever asks. PostgreSQL will write a line for
@@ -966,19 +1175,55 @@ In this lesson you set those thresholds for your session, cause each phenomenon 
 then read your own log lines back from inside psql. By the end you can look at four lines of text
 and reconstruct which backend waited for which transaction, for how long, and on which row.`,
       syntaxBreakdown: code`
-log_line_prefix defines the columns of every line; this lab uses "%m [%p] %u@%d " - timestamp
-with milliseconds, PID in brackets, user@database. Add %a (application_name) and %x (transaction
-id) in production. log_lock_waits (superuser, on in this lab) logs a "still waiting" line for any
-heavyweight lock held longer than deadlock_timeout and an "acquired" line when the wait ends, so
-deadlock_timeout doubles as the lock-logging threshold. log_min_duration_statement logs any
-statement slower than N ms together with its text; 0 logs everything, -1 disables. Both are
-settable per session, per role and per database with SET / ALTER ROLE ... SET / ALTER DATABASE
-... SET, which is the right granularity: log every statement for one reporting role without
-drowning the OLTP path. log_checkpoints (on here) prints a starting and a complete line per
-checkpoint. pg_read_file(path, offset, length) reads a file relative to the data directory, so
-(pg_stat_file('log/postgresql.log')).size captured before the experiment gives you an offset to
-read from, and regexp_split_to_table(..., chr(10)) turns the tail into rows you can filter with
-SQL.`,
+### In plain terms
+
+This experiment asks how to reconstruct an incident after sessions are gone. You set temporary logging thresholds, make one session wait on a row update while another sleeps, force a checkpoint, and read new lines from SQL and the shell. Timestamps, PIDs, transaction IDs, wait duration, and statement text form a durable story that a live view cannot provide later.
+
+### What you are learning
+
+- **Logs versus metrics:** Counters summarize now; log lines preserve identity and order for later investigation.
+- **Thresholds:** log_lock_waits and log_min_duration_statement decide which events become historical evidence.
+- **Line structure:** log_line_prefix makes entries joinable to activity rows and application logs.
+- **Entry and exit events:** A still-waiting line plus an acquired line gives cause and final duration.
+
+### Piece by piece
+
+- **pg_settings** (configuration view)
+  - What it is: It reports current values and change contexts.
+  - What it does here: The first query records logging settings.
+  - What it gives us: setting and context tell you what is enabled and whether SET is allowed.
+- **log_line_prefix** (log-format setting)
+  - What it is: It controls fields at the start of each line.
+  - What it does here: %m is time, %p PID, and %u@%d user/database; background processes have blank client fields.
+  - What it gives us: Join lines to pg_stat_activity and distinguish a client from a checkpointer.
+- **log_lock_waits** and **deadlock_timeout** (lock settings)
+  - What they are: The first logs a long wait and acquisition; the second is the deadlock check delay and logging threshold.
+  - What they do here: B waits beyond 500 ms, so both events are logged.
+  - What they give us: Transaction ID and elapsed milliseconds identify holder and duration.
+- **log_min_duration_statement** (statement setting)
+  - What it is: It logs completed statements at or above a millisecond threshold.
+  - What it does here: 200 ms captures the sleeps and blocked UPDATE.
+  - What it gives us: Duration lines include statement text.
+- **pg_stat_file(...)**, **\gset**, and **pg_read_file(...)** (bounded file read)
+  - What they are: pg_stat_file returns size; \gset saves log_size_before; pg_read_file reads a data-directory-relative byte range.
+  - What they do here: The query reads only newly appended log data.
+  - What they give us: The SQL filter avoids older incidents.
+- **regexp_split_to_table(..., chr(10)) WITH ORDINALITY** (line parser)
+  - What it is: It turns newline-separated text into numbered rows.
+  - What it does here: A regular expression selects waiting, acquired, duration, and checkpoint lines.
+  - What it gives us: n preserves file order and l contains evidence.
+- **CHECKPOINT** (checkpoint command)
+  - What it is: It asks the checkpointer to flush dirty pages.
+  - What it does here: It adds a background-process start/complete pair.
+  - What it gives us: Buffer, WAL, sync, total-time, and LSN fields describe work.
+- **\! tail -n 12 ...** (psql shell escape)
+  - What it is: \! runs tail; -n 12 keeps twelve lines.
+  - What it does here: It includes continuation lines omitted by the SQL filter.
+  - What it gives us: Lock-holder PID, tuple location, and statement context.
+- **ALTER ROLE ... SET** (challenge scope)
+  - What it is: It stores a setting for one role.
+  - What it does here: A value of 0 creates a complete trace for that caller.
+  - What it gives us: Compare targeted log volume with pg_stat_statements aggregation.`,
       setup: code`
 drop table if exists obs_log_demo;
 create table obs_log_demo(id int primary key, note text);

@@ -72,8 +72,19 @@ per-course lesson pitfalls, the subagent workflow). Open the files relevant to y
 
 ## Quality bar for every lesson
 
+- `reading` (optional): one-line citation of where the course's canonical book covers this lesson
+  (chapter number, exact title, section when sure); say plainly when the book does not cover it. It
+  prints as metadata at the top of the write-up.
+- `readingNotes` (optional, only when `reading` cites a chapter): one or two short paragraphs on how
+  the experiment overlaps with that chapter, what the book adds, where the lesson differs, and
+  whether to read it before or after. Omitted when the book does not cover the lesson.
 - `overview`: what you are about to observe and why a systems engineer cares (2-4 sentences).
-- `syntaxBreakdown`: every new command, function, flag, or catalog in one sentence each.
+- `syntaxBreakdown`: the learning template from `docs/AUTHORING.md`, written for a reader who knows
+  basic SQL but not the tool's internals, in Markdown: `### In plain terms` (what the experiment
+  answers and why it matters, jargon defined inline), `### What you are learning` (the concepts, one
+  bullet each), and `### Piece by piece` (every command, flag, function, backslash command, view,
+  setting, or unusual clause: what it is, what it does here, what it gives us and how to read its
+  output). Full sentences; no five-word blurbs.
 - `setup` (optional): idempotent preparation; the learner may re-run it.
 - `code`: the experiment in execution order. Multi-session steps are labelled `-- Session A` /
   `-- Session B` (use the tool's comment syntax); note where a step blocks and what unblocks it.

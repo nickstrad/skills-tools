@@ -29,12 +29,99 @@ xid that deleted it, so the first thing to understand is where xids come from. T
 single cluster-wide counter, and they are handed out lazily: a transaction that only reads never
 takes one. You will watch a transaction stay xid-less through several reads, take an xid at its
 first write, and see a second session take the very next number from the same counter.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Operations on Tuples", "Virtual Transactions"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
+      readingNotes: code`
+Chapter 3 explains where creating and deleting transaction IDs are recorded in tuple headers, while
+Chapter 12 explains the transaction-ID locks that let concurrent transactions wait for one another.
+This lesson makes the allocation timing visible with PostgreSQL's xid8 functions and pg_locks; run it
+before reading those sections so the book's tuple and lock diagrams have a concrete experiment to
+attach to.`,
       syntaxBreakdown: code`
-pg_current_xact_id_if_assigned() returns the current transaction's xid or NULL if it has not been
-assigned one yet -- it never forces an assignment. pg_current_xact_id() forces one. Both return
-xid8, a 64-bit value (32-bit xid plus epoch) so the numbers do not wrap in the output. pg_locks
-shows a "virtualxid" lock for every backend: that is the cheap per-session identity a read-only
-transaction uses instead of a real xid.`,
+### In plain terms
+
+This experiment asks when PostgreSQL gives a transaction its numeric identity. A transaction that
+only reads stays without a real transaction ID, then its first UPDATE allocates one; a second session
+gets the next value from the same cluster-wide counter. That matters because IDs consume shared
+metadata and eventually have to be frozen before the finite counter becomes unsafe.
+
+### What you are learning
+
+- **Lazy xid allocation:** Reads can use a snapshot without reserving a real transaction ID; the
+  first write is the event that normally allocates one.
+- **Cluster-wide ordering:** The counter is shared by all sessions, so two writers receive consecutive
+  values even though they are in different client connections.
+- **Virtual versus real identity:** A virtual transaction ID identifies a session cheaply, while a
+  real xid is used for committed-row visibility and transaction locks.
+
+### Piece by piece
+
+- **CREATE TABLE IF NOT EXISTS** (SQL DDL)
+  - What it is: It creates the lab table only when it is absent; **IF NOT EXISTS** makes setup safe to
+    repeat. The primary key on **id** enforces uniqueness, and **NOT NULL** rejects missing owners or
+    balances.
+  - What it does here: It defines three integer-keyed account rows for the later reads and updates.
+  - What it gives us: A deterministic table whose row changes can consume xids.
+- **TRUNCATE** (table-reset command)
+  - What it is: It removes all rows efficiently rather than issuing one DELETE per row.
+  - What it does here: It makes repeated runs start with the same empty table before the three INSERTed
+    accounts are loaded.
+  - What it gives us: Stable row counts and predictable update targets.
+- **BEGIN** (transaction control)
+  - What it is: It starts a transaction, a group of statements that share one visibility context and
+    commit or roll back together.
+  - What it does here: It lets Session A and Session B remain open while their xid state is inspected.
+  - What it gives us: A place to compare read-only and writing transaction state.
+- **pg_current_xact_id_if_assigned()** (SQL inspection function)
+  - What it is: It returns the current transaction's 64-bit **xid8**, or NULL if PostgreSQL has not
+    assigned a real xid. Unlike the forcing function below, it does not allocate one.
+  - What it does here: It is called outside a transaction, after two reads, and before and after each
+    session's UPDATE.
+  - What it gives us: Empty output before a write and a numeric value after it; the transition is the
+    key evidence of lazy allocation.
+- **COUNT(*) and SUM(balance)** (aggregate functions)
+  - What they are: **COUNT** counts rows and **SUM** adds balances without changing data.
+  - What they do here: They provide harmless reads inside Session A's transaction.
+  - What they give us: Proof that ordinary reads do not themselves allocate a real xid.
+- **pg_locks** (system view)
+  - What it is: A live list of locks held or awaited by server processes.
+  - What it does here: The query filters to the current backend and displays its lock types before
+    and after the UPDATE.
+  - What it gives us: A **virtualxid** row while the transaction is read-only, followed by a
+    **transactionid** row whose **transactionid** matches the newly allocated xid.
+- **pg_backend_pid()** (session identity function)
+  - What it is: It returns the operating-system process ID of the current PostgreSQL backend.
+  - What it does here: It limits **pg_locks** to this session rather than every client.
+  - What it gives us: A precise view of the current connection's locks.
+- **ORDER BY locktype** (SQL ordering clause)
+  - What it is: It sorts result rows by lock category.
+  - What it does here: It makes the before/after lock lists easier to compare.
+  - What it gives us: The same lock kinds appear in a consistent order.
+- **UPDATE ... SET ... WHERE** (data-change statement)
+  - What it is: **UPDATE** creates a new row version; **SET balance = balance + 1** changes one value,
+    and **WHERE id = ...** restricts the change to one account.
+  - What it does here: It is the first write in each session and therefore the point where a real xid
+    is assigned.
+  - What it gives us: A numeric xid and, in **pg_locks**, a transaction-ID lock.
+- **COMMIT** (transaction control)
+  - What it is: It makes a transaction's changes visible to later snapshots and releases its locks.
+  - What it does here: It completes both writer sessions before the final read-only test.
+  - What it gives us: A clean comparison between completed writes and a later read-only transaction.
+- **pg_current_xact_id()** (xid-forcing function)
+  - What it is: It returns the current xid8 and allocates one if needed.
+  - What it does here: The final call follows a read-only transaction and deliberately forces an xid.
+  - What it gives us: A number despite the preceding read, proving that this function changes state.
+- **pg_stat_activity** (backend activity view, in the challenge)
+  - What it is: It lists sessions and their current transaction metadata.
+  - What it does here: **backend_xid** shows a real xid, while **backend_xmin** shows the oldest xid the
+    session's snapshot may still need; **pid <> pg_backend_pid()** excludes this session.
+  - What it gives us: An idle read-only transaction with an empty **backend_xid** but a populated
+    **backend_xmin**, which becomes important for vacuum horizons.
+- **SELECT 1** (constant read, in the challenge)
+  - What it is: A query that returns one constant and touches no user table.
+  - What it does here: It creates a snapshot in the idle third session without writing.
+  - What it gives us: Evidence that a snapshot can publish a cleanup horizon without a real xid.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -107,12 +194,81 @@ three things: a low water mark (every xid below it has finished), a high water m
 above it started after us and is invisible), and the list of xids in between that were still running
 when the snapshot was taken. You will watch a second session's xid appear in that in-progress list
 and then vanish from it when it commits.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (sections "What is a Snapshot?", "Snapshot Structure")`,
+      readingNotes: code`
+Chapter 4 describes the xmin, xmax, and in-progress transaction list that form a PostgreSQL snapshot.
+The lesson prints each component while a writer remains open, then repeats the read after commit so
+the list and visibility decision change live. Run the experiment first, then use the chapter to
+formalize the watermarks and visibility rules shown by the output.`,
       syntaxBreakdown: code`
-pg_current_snapshot() prints a snapshot as xmin:xmax:xip_list, for example 1035:1036:1035.
-pg_snapshot_xmin(), pg_snapshot_xmax() and pg_snapshot_xip() pull the parts out; pg_snapshot_xip()
-is a set-returning function, so it is wrapped in array_agg here. Under READ COMMITTED a new snapshot
-is taken for every statement, which is why running the same SELECT twice can print different
-snapshots.`,
+### In plain terms
+
+This experiment opens one writer and lets another session take snapshots around it. You will see the
+writer's xid listed as in progress, making its changed row invisible, and then see a fresh snapshot
+after commit where that xid is no longer listed and the new balance is visible. A snapshot is the
+reader's timestamp-like view of which transactions are finished, active, or from the future.
+
+### What you are learning
+
+- **xmin and xmax:** xmin is the lower settled boundary; xmax is the first xid that is too new for
+  this snapshot to see.
+- **In-progress list:** Xids between those boundaries that were still running need an explicit
+  visibility check.
+- **Statement snapshots:** READ COMMITTED takes a new snapshot for each statement, so two SELECTs
+  can see different committed states.
+
+### Piece by piece
+
+- **pg_current_snapshot()** (snapshot inspection function)
+  - What it is: It returns a snapshot in **xmin:xmax:xip_list** form, where xip means xids in progress.
+  - What it does here: It is called before B starts, while B runs, and after B commits.
+  - What it gives us: The same shape with B's xid appearing in the middle list only while B is open.
+- **BEGIN** (transaction control)
+  - What it is: It opens a transaction whose statements can hold locks and snapshots.
+  - What it does here: B keeps its UPDATE uncommitted while A observes it; A also wraps a short
+    write so B is no longer the newest xid.
+  - What it gives us: The concurrency needed for a non-empty in-progress list.
+- **UPDATE ... WHERE** (row-versioning write)
+  - What it is: It changes the selected account row and creates a new version under the writer's xid.
+  - What it does here: B changes Carol by 10; A changes Alice by 1 and commits to advance the xid
+    boundaries.
+  - What it gives us: A known row whose new version remains invisible to A while B is uncommitted.
+- **pg_current_xact_id()** (xid inspection function)
+  - What it is: It returns B's current xid8, allocating it if necessary.
+  - What it does here: B records the xid that should later appear in the snapshot's xip list.
+  - What it gives us: The number to match against **in_progress**.
+- **pg_snapshot_xmin() and pg_snapshot_xmax()** (snapshot accessor functions)
+  - What they are: They extract the lower and upper xid boundaries from a snapshot value.
+  - What they do here: They are applied to a freshly captured snapshot in one SELECT.
+  - What they give us: Named **snap_xmin** and **snap_xmax** columns that explain the printed snapshot.
+- **pg_snapshot_xip()** (set-returning snapshot accessor)
+  - What it is: It emits one xid per transaction listed as in progress.
+  - What it does here: A scalar subquery feeds its rows to **array_agg**.
+  - What it gives us: An **in_progress** array containing B's xid while B is open and empty after commit.
+- **array_agg(...)** (aggregate function)
+  - What it is: It collects multiple rows into one SQL array.
+  - What it does here: It keeps the set-returning xip output beside xmin and xmax in one result row.
+  - What it gives us: A compact list that is easy to compare with B's xid.
+- **SELECT ... WHERE id = 3** (visibility observation)
+  - What it is: A normal filtered read of Carol's row.
+  - What it does here: It runs once while B is in progress and once after B commits.
+  - What it gives us: Balance 100 first and 110 later, tying snapshot metadata to row visibility.
+- **COMMIT** (transaction control)
+  - What it is: It finishes a transaction and publishes its changes.
+  - What it does here: B's commit removes its xid from future snapshots and makes Carol's new version
+    visible.
+  - What it gives us: The before/after comparison for the snapshot experiment.
+- **REPEATABLE READ** (transaction isolation level, in the challenge)
+  - What it is: An isolation mode that keeps one snapshot for the entire transaction.
+  - What it does here: Repeated **pg_current_snapshot()** calls retain the same text despite another
+    transaction committing.
+  - What it gives us: Evidence of a stable view.
+- **READ COMMITTED** (transaction isolation level, in the challenge)
+  - What it is: PostgreSQL's default mode, which takes a snapshot for each statement.
+  - What it does here: Repeating the same query allows xmax to advance after another commit.
+  - What it gives us: A direct contrast with REPEATABLE READ.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -180,11 +336,74 @@ An UPDATE in PostgreSQL never overwrites a row. It writes a new tuple and stamps
 deleted by the updating xid, so both versions sit on the page at once and each session is routed to
 the one its snapshot allows. Here a REPEATABLE READ reader keeps reading the old version while a
 writer commits a new one, and you dump the page to see both.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Row Version Visibility"); Chapter 2 "Isolation" (section "Repeatable Read")`,
+      readingNotes: code`
+Chapter 4 explains how a snapshot chooses among tuple versions, and Chapter 2 explains why
+REPEATABLE READ keeps that choice stable. This lesson shows both sides at once: raw page inspection
+reveals old and new tuples while Session A continues to read the old one. Run it before the chapters
+if the page dump is new to you, then read the visibility rules afterward.`,
       syntaxBreakdown: code`
-heap_page_items(get_raw_page('mv_accounts', 0)) from pageinspect lists every line pointer on page 0
-with t_xmin (creating xid), t_xmax (deleting xid), and t_ctid (the forward pointer an UPDATE leaves
-from the old version to the new one). ctid is the physical address of the version a query actually
-read, so selecting it from two sessions shows they touched different tuples.`,
+### In plain terms
+
+This experiment updates Alice while another session holds an older repeatable-read view. PostgreSQL
+keeps the old and new row versions on the same heap page, so the writer sees the new physical address
+while the reader still sees the old address and balance. This explains why readers and writers can
+run together, and why later vacuum work is required to remove obsolete versions.
+
+### What you are learning
+
+- **Tuple versions:** An UPDATE appends a replacement tuple and marks the old tuple with the updater's
+  xid instead of overwriting bytes in place.
+- **Snapshot visibility:** The same page can yield different logical rows to sessions with different
+  snapshots.
+- **ctid and version chains:** A ctid is a physical page/slot address, and **t_ctid** links an old
+  version to the replacement version.
+
+### Piece by piece
+
+- **BEGIN ISOLATION LEVEL REPEATABLE READ** (transaction and isolation command)
+  - What it is: It starts a transaction with one snapshot retained for all its statements.
+  - What it does here: Session A captures Alice before Session B updates her.
+  - What it gives us: A stable reader that continues to see the old version after B commits.
+- **ctid** (system column)
+  - What it is: PostgreSQL's physical address for a tuple, written as **(block,line pointer)**.
+  - What it does here: Both sessions select it for Alice before or after the update.
+  - What it gives us: Different addresses such as **(0,1)** and **(0,4)**, proving two physical versions.
+- **pg_current_snapshot()** (snapshot inspection function)
+  - What it is: It prints the transaction boundaries and in-progress xids used for visibility.
+  - What it does here: A records the snapshot that explains why it retains the old tuple.
+  - What it gives us: A snapshot to compare with B's updating xid if needed.
+- **UPDATE ... SET ... WHERE** (version-producing write)
+  - What it is: It changes Alice's balance for **id = 1**; PostgreSQL creates a new tuple version.
+  - What it does here: B adds 50 and then reads its own committed replacement.
+  - What it gives us: New ctid **(0,4)** and balance 150 while A remains at 100.
+- **pageinspect** (extension used through functions)
+  - What it is: An extension that exposes raw PostgreSQL page and tuple layout for diagnostics.
+  - What it does here: It lets the lesson inspect heap page 0 without applying normal visibility rules.
+  - What it gives us: Physical line pointers and tuple header fields, not merely currently visible rows.
+- **get_raw_page('mv_accounts', 0)** (pageinspect function)
+  - What it is: It returns block 0 of the named relation as raw page bytes.
+  - What it does here: **heap_page_items** decodes the returned bytes.
+  - What it gives us: The exact page containing the initial rows and Alice's replacement.
+- **heap_page_items(...)** (pageinspect set-returning function)
+  - What it is: It decodes heap line pointers and tuple-header metadata from a raw page.
+  - What it does here: The query prints **lp**, optional **lp_off**, **t_xmin**, **t_xmax**, and **t_ctid**.
+  - What it gives us: The old tuple's deleting xid and forward pointer, plus the new tuple's creating xid.
+- **ORDER BY lp** (SQL ordering clause)
+  - What it is: It sorts decoded page items by their line-pointer number.
+  - What it does here: It makes the version chain and the other account rows easy to compare.
+  - What it gives us: Alice's old slot followed by the new slot in a stable display order.
+- **COMMIT** (transaction control)
+  - What it is: It publishes B's update and ends A's old snapshot when A commits.
+  - What it does here: A's final SELECT runs outside the repeatable-read transaction.
+  - What it gives us: The normal current view, ctid **(0,4)** and balance 150.
+- **t_xmin, t_xmax, and t_ctid** (tuple-header fields, in the challenge)
+  - What they are: They record the creating xid, deleting/updating xid, and tuple-chain target.
+  - What they do here: Repeated updates expose a chain from the first line pointer; a non-indexed
+    update can be a HOT (heap-only tuple) update when it fits on the same page.
+  - What they give us: Evidence of version accumulation and whether the index needs a new entry.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -243,12 +462,97 @@ A tuple header says which xid created it, but not whether that xid committed. Th
 somewhere else: the commit log, pg_xact, two bits per transaction. You will abort a transaction that
 wrote rows, prove the rows are still physically on the page, and prove they are invisible only
 because pg_xact says their creator aborted.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Operations on Tuples")`,
+      readingNotes: code`
+Chapter 3 describes insert, commit, abort, and update as tuple operations whose physical effects are
+separate from commit status. This lesson makes that separation concrete by reading pg_xact_status,
+then inspecting aborted tuple headers that remain on the page. Read the chapter after running the
+experiment to connect its tuple diagrams to the aborted and committed examples.`,
       syntaxBreakdown: code`
-pg_xact_status(xid8) reads the commit log and returns 'in progress', 'committed' or 'aborted'. A
-psql variable interpolates as a bare integer literal, so it needs the explicit cast ::text::xid8.
-psql's \gset captures a query result into a variable, so the doomed transaction's own xid survives
-its rollback. pg_xact itself is a directory of 8 kB segments under the data directory, each byte
-holding the status of four transactions.`,
+### In plain terms
+
+This experiment writes an INSERT and an UPDATE, then rolls the transaction back. The bytes for those
+row versions remain on the heap page, but ordinary queries hide them because the commit log says the
+creating transaction aborted. A later committed transaction provides the contrast: the same metadata
+path marks its version visible.
+
+### What you are learning
+
+- **Commit-log indirection:** Tuple headers identify transactions, while **pg_xact** separately records
+  whether each transaction committed or aborted.
+- **Rollback visibility:** ROLLBACK changes the transaction status; it does not need to rewrite every
+  tuple created by the transaction.
+- **Hint bits:** A later read can cache commit status in tuple-header flags, making future visibility
+  checks cheaper while dirtying the page.
+
+### Piece by piece
+
+- **BEGIN** (transaction control)
+  - What it is: It starts the transaction whose writes will be tested.
+  - What it does here: The doomed transaction gets an xid, inserts Dave, and updates Bob before
+    rollback; the second transaction repeats the pattern but commits.
+  - What it gives us: A controlled pair of committed and aborted tuple versions.
+- **pg_current_xact_id()** (xid inspection function)
+  - What it is: It returns and, if necessary, allocates the current transaction's xid8.
+  - What it does here: Its result is saved as **doomed_xid** and **good_xid** before each transaction ends.
+  - What it gives us: Stable IDs that can be queried after COMMIT or ROLLBACK.
+- **\\gset** (psql meta-command)
+  - What it is: It stores each column of the preceding one-row query in a psql variable named after
+    that column.
+  - What it does here: It preserves each xid in **:doomed_xid** or **:good_xid** after the transaction
+    that produced it has finished.
+  - What it gives us: Variables for later status queries and the **\\echo** line.
+- **INSERT** and **UPDATE ... WHERE** (data-change statements)
+  - What they are: INSERT adds a row; UPDATE creates a replacement version for Bob where **id = 2**.
+  - What they do here: They create physical work inside the doomed and good transactions.
+  - What they give us: Four visible rows inside the first transaction, then aborted versions that
+    disappear from ordinary reads after rollback.
+- **ROLLBACK** (transaction control)
+  - What it is: It marks the transaction aborted and discards its logical effects.
+  - What it does here: Dave and Bob's zero-balance version become invisible without being erased yet.
+  - What it gives us: The key contrast between **rows_visible_inside_txn** and after rollback.
+- **\\echo** (psql output command)
+  - What it is: It prints text after expanding psql variables.
+  - What it does here: It displays the saved doomed xid so the following result is readable.
+  - What it gives us: A label tying the status result to the transaction that was rolled back.
+- **pg_xact_status(xid8)** (commit-log inspection function)
+  - What it is: It looks up an xid in PostgreSQL's commit log and returns **in progress**,
+    **committed**, or **aborted**.
+  - What it does here: It checks both saved IDs after their transactions finish.
+  - What it gives us: **aborted** for the doomed xid and **committed** for the good xid.
+- **::text::xid8** (explicit cast chain)
+  - What it is: psql substitutes **:name** as text, then PostgreSQL casts that text to the xid8 type.
+  - What it does here: It gives **pg_xact_status** the typed xid it requires.
+  - What it gives us: A status lookup instead of a type-resolution error.
+- **heap_page_items(get_raw_page(...))** (pageinspect inspection)
+  - What it is: **get_raw_page** reads heap block 0 and **heap_page_items** decodes its line pointers
+    and tuple headers.
+  - What it does here: It runs after rollback and shows Dave and Bob's aborted versions still present.
+  - What it gives us: **t_xmin**/**t_xmax** values stamped with the doomed xid even though normal SELECT
+    omits those rows.
+- **SELECT ... ORDER BY id** (visible-row observation)
+  - What it is: It reads account rows and sorts them by their logical ID.
+  - What it does here: It compares visibility before and after rollback and after Erin commits.
+  - What it gives us: Bob returns to 100, Dave never appears, and Erin adds the fourth visible row.
+- **COMMIT** (transaction control)
+  - What it is: It makes the second transaction's changes durable and visible.
+  - What it does here: Erin remains visible and **good_xid** becomes committed in the log.
+  - What it gives us: A committed status to compare with the aborted status.
+- **pg_xact** (on-disk commit-log directory)
+  - What it is: A directory of small 8 KiB status segments; each byte stores the status of four xids.
+  - What it does here: The psql **\\! ls -l** shell escape lists the lab cluster's segment file.
+  - What it gives us: Physical evidence that commit truth is kept in a compact side structure.
+- **\\! ls -l PATH** (psql shell escape)
+  - What it is: It runs the given operating-system command from psql; **ls -l** lists file sizes and
+    ownership.
+  - What it does here: It lists **/var/lib/postgresql/pglab/primary/pg_xact**.
+  - What it gives us: The small **0000** segment that stores status for this short-lived lab.
+- **t_infomask and HEAP_XMIN_COMMITTED (challenge)** (tuple hint metadata)
+  - What they are: **t_infomask** contains tuple flags; bit 256 is the committed-creator hint.
+  - What they do here: Diffing two page dumps shows the first read setting the hint bit.
+  - What they give us: Evidence that a SELECT can cache commit status and dirty a page.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -325,12 +629,71 @@ minimum xmin over every snapshot in the cluster, so a single session sitting in 
 holds the horizon down for everyone -- in this database and, for the shared horizon, beyond it. You
 will delete rows, fail to vacuum them away, watch the blocker in pg_stat_activity, then release it
 and vacuum again.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Transaction Horizon"); Chapter 6 "Vacuum and Autovacuum" (section "Database Horizon Revisited")`,
+      readingNotes: code`
+Chapter 4 defines the transaction horizon as the oldest snapshot that may still need a row version,
+and Chapter 6 applies that horizon to vacuum cleanup. This lesson holds a repeatable-read snapshot,
+then shows the exact cutoff and blocked dead tuples before releasing it. Run it first, then read the
+two sections to connect backend_xmin and vacuum's removable cutoff to the formal horizon model.`,
       syntaxBreakdown: code`
-VACUUM (VERBOSE) reports what it could and could not remove; the lines that matter are
-"tuples: N removed, M remain, K are dead but not yet removable" and "removable cutoff: X, which was
-N XIDs old when operation ended". pg_stat_activity.backend_xmin is the oldest xid each backend's
-snapshot still needs. pgstattuple counts live and dead tuples independently of vacuum.
-VACUUM also reports on the table's TOAST relation; ignore those blocks.`,
+### In plain terms
+
+This experiment proves that vacuum cannot remove a dead row while an older snapshot might still read
+it. Session B takes a repeatable-read snapshot and then sits idle; Session A deletes two rows and
+vacuum reports them as not yet removable. When B commits, the same vacuum can reclaim them. A single
+forgotten transaction can therefore make storage grow for work it never performed.
+
+### What you are learning
+
+- **Vacuum horizon:** Cleanup uses the oldest snapshot's xmin as a safety boundary.
+- **backend_xmin:** A backend advertises the oldest transaction ID its snapshot still needs.
+- **Dead versus removable:** A tuple can be logically dead but physically retained until every older
+  observer is gone.
+
+### Piece by piece
+
+- **VACUUM** (maintenance command)
+  - What it is: It scans a table and reclaims tuple and index space that no snapshot can need.
+  - What it does here: The first run is blocked by B's snapshot; the second runs after B commits.
+  - What it gives us: Verbose counts showing zero removed before release and two removed afterward.
+- **VERBOSE** (VACUUM option)
+  - What it is: It asks VACUUM to print per-table progress and cleanup accounting.
+  - What it does here: It exposes the removable cutoff and the “dead but not yet removable” count.
+  - What it gives us: Text that can be matched directly to B's **backend_xmin**.
+- **BEGIN ISOLATION LEVEL REPEATABLE READ** (transaction setup)
+  - What it is: It opens one transaction and fixes its snapshot at the first query.
+  - What it does here: B reads the table once and keeps that snapshot while A deletes rows.
+  - What it gives us: A persistent observer that prevents cleanup.
+- **pgstattuple('mv_accounts')** (extension inspection function)
+  - What it is: It scans the relation and counts live and dead tuples directly, rather than using
+    statistics estimates.
+  - What it does here: It measures the table before and after B's snapshot is released.
+  - What it gives us: **live** and **dead** columns showing two dead rows before vacuum can remove them.
+- **DELETE ... WHERE id IN (...)** (data-change statement)
+  - What it is: DELETE marks matching row versions deleted; **IN (2, 3)** selects Bob and Carol.
+  - What it does here: It creates the dead versions while B may still need the prior snapshot.
+  - What it gives us: **dead = 2** from pgstattuple.
+- **pg_stat_activity** (backend activity view)
+  - What it is: It reports each server session's state and transaction metadata.
+  - What it does here: The query selects sessions with a non-NULL **backend_xmin**, sorts by
+    **age(backend_xmin)**, and shows whether **xact_start** is present.
+  - What it gives us: B as **idle in transaction**, with the oldest backend_xmin matching vacuum's cutoff.
+- **age(backend_xmin)** (xid-age function)
+  - What it is: It measures how old an xid is relative to the current transaction counter; xid values
+    themselves are not ordered like ordinary integers.
+  - What it does here: It orders the sessions from oldest horizon holder to newest.
+  - What it gives us: The session most likely to pin cleanup appears first.
+- **COMMIT** (transaction control)
+  - What it is: It ends B's transaction and releases its snapshot and locks.
+  - What it does here: It removes B's xmin from the global horizon.
+  - What it gives us: The follow-up vacuum is now allowed to remove both dead rows.
+- **TOAST** (oversized-value storage)
+  - What it is: PostgreSQL's auxiliary relation for values too large to fit in the main tuple.
+  - What it does here: VERBOSE may print an additional empty TOAST block; it is not the table being
+    measured.
+  - What it gives us: A reminder to identify the **mv_accounts** block when reading vacuum output.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -403,14 +766,88 @@ meaning within a window of 2^31 transactions. A row whose creating xid falls out
 would suddenly look like it came from the future. Freezing is the escape hatch: mark a tuple as
 unconditionally visible so its xid stops mattering. You will measure the age of the table, burn a
 couple of thousand xids to move it, freeze, and watch the age snap back to zero.`,
+      reading:
+        `PostgreSQL 14 Internals, Chapter 7 "Freezing" (sections "Transaction ID Wraparound", "Tuple Freezing and Visibility Rules", "Manual Freezing")`,
+      readingNotes: code`
+Chapter 7 explains why a 32-bit xid needs freezing, how frozen tuples are treated as universally
+visible, and how manual VACUUM FREEZE advances a relation's frozen horizon. This lesson burns xids in
+a small lab and inspects the tuple flags before and after freezing. Run it first for intuition, then
+read the chapter to understand the safety margins and freeze ages used in production.`,
       syntaxBreakdown: code`
-age(relfrozenxid) is the number of transactions between a relation's guaranteed-frozen point and the
-current counter; age(datfrozenxid) is the same for a whole database and is what autovacuum's
-wraparound protection watches. VACUUM (FREEZE) sets vacuum_freeze_min_age to 0 for the run, so every
-visible tuple is frozen. Freezing does not rewrite t_xmin: it sets HEAP_XMIN_COMMITTED and
-HEAP_XMIN_INVALID together in t_infomask (0x0100 | 0x0200 = 0x0300 = 768), a combination that is
-otherwise impossible and means "frozen". Hence the test (t_infomask & 768) = 768. The DO block burns
-xids by opening 2000 subtransactions that each write a row.`,
+### In plain terms
+
+PostgreSQL transaction IDs are a finite 32-bit clock. If an old row's ID were compared after the
+clock wrapped, it could look newer than a current transaction; freezing marks an old visible tuple as
+safe forever so its original ID no longer matters. This experiment burns IDs, measures the growing
+age, runs VACUUM FREEZE, and observes the age and tuple flags reset without rewriting the row.
+
+### What you are learning
+
+- **Xid wraparound:** Visibility comparisons are safe only within a half-range of the 32-bit counter.
+- **Frozen horizon:** relfrozenxid/datfrozenxid record how far old tuple IDs have been made safe.
+- **Freeze hint bits:** A pair of tuple flags represents “frozen” while t_xmin remains unchanged.
+
+### Piece by piece
+
+- **generate_series(1, 50)** (set-returning function)
+  - What it is: It emits one integer per value in the inclusive range.
+  - What it does here: It creates 50 predictable account rows with owner names built by **||**.
+  - What it gives us: A small page whose tuples can all be inspected and frozen.
+- **CREATE TABLE / TRUNCATE / INSERT ... SELECT** (lab setup)
+  - What they are: CREATE defines the account and xid-burning tables, TRUNCATE resets them, and
+    INSERT SELECT loads generated rows.
+  - What they do here: They make repeated runs independent and ensure the account tuples are old
+    enough to freeze.
+  - What they give us: A known 50-tuple heap and an empty **mv_burn** target.
+- **VACUUM** (maintenance command)
+  - What it is: It marks dead space reusable and advances a relation's cleanup metadata.
+  - What it does here: Setup establishes a clean frozen horizon before IDs are burned.
+  - What it gives us: A starting relfrozenxid and no initially frozen tuples in the page dump.
+- **age(relfrozenxid) and age(datfrozenxid)** (xid-age expressions)
+  - What they are: They measure transactions since the relation or database's guaranteed-frozen xid.
+  - What they do here: Queries against **pg_class** and **pg_database** report relation and database age.
+  - What they give us: Small starting ages and an increase after the burn loop.
+- **pg_class and pg_database** (system catalog tables)
+  - What they are: They store relation definitions and database-wide metadata.
+  - What they do here: **relfrozenxid** identifies the table's frozen boundary; **datfrozenxid** identifies
+    the database boundary; **current_database()** restricts the latter to this lab database.
+  - What they give us: The exact horizons that autovacuum's wraparound protection monitors.
+- **current_setting(...)** (configuration inspection function)
+  - What it is: It returns a setting's current text value.
+  - What it does here: It reads **vacuum_freeze_min_age** and **autovacuum_freeze_max_age** before the burn.
+  - What it gives us: The configured trigger values that put the tiny lab ages in context.
+- **heap_page_items(get_raw_page(...))** (pageinspect functions)
+  - What they are: They read and decode raw heap page 0, exposing tuple flags and xids.
+  - What they do here: **count(*) FILTER (WHERE ...)** counts frozen tuples, while the final query prints
+    the first three line pointers' **t_xmin** and **t_infomask**.
+  - What they give us: Zero frozen tuples before, 50 after, unchanged t_xmin, and the frozen flag bits.
+- **DO $$ ... $$** (anonymous PL/pgSQL block)
+  - What it is: It executes procedural code without creating a permanent function.
+  - What it does here: The **FOR i IN 1..2000** loop opens a nested block for each iteration; each INSERT
+    consumes a transaction ID, and the exception handler keeps the loop going if one iteration fails.
+  - What it gives us: An age increase of roughly 2000 xids.
+- **EXCEPTION WHEN OTHERS THEN NULL** (PL/pgSQL error handler)
+  - What it is: It catches any error in the nested insert block and does nothing for that iteration.
+  - What it does here: It makes the xid-burning loop continue rather than aborting on one failure.
+  - What it gives us: A best-effort burn; the measured age, not an assumed exact count, is authoritative.
+- **VACUUM (FREEZE, VERBOSE)** (maintenance command with options)
+  - What it is: FREEZE uses an effective minimum freeze age of zero for this run; VERBOSE prints work.
+  - What it does here: It freezes every eligible visible tuple and reports the new relfrozenxid.
+  - What it gives us: Age near zero, 50 frozen tuples, and “frozen” page counts in the INFO output.
+- **(t_infomask & 768) = 768** (bit-mask predicate)
+  - What it is: **&** keeps only selected bits; 768 is 0x0100 | 0x0200, the committed and invalid hint
+    combination PostgreSQL uses to represent a frozen xmin.
+  - What it does here: The FILTER counts tuples carrying both bits.
+  - What it gives us: A numeric before/after test for freezing rather than relying only on log text.
+- **ORDER BY lp LIMIT 3** (result-shaping clauses)
+  - What they are: ORDER BY makes page slots stable; LIMIT restricts output to three examples.
+  - What they do here: They keep the final tuple-header evidence short and comparable.
+  - What they give us: Representative t_xmin and t_infomask values after freezing.
+- **VACUUM with vacuum_freeze_min_age = 0** (challenge variation)
+  - What it is: A session-level setting of zero makes an ordinary vacuum consider tuples immediately.
+  - What it does here: The challenge compares plain VACUUM under that setting with explicit FREEZE.
+  - What it gives us: A test of whether the setting produces the same amount of freezing.
+`,
       setup: code`
 create table if not exists mv_accounts (
   id int primary key,

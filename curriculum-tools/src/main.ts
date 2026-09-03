@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS lessons (
   category TEXT NOT NULL,
   difficulty TEXT NOT NULL CHECK (difficulty IN ('beginner','intermediate','advanced')),
   tags TEXT NOT NULL DEFAULT ',',
+  reading TEXT NOT NULL DEFAULT '',
+  reading_notes TEXT NOT NULL DEFAULT '',
   overview TEXT NOT NULL,
   syntax_breakdown TEXT NOT NULL,
   setup TEXT NOT NULL DEFAULT '',
@@ -86,8 +88,8 @@ Usage:
   tutor courses
   tutor <course> init [--db PATH]
   tutor <course> next [--topic TEXT] [--json]
-  tutor <course> show <NUMBER> [--json]
-  tutor <course> pretty [NUMBER | --topic TEXT]
+  tutor <course> show <NUMBER> [--json|--ansi|--plain]
+  tutor <course> pretty [NUMBER | --topic TEXT] [--ansi|--plain]
   tutor <course> done <NUMBER> [--note TEXT]
   tutor <course> undone <NUMBER>
   tutor <course> skip <NUMBER> [--note TEXT]
@@ -99,6 +101,8 @@ Usage:
   tutor <course> search <TEXT> [--json]
 
 Every course command accepts --db PATH to use a different progress database.
+'show' and 'pretty' print a lesson as Markdown, styled with ANSI colours when stdout is a terminal
+(--ansi forces colours, --plain disables them).
 --topic matches every word against lesson tags, category, and title (e.g. --topic "buffer cache");
 'topics' lists the tag vocabulary with progress so a reading topic can be mapped onto lessons.
 Displaying a lesson never marks it done. Run 'tutor <course> done <NUMBER>' after the experiment.`;
@@ -107,26 +111,42 @@ Displaying a lesson never marks it done. Run 'tutor <course> done <NUMBER>' afte
 function parseArgs(args: string[]) {
   const positional: string[] = [];
   const flags = new Map<string, string | true>();
-  const valued = new Set(["--db", "--category", "--limit", "--note", "--topic"]);
+  const valued = new Set([
+    "--db",
+    "--category",
+    "--limit",
+    "--note",
+    "--topic",
+  ]);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith("--")) {
       positional.push(arg);
     } else if (valued.has(arg)) {
       const value = args[++i];
-      if (!value || value.startsWith("--")) throw new Error(`${arg} requires a value`);
+      if (!value || value.startsWith("--")) {
+        throw new Error(`${arg} requires a value`);
+      }
       flags.set(arg, value);
-    } else if (["--json", "--todo", "--done", "--all", "--help"].includes(arg)) {
+    } else if (
+      ["--json", "--todo", "--done", "--all", "--help", "--ansi", "--plain"]
+        .includes(arg)
+    ) {
       flags.set(arg, true);
     } else {
       throw new Error(`unknown option: ${arg}`);
     }
   }
+  if (flags.has("--ansi") && flags.has("--plain")) {
+    throw new Error("--ansi and --plain cannot be used together");
+  }
   return { positional, flags };
 }
 
 export function courseDir(id: string): string {
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) throw new Error(`invalid course id: ${id}`);
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) {
+    throw new Error(`invalid course id: ${id}`);
+  }
   return resolve(COURSES_DIR, id);
 }
 
@@ -150,13 +170,17 @@ export async function listCourses(): Promise<Course[]> {
 export async function loadCourse(id: string): Promise<Course> {
   const file = resolve(courseDir(id), "course.json");
   const course = JSON.parse(await Deno.readTextFile(file)) as Course;
-  if (course.id !== id) throw new Error(`${file} declares id ${course.id}, expected ${id}`);
+  if (course.id !== id) {
+    throw new Error(`${file} declares id ${course.id}, expected ${id}`);
+  }
   return course;
 }
 
 function dbPath(course: string, flags: Map<string, string | true>): string {
   const selected = flags.get("--db");
-  if (!selected || selected === true) return resolve(courseDir(course), "progress.sqlite");
+  if (!selected || selected === true) {
+    return resolve(courseDir(course), "progress.sqlite");
+  }
   return isAbsolute(selected) ? selected : resolve(Deno.cwd(), selected);
 }
 
@@ -175,7 +199,9 @@ async function loadLessons(course: string): Promise<Lesson[]> {
   try {
     text = await Deno.readTextFile(file);
   } catch {
-    throw new Error(`${file} is missing; run 'deno task build ${course}' first`);
+    throw new Error(
+      `${file} is missing; run 'deno task build ${course}' first`,
+    );
   }
   const lessons = JSON.parse(text) as Lesson[];
   validateLessons(lessons);
@@ -186,13 +212,34 @@ function migrate(db: DatabaseSync): void {
   db.exec("BEGIN IMMEDIATE");
   try {
     db.exec(SCHEMA);
-    db.prepare("INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(1,'initial')").run();
+    db.prepare(
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(1,'initial')",
+    ).run();
     const columns = db.prepare("PRAGMA table_info(lessons)").all() as Row[];
     if (!columns.some((c) => c.name === "tags")) {
       db.exec("ALTER TABLE lessons ADD COLUMN tags TEXT NOT NULL DEFAULT ','");
     }
-    db.prepare("INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(2,'lesson tags')")
+    db.prepare(
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(2,'lesson tags')",
+    )
       .run();
+    if (!columns.some((c) => c.name === "reading")) {
+      db.exec(
+        "ALTER TABLE lessons ADD COLUMN reading TEXT NOT NULL DEFAULT ''",
+      );
+    }
+    db.prepare(
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(3,'lesson reading')",
+    )
+      .run();
+    if (!columns.some((c) => c.name === "reading_notes")) {
+      db.exec(
+        "ALTER TABLE lessons ADD COLUMN reading_notes TEXT NOT NULL DEFAULT ''",
+      );
+    }
+    db.prepare(
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(4,'lesson reading notes')",
+    ).run();
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
@@ -203,13 +250,13 @@ function migrate(db: DatabaseSync): void {
 async function seed(db: DatabaseSync, course: string): Promise<number> {
   const lessons = await loadLessons(course);
   const upsert = db.prepare(`
-    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,
-      setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,
-      min_version,estimated_minutes,revision)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,reading,reading_notes,
+      overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,
+      safety_level,run_in,sessions,min_version,estimated_minutes,revision)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,slug=excluded.slug,title=excluded.title,
       category=excluded.category,difficulty=excluded.difficulty,tags=excluded.tags,
-      overview=excluded.overview,
+      reading=excluded.reading,reading_notes=excluded.reading_notes,overview=excluded.overview,
       syntax_breakdown=excluded.syntax_breakdown,setup=excluded.setup,code=excluded.code,
       expected_result=excluded.expected_result,systems_lens=excluded.systems_lens,
       challenge=excluded.challenge,caution=excluded.caution,safety_level=excluded.safety_level,
@@ -235,6 +282,8 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
         x.category,
         x.difficulty,
         `,${(x.tags ?? []).join(",")},`,
+        x.reading ?? "",
+        x.readingNotes ?? "",
         x.overview,
         x.syntaxBreakdown,
         x.setup ?? "",
@@ -252,7 +301,9 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
       );
     }
     db.exec("DELETE FROM lesson_prerequisites");
-    for (const x of lessons) for (const p of x.prerequisites) prerequisite.run(x.ordinal, p);
+    for (const x of lessons) {
+      for (const p of x.prerequisites) prerequisite.run(x.ordinal, p);
+    }
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
@@ -262,7 +313,9 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
 }
 
 function getLesson(db: DatabaseSync, ordinal: number): Row | undefined {
-  return db.prepare(`${LESSON_SELECT} WHERE l.ordinal=? AND l.active=1`).get(ordinal) as
+  return db.prepare(`${LESSON_SELECT} WHERE l.ordinal=? AND l.active=1`).get(
+    ordinal,
+  ) as
     | Row
     | undefined;
 }
@@ -297,6 +350,8 @@ function cleanLesson(row: Row): Row {
     category: row.category,
     difficulty: row.difficulty,
     tags: tagsOf(row),
+    reading: row.reading || undefined,
+    readingNotes: row.reading_notes || undefined,
     status: row.stale ? "stale" : row.status,
     sessions: row.sessions,
     runIn: row.run_in,
@@ -315,6 +370,17 @@ function cleanLesson(row: Row): Row {
   };
 }
 
+function codeLanguage(course: Course, runIn: unknown): string {
+  if (runIn === "shell") return "sh";
+  if (runIn === "mixed") return "text";
+  return ["psql", "sqlite3", "duckdb"].includes(course.tool) ? "sql" : course.tool;
+}
+
+function fence(text: unknown, lang: string): string {
+  return "```" + lang + "\n" + String(text) + "\n```";
+}
+
+/** Render a lesson as Markdown: metadata block, then one `##` section per field. */
 function renderLesson(row: Row, course: Course): string {
   const x = cleanLesson(row);
   const runIn = x.runIn === "tool"
@@ -323,33 +389,92 @@ function renderLesson(row: Row, course: Course): string {
     ? "shell"
     : `${course.tool} + shell`;
   const sessions = Number(x.sessions) > 1 ? `, ${x.sessions} ${course.tool} sessions` : "";
-  const tags = (x.tags as string[]).length ? `\nTopics: ${(x.tags as string[]).join(", ")}` : "";
-  const parts = [
-    `Title: ${x.title}`,
-    `Meta: ${x.category} | ${x.difficulty} | ~${x.estimatedMinutes} min | run in ${runIn}${sessions} | ${x.safetyLevel}${tags}`,
-    `Overview: ${x.overview}`,
-    `Syntax breakdown: ${x.syntaxBreakdown}`,
+  const lang = codeLanguage(course, x.runIn);
+  const meta = [
+    `**Meta:** ${x.category} | ${x.difficulty} | ~${x.estimatedMinutes} min | run in ${runIn}${sessions} | ${x.safetyLevel}`,
   ];
-  if (x.caution) parts.push(`Caution: ${x.caution}`);
-  parts.push(`Lesson ID: ${x.ordinal}`);
-  if (x.setup) parts.push(`Setup:\n${x.setup}`);
-  parts.push(`Run:\n${x.code}`);
-  parts.push(`Expected result: ${x.expectedResult}`);
-  parts.push(`Systems lens: ${x.systemsLens}`);
-  if (x.challenge) parts.push(`Challenge: ${x.challenge}`);
-  if (x.notes) parts.push(`Your note: ${x.notes}`);
-  return parts.join("\n");
+  if ((x.tags as string[]).length) {
+    meta.push(`**Topics:** ${(x.tags as string[]).join(", ")}`);
+  }
+  if (x.reading) meta.push(`**Reading:** ${x.reading}`);
+  meta.push(`Lesson ID: ${x.ordinal}`);
+  // Two trailing spaces make each metadata line a hard break in Markdown.
+  const parts = [`# Lesson ${x.ordinal}: ${x.title}`, meta.join("  \n")];
+  const section = (title: string, body: unknown) => parts.push(`## ${title}\n${body}`);
+  section("Overview", x.overview);
+  if (x.readingNotes) {
+    section("How this overlaps with the book", x.readingNotes);
+  }
+  section("Syntax breakdown", x.syntaxBreakdown);
+  if (x.caution) section("Caution", x.caution);
+  if (x.setup) section("Setup", fence(x.setup, lang));
+  section("Run", fence(x.code, lang));
+  section("Expected result", x.expectedResult);
+  section("Systems lens", x.systemsLens);
+  if (x.challenge) section("Challenge", x.challenge);
+  if (x.notes) section("Your note", x.notes);
+  return parts.join("\n\n");
+}
+
+const ANSI = {
+  reset: "\x1b[0m",
+  bold: "\x1b[1m",
+  unbold: "\x1b[22m",
+  dim: "\x1b[2m",
+  title: "\x1b[1;36m",
+  h2: "\x1b[1;33m",
+  h3: "\x1b[1;32m",
+  code: "\x1b[36m",
+  bullet: "\x1b[35m",
+};
+
+/** Style the Markdown from renderLesson for a terminal: coloured headings, bold, tinted code. */
+export function styleMarkdown(markdown: string): string {
+  const out: string[] = [];
+  let inCode = false;
+  for (const raw of markdown.split("\n")) {
+    const line = raw.replace(/ {2}$/, "");
+    if (line.startsWith("```")) {
+      inCode = !inCode;
+      out.push(`${ANSI.dim}${line}${ANSI.reset}`);
+      continue;
+    }
+    if (inCode) {
+      out.push(`${ANSI.code}${line}${ANSI.reset}`);
+      continue;
+    }
+    const heading = line.match(/^(#{1,3}) (.*)$/);
+    if (heading) {
+      const colour = heading[1].length === 1
+        ? ANSI.title
+        : heading[1].length === 2
+        ? ANSI.h2
+        : ANSI.h3;
+      const rule = heading[1].length === 2 ? `\n${ANSI.dim}${"─".repeat(72)}${ANSI.reset}` : "";
+      out.push(`${colour}${heading[2]}${ANSI.reset}${rule}`);
+      continue;
+    }
+    let styled = line.replace(/\*\*(.+?)\*\*/g, `${ANSI.bold}$1${ANSI.unbold}`);
+    styled = styled.replace(/^(\s*)- /, `$1${ANSI.bullet}•${ANSI.reset} `);
+    out.push(styled);
+  }
+  return out.join("\n");
 }
 
 function ensureReady(db: DatabaseSync): void {
   try {
     db.prepare("SELECT run_in FROM lessons LIMIT 1").get();
   } catch {
-    throw new Error("progress database is not initialized; run 'tutor <course> init'");
+    throw new Error(
+      "progress database is not initialized; run 'tutor <course> init'",
+    );
   }
 }
 
-export async function run(args: string[], io: Output = console): Promise<number> {
+export async function run(
+  args: string[],
+  io: Output = console,
+): Promise<number> {
   let parsed;
   try {
     parsed = parseArgs(args);
@@ -379,7 +504,9 @@ export async function run(args: string[], io: Output = console): Promise<number>
   try {
     course = await loadCourse(courseId);
   } catch (error) {
-    io.error(`Error: unknown course '${courseId}' (${(error as Error).message})\n\n${usage()}`);
+    io.error(
+      `Error: unknown course '${courseId}' (${(error as Error).message})\n\n${usage()}`,
+    );
     return 2;
   }
   if (!command) {
@@ -398,8 +525,13 @@ export async function run(args: string[], io: Output = console): Promise<number>
     }
     ensureReady(db);
     const json = parsed.flags.has("--json");
-    const outputLesson = (row: Row, asJson: boolean) =>
-      io.log(asJson ? JSON.stringify(cleanLesson(row), null, 2) : renderLesson(row, course));
+    const ansi = parsed.flags.has("--ansi") ||
+      (!parsed.flags.has("--plain") && Deno.stdout.isTerminal());
+    const outputLesson = (row: Row, asJson: boolean) => {
+      if (asJson) return io.log(JSON.stringify(cleanLesson(row), null, 2));
+      const markdown = renderLesson(row, course);
+      io.log(ansi ? styleMarkdown(markdown) : markdown);
+    };
     if (command === "next" || (command === "pretty" && rest.length === 0)) {
       const topic = parsed.flags.get("--topic");
       const unfinished = `(p.lesson_id IS NULL OR p.status='todo'
@@ -407,7 +539,9 @@ export async function run(args: string[], io: Output = console): Promise<number>
       let row: Row | undefined;
       if (typeof topic === "string") {
         const t = topicFilter(topic);
-        const any = db.prepare(`SELECT count(*) n FROM lessons l WHERE l.active=1 AND ${t.sql}`)
+        const any = db.prepare(
+          `SELECT count(*) n FROM lessons l WHERE l.active=1 AND ${t.sql}`,
+        )
           .get(...t.values) as Row;
         if (Number(any.n) === 0) {
           io.log(
@@ -417,8 +551,10 @@ export async function run(args: string[], io: Output = console): Promise<number>
           );
           return 0;
         }
-        row = db.prepare(`${LESSON_SELECT} WHERE l.active=1 AND ${unfinished} AND ${t.sql}
-          ORDER BY l.ordinal LIMIT 1`).get(...t.values) as Row | undefined;
+        row = db.prepare(
+          `${LESSON_SELECT} WHERE l.active=1 AND ${unfinished} AND ${t.sql}
+          ORDER BY l.ordinal LIMIT 1`,
+        ).get(...t.values) as Row | undefined;
         if (!row) {
           io.log(
             json
@@ -432,7 +568,9 @@ export async function run(args: string[], io: Output = console): Promise<number>
           ORDER BY l.ordinal LIMIT 1`).get() as Row | undefined;
       }
       if (!row) {
-        io.log(json ? JSON.stringify({ complete: true }) : "All active lessons are complete.");
+        io.log(
+          json ? JSON.stringify({ complete: true }) : "All active lessons are complete.",
+        );
       } else outputLesson(row, command === "pretty" ? false : json);
       return 0;
     }
@@ -448,8 +586,10 @@ export async function run(args: string[], io: Output = console): Promise<number>
       const lesson = getLesson(db, ordinal);
       if (!lesson) throw new RangeError(`lesson ${ordinal} not found`);
       if (command === "undone") {
-        db.prepare(`UPDATE progress SET status='todo', completed_revision=NULL, completed_at=NULL,
-          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE lesson_id=?`).run(
+        db.prepare(
+          `UPDATE progress SET status='todo', completed_revision=NULL, completed_at=NULL,
+          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE lesson_id=?`,
+        ).run(
           lesson.id as number,
         );
         io.log(`Lesson ${ordinal} marked todo.`);
@@ -460,11 +600,13 @@ export async function run(args: string[], io: Output = console): Promise<number>
         const note = parsed.flags.get("--note");
         db.exec("BEGIN IMMEDIATE");
         try {
-          db.prepare(`INSERT INTO progress(lesson_id,status,completed_revision,completed_at,notes)
+          db.prepare(
+            `INSERT INTO progress(lesson_id,status,completed_revision,completed_at,notes)
           VALUES(?,?,?,?,?) ON CONFLICT(lesson_id) DO UPDATE SET status=excluded.status,
           completed_revision=excluded.completed_revision,completed_at=excluded.completed_at,
           notes=CASE WHEN excluded.notes='' THEN progress.notes ELSE excluded.notes END,
-          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).run(
+          updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+          ).run(
             lesson.id as number,
             status,
             revision,
@@ -494,15 +636,19 @@ export async function run(args: string[], io: Output = console): Promise<number>
       if (!note) throw new Error("note text is required");
       const lesson = getLesson(db, ordinal);
       if (!lesson) throw new RangeError(`lesson ${ordinal} not found`);
-      db.prepare(`INSERT INTO progress(lesson_id,status,notes) VALUES(?,'todo',?)
+      db.prepare(
+        `INSERT INTO progress(lesson_id,status,notes) VALUES(?,'todo',?)
         ON CONFLICT(lesson_id) DO UPDATE SET notes=excluded.notes,
-        updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`).run(lesson.id as number, note);
+        updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')`,
+      ).run(lesson.id as number, note);
       io.log(`Note saved for lesson ${ordinal}.`);
       return 0;
     }
     if (command === "list") {
       const modes = ["--todo", "--done", "--all"].filter((f) => parsed.flags.has(f));
-      if (modes.length > 1) throw new Error(`choose one of ${modes.join(", ")}`);
+      if (modes.length > 1) {
+        throw new Error(`choose one of ${modes.join(", ")}`);
+      }
       const filters: string[] = ["l.active=1"];
       const values: (string | number)[] = [];
       if (parsed.flags.has("--done")) {
@@ -552,7 +698,8 @@ export async function run(args: string[], io: Output = console): Promise<number>
       >();
       for (const r of rows) {
         for (const tag of tagsOf(r)) {
-          const t = topics.get(tag) ?? { first: Number(r.ordinal), total: 0, done: 0, lessons: [] };
+          const t = topics.get(tag) ??
+            { first: Number(r.ordinal), total: 0, done: 0, lessons: [] };
           t.total++;
           if (r.finished) t.done++;
           t.lessons.push(Number(r.ordinal));
@@ -572,11 +719,13 @@ export async function run(args: string[], io: Output = console): Promise<number>
       return 0;
     }
     if (command === "modules") {
-      const rows = db.prepare(`SELECT l.category, min(l.ordinal) first, max(l.ordinal) last,
+      const rows = db.prepare(
+        `SELECT l.category, min(l.ordinal) first, max(l.ordinal) last,
         count(*) total, count(*) FILTER (WHERE p.status='done' AND p.completed_revision=l.revision) done,
         sum(l.estimated_minutes) minutes
         FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1
-        GROUP BY l.category ORDER BY first`).all() as Row[];
+        GROUP BY l.category ORDER BY first`,
+      ).all() as Row[];
       io.log(
         json
           ? JSON.stringify(rows, null, 2)
@@ -593,7 +742,8 @@ export async function run(args: string[], io: Output = console): Promise<number>
         count(*) FILTER (WHERE p.status='done' AND p.completed_revision=l.revision) done,
         count(*) FILTER (WHERE p.status='skipped') skipped,
         count(*) FILTER (WHERE p.status='done' AND p.completed_revision<>l.revision) stale
-        FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1`).get() as Row;
+        FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1`)
+        .get() as Row;
       const status = {
         course: course.id,
         total: row.total,
@@ -615,7 +765,9 @@ export async function run(args: string[], io: Output = console): Promise<number>
       const haystack =
         "(l.title || ' ' || l.overview || ' ' || l.systems_lens || ' ' || l.code || ' ' || l.category || ' ' || l.slug || ' ' || l.tags)";
       const filters = terms.map(() => `${haystack} LIKE ?`).join(" AND ");
-      const rows = db.prepare(`${LESSON_SELECT} WHERE l.active=1 AND ${filters} ORDER BY l.ordinal`)
+      const rows = db.prepare(
+        `${LESSON_SELECT} WHERE l.active=1 AND ${filters} ORDER BY l.ordinal`,
+      )
         .all(...terms.map((t) => `%${t}%`)) as Row[];
       if (json) io.log(JSON.stringify(rows.map(cleanLesson), null, 2));
       else {io.log(

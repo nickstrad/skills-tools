@@ -37,11 +37,14 @@ directory, then `init`, then retry.
 
 ## Present one lesson
 
-Paste the `pretty` output verbatim (it always contains `Lesson ID:` and the exact code under
-`Run:`). Then coach: if the lesson says it needs multiple sessions, tell the user to open that many
-terminals and label them Session A/B as the code does. Ask the user to predict the result before
-running when a `Challenge:` or a surprising `Expected result:` is present. After they report what
-they saw, compare it with `Expected result:` and explain any difference through `Systems lens:`.
+Paste the `pretty` output verbatim: it is Markdown, it always contains `Lesson ID:`, and the exact
+code is in the fenced block under `## Run`. Never shorten, paraphrase, or re-wrap the `Reading` line
+and `## Syntax breakdown` section: they are written for a learner without internals background and
+must reach them whole. Then coach: if the lesson says it needs multiple sessions, tell the user to
+open that many terminals and label them Session A/B as the code does. Ask the user to predict the
+result before running when a `## Challenge` or a surprising `## Expected result` is present. After
+they report what they saw, compare it with `## Expected result` and explain any difference through
+`## Systems lens`.
 
 Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
 structured fields are needed.

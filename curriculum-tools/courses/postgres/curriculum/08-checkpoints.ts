@@ -25,22 +25,49 @@ current LSN open up, run CHECKPOINT by hand, and watch the gap slam shut. Then y
 server's own accounting of the work: the pg_stat_bgwriter counters and the "checkpoint complete:
 wrote N buffers" line in the log, which is the single most useful line in a PostgreSQL log file
 when you are trying to explain an I/O spike.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Background Writing", "WAL Setup")`,
+      readingNotes: code`
+Chapter 10 explains checkpoint work, background writing, and the settings and counters used to
+monitor it. This lesson makes those ideas visible by dirtying buffers, forcing a checkpoint, and
+matching LSN arithmetic with pg_stat_bgwriter and log output.`,
       syntaxBreakdown: code`
-CHECKPOINT is a SQL command (superuser or the pg_checkpoint role) that forces an immediate
-checkpoint and does not return until it has finished. pg_control_checkpoint() reads the control
-file: checkpoint_lsn is where the last checkpoint record sits, redo_lsn is the redo point where
-replay would start, and checkpoint_time is when it happened. pg_wal_lsn_diff(a, b) turns two LSNs
-into a byte count, so pg_wal_lsn_diff(pg_current_wal_lsn(), redo_lsn) is literally "how much WAL
-would I have to replay if the machine lost power right now". pg_buffercache (from the extension)
-has one row per shared buffer with isdirty, relfilenode and usagecount. pg_stat_bgwriter counts
-checkpoints_timed (triggered by checkpoint_timeout), checkpoints_req (triggered by max_wal_size or
-by a CHECKPOINT command), buffers_checkpoint (pages the checkpointer wrote), buffers_clean (pages
-the background writer wrote) and buffers_backend (pages an ordinary backend had to write itself,
-because it wanted a buffer and every candidate was dirty). In PostgreSQL 16 these all live in
-pg_stat_bgwriter; PostgreSQL 17 splits the checkpoint columns out into a separate
-pg_stat_checkpointer view. log_checkpoints is on in this lab, so every checkpoint prints a
-starting and a complete line; the query below reads the tail of the log with pg_read_file(), whose
-relative paths resolve inside the data directory, so you never have to leave psql.`,
+### In plain terms
+
+This experiment fills PostgreSQL's shared memory cache with changed pages, measures how much WAL
+would need replaying, and then forces a checkpoint. A checkpoint writes dirty pages and records a new
+redo starting point, so recovery has less work. The counters and log line let you connect the SQL view
+of the work to the server's own accounting.
+
+### What you are learning
+
+- **Dirty buffers:** Changed pages can wait in memory while WAL records are already durable.
+- **Redo distance:** The LSN gap estimates the WAL recovery work after a crash.
+- **Checkpoint accounting:** Buffer counters and log fields reveal who wrote pages and how long it took.
+
+### Piece by piece
+
+- **CHECKPOINT** (SQL command). What it is: an immediate checkpoint request that waits for completion.
+  - What it does here: It establishes the clean baseline and later flushes the pages dirtied by INSERT.
+  - What it gives us: **checkpoints_req** rises, dirty_buffers_after falls to zero, and redo distance collapses.
+- **pg_control_checkpoint()** (SQL function). What it is: a reader of control-file checkpoint metadata.
+  - What it does here: It reports **checkpoint_lsn**, **redo_lsn**, and **checkpoint_time** before and after the flush.
+  - What it gives us: **wal_to_replay**, computed with **pg_wal_lsn_diff** and formatted by **pg_size_pretty**, measures recovery work.
+- **generate_series(1, 100000)** and **repeat('p', 200)** (SQL functions). What they are: row-number and padding generators.
+  - What it does here: It creates 100,000 wide rows that occupy many shared buffers.
+  - What it gives us: A visible increase in dirty buffer count and WAL-to-replay distance.
+- **pg_buffercache** (extension view). What it is: one row per shared buffer.
+  - What it does here: The **isdirty** filter counts changed pages, and **pg_relation_filenode** identifies this table's pages.
+  - What it gives us: **dirty_buffers**, **dirty_for_our_table**, and **total_buffers** for comparing cache state.
+- **pg_settings.shared_buffers** (configuration view column). What it is: the configured number of 8 KB shared buffers.
+  - What it does here: The scalar subquery reports the cache capacity alongside dirty pages.
+  - What it gives us: A denominator such as 16,384 buffers for the log's percentage.
+- **pg_stat_bgwriter** (statistics view). What it is: cumulative counters for checkpoint and background writes.
+  - What it does here: It measures timed/requested checkpoints and pages written by each writer.
+  - What it gives us: Counter deltas for **buffers_checkpoint**, **buffers_clean**, and **buffers_backend**; write/sync times are divided by 1000.
+- **pg_read_file**, **pg_stat_file**, **regexp_split_to_table**, **chr(10)**, **WITH ORDINALITY**, **LIKE**, **ORDER BY**, and **LIMIT** (SQL file/text tools and clauses). What they are: functions and clauses for reading and filtering text.
+  - What it does here: It reads the last 20 KB of the log, splits lines, keeps checkpoint messages, and returns the latest two.
+  - What it gives us: The server's **checkpoint starting** and **checkpoint complete** lines, including buffers, distance, and timing.`,
       setup: code`
 drop table if exists ckpt_anatomy;
 create table ckpt_anatomy(id int primary key, pad text);`,
@@ -196,17 +223,51 @@ write another 38 MB, run CHECKPOINT, then kill it the same way. Both crashes los
 processes, both leave the cluster marked "in production", and both recover every committed row.
 The only thing that changes is how far "redo starts at" is from "redo done at", and how long the
 server takes to get between them -- 38 MB and 0.31 s versus 56 bytes and 0.00 s.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Recovery")`,
+      readingNotes: code`
+Chapter 10 explains how checkpoints bound redo work and how crash recovery replays the remaining WAL.
+This lesson runs the same crash twice, with and without an intervening checkpoint, to measure that
+recovery bound while showing that both committed datasets remain durable.`,
       syntaxBreakdown: code`
-pg_ctl -D DIR stop -m immediate sends SIGQUIT to every process: no shutdown checkpoint is written
-and dirty buffers are simply abandoned. pg_controldata -D DIR prints the control file without a
-running server; "Database cluster state: in production" on a stopped cluster is the marker of an
-unclean shutdown, and "Latest checkpoint's REDO location" is where replay will begin. On restart
-the log prints "database system was not properly shut down; automatic recovery in progress",
-"redo starts at LSN", and "redo done at LSN system usage: ... elapsed: N s". The distance between
-those two LSNs is pg_wal_lsn_diff of the two numbers, and the elapsed time is your RTO. Recovery
-finishes with an end-of-recovery checkpoint, which is why the redo point is fresh again
-afterwards, and pg_stat_bgwriter's counters are reset by a crash, because the statistics file is
-not crash-safe.`,
+### In plain terms
+
+This lesson performs two deliberately unclean shutdowns. Both runs preserve committed rows, but the
+run without a checkpoint has much more WAL to replay and therefore takes longer to become available.
+The experiment makes recovery time, rather than data correctness, the reason to manage checkpoints.
+
+### What you are learning
+
+- **Unclean shutdown:** Immediate stop abandons dirty buffers and skips a shutdown checkpoint.
+- **Redo point:** Recovery starts at the checkpoint's redo LSN and stops at the last complete record.
+- **Recovery time objective:** The replay distance and elapsed time determine post-crash availability.
+
+### Piece by piece
+
+- **CHECKPOINT** (SQL command). What it is: a command that flushes dirty pages and advances the redo boundary.
+  - What it does here: It establishes the starting point for each crash round; round two runs it after the second bulk insert.
+  - What it gives us: Round one has a large WAL distance; round two reports about 176 bytes to replay.
+- **pg_control_checkpoint()** and **pg_wal_lsn_diff()** (SQL function and arithmetic). What they are: checkpoint metadata and LSN subtraction.
+  - What it does here: It capture the redo point, current LSN, and formatted replay distance before each stop.
+  - What it gives us: **redo_lsn**, **now_lsn**, and **wal_to_replay** prove the checkpoint changes recovery work, not durability.
+- **generate_series** and **repeat** (SQL functions). What they are: integer-range and text-padding generators.
+  - What it does here: It creates 120,000 rows per round, each with a 200-character payload.
+  - What it gives us: **committed_rows** of 120,000 and 240,000 after reconnects, proving committed data survives.
+- **pg_buffercache** and **isdirty** (extension view and filter). What they are: cache-page inspection and the dirty-page predicate.
+  - What it does here: It counts pages that had not reached data files before the immediate stop.
+  - What it gives us: A dirty_buffers count explaining why recovery must redo WAL.
+- **pg_ctl -D DIR stop -m immediate** (server-control command). What it is: a forced stop without a shutdown checkpoint.
+  - What it does here: **-D** selects the lab and **-m immediate** kills processes; psql connections are expected to fail.
+  - What it gives us: An unclean cluster state and a recovery run on every restart.
+- **pg_controldata -D DIR | grep -E** (control reader and shell filter). What they are: a stopped-cluster metadata reader and pattern matcher.
+  - What it does here: It selects cluster state and REDO location from pg_control.
+  - What it gives us: **in production** plus the expected redo LSN, proving the crash did not write a checkpoint.
+- **pg_ctl ... start -w -l**, **grep**, and **tail** (server-control and shell filters). What they are: restart, log selection, and message filtering tools.
+  - What it does here: It restart the instance and select recovery lines.
+  - What it gives us: **redo starts at**, **redo done at**, and elapsed seconds for each round.
+- **timeline_id** from **pg_control_checkpoint()** (checkpoint metadata). What it is: the current history identifier.
+  - What it does here: It is checked after the second crash.
+  - What it gives us: The same timeline ID, showing ordinary crash recovery does not create a branch.`,
       caution: code`
 This lesson crashes the lab cluster twice. Only ever run it against $PGLAB, never against a
 cluster you care about and never against the packaged system cluster on port 5432. Your psql
@@ -356,19 +417,47 @@ catch the server triggering its own checkpoints in the middle of it. The log say
 starting: wal", and it also says "checkpoints are occurring too frequently", which is PostgreSQL
 telling you in plain English that the write rate has outrun the flush rate. Then you put the
 setting back and prove postgresql.auto.conf is clean again.`,
+      reading: code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "WAL Setup")`,
+      readingNotes: code`
+Chapter 10's WAL setup section explains checkpoint thresholds and the monitoring signals around them.
+This lesson lowers max_wal_size to trigger WAL-driven checkpoints during a bulk write, showing the
+back-pressure and warning messages live.`,
       syntaxBreakdown: code`
-ALTER SYSTEM SET writes a setting into postgresql.auto.conf, which is read after postgresql.conf
-and therefore wins; ALTER SYSTEM RESET removes it again. Neither takes effect until the server
-rereads its configuration: pg_reload_conf() does that for settings whose context is "sighup"
-(max_wal_size is one), while "postmaster" settings need a restart. SHOW reports what the server
-actually believes. max_wal_size is a soft target for how much WAL may accumulate between
-checkpoints, not a hard cap: pg_wal can and does exceed it, because a checkpoint takes time and
-because checkpoint_completion_target (0.9) deliberately paces the writes across most of the
-interval. The log distinguishes why a checkpoint started: "time" (checkpoint_timeout), "wal"
-(max_wal_size), "immediate force wait" (a CHECKPOINT command), "end-of-recovery", "shutdown".
-checkpoint_warning (30 s) is what produces the "occurring too frequently" hint. pg_ls_waldir()
-lists pg_wal from SQL, and psql's \gset captures a query result into a variable you can splice
-into a later statement with a colon.`,
+### In plain terms
+
+Here PostgreSQL is allowed to trigger checkpoints itself when WAL grows too far. You lower the soft
+WAL target, generate a burst, and read the log to see a checkpoint start because of WAL rather than a
+timer or manual command. Restoring the setting demonstrates safe configuration cleanup.
+
+### What you are learning
+
+- **WAL pressure:** max_wal_size is a target that prompts flushing; it is not a hard disk cap.
+- **Back-pressure:** A producer writing WAL can force the checkpoint consumer to catch up.
+- **Reloadable configuration:** ALTER SYSTEM plus pg_reload_conf changes SIGHUP settings without restart.
+
+### Piece by piece
+
+- **ALTER SYSTEM SET/RESET max_wal_size** (configuration commands). What they are: commands that write or remove a postgresql.auto.conf override.
+  - What it does here: SET lowers the target to 64 MB; RESET cleans it up after the burst.
+  - What it gives us: **show max_wal_size** changes without a restart, then returns to 1 GB.
+- **pg_reload_conf()**, **SHOW**, and **pg_sleep(1)** (SQL function, command, and delay). What they are: reload, inspection, and settling tools.
+  - What it does here: It applies the SIGHUP setting, displays it, and allows background work to catch up.
+  - What it gives us: Confirmation of the active value and stable checkpoint counters/log output.
+- **pg_stat_bgwriter.checkpoints_timed/checkpoints_req** (statistics columns). What they are: timer and requested-checkpoint counters.
+  - What it does here: It are read before and after the WAL burst.
+  - What it gives us: **checkpoints_req** rises while **checkpoints_timed** does not, proving WAL pressure triggered the work.
+- **pg_ls_waldir(), count, sum, and pg_size_pretty** (directory function and aggregates). What they are: tools for measuring WAL files and space.
+  - What it does here: It compares segment count and bytes before and after recycling.
+  - What it gives us: The directory may exceed the soft target briefly, then settles near the new target.
+- **generate_series(1, 200000)** and **repeat('w', 300)** (SQL generators). What they are: row-number and payload generators.
+  - What it does here: It creates enough data to write roughly 80 MB of WAL.
+  - What it gives us: WAL-triggered **checkpoint starting: wal** lines and the too-frequent warning.
+- **pg_stat_file**, **pg_read_file**, **regexp_split_to_table**, **chr(10)**, **WITH ORDINALITY**, **LIKE**, **ORDER BY**, and **\gset** (SQL file/text tools). What they are: functions and clauses for retaining and filtering new log text.
+  - What it does here: It save the starting file size, split new lines, keep checkpoint messages, and order them.
+  - What it gives us: Checkpoint reason, buffers, distance, and timing from only this experiment.
+- **postgresql.auto.conf** (generated configuration file). What it is: the file where ALTER SYSTEM stores overrides.
+  - What it does here: It is read after RESET to verify cleanup.
+  - What it gives us: Only PostgreSQL's standard comments, proving max_wal_size was restored.`,
       caution: code`
 This lesson changes a cluster-wide setting with ALTER SYSTEM and reloads the configuration. It
 resets the setting at the end of the same script; if you stop halfway, run
@@ -509,18 +598,50 @@ of LSNs it records in backup_label. Replay every WAL record between them and the
 into a consistent database. In this lesson you take that backup, read backup_label, verify it with
 pg_verifybackup, and break it on purpose to watch verification catch it. The backup you make here
 is the input to the next lesson.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`
-pg_basebackup -D DIR takes a physical backup. -c fast forces an immediate checkpoint before
-starting instead of waiting for a paced one (fast is right for a lab, spread is right for a busy
-production server you do not want to hit with an I/O spike). -X stream opens a second connection
-that streams WAL concurrently with the file copy, so every record the backup needs ends up inside
-the backup's own pg_wal and it is self-contained; -X none would make it depend on the archive. -P
-shows progress and -v is verbose. backup_label is written into the backup (never into the live
-data directory in this mode) and records START WAL LOCATION, CHECKPOINT LOCATION, BACKUP FROM and
-START TIMELINE; its presence is what tells a starting server "you are restoring a backup, begin
-redo at this LSN, not at the one in pg_control". backup_manifest lists every file with a CRC32C
-checksum, and pg_verifybackup DIR rechecks them. The lab cluster already allows local replication
-connections under trust, which is why no extra role or pg_hba entry is needed.`,
+### In plain terms
+
+This experiment makes a usable physical backup from a running PostgreSQL server. The copied files
+are not an instantaneous snapshot, so the backup must include enough WAL to reconcile changes made
+while copying. You verify the manifest, deliberately corrupt one file, and confirm the verifier catches it.
+
+### What you are learning
+
+- **Physical base backup:** It copies the cluster's files through PostgreSQL's backup protocol.
+- **WAL self-containment:** Streaming WAL during the copy makes the backup independently restorable.
+- **Verification:** A manifest detects changed bytes but does not replace a real restore test.
+
+### Piece by piece
+
+- **pg_basebackup** (physical-backup utility). What it is: a PostgreSQL program that copies a live data directory through the replication protocol.
+  - What it does here: **-D** chooses the empty **backup1** destination and the command copies files while transactions continue.
+  - What it gives us: A backup directory plus start/end WAL positions that can be restored consistently.
+- **-h / -p** (connection flags). What they are: host/socket and port selectors.
+  - What it does here: It connects to the lab socket at port 5440.
+  - What it gives us: Proof that the backup came from the intended lab server.
+- **-c fast** (pg_basebackup flag). What it is: the immediate-checkpoint choice.
+  - What it does here: It asks the primary to checkpoint before copying begins.
+  - What it gives us: A clear backup start point and the log message that the checkpoint completed.
+- **-X stream** (pg_basebackup flag). What it is: concurrent WAL streaming.
+  - What it does here: It opens a second connection and stores required WAL in the backup's pg_wal.
+  - What it gives us: A self-contained backup; **-X none** in the challenge instead depends on the archive.
+- **-P** and **-v** (pg_basebackup flags). What they are: progress and verbose-output controls.
+  - What it does here: It shows copy progress and algorithm stages.
+  - What it gives us: Start/end points, byte counts, and completion messages to check the procedure.
+- **backup_label** (backup metadata file). What it is: the recovery contract written inside the copy.
+  - What it does here: It records START WAL LOCATION, CHECKPOINT LOCATION, method, source, and timeline.
+  - What it gives us: The WAL range needed to turn the smeared file copy into a consistent database.
+- **backup_manifest** and **pg_verifybackup DIR** (manifest and verification utility). What they are: a checksum list and its checker.
+  - What it does here: It validates every copied file, then rechecks after PG_VERSION is intentionally changed.
+  - What it gives us: Success for the intact backup and a named size/checksum error for corruption.
+- **rm -rf**, **cp**, **ls**, **du**, **df**, **head -c**, **echo**, **printf**, and **cat** (shell file tools). What they are: disposable-directory, listing, sizing, and text commands.
+  - What it does here: It removes an old attempt, inspects the backup, and corrupts then restores PG_VERSION.
+  - What it gives us: Directory contents, disk usage, manifest text, and verification failure/recovery evidence.
+- **PG_VERSION** (data-directory marker). What it is: a small file identifying the PostgreSQL major version.
+  - What it does here: Appending text makes the manifest mismatch; writing **16** restores the expected value.
+  - What it gives us: A controlled verification failure followed by **backup successfully verified**.`,
       caution: code`
 This lesson writes about 330 MB into $PGLAB/backup1; check free space first. Leave the backup in
 place when you are finished: the next lesson restores from it, and module 09 may reuse it to seed
@@ -669,24 +790,55 @@ safe. Then you restore backup1 into a second data directory, tell it to replay t
 that timestamp and stop there, and start it on port 5441 alongside the untouched original. The
 restored server replays forward, announces "recovery stopping before commit of transaction NNN",
 promotes itself onto a new timeline, and the table is there. The original on 5440 never notices.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`
-Recovery is configured with ordinary GUCs plus a signal file. recovery.signal (an empty file in
-the data directory) puts the server into archive recovery; without it the settings are ignored.
-restore_command is a shell command with %f (the segment name wanted) and %p (where to put it),
-used to pull segments from the archive; it must exit 0 on success and non-zero when the file does
-not exist, which is how the server discovers the end of the archive. recovery_target_time is the
-stopping point, and it means "stop before the first transaction that commits after this time" --
-recovery is transaction-granular, not statement-granular. The alternatives are recovery_target_lsn,
-recovery_target_xid, recovery_target_name (set beforehand with pg_create_restore_point) and
-recovery_target = 'immediate', which stops as soon as the backup is consistent.
-recovery_target_inclusive (default on) decides whether the target transaction itself is applied.
-recovery_target_action decides what happens on arrival: promote (finish recovery, pick a new
-timeline, accept writes), pause (stay read-only so you can look before committing to it) or
-shutdown. Promotion always allocates a new timeline ID, so the branch you just created can never
-be confused with the history you branched from. For the timestamp itself, a timestamptz cast to
-text -- '2026-09-03 01:39:22.432813+00' -- carries its UTC offset and can be pasted straight into
-the config file; clock_timestamp() gives the real wall clock at that instant, where now() would
-give the transaction's start time.`,
+### In plain terms
+
+This experiment recovers a dropped table by replaying an archived WAL stream only up to a safe time.
+You create a base backup, record a timestamp before the accident, restore into a second directory,
+and promote the recovered server on port 5441. The original server stays unchanged, making the
+difference between history reconstruction and ordinary rollback concrete.
+
+### What you are learning
+
+- **Point-in-time recovery:** A backup plus archived WAL can reconstruct an earlier committed state.
+- **Recovery targets:** PostgreSQL stops replay at transaction boundaries, not halfway through SQL.
+- **Timelines:** Promotion creates a new history branch so future writes cannot be confused with the old one.
+
+### Piece by piece
+
+- **clock_timestamp()**, **pg_current_wal_lsn()**, and **timestamptz::text** (SQL functions and cast). What they are: wall-clock, WAL-position, and timestamp-format tools.
+  - What it does here: It records the safe mark and turns one second after it into configuration text.
+  - What it gives us: A target timestamp between the safe mark and DROP's commit.
+- **pg_switch_wal()** (SQL function). What it is: a request to finish the current WAL segment early.
+  - What it does here: It seals the segment containing DROP so archive recovery can fetch it.
+  - What it gives us: A segment that appears in the archive and can be replayed by the second server.
+- **rm -rf**, **cp -a**, **cat >>**, and **touch** (shell file operations). What they are: remove, copy, append, and create-file commands.
+  - What it does here: It clone backup1 into pitr, append recovery settings, and create recovery.signal.
+  - What it gives us: A disposable restored data directory configured independently of port 5440.
+- **pg_ctl -D ... start -w** and **stop -m fast -w** (server-control commands). What they are: start/stop operations with directory, wait, and shutdown-mode flags.
+  - What it does here: It starts the restored server and later stops it cleanly; **-w** waits for completion and **-m fast** asks sessions to finish.
+  - What it gives us: A live port-5441 instance and a clean teardown.
+- **port = 5441** and **cluster_name** (configuration settings). What they are: listener and identity settings.
+  - What it does here: It let the restored server run beside the primary.
+  - What it gives us: **ss -ltn** can show both ports during the comparison.
+- **restore_command** with **%f** and **%p** (recovery setting and placeholders). What they are: a shell fetch command where PostgreSQL substitutes requested filename and destination path.
+  - What it does here: It copies each needed segment from the archive and returns nonzero at archive end.
+  - What it gives us: Log lines naming restored segments and successful replay through the target.
+- **recovery.signal**, **recovery_target_time**, and **recovery_target_action = promote** (recovery controls). What they are: signal file, stopping target, and post-target action.
+  - What it does here: It enables archive replay, stops before the DROP commit, and promotes the recovered server.
+  - What it gives us: Five rescued rows, no dropped table on the primary, and a new timeline.
+- **recovery_target_action = pause**, **recovery_target = immediate**, and **pg_wal_replay_resume()** (challenge controls). What they are: alternative stop behaviors and resume function.
+  - What it does here: It let you inspect a consistent or paused recovery before accepting it.
+  - What it gives us: **pg_is_in_recovery() = true** while paused and a controlled choice before promotion.
+- **psql -h /tmp -p 5441 -d lab -c** (client command and flags). What it is: a one-shot SQL client invocation.
+  - What it does here: **-h**, **-p**, **-d**, and **-c** select socket, port, database, and query on the restored server.
+  - What it gives us: Rescued row count, notebook contents, recovery state, timeline, and current segment.
+- **pg_is_in_recovery()**, **timeline_id**, **to_regclass**, and **pg_walfile_name()** (SQL inspection functions).
+  - What they are: recovery-state, history-ID, relation-existence, and segment-name readers.
+  - What it does here: It compares the promoted copy with the untouched primary.
+  - What it gives us: false/2 on the promoted copy and NULL for the dropped table on the primary.`,
       caution: code`
 This lesson drops a table in the lab database on purpose and starts a SECOND PostgreSQL instance
 on port 5441. Nothing here touches the 5440 server's data directory. The final block stops and
@@ -893,17 +1045,41 @@ This lesson is short and read-only: look at the history file, count the segments
 the archive, and reason out the consequence that sets up the whole replication module. A server
 that has diverged onto its own timeline cannot follow a server on another one, because their logs
 agree on a prefix and then disagree, and there is no way to apply one on top of the other.`,
+      reading:
+        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`
-A WAL segment file name is 24 hex characters: 8 for the timeline ID, 8 for the high half of the
-LSN, 8 for the segment number. pg_walfile_name(lsn) builds that name for the current timeline.
-When a server promotes it picks the lowest unused timeline ID and writes TTTTTTTT.history into
-pg_wal and, with archive_mode on, into the archive; the file holds one tab-separated line per
-ancestor -- parent timeline, the LSN where the branch happened, and the reason. A server
-recovering from an archive reads the history files to learn which timelines to follow;
-recovery_target_timeline defaults to 'latest', which is how a new standby finds its way onto the
-current branch. pg_control_checkpoint() reports the local timeline_id: a crash recovery keeps it,
-a promotion increments it. psql's \! runs a shell command, and $PGLAB is exported by the lab
-environment from module 01.`,
+### In plain terms
+
+The previous recovery created a second history, or timeline, when it promoted. This read-only lesson
+examines the small history file that records where the branch began and compares segment filenames
+from both histories. The timeline prefix is a safety label that prevents replaying the wrong future.
+
+### What you are learning
+
+- **Timeline IDs:** A monotonically increasing prefix distinguishes divergent WAL histories.
+- **History files:** They record the parent timeline and exact branch LSN.
+- **Archive ancestry:** A standby can choose the right files by following those records.
+
+### Piece by piece
+
+- **\! ls -l**, **cat**, **grep -E**, **cut -c1-8**, **sort**, **uniq -c**, and **du -sh** (psql shell escapes and filters). What they are: filesystem listing, text display, pattern filtering, prefix extraction, sorting, counting, and sizing tools.
+  - What it does here: It inspects history files, counts segment prefixes, and measures the archive.
+  - What it gives us: The 00000001/00000002 split and the branch history file's exact contents.
+- **pg_walfile_name(lsn)** (SQL function). What it is: an LSN-to-segment filename converter.
+  - What it does here: It maps the parsed branch LSN to the last segment shared by both timelines.
+  - What it gives us: A concrete filename such as the shared ...A4 segment.
+- **pg_control_checkpoint()** (SQL function). What it is: a reader of local checkpoint and history metadata.
+  - What it does here: It reports **timeline_id** and **redo_lsn** for the living primary.
+  - What it gives us: Timeline 1 evidence showing the primary was not promoted.
+- **pg_read_file()**, **regexp_split_to_table()**, **split_part()**, **chr(9)**, and **::pg_lsn** (SQL text tools and cast). What they are: file reading, line splitting, tab-field extraction, tab construction, and LSN conversion.
+  - What it does here: It parses the history file's parent timeline, branch position, and reason.
+  - What it gives us: A typed row with **parent_timeline**, **branch_lsn**, **last_shared_segment**, and **reason**.
+- **pg_stat_archiver** (statistics view). What it is: a view of archive attempts and most recent success.
+  - What it does here: It reports archive progress after the previous recovery lessons.
+  - What it gives us: **archived_count**, **last_archived_wal**, **last_archived_time**, and **failed_count**; compare counters with files because counters can reset.
+- **recovery_target_timeline = 'latest'** (challenge setting). What it is: a rule for following the newest timeline during restore.
+  - What it does here: It makes a new standby follow timeline 2 after the branch point.
+  - What it gives us: The precise rule: below the branch LSN read timeline-1 files; at or above it read timeline-2 files.`,
       code: code`
 -- The fossil left by the promoted PITR instance, straight out of the archive.
 \! ls -l $PGLAB/archive/*.history

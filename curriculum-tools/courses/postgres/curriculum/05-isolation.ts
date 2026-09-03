@@ -37,11 +37,58 @@ that PostgreSQL does not undo anything: the new row versions stay on the page an
 declared invisible because their creating transaction is marked aborted. You also meet the error
 every application eventually logs: "current transaction is aborted, commands ignored until end of
 transaction block".`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Operations on Tuples", "Subtransactions")`,
+      readingNotes: code`
+Chapter 3 explains how INSERT and UPDATE create row versions and how commit or abort marks those
+versions visible or invisible. This lesson makes that mechanism observable with pgstattuple and
+also shows the client-facing aborted-transaction error; read the chapter before or after the
+experiment to connect the error to tuple-level state.`,
       syntaxBreakdown: code`
-BEGIN opens a transaction block; COMMIT and ROLLBACK end it. Any error inside a transaction block
-puts it in the aborted state (psql shows this in the prompt as an exclamation mark) and every
-further command fails until ROLLBACK. pgstattuple('rel') scans a relation and counts live and dead
-tuples, which is how you see that an aborted UPDATE still wrote bytes.`,
+### In plain terms
+
+This experiment asks whether rollback erases work or merely makes it invisible. You perform a
+transfer, undo it, then trigger an error and observe that the transaction stays unusable until it
+is rolled back. A tuple is PostgreSQL's stored row version, and the dead-tuple count shows that an
+aborted update left physical versions for cleanup even though readers cannot see them.
+
+### What you are learning
+
+- **Atomic transactions** mean all statements commit together or none become visible.
+- **Aborted transactions** remain failed after an error; a rollback is required before another command.
+- **MVCC row versions** let PostgreSQL hide aborted or superseded versions instead of rewriting history.
+
+### Piece by piece
+
+- **BEGIN** (SQL transaction command)
+  - What it is: Starts a transaction block, grouping later writes into one atomic unit.
+  - What it does here: Opens the transfer and the error demonstration.
+  - What it gives us: Statements before COMMIT or ROLLBACK are provisional.
+- **UPDATE ... SET ... WHERE** (SQL data-change statement)
+  - What it is: Changes matching rows; PostgreSQL writes new row versions rather than editing old bytes in place.
+  - What it does here: Moves 10 between accounts, then creates an update that will be aborted.
+  - What it gives us: Balances 90 and 110 inside the first transaction, and dead versions later.
+- **SELECT ... ORDER BY id** (SQL query with ordering)
+  - What it is: Reads rows and sorts them by numeric id so the accounts are easy to compare.
+  - What it does here: Compares provisional balances with restored balances.
+  - What it gives us: 90/110 before rollback and 100/100 afterward.
+- **ROLLBACK** (SQL transaction command)
+  - What it is: Ends the current transaction without publishing its changes.
+  - What it does here: Removes the transfer's visibility and clears the failed state.
+  - What it gives us: Original balances, not proof that physical row versions were erased.
+- **SELECT 1 / 0** (SQL expression that raises an error)
+  - What it is: Integer division by zero, deliberately invalid.
+  - What it does here: Aborts the open transaction.
+  - What it gives us: The division-by-zero error that starts the failed state.
+- **\echo :SQLSTATE** (psql command and variable)
+  - What it is: psql prints a client variable; SQLSTATE stores the last server error code.
+  - What it does here: Prints the code for the aborted-transaction state.
+  - What it gives us: 25P02, identifying the failed transaction block.
+- **pgstattuple('iso_accounts')** (extension function)
+  - What it is: A pgstattuple function that scans a relation and counts tuple states.
+  - What it does here: Measures the heap after rollback.
+  - What it gives us: tuple_count and dead_tuple_count, showing aborted versions occupy space.
+`,
       setup: ACCOUNTS,
       code: code`
 -- 1. An explicit rollback of a two-row transfer.
@@ -96,11 +143,51 @@ PostgreSQL's default isolation level is READ COMMITTED, and its rule is per stat
 transaction: each statement sees everything committed before that statement started. Two identical
 SELECTs in one transaction can therefore return different rows. Repeat the same race under
 REPEATABLE READ and the second SELECT does not move.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Read Committed", "Repeatable Read")`,
+      readingNotes: code`
+Chapter 2 describes Read Committed snapshots per statement and Repeatable Read snapshots per
+transaction. The two-session race below is the live version of those rules; the experiment adds
+psql output and a direct comparison of values, so run it after reading the chapter or use it first
+as a concrete preview.`,
       syntaxBreakdown: code`
-BEGIN with no level uses default_transaction_isolation (read committed). BEGIN ISOLATION LEVEL
-REPEATABLE READ takes one snapshot at the first statement of the transaction and keeps it.
-current_setting('transaction_isolation') reports the level of the transaction you are in. Open two
-psql sessions before you start: Session A and Session B.`,
+### In plain terms
+
+This experiment asks when a transaction decides what committed data it may see. Read Committed
+takes a fresh snapshot for each statement, while Repeatable Read keeps the first visibility picture
+for the whole transaction. Two psql sessions let one commit a change between the other session's
+two SELECT statements.
+
+### What you are learning
+
+- **Read Committed** gives each statement its own view and can reveal a committed change mid-transaction.
+- **Repeatable Read** pins one view for a transaction, so later statements can intentionally be stale.
+- **Snapshots** are visibility rules, not copies of every row; a new transaction gets a new snapshot.
+
+### Piece by piece
+
+- **BEGIN** (SQL transaction command): Starts a transaction using the configured default isolation level.
+  - What it does here: Starts Session A's Read Committed comparison.
+  - What it gives us: Each later statement may use a new snapshot.
+- **default_transaction_isolation** (server/session setting): Supplies an isolation level when BEGIN names none.
+  - What it does here: Selects PostgreSQL's default, Read Committed.
+  - What it gives us: A's second SELECT sees B's committed +500.
+- **current_setting('transaction_isolation')** (SQL configuration function): Returns a named setting as text.
+  - What it does here: Reports the active level in each transaction.
+  - What it gives us: read committed, then repeatable read.
+- **BEGIN ISOLATION LEVEL REPEATABLE READ** (SQL transaction command): Starts a transaction with a stable snapshot.
+  - What it does here: Runs the second race under a fixed visibility picture.
+  - What it gives us: A remains at 600 while B commits another +500.
+- **UPDATE ... SET balance = balance + 500** (SQL data change): Creates B's newer row version using server-side arithmetic.
+  - What it does here: Commits a change between A's reads.
+  - What it gives us: 600 in the first round and 1100 after the second transaction ends.
+- **COMMIT** (SQL transaction command): Publishes changes and ends the transaction snapshot.
+  - What it does here: Lets B's update become visible and gives A a fresh snapshot.
+  - What it gives us: The boundary after which A sees 1100.
+- **Session A / Session B** (independent psql connections): Separate backends with separate snapshots.
+  - What it does here: Coordinates a controlled reader/writer interleaving.
+  - What it gives us: A can observe B's commit between statements.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -159,12 +246,51 @@ The classic bug: two sessions read a balance, both subtract 10 in application co
 decrements disappears. You will cause it, then fix it twice -- with an atomic read-modify-write in
 SQL, and with SELECT ... FOR UPDATE -- and watch the second session block and recompute in both
 fixes.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Isolation Levels and Anomalies in SQL Standard", "Read Committed"); Chapter 13 "Row-Level Locks" (section "Row-Level Locking Modes")`,
+      readingNotes: code`
+Chapter 2 names lost updates as an isolation anomaly, while Chapter 13 explains the row-lock modes
+used by FOR UPDATE. This lesson puts both ideas in one sequence: first an application-level race,
+then server-side arithmetic and an explicit row lock. Read the chapters before the experiment if
+you want the lock terminology; otherwise use the output to make the anomaly concrete.`,
       syntaxBreakdown: code`
-\gset stores a single-row result into psql variables, so ":balance" is the value the session read
-(this stands in for a value your application read into a local variable). "set balance = balance -
-10" computes in the server from the row it locks. SELECT ... FOR UPDATE takes a row lock now, so a
-second session waits at the SELECT instead of at the UPDATE. Under read committed, a statement that
-was blocked by a writer re-reads the newly committed version of the row before applying itself.`,
+### In plain terms
+
+This experiment reproduces a lost update: two workers read 100, both calculate 90 outside the
+database, and the second write silently overwrites the first. Then it compares two repairs that keep
+the calculation next to the row or lock the row before reading it. A row lock means conflicting
+writers must wait for the current transaction to finish.
+
+### What you are learning
+
+- **Read-modify-write races** lose updates when a value is read and written in separate steps.
+- **Atomic server-side updates** calculate from the row version protected by the UPDATE.
+- **FOR UPDATE** locks the row during the read, forcing a competing worker to wait and reread.
+
+### Piece by piece
+
+- **\gset** (psql command): Stores columns from a one-row query result as psql variables.
+  - What it does here: Saves the selected balance as :balance, simulating an application variable.
+  - What it gives us: Both naive sessions echo 100; a lock-aware read later echoes the current value.
+- **\echo :balance** (psql command): Prints text after psql substitutes the variable value.
+  - What it does here: Makes each session's read visible before it writes.
+  - What it gives us: Evidence that both naive sessions started from 100.
+- **UPDATE ... SET balance = :balance - 10** (SQL data change): Writes arithmetic based on a client value.
+  - What it does here: Deliberately creates the lost-update bug.
+  - What it gives us: after_naive = 90 instead of 80.
+- **UPDATE ... SET balance = balance - 10** (server-side data change): Computes from the row while taking its update lock.
+  - What it does here: Makes B wait, then apply its decrement to A's committed 90.
+  - What it gives us: after_atomic_update = 80.
+- **SELECT ... FOR UPDATE** (SQL locking clause): Reads matching rows and takes a lock suitable for a later update.
+  - What it does here: Causes B's SELECT to block until A commits.
+  - What it gives us: B wakes and reads 90, proving the read was serialized.
+- **COMMIT** (SQL transaction command): Publishes changes and releases transaction-held row locks.
+  - What it does here: Wakes the waiting UPDATE or SELECT in Session B.
+  - What it gives us: A deterministic handoff between workers.
+- **FOR NO KEY UPDATE / FOR SHARE** (alternative row-lock clauses in the challenge): Use weaker modes with different conflicts.
+  - What it does here: Lets you test which reader/writer combinations can coexist.
+  - What it gives us: A direct observation of the lock compatibility rules.
+`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -250,7 +376,12 @@ two sessions block each other. Then try the optimistic version: keep a version c
     },
     {
       slug: "repeatable-read-blocks-then-fails",
-      tags: ["isolation", "repeatable-read", "snapshots", "serialization-failure"],
+      tags: [
+        "isolation",
+        "repeatable-read",
+        "snapshots",
+        "serialization-failure",
+      ],
       title: "Repeatable read blocks, then refuses: SQLSTATE 40001",
       difficulty: "intermediate",
       safetyLevel: "locking",
@@ -263,10 +394,43 @@ A repeatable-read transaction cannot silently re-read a row the way a read-commi
 the row it wants to update changed after its snapshot, re-reading would break the snapshot. So the
 server aborts the transaction instead. This is the error every retry loop is written for.`,
       syntaxBreakdown: code`
-BEGIN ISOLATION LEVEL REPEATABLE READ pins the snapshot at the first statement. A writer that
-touches a row already updated and committed by another transaction after that snapshot raises
-serialization_failure, SQLSTATE 40001. psql exposes the last SQLSTATE as the :SQLSTATE variable.
-Once that error fires the whole transaction is dead: only ROLLBACK is accepted.`,
+### In plain terms
+
+This experiment asks what happens when a transaction tries to update a row after another transaction
+has committed a newer version. Repeatable Read refuses to mix the old snapshot with the new row, so
+the waiting writer fails instead of quietly changing its result. SQLSTATE 40001 identifies this
+retryable serialization failure.
+
+### What you are learning
+
+- **Snapshot pinning** keeps all statements in one transaction consistent with one visibility point.
+- **Serialization failure** deliberately aborts work that cannot fit the pinned snapshot.
+- **Transaction cleanup** is mandatory: after an error, only ROLLBACK makes the connection usable.
+
+### Piece by piece
+
+- **BEGIN ISOLATION LEVEL REPEATABLE READ** (SQL transaction command): Starts a transaction with one stable snapshot after its first statement.
+  - What it does here: Makes A retain a view from before B's update.
+  - What it gives us: A's UPDATE must confront B's committed newer version.
+- **SELECT balance ...** (SQL query): Reads the row and establishes A's snapshot.
+  - What it does here: Records balance 100 before B changes it.
+  - What it gives us: The baseline for detecting the later conflict.
+- **UPDATE ... SET balance = balance + 5** (SQL data change): B creates and commits a newer row version.
+  - What it does here: Holds the row lock until B commits.
+  - What it gives us: A waits, then encounters a committed concurrent update.
+- **\echo A woke up with SQLSTATE :SQLSTATE** (psql command): Prints the last server error code.
+  - What it does here: Displays A's result after the wait.
+  - What it gives us: 40001, distinguishing this from an ordinary SQL error.
+- **ROLLBACK** (SQL transaction command): Ends the failed transaction and discards pending work.
+  - What it does here: Clears A's aborted state so it can read again.
+  - What it gives us: Balance 105, showing only B committed.
+`,
+      reading: code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Repeatable Read")`,
+      readingNotes: code`
+Chapter 2 explains that Repeatable Read protects a transaction's snapshot and raises a serialization
+failure when a concurrent committed update would invalidate it. This lesson stages the wait and
+shows SQLSTATE 40001 plus the failed-transaction state; run it after the chapter to connect the
+visible error to snapshot rules.`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -306,7 +470,12 @@ on.`,
     },
     {
       slug: "write-skew",
-      tags: ["isolation", "repeatable-read", "snapshot-isolation", "write-skew"],
+      tags: [
+        "isolation",
+        "repeatable-read",
+        "snapshot-isolation",
+        "write-skew",
+      ],
       title: "Write skew: two transactions that are each correct and jointly wrong",
       difficulty: "advanced",
       safetyLevel: "writes-data",
@@ -320,9 +489,43 @@ of rows and each writes a different row of that set, nothing conflicts and both 
 invariant they both checked is now false. The textbook case: at least two doctors must stay on
 call, and both on-call doctors take themselves off at once.`,
       syntaxBreakdown: code`
-The invariant lives in a query ("count of on_call rows >= 2"), not in a constraint, so the database
-has no way to enforce it. Both sessions run BEGIN ISOLATION LEVEL REPEATABLE READ, read the count
-from their own snapshot, and update different rows of iso_oncall.`,
+### In plain terms
+
+This experiment asks whether two individually sensible decisions can break a shared rule. Each
+doctor sees two people on call and turns off a different row; both commits succeed because their
+writes do not overlap. An invariant is a condition that should always hold, here “at least two rows
+have on_call = true.”
+
+### What you are learning
+
+- **Write skew** happens when transactions update different rows after reading a shared condition.
+- **Repeatable Read** protects each snapshot but does not enforce arbitrary multi-row predicates.
+- **Stronger locking or materialized constraints** are needed for rules spanning several rows.
+
+### Piece by piece
+
+- **BEGIN ISOLATION LEVEL REPEATABLE READ** (SQL transaction command): Starts each session with a stable snapshot.
+  - What it does here: Lets A and B inspect the same initial roster.
+  - What it gives us: Both sessions read on_call_now = 2.
+- **SELECT count(*) ... WHERE on_call** (SQL aggregate with a filter): Counts rows whose boolean on_call value is true.
+  - What it does here: Checks the invariant before either write.
+  - What it gives us: The unsafe but apparently valid decision that one doctor may leave.
+- **UPDATE iso_oncall SET on_call = false WHERE doctor = ...** (SQL row update): Changes one named doctor's status.
+  - What it does here: A updates alice and B updates bob, with disjoint write sets.
+  - What it gives us: No blocking and no 40001 under Repeatable Read.
+- **COMMIT** (SQL transaction command): Publishes a transaction's changes and ends its snapshot.
+  - What it does here: Allows both incompatible decisions to become visible.
+  - What it gives us: alice = f, bob = f, carol = f, and on_call_after = 0.
+- **ORDER BY doctor** (SQL ordering clause): Sorts the roster by doctor name.
+  - What it does here: Makes each final row easy to inspect.
+  - What it gives us: Stable evidence of which rows changed.
+`,
+      reading: code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Repeatable Read")`,
+      readingNotes: code`
+Chapter 2 explains Repeatable Read's snapshot isolation and why it detects write/write conflicts but
+not every read/write dependency. This lesson turns that limitation into the on-call invariant and
+then points toward predicate locking; read it after the chapter so the broken invariant has a clear
+snapshot-isolation explanation.`,
       setup: ONCALL,
       code: code`
 -- Session A
@@ -369,7 +572,12 @@ lock yet -- you need a predicate, which is the next lesson).`,
     },
     {
       slug: "serializable-ssi",
-      tags: ["isolation", "serializable", "predicate-locks", "serialization-failure"],
+      tags: [
+        "isolation",
+        "serializable",
+        "predicate-locks",
+        "serialization-failure",
+      ],
       title: "SERIALIZABLE: predicate locks, rw-dependencies, and a commit that fails",
       difficulty: "advanced",
       safetyLevel: "writes-data",
@@ -383,11 +591,50 @@ read, as SIReadLock entries in pg_locks, and aborts one of the pair when the rea
 dependencies between them cannot correspond to any serial order. You will see the predicate locks
 while the transactions are open, and the second COMMIT fail.`,
       syntaxBreakdown: code`
-BEGIN ISOLATION LEVEL SERIALIZABLE adds serializable snapshot isolation on top of repeatable read.
-SIReadLock rows in pg_locks are predicate locks: not blocking locks, just a record of what was read
-(and at which granularity -- relation, page or tuple). The failure is raised at COMMIT with
-SQLSTATE 40001 and the message "could not serialize access due to read/write dependencies among
-transactions", plus a HINT to retry.`,
+### In plain terms
+
+This repeats write skew with PostgreSQL's strongest transaction isolation. A predicate is a
+condition such as “rows where on_call is true”; SERIALIZABLE remembers that A and B read it, then
+aborts one when their writes cannot fit any serial order. The predicate record is not a blocking
+lock, so the conflict appears as a commit-time error.
+
+### What you are learning
+
+- **Serializable Snapshot Isolation (SSI)** detects dangerous read/write dependency cycles.
+- **SIReadLock** entries describe what a transaction read at relation, page, or tuple granularity.
+- **COMMIT can fail**, so it belongs inside the retryable operation.
+
+### Piece by piece
+
+- **BEGIN ISOLATION LEVEL SERIALIZABLE** (SQL transaction command): Requests serializable results while retaining nonblocking reads.
+  - What it does here: Runs both on-call decisions under SSI tracking.
+  - What it gives us: One transaction can be canceled as a pivot at commit.
+- **SELECT count(*) ... WHERE on_call** (SQL aggregate and predicate): Reads the true on-call set.
+  - What it does here: Creates the read dependency SSI remembers.
+  - What it gives us: on_call_now = 2 and predicate locks.
+- **UPDATE ... WHERE doctor = ...** (SQL row update): Writes one different row in each session.
+  - What it does here: Creates opposing read/write dependencies without row blocking.
+  - What it gives us: The dangerous structure SSI must resolve.
+- **pg_locks** (system view): Lists held and requested locks and lock-like entries.
+  - What it does here: Exposes SSI's predicate-read records.
+  - What it gives us: locktype, relation, page, and tuple, revealing tracking granularity.
+- **mode = 'SIReadLock'** (pg_locks filter): Selects predicate records, not ordinary blocking locks.
+  - What it does here: Limits the observation to dependencies from the count query.
+  - What it gives us: Relation/page records for each backend on the tiny table.
+- **COMMIT** (SQL transaction command): Attempts to publish changes and complete SSI validation.
+  - What it does here: A succeeds; B is canceled as a pivot.
+  - What it gives us: SQLSTATE 40001 and the read/write-dependencies error.
+- **\echo B commit returned SQLSTATE :SQLSTATE** (psql command): Prints the code after COMMIT fails.
+  - What it does here: Makes the commit-time failure explicit.
+  - What it gives us: 40001, the signal to retry the whole transaction.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Serializable"); Chapter 14 "Miscellaneous Locks" (section "Predicate Locks")`,
+      readingNotes: code`
+Chapter 2 introduces Serializable Snapshot Isolation and its serialization failures; Chapter 14
+describes predicate locks as records of read ranges rather than ordinary blocking locks. This lesson
+shows SIReadLock rows while the on-call race is open and the failure at COMMIT. Read both chapters
+before running it, then use the output to distinguish a predicate lock from a waiting row lock.`,
       setup: ONCALL,
       code: code`
 -- Session A
@@ -453,10 +700,56 @@ two things people get wrong: retrying inside the same transaction (it can never 
 snapshot is what is stale), and counting or logging the retry inside the transaction that is about
 to be rolled back. Then it shows the shape that works: a new transaction plus an idempotency key.`,
       syntaxBreakdown: code`
-A PL/pgSQL BEGIN ... EXCEPTION block is a subtransaction: "when serialization_failure" catches
-SQLSTATE 40001 and rolls back to the block's start, leaving the outer transaction usable. GET
-STACKED DIAGNOSTICS / the sqlstate variable expose the code. INSERT ... ON CONFLICT DO NOTHING makes
-a write idempotent under a natural key, and reports "INSERT 0 0" when it is a no-op.`,
+### In plain terms
+
+This experiment shows why retrying a failed statement inside its old transaction cannot refresh the
+stale snapshot. A PL/pgSQL exception block can catch the error, but it is only a subtransaction and
+does not replace the outer transaction's snapshot. The working pattern is a new transaction plus an
+idempotency key, a value that lets a repeated request be recognized and applied once.
+
+### What you are learning
+
+- **Subtransactions** can roll back one block, but do not replace the outer snapshot.
+- **Fresh-transaction retries** reread current data and repeat the whole business operation.
+- **Idempotency keys** make at-least-once retries safe by turning duplicate writes into no-ops.
+
+### Piece by piece
+
+- **DO $$ ... $$** (PL/pgSQL anonymous block): Executes procedural code without creating a permanent function.
+  - What it does here: Loops through deliberately failed in-place attempts.
+  - What it gives us: NOTICE output and a rollback boundary around the exception block.
+- **DECLARE attempts int := 0** (PL/pgSQL variable): Creates a local counter initialized to zero.
+  - What it does here: Increments once per attempted update.
+  - What it gives us: The count later written to the retry log.
+- **LOOP / attempts := attempts + 1 / EXIT** (PL/pgSQL control flow): Repeats until EXIT leaves the loop.
+  - What it does here: Tries up to three updates against the stale snapshot.
+  - What it gives us: Three failed attempts rather than a refreshed transaction.
+- **EXCEPTION WHEN serialization_failure** (PL/pgSQL handler): Catches SQLSTATE 40001 from a snapshot conflict.
+  - What it does here: Rolls back the inner block and prints a notice while the outer snapshot remains stale.
+  - What it gives us: Failure notices containing attempt number and SQLSTATE 40001.
+- **RAISE NOTICE** (PL/pgSQL diagnostic): Sends informational text to the client.
+  - What it does here: Reports success, failure, and the give-up decision.
+  - What it gives us: Three failure notices and a final “giving up” notice.
+- **insert into iso_retry_log** (SQL insert): Adds an audit row with attempts and a note.
+  - What it does here: Demonstrates that in-transaction observability also rolls back.
+  - What it gives us: A row before outer ROLLBACK and zero rows afterward.
+- **BEGIN ISOLATION LEVEL REPEATABLE READ / COMMIT** (SQL transaction commands): Start a fresh snapshot and publish its successful update.
+  - What it does here: Performs the valid retry outside the stale transaction.
+  - What it gives us: balance_after_retry = 95 and one durable log row.
+- **INSERT ... ON CONFLICT DO NOTHING** (SQL conflict clause): Suppresses a duplicate-key conflict without changing the existing row.
+  - What it does here: Repeats request key req-42 safely.
+  - What it gives us: INSERT 0 1, then INSERT 0 0, with one transfer row.
+- **request_key text primary key** (table constraint): Provides a unique, non-null deduplication identity.
+  - What it does here: Detects the repeated request.
+  - What it gives us: The second identical request becomes a no-op.
+`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Serializable", "Which Isolation Level to Use?")`,
+      readingNotes: code`
+Chapter 2 says serializable transactions may fail and must be retried, but it does not prescribe a
+client loop or idempotency keys. This lesson extends that guidance with a PL/pgSQL demonstration of
+the wrong retry scope and an ON CONFLICT deduplication key. Read the chapter first for the failure
+contract, then run this lesson for the application design consequences.`,
       setup: code`
 create table if not exists iso_accounts (
   id int primary key,

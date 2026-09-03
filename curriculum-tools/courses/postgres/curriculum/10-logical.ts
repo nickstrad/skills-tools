@@ -6,7 +6,13 @@ export const LOGICAL: Module = {
   lessons: [
     {
       slug: "decode-the-log",
-      tags: ["logical-decoding", "cdc", "replication-slots", "wal", "replicated-log"],
+      tags: [
+        "logical-decoding",
+        "cdc",
+        "replication-slots",
+        "wal",
+        "replicated-log",
+      ],
       title: "Decode the WAL into row changes",
       difficulty: "intermediate",
       safetyLevel: "writes-data",
@@ -21,13 +27,50 @@ turns it back into row-level INSERT/UPDATE/DELETE events. That is exactly what a
 In this lesson you create a slot with the test_decoding plugin, cause a transaction, read the
 event stream, and find out what the stream does NOT contain: rolled-back work, DDL, and the old
 values of a row unless you ask for them.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-pg_create_logical_replication_slot(name, plugin) creates a durable cursor into the WAL of the
-current database and pins WAL from that point on. test_decoding is the demo output plugin that
-prints changes as text (real consumers use pgoutput or wal2json). pg_logical_slot_peek_changes and
-pg_logical_slot_get_changes decode from the slot position; peek leaves the position alone, get
-advances it. A slot is per-database and is stored in pg_replication_slots. ALTER TABLE ... REPLICA
-IDENTITY FULL makes the WAL carry the whole old row for UPDATE and DELETE instead of just the key.`,
+### In plain terms
+
+WAL is written for recovery, but a logical decoder can also turn those records into row changes for a change-data-capture (CDC) consumer. You will create a decoder slot, make committed and rolled-back changes, and read the resulting text stream. The comparison shows exactly what a downstream service can and cannot learn from ordinary WAL.
+
+### What you are learning
+
+- A logical replication slot is a durable cursor that keeps WAL until a consumer advances it.
+- **test_decoding** presents committed row changes as readable events; rollback and DDL are not ordinary row events.
+- Replica identity controls how much old-row information UPDATE and DELETE events carry.
+
+### Piece by piece
+
+- **pg_create_logical_replication_slot** (SQL slot function)
+  - What it is: Creates a named logical-decoding cursor for the current database.
+  - What it does here: Starts decoding at the current WAL position with the test_decoding plugin.
+  - What it gives us: slot_name and lsn identify the cursor's name and starting point.
+- **test_decoding** (logical output plugin)
+  - What it is: A demonstration plugin that formats WAL changes as text.
+  - What it does here: Prints BEGIN, row changes, and COMMIT records for inspection; production consumers commonly use pgoutput or another plugin.
+  - What it gives us: Readable data lines expose transaction order, changed columns, and the presence or absence of old values.
+- **pg_logical_slot_peek_changes** and **pg_logical_slot_get_changes** (decoder functions)
+  - What they are: Functions that read decoded events without or with consuming them.
+  - What they do here: peek repeats the same transaction; get advances the slot and makes those events unavailable on the next read.
+  - What it gives us: lsn, xid, and data show WAL position, transaction ID, and the event text.
+- **pg_replication_slots** (slot monitoring view)
+  - What it is: Lists logical and physical slots, including database and active status.
+  - What it does here: Confirms the slot is logical, belongs to lab, and is inactive until a consumer attaches.
+  - What it gives us: slot_type, database, active, restart_lsn, and confirmed_flush_lsn show the cursor's identity and retention.
+- **REPLICA IDENTITY FULL** (table replication setting)
+  - What it is: A rule to log the complete old row for updates and deletes.
+  - What it does here: Adds old-key or old-row values to later events instead of recording only the primary key.
+  - What it gives us: UPDATE and DELETE output includes old-key or old-tuple text, which is the evidence of the extra WAL detail.
+- **txid_current()** (transaction-ID function)
+  - What it is: Returns the current transaction's numeric identifier.
+  - What it does here: Lets the two-session test compare start order with commit order; the lower xid can still be emitted later.
+  - What it gives us: The printed xid values let you see that commit order, not transaction-ID order, controls decoding order.
+- **REPLICA IDENTITY NOTHING** (table identity setting)
+  - What it is: Declares that a table has no old-row identity available for logical updates or deletes.
+  - What it does here: The challenge demonstrates PostgreSQL rejecting an UPDATE because no downstream consumer could identify the target row.
+  - What it gives us: The specific replica-identity error explains why a logical publisher refuses an unsafe change.
+`,
       setup: code`
 -- Idempotent: drop the slot and the table if a previous run left them behind.
 select pg_drop_replication_slot('lg_decode')
@@ -140,7 +183,13 @@ to produce an event no downstream could apply.`,
     },
     {
       slug: "slot-position-and-acknowledgement",
-      tags: ["replication-slots", "logical-decoding", "idempotency", "retries", "gc-horizon"],
+      tags: [
+        "replication-slots",
+        "logical-decoding",
+        "idempotency",
+        "retries",
+        "gc-horizon",
+      ],
       title: "Peek, get, and the consumer offset",
       difficulty: "intermediate",
       safetyLevel: "writes-data",
@@ -153,12 +202,47 @@ protocol concrete: peeking is a repeatable read, getting is a destructive read t
 offset, and there is no way to un-get. That single fact decides the delivery semantics of every
 CDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog
 vacuuming.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-pg_replication_slots.confirmed_flush_lsn is the position the consumer has acknowledged;
-restart_lsn is the oldest WAL the server must keep for this slot. catalog_xmin is the oldest
-transaction whose catalog rows vacuum may not remove, so the decoder can still resolve column
-types. pg_replication_slot_advance(name, lsn) moves the offset forward without reading, i.e. skips
-data. pg_current_wal_lsn() minus an LSN is a bytes value (pg_lsn subtraction returns numeric).`,
+### In plain terms
+
+The slot is a durable acknowledgement point, much like a consumer offset in a message log. Peeking lets a consumer inspect events repeatedly; getting acknowledges them by advancing the offset, and there is no undo. You will also see the cost of an offset that is never acknowledged: the server keeps WAL and catalog history for it.
+
+### What you are learning
+
+- **confirmed_flush_lsn** records what the consumer has acknowledged, while **restart_lsn** records the oldest WAL still required.
+- A batch limit does not split a transaction, so atomic changes arrive together even when a consumer asks for fewer events.
+- Advancing a slot without processing data is deliberate data loss and should be treated like skipping messages.
+
+### Piece by piece
+
+- **pg_replication_slots** (slot state view)
+  - What it is: Reports each slot's activity and retention positions.
+  - What it does here: Shows active, restart_lsn, confirmed_flush_lsn, xmin, catalog_xmin, and how much WAL is retained.
+  - What it gives us: confirmed_flush_lsn is the acknowledged offset; restart_lsn is the oldest WAL byte kept; catalog_xmin protects catalog rows needed to decode types.
+- **pg_logical_slot_peek_changes** (non-consuming read)
+  - What it is: Reads decoded changes without moving the slot.
+  - What it does here: Two counts and an unchanged confirmed_flush_lsn demonstrate repeatability.
+  - What it gives us: Equal counts and an unchanged offset prove peek is safe to retry.
+- **pg_logical_slot_get_changes** (consuming read)
+  - What it is: Reads and advances decoded changes.
+  - What it does here: The first get returns events, the next returns zero, and bounded gets show the transaction-sized delivery rule.
+  - What it gives us: got, get_again, and batch counts show exactly which events remain available.
+  - **upto_nchanges**: The third argument is a soft maximum checked between transactions, not a command to split a transaction.
+- **pg_replication_slot_advance** (offset manipulation function)
+  - What it is: Moves a slot to a supplied LSN without decoding or returning skipped events.
+  - What it does here: Sets target from pg_current_wal_lsn() and proves table rows remain while consumer events disappear.
+  - What it gives us: after_advance = 0 alongside rows_still_in_table proves the consumer skipped real data.
+- **pg_current_wal_lsn()** and **pg_wal_lsn_diff** (WAL position functions)
+  - What they are: The first returns the current end position; subtraction computes bytes between positions.
+  - What they do here: Measure retention; pg_size_pretty formats it as a human-readable kB or MB value.
+  - What it gives us: target, retained bytes, and the before/after LSNs quantify the cursor's backlog.
+- **pg_drop_replication_slot** (cleanup function)
+  - What it is: Deletes the named slot.
+  - What it does here: Releases WAL and catalog retention after the experiment.
+  - What it gives us: slots_left confirms whether this lesson left any retention obligation behind.
+`,
       setup: code`
 select pg_drop_replication_slot('lg_decode')
 where exists (select 1 from pg_replication_slots where slot_name = 'lg_decode');
@@ -244,7 +328,12 @@ durable offsets for automatic cleanup, which is the right choice for one-off con
     },
     {
       slug: "publication-and-subscription",
-      tags: ["logical-replication", "replication-slots", "cdc", "streaming-replication"],
+      tags: [
+        "logical-replication",
+        "replication-slots",
+        "cdc",
+        "streaming-replication",
+      ],
       title: "Build a logical replica: publication, slot, subscription",
       difficulty: "intermediate",
       safetyLevel: "privileged",
@@ -258,14 +347,55 @@ and an apply worker on the other. You will build a working replica inside this o
 database publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single
 cluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the
 walsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-CREATE PUBLICATION names a set of tables and which operations to publish. CREATE SUBSCRIPTION
-stores a connection string and a publication name, creates a replication slot on the publisher, and
-starts an apply worker. WITH (create_slot = false, slot_name = ...) tells it to use a slot you
-already created, and WITH (copy_data = true) (the default) copies the existing rows first.
-pg_stat_replication shows the walsender feeding a subscriber; pg_stat_subscription shows the apply
-worker on the other side. In psql, \gset captures a query result into a variable, \set builds a
-string out of several pieces, and :'var' interpolates it as a quoted literal.`,
+### In plain terms
+
+Logical replication publishes selected table changes and applies them to another database as SQL-level row changes. This lesson builds both sides in the lab: the publisher names what to send, and the subscriber connects, copies existing rows, and keeps applying new ones. The system makes its workers and slot visible so you can tell which component is responsible for each step.
+
+### What you are learning
+
+- A publication is the publisher's allow-list of tables and operations.
+- A subscription stores how to connect and starts a walsender, replication slot, and apply worker.
+- Initial copy and ongoing streaming are separate phases, and their state is observable per table.
+
+### Piece by piece
+
+- **CREATE PUBLICATION** (DDL command)
+  - What it is: Defines a named set of tables and row operations to publish.
+  - What it does here: Makes lg_orders eligible for INSERT, UPDATE, and DELETE changes.
+  - What it gives us: The publication name lg_pub is referenced by the subscriber.
+- **CREATE SUBSCRIPTION** (DDL command)
+  - What it is: Defines a subscriber connection and the publication it consumes.
+  - What it does here: Creates or adopts a publisher slot, starts an apply worker, and copies existing rows by default.
+  - What it gives us: Subscriber rows and worker status show whether the initial copy and ongoing apply succeeded.
+  - **create_slot = false** prevents a second slot; **slot_name** selects the existing slot; **copy_data = true** requests the initial copy.
+- **pg_stat_replication** and **pg_stat_subscription** (monitoring views)
+  - What they are: The first lists publisher walsenders; the second reports subscriber workers and apply positions.
+  - What they do here: Prove that the sender connection and apply worker are active.
+  - What it gives us: Sender state and subscriber PID/LSN fields identify the two ends of the logical stream.
+- **pg_subscription** and **pg_replication_slots** (catalog and slot views)
+  - What they are: Store the subscription definition and publisher retention cursor.
+  - What they do here: Verify the connection, publication, slot, and active state.
+  - What it gives us: Catalog rows make the stored connection/publication relationship and retention cursor inspectable.
+- **\gset**, **\set**, and **:'var'** (psql variable commands)
+  - What they are: Capture query output, build a string, and interpolate a quoted variable.
+  - What they do here: Assemble the subscriber connection string from discovered host, port, and database values.
+  - What it gives us: The generated conn string is evidence that Session B targets the intended lab publisher.
+- **pg_publication** and **pg_publication_tables** (publication catalog views)
+  - What they are: The first stores publication options; the second expands a publication into table names and columns.
+  - What they do here: Confirm lg_pub publishes lg_orders and which operations are enabled.
+  - What it gives us: pubinsert, pubupdate, pubdelete, schemaname, and tablename show the publication's actual scope.
+- **\gexec** (psql execution command)
+  - What it is: Executes each text value returned by the preceding query as SQL.
+  - What it does here: Conditionally creates, disables, detaches, or drops subscriber objects only when they exist.
+  - What it gives us: Idempotent setup output lets the lesson be rerun without assuming objects already exist.
+- **CREATE DATABASE** and **\c** (database creation and connection commands)
+  - What they are: CREATE DATABASE makes lab_sub; \c switches the current psql session into it.
+  - What they do here: Build the subscriber separately from the publisher; the database name comes from the captured pubdb variable.
+  - What it gives us: A successful connection to lab_sub proves the subscriber is a separate database endpoint.
+`,
       caution: code`
 Never point a subscription at a production database you do not own: the subscription creates a
 replication slot there, and an abandoned slot retains WAL until the publisher runs out of disk.
@@ -389,13 +519,55 @@ copy the rows that already exist and then start the stream at exactly the point 
 ended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can
 watch. In this lesson you add a 50000 row table to the publication and step the state machine
 through i -> d -> r by holding the copy hostage with an open transaction on the publisher.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 "Snapshots".',
       syntaxBreakdown: code`
-ALTER PUBLICATION ... ADD TABLE changes the publisher's table set; the subscriber only notices when
-you run ALTER SUBSCRIPTION ... REFRESH PUBLICATION. pg_subscription_rel.srsubstate is the per-table
-state: i = initialize, d = data is being copied, f = finished the copy, s = synchronized with the
-apply worker, r = ready (streaming normally). srsublsn is the LSN at which the table's copy ended
-and streaming took over. Each table sync uses its own temporary slot and its own snapshot, so it
-needs a consistent snapshot on the publisher before it can start copying.`,
+### In plain terms
+
+Adding a table to a publication does not immediately make an existing subscription copy it. The subscriber must refresh its publication, then it performs an initial copy and switches to streaming at a known WAL position. This experiment exposes that handoff and the per-table state machine instead of treating replication as one unexplained green light.
+
+### What you are learning
+
+- Publication membership and subscription knowledge are separate and require an explicit refresh.
+- Initial table synchronization uses a consistent snapshot, then a recorded LSN marks where streaming takes over.
+- Per-table state tells you whether a new table is initializing, copying, synchronized, or ready.
+
+### Piece by piece
+
+- **ALTER PUBLICATION ... ADD TABLE** (publication DDL)
+  - What it is: Adds an existing table to the publisher's publication set.
+  - What it does here: Makes a table eligible for sending, but does not change the subscriber until refresh.
+  - What it gives us: pg_publication_tables shows the new table while the subscriber still lacks a pg_subscription_rel row.
+- **ALTER SUBSCRIPTION ... REFRESH PUBLICATION** (subscriber command)
+  - What it is: Re-reads the publisher's publication membership.
+  - What it does here: Discovers the new table and starts initial synchronization.
+  - What it gives us: A new row with srsubstate i is direct evidence that the subscriber noticed the table.
+- **pg_subscription_rel** (subscriber catalog table)
+  - What it is: Stores one row describing synchronization for each subscribed relation.
+  - What it does here: srsubstate shows i initialize, d data copy, f copy finished, s synchronized, and r ready for normal streaming.
+  - **srsublsn**: The WAL position at which copying ended and streaming became responsible for later changes.
+  - What it gives us: State changes and a non-null srsublsn prove the copy completed without a gap.
+- **consistent snapshot** (MVCC snapshot)
+  - What it is: A fixed view of committed rows at one logical instant.
+  - What it does here: Keeps the initial copy coherent while writes continue; the stream fills the gap after its snapshot.
+  - What it gives us: A blocked worker and zero copied rows show the open publisher transaction prevented snapshot creation.
+- **temporary synchronization slot** (replication slot)
+  - What it is: A short-lived retention cursor used by one table-copy worker.
+  - What it does here: Prevents required WAL disappearing before the copy reaches its handoff LSN.
+  - What it gives us: The handoff can finish with all rows present because WAL remains available through the copy.
+- **pg_stat_subscription** (worker view)
+  - What it is: Reports apply and synchronization worker activity.
+  - What it does here: Distinguishes a table copy in progress from an idle subscription.
+  - What it gives us: Worker activity and timing fields show whether synchronization is progressing or stalled.
+- **txid_current()** (transaction-ID function)
+  - What it is: Returns the ID assigned to the current transaction.
+  - What it does here: Labels the open publisher transaction that blocks the synchronization snapshot.
+  - What it gives us: blocking_xid ties the observed wait to one transaction that must COMMIT.
+- **\watch i=2 c=2 / \watch i=2 c=3** (psql polling command)
+  - What it is: Repeats a status query at a two-second interval for a bounded number of samples.
+  - What it does here: Captures the brief state transitions and shows rows arriving after COMMIT releases the snapshot.
+  - What it gives us: Repeated srsubstate and row counts reveal i/d/r progression rather than only the final state.
+`,
       setup: code`
 drop table if exists lg_ledger;
 create table lg_ledger(id int primary key, note text);
@@ -488,13 +660,58 @@ is no rule that stops you from writing to it, and no conflict resolution when yo
 with an incoming one. In this lesson you plant a row on the subscriber that the publisher is about
 to insert, and watch the apply worker crash, restart, crash again in a five second loop, while the
 publisher keeps accepting writes and reports nothing wrong.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
       syntaxBreakdown: code`
-pg_stat_subscription_stats has one row per subscription with apply_error_count and
-sync_error_count, both cumulative since stats_reset. pg_stat_subscription.pid is null while the
-apply worker is dead. The server log records the failing statement with a CONTEXT line naming the
-replication origin, the message type, and the transaction's finish LSN, which is the information
-you need to skip it. ALTER SUBSCRIPTION ... SKIP (lsn = ...) and pg_replication_origin_advance()
-discard the stuck transaction; deleting the offending local row instead lets it apply.`,
+### In plain terms
+
+Logical replication applies remote changes to local tables, so a local row can block or reject an incoming change. When that happens, the apply worker stops and every later change waits behind the same transaction. You will read worker statistics and the log to identify the exact finish LSN, then choose between fixing the row and intentionally skipping the stuck transaction.
+
+### What you are learning
+
+- Apply errors are cumulative evidence, while a null worker PID shows that replication is currently stopped.
+- The log's finish LSN identifies the transaction boundary at which the worker is stuck.
+- Skipping advances the replication origin and loses that transaction locally; correcting the row preserves the stream.
+
+### Piece by piece
+
+- **pg_stat_subscription_stats** (subscription statistics view)
+  - What it is: Cumulative per-subscription error counters.
+  - What it does here: apply_error_count counts apply failures and sync_error_count counts initial-copy failures since statistics reset.
+  - What it gives us: A nonzero counter proves an error occurred even after the worker restarts.
+- **pg_stat_subscription.pid** (worker status column)
+  - What it is: The operating-system PID of the apply worker.
+  - What it does here: A null PID while enabled means the worker died or is stopped after the error.
+  - What it gives us: A changing PID across retries or null while stopped is evidence of the worker's lifecycle.
+- **server log and CONTEXT** (diagnostic output)
+  - What they are: PostgreSQL error lines and extra replication context.
+  - What they do here: Name the failed statement, origin, message type, and finish LSN; use that LSN for a skip.
+  - What it gives us: The finish LSN is the exact safe boundary needed for a targeted skip.
+- **ALTER SUBSCRIPTION ... SKIP (lsn = ...)** (recovery command)
+  - What it is: Tells the subscriber to discard the transaction ending at a supplied LSN.
+  - What it does here: Moves past the stuck transaction; the LSN must come from the log.
+  - What it gives us: A resumed worker and advancing origin show later changes are no longer blocked; the skipped row is absent locally.
+- **pg_replication_origin_advance** (origin-position function)
+  - What it is: Directly moves the subscriber's recorded remote WAL position.
+  - What it does here: Demonstrates the offset change caused by a skip; use it only with the exact remote LSN.
+  - What it gives us: The origin position after the call records the new remote checkpoint.
+- **DELETE** (local conflict repair)
+  - What it is: Removes the row preventing an incoming change.
+  - What it does here: Lets the original transaction apply normally, avoiding skip-induced data loss.
+  - What it gives us: The originally failing change appears on the subscriber after the worker resumes.
+- **ALTER SUBSCRIPTION ... ENABLE** (worker restart command)
+  - What it is: Turns a disabled subscription back on.
+  - What it does here: Restarts the apply worker after the conflict is repaired or skipped so later transactions can continue.
+  - What it gives us: A non-null worker PID and falling apply lag show that the subscription recovered.
+- **pg_replication_origin_progress** (origin monitoring function)
+  - What it is: Reports the remote WAL position recorded for an origin.
+  - What it does here: Lets you confirm that the subscriber moved past the finish LSN after recovery.
+  - What it gives us: The returned remote_lsn can be compared directly with the log's finish LSN.
+- **pg_sleep** and **\watch** (timing and polling tools)
+  - What they are: pg_sleep pauses SQL; \\watch repeats a query at a fixed interval.
+  - What they do here: Give the worker time to fail or restart and make its changing PID and counters observable.
+  - What it gives us: Repeated samples distinguish a transient apply delay from a worker stuck on one transaction.
+`,
       setup: code`
 -- Publisher side: nothing to prepare, lg_orders is already published.
 select count(*) as publisher_rows from lg_orders;`,
@@ -575,7 +792,13 @@ down how you would detect that in production.`,
     },
     {
       slug: "slot-lag-and-disk",
-      tags: ["replication-slots", "logical-replication", "capacity", "wal", "observability"],
+      tags: [
+        "replication-slots",
+        "logical-replication",
+        "capacity",
+        "wal",
+        "observability",
+      ],
       title: "A stalled subscriber becomes the publisher's disk problem",
       difficulty: "advanced",
       safetyLevel: "privileged",
@@ -589,14 +812,66 @@ acknowledged, forever, no matter how much that is. In this lesson you stop the c
 the publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then
 you restart the consumer, watch the retention drain, and clean up everything the module created --
 because an abandoned slot is the single most common way a PostgreSQL server fills its disk.`,
+      reading:
+        'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
-ALTER SUBSCRIPTION ... DISABLE stops the apply worker, which disconnects the walsender and makes
-the slot inactive; the slot itself survives. pg_replication_slots.restart_lsn is the oldest WAL
-byte the slot needs and pg_walfile_name(restart_lsn) turns it into a file name in pg_wal.
-wal_status is reserved / extended / unreserved / lost, and safe_wal_size is how much more WAL can
-be written before this slot starts losing data -- both are governed by max_slot_wal_keep_size,
-which is -1 (unlimited retention) by default. pg_ls_waldir() lists the segment files.
-Dropping cleanly: DISABLE, SET (slot_name = none), DROP SUBSCRIPTION, then drop the slot yourself.`,
+### In plain terms
+
+An abandoned logical subscription can quietly retain WAL on the publisher, because its slot must preserve every change the absent consumer might still need. This lesson disables the subscriber, generates enough changes to make retention visible, and checks the WAL directory and slot status. Cleanup is explicit so the publisher is not left with a disk-filling obligation.
+
+### What you are learning
+
+- Disabling a subscription stops its worker but does not delete the publisher-side slot.
+- restart_lsn names the oldest required WAL, and safe_wal_size tells you how close the slot is to its configured limit.
+- Dropping a subscription and its slot is lifecycle work; stopping a worker alone is not cleanup.
+
+### Piece by piece
+
+- **ALTER SUBSCRIPTION ... DISABLE** (subscription command)
+  - What it is: Turns off automatic apply for a subscription.
+  - What it does here: Stops the apply worker and disconnects the publisher's walsender while preserving the slot.
+  - What it gives us: pg_replication_slots.active becomes false, proving the retention cursor remains without a consumer.
+- **pg_replication_slots** (slot monitoring view)
+  - What it is: Reports slot activity and WAL positions controlling retention.
+  - What it does here: restart_lsn identifies the oldest required byte; wal_status reports reserved, extended, unreserved, or lost; safe_wal_size reports remaining headroom.
+  - What it gives us: Slot activity, retained bytes, and status show whether the disabled consumer is holding publisher disk.
+- **pg_walfile_name(restart_lsn)** (WAL filename function)
+  - What it is: Converts the retained LSN to the segment filename containing it.
+  - What it does here: Lets you compare the slot's oldest requirement with files in pg_wal.
+  - What it gives us: oldest_needed_file identifies the exact segment that cannot yet be recycled.
+- **max_slot_wal_keep_size** (WAL-retention setting)
+  - What it is: Limits how much WAL replication slots may retain; -1 means no limit.
+  - What it does here: Governs when an abandoned slot moves toward invalidation.
+  - What it gives us: safe_wal_size and wal_status show how close the slot is to losing its retained history.
+- **pg_ls_waldir()** (server directory function)
+  - What it is: Lists WAL segment files and their sizes.
+  - What it does here: Shows disk evidence of a slot holding back cleanup; sum(size) is the total to compare.
+  - What it gives us: wal_files and pg_wal_bytes quantify the disk footprint before and after the consumer returns.
+- **ALTER SUBSCRIPTION ... SET (slot_name = none)** (subscription configuration command)
+  - What it is: Removes the subscription's association with its publisher slot.
+  - What it does here: Makes it safe to drop the subscription without targeting the wrong slot.
+  - What it gives us: The publisher-side slot remains explicitly identifiable for the final drop.
+- **DROP SUBSCRIPTION** and **pg_drop_replication_slot** (cleanup operations)
+  - What they are: The first removes the subscriber definition; the second removes the surviving publisher cursor.
+  - What they do here: Release both objects so WAL can be recycled; confirm no lab slot remains.
+  - What it gives us: slots_left = 0 proves the disk-retention obligation was removed.
+- **pg_settings** (configuration view)
+  - What it is: Lists current server setting names and values.
+  - What it does here: Records wal_level, max_wal_size, wal_keep_size, and max_slot_wal_keep_size before changing retention behavior.
+  - What it gives us: The setting values provide the baseline for interpreting later recycling and invalidation.
+- **CHECKPOINT** (SQL checkpoint command)
+  - What it is: Forces dirty pages and checkpoint bookkeeping to disk.
+  - What it does here: Gives PostgreSQL a chance to recycle WAL; the pinned slot prevents eligible files from disappearing.
+  - What it gives us: A stable file count after CHECKPOINT is evidence that the slot, not checkpoint timing, holds the segments.
+- **\watch i=3 c=4 / \watch i=5 c=6** (psql polling command)
+  - What it is: Repeats a status query at a fixed interval for a bounded number of samples.
+  - What it does here: Shows subscriber rows and retained WAL fall after the worker reconnects.
+  - What it gives us: Time-series samples show both apply progress and retention draining rather than a single snapshot.
+- **pg_read_file** (server file function)
+  - What it is: Reads text from a data-directory file.
+  - What it does here: The challenge can inspect the server log for retention or cleanup evidence.
+  - What it gives us: The log text provides the server's own explanation when a slot is invalidated or removed.
+`,
       setup: code`
 select name, setting from pg_settings
 where name in ('wal_level', 'max_wal_size', 'wal_keep_size', 'max_slot_wal_keep_size');`,

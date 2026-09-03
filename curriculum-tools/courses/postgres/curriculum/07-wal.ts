@@ -21,16 +21,74 @@ LSNs, decode the bytes in between with pg_walinspect, and read back the exact se
 the server appended: one per tuple change, one per index change, one COMMIT at the end. Then you
 find two things that surprise people: a rolled-back transaction still leaves its work in the log,
 and a plain SELECT can write megabytes of WAL.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Logging", "WAL Structure")`,
+      readingNotes: code`
+Chapter 10 introduces WAL as an ordered record stream and explains its logical and physical layout.
+This lesson makes that model observable by measuring LSN movement and decoding heap, index, and
+transaction records with pg_walinspect. Read the chapter before or after the experiment; the live
+record list is especially useful after the chapter has introduced resource managers and LSNs.`,
       syntaxBreakdown: code`
-An LSN (pg_lsn) is a byte offset into the infinite log, printed as hex/hex. pg_current_wal_lsn()
-is how far the log has been written, pg_current_wal_flush_lsn() how far it is fsynced, and
-pg_current_wal_insert_lsn() how far it has been reserved in memory. pg_wal_lsn_diff(a, b) is a
-minus b in bytes. pg_get_wal_records_info(start, end) decodes every record in a range: start_lsn,
-record_length, fpi_length, resource_manager (the subsystem that will replay it: Heap, Btree,
-Transaction, XLOG), record_type and a human description. pg_get_wal_stats(start, end) aggregates
-the same range. pg_get_wal_block_info(start, end) lists the pages each record touches, as
-(reldatabase, relfilenode, relblocknumber); pg_filenode_relation(0, relfilenode) turns that back
-into a table name. All of them can only read WAL that has already been flushed.`,
+### In plain terms
+
+This experiment asks what PostgreSQL writes to its durable log when rows and indexes change. You
+will mark the log before and after small transactions, then inspect the records and pages in between.
+The same exercise also shows that rollback leaves physical evidence in WAL, and that a read can log
+hint-bit changes; this matters when estimating recovery time, archive size, and replica bandwidth.
+
+### What you are learning
+
+- **LSNs:** A log sequence number is a position in WAL, like a byte address in an append-only file.
+- **Physical records:** One SQL statement can produce separate heap, index, and transaction records.
+- **Durability versus visibility:** WAL can contain an aborted change even though snapshots never show it.
+- **Read-side writes:** A scan may set hint bits and generate WAL even without changing logical rows.
+
+### Piece by piece
+
+- **pg_current_wal_insert_lsn(), pg_current_wal_lsn(), and pg_current_wal_flush_lsn()** (SQL functions)
+  - What they are: They report reserved, written, and flushed positions in the WAL stream.
+  - What they do here: The first query compares the three stages before the experiment.
+  - What they give us: Values should be ordered insert_lsn >= write_lsn >= flush_lsn; an LSN is printed in hexadecimal.
+- **DROP TABLE, CREATE TABLE, INSERT ... SELECT, generate_series(), and VACUUM** (setup SQL)
+  - What they are: They create repeatable lab relations, populate rows, and clean dead row versions.
+  - What they do here: **wal_orders** supplies a primary-key index and **wal_hint** supplies pages for the scan.
+  - What they give us: Known heap and index relations whose WAL can be mapped back to names.
+- **BEGIN, COMMIT, and ROLLBACK** (transaction commands)
+  - What they are: They group changes, publish them, or abandon their logical result.
+  - What they do here: The measured transaction produces INSERT, index, HOT_UPDATE, DELETE, and COMMIT records; the later transaction produces an ABORT.
+  - What they give us: A record sequence that can be compared with what is visible from SQL.
+- **\gset** (psql command)
+  - What it is: It stores one-row query columns as psql variables.
+  - What it does here: **start_lsn**, **end_lsn**, **abort_start**, and **abort_end** become bounds for later functions.
+  - What it gives us: The colon-prefixed values make each later range refer to the exact observed transaction.
+- **pg_wal_lsn_diff(end_lsn, start_lsn)** (SQL function)
+  - What it is: It subtracts two **pg_lsn** positions and returns bytes.
+  - What it does here: It prices the transaction and the scan-induced WAL.
+  - What it gives us: Compare **wal_bytes_for_that_txn** and **bytes_written_by_a_select**; absolute values vary, but the scale and ordering are meaningful.
+- **pg_get_wal_records_info(start_lsn, end_lsn)** (pg_walinspect set-returning function)
+  - What it is: It decodes flushed WAL records into columns such as **start_lsn**, **record_length**, **fpi_length**, **resource_manager**, **record_type**, and **description**.
+  - What it does here: It lists the physical records for the committed and rolled-back ranges.
+  - What it gives us: Separate Heap and Btree rows prove that an index is logged separately; Transaction/COMMIT or ABORT closes the transaction.
+- **pg_get_wal_block_info(..., false)** (pg_walinspect function)
+  - What it is: It reports the relation and block references attached to records; the final false disables filtering of relation blocks.
+  - What it does here: It shows which heap or index page each record touched.
+  - What it gives us: **relfilenode**, **relforknumber**, **relblocknumber**, and **record_type** identify the physical target.
+- **pg_filenode_relation(0, relfilenode)** (SQL function)
+  - What it is: It resolves a main-database filenode to a relation name; zero means the current database is not supplied by name.
+  - What it does here: It translates block-info filenodes into **wal_orders** or **wal_orders_pkey**.
+  - What it gives us: Human-readable relation names alongside physical block numbers.
+- **CHECKPOINT** (SQL command)
+  - What it is: It flushes dirty buffers and establishes a new recovery starting point.
+  - What it does here: It ensures the following scan can demonstrate hint-bit WAL after a checkpoint.
+  - What it gives us: A clean boundary before **hint_start**.
+- **SELECT count(*) FROM wal_hint** (read query)
+  - What it is: It scans all rows without changing their logical values.
+  - What it does here: With checksums enabled, it may set hint bits on pages and log full-page images.
+  - What it gives us: The final grouped record output includes **XLOG/FPI_FOR_HINT**, showing why read work can consume WAL.
+- **GROUP BY 1, 2 and ORDER BY 3 DESC** (SQL clauses)
+  - What they are: They aggregate by resource manager and record type, then put the most numerous groups first.
+  - What they do here: They summarize the hint-range records.
+  - What they give us: **count** and **total_len** reveal which record classes dominate bytes.`,
       setup: code`
 drop table if exists wal_orders;
 create table wal_orders(id int primary key, customer text, amount numeric)
@@ -172,13 +230,22 @@ per-commit? Lesson 7 measures this properly, so make a prediction first.`,
 
     {
       slug: "full-page-writes-after-checkpoint",
-      tags: ["wal", "full-page-writes", "checkpoints", "write-amplification", "checksums"],
+      tags: [
+        "wal",
+        "full-page-writes",
+        "checkpoints",
+        "write-amplification",
+        "checksums",
+      ],
       title: "Full-page writes: why the first change after a checkpoint costs 8 KB",
       difficulty: "intermediate",
       safetyLevel: "privileged",
       runIn: "tool",
       estimatedMinutes: 20,
-      prerequisites: ["every-change-is-a-wal-record", "page-header-and-line-pointers"],
+      prerequisites: [
+        "every-change-is-a-wal-record",
+        "page-header-and-line-pointers",
+      ],
       overview: code`
 A WAL record normally says "at page X, offset Y, change these bytes". That is only safe if the
 copy of page X on disk is a page the server actually wrote -- but an 8 KB page is many disk
@@ -187,14 +254,56 @@ to a torn page produces garbage. PostgreSQL's answer is the full-page image: the
 is modified after a checkpoint, the entire page goes into the WAL record, and redo overwrites the
 page instead of patching it. In this lesson you measure the cost: the same UPDATE, run three times
 in a row, costs about 6 KB then about 200 bytes then about 200 bytes.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (section "Fault Tolerance"); Chapter 10 "Write-Ahead Log" (section "Recovery")`,
+      readingNotes: code`
+Chapter 11 explains torn-page protection and Chapter 10 explains replay of full-page images. This
+experiment measures the image on the first post-checkpoint update and contrasts it with delta records.`,
       syntaxBreakdown: code`
-full_page_writes (on by default) controls this behaviour; it is a SIGHUP setting, so ALTER SYSTEM
-plus pg_reload_conf() changes it without a restart. CHECKPOINT forces a checkpoint immediately,
-which resets "first touch since checkpoint" for every page. In pg_get_wal_records_info,
-record_length is the whole record and fpi_length is how much of it is full-page images; fpi_length
-is usually less than 8192 because the unused hole between pd_lower and pd_upper is not stored.
-wal_compression can compress those images. A table created with fillfactor = 70 leaves room for
-HOT updates so the experiment stays on one page.`,
+### In plain terms
+
+This experiment shows why the first change after a checkpoint is much larger than later changes.
+PostgreSQL writes a full-page image so crash recovery can replace a partly written 8 KB page safely.
+You then disable the setting briefly to compare this protection with checksum-driven hint logging.
+
+### What you are learning
+
+- **Torn-page protection:** A full-page image prevents redo from patching a half-written page.
+- **Checkpoint arming:** A checkpoint makes the next page modification eligible for an image.
+- **Record sizing:** **fpi_length** identifies the image portion of a WAL record.
+
+### Piece by piece
+
+- **full_page_writes** (SIGHUP setting). What it is: the switch controlling post-checkpoint page images.
+  - What it does here: **show** confirms it, and the first and fourth updates test it on and off.
+  - What it gives us: **wal_bytes** and **fpi_length** show the large image cost when enabled.
+- **wal_compression** (setting). What it is: an option that compresses full-page images.
+  - What it does here: The **pg_settings** query reports whether compression is active before measuring.
+  - What it gives us: A baseline for interpreting image sizes and the optional challenge.
+- **wal_log_hints** (setting). What it is: an option that logs hint-bit page changes when checksums do not already require it.
+  - What it does here: The initial settings query shows why hint logging is redundant in this checksummed lab.
+  - What it gives us: Context for the remaining **FPI_FOR_HINT** record when full_page_writes is off.
+- **CHECKPOINT** (SQL command). What it is: a command that flushes dirty pages and establishes a new checkpoint.
+  - What it does here: It arms the first-touch rule before update 1 and update 4.
+  - What it gives us: Two comparable first-touch measurements whose WAL totals should be much larger than updates 2 and 3.
+- **ALTER SYSTEM SET/RESET** (configuration commands). What it is: SET writes a persistent override and RESET removes it.
+  - What it does here: It temporarily turns full_page_writes off and restores the setting at the end.
+  - What it gives us: A reversible comparison; the caution's reset is required if the block is interrupted.
+- **pg_reload_conf()** (SQL function). What it is: a request for PostgreSQL to reread reloadable settings.
+  - What it does here: It applies each ALTER SYSTEM change without restarting the cluster.
+  - What it gives us: The following **show full_page_writes** reveals the active value after the checkpointer catches up.
+- **\gset** (psql command). What it is: a command that stores query columns in psql variables.
+  - What it does here: Variables **a** through **h** hold LSN boundaries around each update.
+  - What it gives us: Those endpoints feed the byte differences and WAL record query.
+- **pg_wal_lsn_diff()** (SQL function). What it is: subtraction of two LSN positions in bytes.
+  - What it does here: It prices each update between its saved endpoints.
+  - What it gives us: The first-touch result is about 6 KB while later delta updates are about 200 bytes.
+- **pg_get_wal_records_info()** (pg_walinspect function). What it is: a decoder for flushed WAL records.
+  - What it does here: It lists HOT_UPDATE, PRUNE, COMMIT, and FPI_FOR_HINT rows in each range.
+  - What it gives us: **record_length** is total record size and **fpi_length** identifies image bytes.
+- **pg_sleep(2)** (SQL function). What it is: a two-second pause.
+  - What it does here: It gives the checkpointer time to apply the configuration change.
+  - What it gives us: A reliable final **show full_page_writes** value before cleanup.`,
       caution: code`
 This lesson turns full_page_writes off and back on. Between those two steps the cluster is NOT
 crash safe. Run the ALTER SYSTEM block to the end; if you interrupt it, run
@@ -351,16 +460,56 @@ synchronous_commit on and off and watch throughput move by an order of magnitude
 clients with synchronous_commit still on and see the server beat the single-client rate by
 amortising many commits into one fsync. Three numbers, one story: durability is a latency floor,
 and batching is the only way around it that does not lose data.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (sections "Performance", "Fault Tolerance")`,
+      readingNotes: code`
+Chapter 11 connects WAL settings with write performance and the durability consequences of relaxing
+flush behavior. This lesson measures the device, then compares synchronous and batched commits.`,
       syntaxBreakdown: code`
-pg_test_fsync measures the raw device: ops/sec and usecs/op for each wal_sync_method, with no
-PostgreSQL involved. pgbench -i -s 1 loads a 100k-row TPC-B-like schema; pgbench -c N -j M -T S
--N -M prepared runs it for S seconds with N clients (-N skips the contended branches update and
--M prepared removes parse overhead, so the measurement is dominated by commit cost).
-synchronous_commit is USERSET, so PGOPTIONS="-c synchronous_commit=off" changes it per connection
-with no server change; off means the commit record is written but not waited on, so a crash can
-lose a bounded window of recent commits (but can never corrupt anything). pg_stat_wal counts
-wal_write (write calls) and wal_sync (fsync calls) cluster-wide, so the delta across a run tells
-you how many commits shared an fsync.`,
+### In plain terms
+
+This experiment asks why a tiny COMMIT can still take milliseconds: acknowledging it safely requires
+flushing WAL to storage. It compares waiting for each flush with delayed and shared flushes, separating
+throughput from the promise made to the caller about surviving a crash.
+
+### What you are learning
+
+- **fsync latency:** Durable commit latency cannot be lower than the storage flush time.
+- **synchronous_commit:** Turning it off permits recent acknowledged work to be lost.
+- **Group commit:** Concurrent transactions can share one flush while remaining durable.
+
+### Piece by piece
+
+- **pg_test_fsync** (shell utility). What it is: a PostgreSQL program that measures raw WAL flush methods without running a workload.
+  - What it does here: **-s 2** runs each method for a short two-second sample.
+  - What it gives us: **ops/sec** and **usecs/op**, the storage baseline for one durable flush.
+- **-s 2** (pg_test_fsync flag). What it is: the sample-duration option.
+  - What it does here: It limits the lab benchmark to two seconds per method.
+  - What it gives us: A quick but approximate flush rate; longer samples reduce variance.
+- **createdb** and **dropdb** (shell programs). What they are: commands that create and remove a database.
+  - What it does here: It isolate the benchmark in **wal_bench** and clean it afterward.
+  - What it gives us: A disposable target without changing the course database.
+- **pgbench -i -s 1** (benchmark initialization). What it is: pgbench's standard workload setup.
+  - What it does here: **-i** creates its tables and **-s 1** loads scale factor 1.
+  - What it gives us: A repeatable transaction workload with roughly 100,000 base rows.
+- **pgbench -c N -j M -T S** (benchmark flags). What it is: the client-count, worker-count, and duration controls.
+  - What it does here: It runs one client and then eight clients for **-T 5** seconds; **-j 2** supplies two workers for the multi-client run.
+  - What it gives us: **tps** and latency for comparing single-client and group-commit behavior.
+- **-N** (pgbench flag). What it is: the simple, read-focused transaction option.
+  - What it does here: It skips extra update branches that would add unrelated contention.
+  - What it gives us: A workload dominated by commit and flush behavior.
+- **-M prepared** (pgbench flag). What it is: the prepared-statement protocol option.
+  - What it does here: It removes repeated parse overhead from the timed run.
+  - What it gives us: A closer measurement of transaction and durability cost.
+- **PGOPTIONS=-c synchronous_commit=off** (connection setting). What it is: an environment override for one client.
+  - What it does here: It lets the non-durable-waiting run return before WAL flush completes.
+  - What it gives us: More tps and fewer sync calls, at the cost of a bounded window of acknowledged commits.
+- **pg_stat_wal.wal_sync** and **sync_counter()** (statistics column and shell function). What they are: a cluster-wide count of WAL sync calls and a helper that reads it.
+  - What it does here: It capture counts immediately before and after each run.
+  - What it gives us: The delta compared with transaction count shows whether commits shared an fsync.
+- **PATH, PGLAB, PGHOST, PGPORT, PGUSER, cd, sed, and grep** (shell setup/filtering). What they are: environment, directory, and output-selection commands.
+  - What it does here: It point clients at port 5440 and keep only benchmark lines.
+  - What it gives us: Reproducible output without a server-setting mutation.`,
       caution: code`
 Run this as the postgres OS user. It creates its own database wal_bench and drops it at the end;
 it never changes a server setting. Absolute tps numbers depend entirely on the storage under
@@ -475,15 +624,50 @@ which file the current LSN is in, how the file name is derived from the LSN, how
 compared to max_wal_size, and why files with names in the FUTURE are already sitting there. Then
 you force a segment switch and watch the archiver copy the finished segment off the data
 directory, which is the moment WAL stops being a crash-recovery detail and becomes a backup.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "WAL Structure", "WAL Setup")`,
+      readingNotes: code`
+Chapter 10 describes finite WAL segments, their naming, and setup and monitoring choices. This lesson
+walks the segment directory and observes archiving, extending local WAL into the backup boundary.`,
       syntaxBreakdown: code`
-A WAL segment is wal_segment_size bytes (16 MB) and is named
-TIMELINE(8 hex) + LSN-high(8 hex) + LSN-segment(8 hex). pg_walfile_name(lsn) gives the segment
-containing an LSN and pg_walfile_name_offset(lsn) also gives the byte offset inside it; note that
-for an LSN exactly on a segment boundary these return the PREVIOUS segment, because the usual
-question is "which is the last segment I need". pg_switch_wal() finishes the current segment early
-and returns the LSN where it stopped. pg_ls_waldir() lists pg_wal from SQL. max_wal_size is a soft
-target that drives how often checkpoints happen; min_wal_size is how much space is kept
-preallocated. pg_stat_archiver tracks archive_command's progress.`,
+### In plain terms
+
+This experiment turns the infinite WAL stream into the finite files you can inspect on disk. You map
+an LSN to a segment, observe preallocated and recycled files, then seal a segment and watch the
+archiver copy it. Those files determine whether recovery and backups can obtain the history they need.
+
+### What you are learning
+
+- **WAL segments:** Fixed-size files hold consecutive portions of the log.
+- **Recycling:** PostgreSQL renames old segments for future use instead of repeatedly allocating files.
+- **Archiving:** A completed segment copied elsewhere is the durable input for backup and recovery.
+
+### Piece by piece
+
+- **pg_settings** (system view). What it is: a view of active PostgreSQL configuration values.
+  - What it does here: It reports segment size, retention targets, archive mode, WAL level, and sync method.
+  - What it gives us: The **setting** and **unit** columns explain later file counts and archive behavior.
+- **wal_segment_size** (setting). What it is: the fixed byte size of each WAL segment.
+  - What it does here: The query establishes the 16 MB file size used by the lab.
+  - What it gives us: A known unit for interpreting **pg_wal** space and LSN offsets.
+- **min_wal_size**, **max_wal_size**, and **wal_keep_size** (settings). What they are: lower preallocation, checkpoint target, and retention controls.
+  - What it does here: The settings query supplies the context for recycled and retained files.
+  - What it gives us: Values to compare with the actual directory size; max_wal_size is not a hard cap.
+- **pg_walfile_name()** and **pg_walfile_name_offset()** (SQL functions). What they are: LSN-to-file mapping functions.
+  - What it does here: It map the current LSN to a 24-character segment name and offset.
+  - What it gives us: The **segment_and_offset** output shows timeline, segment number, and byte position.
+- **pg_ls_waldir()**, **count**, **sum**, and **pg_size_pretty** (directory function and aggregates). What they are: SQL tools for listing and summarizing WAL files.
+  - What it does here: It counts files, totals their sizes, and compares names before and after recycling.
+  - What it gives us: **segments**, **bytes_in_pg_wal**, **future_recycled**, and **already_written** evidence.
+- **\! ls**, **wc -l**, and **tail** (psql shell escapes). What they are: filesystem listing, counting, and tailing commands.
+  - What it does here: It inspects actual pg_wal and archive files; **$PGLAB** supplies the lab path.
+  - What it gives us: File names and archive count that corroborate SQL directory output.
+- **pg_switch_wal()** (SQL function). What it is: a request to finish the current WAL segment early.
+  - What it does here: It seals the segment containing the returned **switched_at** LSN.
+  - What it gives us: The next segment name changes after the following INSERT, proving the boundary.
+- **pg_stat_archiver** and **\watch i=2 c=2** (view and psql command). What they are: archive counters and a bounded repeated query.
+  - What it does here: It sample archive progress twice, two seconds apart.
+  - What it gives us: **last_archived_wal**, **archived_count**, and **failed_count** show success or lag; **i=2** is the interval and **c=2** the run count.`,
       setup: code`
 drop table if exists wal_orders;
 create table wal_orders(id int primary key, customer text, amount numeric)
@@ -589,7 +773,10 @@ what happens if archive_command starts failing. Which of the three has no upper 
       runIn: "mixed",
       sessions: 2,
       estimatedMinutes: 25,
-      prerequisites: ["every-change-is-a-wal-record", "commit-visibility-and-clog"],
+      prerequisites: [
+        "every-change-is-a-wal-record",
+        "commit-visibility-and-clog",
+      ],
       overview: code`
 Now cash the promise. You commit rows, leave a second transaction uncommitted, and then kill the
 server with SIGQUIT -- no shutdown checkpoint, dirty pages still in shared buffers, WAL flushed
@@ -599,15 +786,47 @@ rows come back. The uncommitted row also comes back physically -- its INSERT rec
 and redo does not care about commit status -- but it is invisible forever, because no COMMIT
 record for its xid was ever replayed. That distinction is the whole of ARIES-style recovery in one
 experiment.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Recovery")`,
+      readingNotes: code`
+Chapter 10 explains checkpoints and redo from the last safe starting point. This lesson deliberately
+crashes the lab and matches pg_control, heap-page evidence, and recovery-log messages to that model.`,
       syntaxBreakdown: code`
-pg_ctl stop -m immediate sends SIGQUIT: backends are killed, no checkpoint is written, and the
-cluster is left in state "in production" in pg_control. pg_controldata prints pg_control:
-"Database cluster state" tells you whether the last shutdown was clean, and
-"Latest checkpoint's REDO location" is where replay will start. pg_control_checkpoint() is the
-same information from SQL. In the server log, recovery announces itself with "database system was
-interrupted", "database system was not properly shut down; automatic recovery in progress",
-"redo starts at LSN", and "redo done at LSN". heap_page_items() lets you see the physical tuple
-that redo restored even though no snapshot will ever accept it.`,
+### In plain terms
+
+This experiment commits rows, leaves another transaction open, and forcibly stops the lab server.
+After restart, PostgreSQL replays WAL: committed rows become visible, while an uncommitted tuple may
+exist physically but remains invisible. It demonstrates why recovery needs the log and a checkpoint.
+
+### What you are learning
+
+- **Crash recovery:** Redo reapplies WAL from the checkpoint's redo location.
+- **Commit visibility:** A row needs a replayed commit record to be visible to snapshots.
+- **Physical versus logical state:** An aborted tuple can remain on a page for later cleanup.
+
+### Piece by piece
+
+- **pg_ctl -D DIR stop -m immediate** (server-control command). What it is: a command that stops a cluster.
+  - What it does here: **-D** selects the lab and **-m immediate** kills processes without a shutdown checkpoint.
+  - What it gives us: Lost psql connections and an unclean state, which starts crash recovery on restart.
+- **pg_controldata -D DIR** (control-file reader). What it is: a tool that reads pg_control while stopped.
+  - What it does here: It inspects the cluster after the simulated crash.
+  - What it gives us: **cluster state** and **REDO location** prove the stop and identify replay's start.
+- **pg_ctl ... start -w** (server-control command). What it is: the restart operation.
+  - What it does here: **-w** waits for readiness and **-l** writes startup output to a log.
+  - What it gives us: A running server and recovery messages for the replay range.
+- **grep -E** and **tail** (shell filters). What they are: pattern selection and last-line filters.
+  - What it does here: It isolate redo start and redo done messages.
+  - What it gives us: Replay LSNs and elapsed time for estimating recovery work.
+- **pg_control_checkpoint()** (SQL function). What it is: a function exposing checkpoint metadata.
+  - What it does here: It reports checkpoint and redo LSNs before and after the crash.
+  - What it gives us: Evidence that end-of-recovery creates a fresh checkpoint.
+- **heap_page_items(get_raw_page(...))** (pageinspect functions). What they are: raw-page and tuple-header readers.
+  - What it does here: It inspects the abandoned INSERT after redo restores its bytes.
+  - What it gives us: **t_xmin** and **HEAP_XMIN_INVALID** distinguish a physical ghost from visible rows.
+- **pg_relation_size()/8192**, **generate_series**, **LATERAL**, **ORDER BY**, and **LIMIT** (SQL expressions and clauses). What they are: tools for enumerating heap blocks and selecting line pointers.
+  - What it does here: It generates block numbers, inspects each block, and returns four recent items.
+  - What it gives us: Physical page evidence rather than a normal SELECT result.`,
       caution: code`
 This lesson deliberately crashes the lab cluster. Only ever run it against $PGLAB, never against a
 cluster you care about, and never against a packaged system cluster on port 5432. Both psql
@@ -759,15 +978,50 @@ with pg_waldump --stats. Then you cause a small, known transaction and dump it t
 pg_walinspect from SQL and through pg_waldump from the shell -- and confirm they print the same
 records, in the same order, with the same lengths. The log is a replayable, inspectable stream,
 and that is what makes a physical standby possible.`,
+      reading: code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "Recovery")`,
+      readingNotes: code`
+Chapter 10 presents recovery as deterministic replay of WAL records. This lesson compares SQL
+pg_walinspect output with pg_waldump output for the same LSN range, making the replay stream visible
+from both interfaces.`,
       syntaxBreakdown: code`
-pg_waldump -p DIR reads segments out of a directory (pg_wal, or an archive), --start/--end bound
-the LSN range, and --stats aggregates instead of printing every record. Each line carries rmgr,
-len (rec/tot), tx, lsn, prev, a description, and blkref entries naming
-tablespace/database/relfilenode and block -- prev is the previous record's LSN, so the log is a
-backward-linked chain that replay validates as it goes. pg_walinspect's
-pg_get_wal_records_info() reads the same records from SQL, but only from pg_wal and only up to the
-flush LSN, which is why an older range has to come from the archive. pg_switch_wal() is what makes
-a range archivable in the first place.`,
+### In plain terms
+
+Redo is a repeatable process over ordinary WAL bytes, not an opaque server action. You find the
+recovery range in the log, create a small known transaction, and inspect that range through SQL and
+the shell. Matching records, lengths, and order explain how a physical standby can replay the stream.
+
+### What you are learning
+
+- **Deterministic replay:** The same ordered records applied to the same pages produce the same state.
+- **LSN ranges:** Start and end positions select exactly the work to inspect or replay.
+- **SQL versus shell inspection:** pg_walinspect and pg_waldump expose the same underlying records.
+
+### Piece by piece
+
+- **\! grep -E ... | tail -2** (psql shell escape and filters). What it is: a way to select recovery lines from the server log.
+  - What it does here: It extracts the REDO_START and REDO_DONE LSNs for the shell comparison.
+  - What it gives us: Exact bounds for the range the server replayed.
+- **\gset** and **\echo** (psql commands). What they are: variable capture and display commands.
+  - What it does here: It save transaction endpoints as **s** and **e**, then print them for substitution.
+  - What it gives us: A visible, reproducible SQL/shell LSN range.
+- **pg_get_wal_records_info(s, e)** (pg_walinspect function). What it is: a SQL decoder for flushed records.
+  - What it does here: It lists the known transaction's records between the captured endpoints.
+  - What it gives us: Start/end LSN, resource manager, record type, and length for comparison with pg_waldump.
+- **pg_switch_wal()** (SQL function). What it is: a request to finish the current segment early.
+  - What it does here: It seals the range's segment so the archiver can copy it.
+  - What it gives us: An archived file that pg_waldump can read.
+- **pg_sleep(3)** (SQL function). What it is: a three-second pause.
+  - What it does here: It gives the background archiver time to copy the sealed segment.
+  - What it gives us: Archive listing evidence rather than a race with the archiver.
+- **\! ls ... | tail -2** (psql shell escape). What it is: a filesystem listing limited to its last two lines.
+  - What it does here: It checks that recent archive files exist.
+  - What it gives us: The segment filename needed by the next shell step.
+- **pg_waldump -p DIR --start START --end END --stats** (shell utility and flags). What it is: a WAL decoder reading files directly.
+  - What it does here: **-p** selects the archive, **--start/--end** bound the captured range, and **--stats** aggregates the recovery range.
+  - What it gives us: Record counts, lengths, FPI bytes, and the same five records SQL decoded.
+- **rmgr, len (rec/tot), tx, lsn, prev, desc, blkref** (pg_waldump output fields). What they are: manager, lengths, transaction, position, previous link, description, and target-page references.
+  - What it does here: It describe each replayable record in physical terms.
+  - What it gives us: The xid, backward chain, and relation/block targets hidden by the SQL view.`,
       setup: code`
 drop table if exists wal_replay;
 create table wal_replay(id int primary key, note text);
@@ -890,22 +1144,68 @@ is FPI in each? Then predict what a standby's network link looks like during a b
       safetyLevel: "writes-data",
       runIn: "tool",
       estimatedMinutes: 25,
-      prerequisites: ["every-change-is-a-wal-record", "hot-updates-and-fillfactor"],
+      prerequisites: [
+        "every-change-is-a-wal-record",
+        "hot-updates-and-fillfactor",
+      ],
       overview: code`
 WAL volume is a first-class capacity number: it sets your archive bill, your replication
 bandwidth, and how long recovery takes. It is also almost never proportional to the logical size
 of the data. In this lesson you price four choices with pg_wal_lsn_diff -- batching rows into one
 transaction, using COPY instead of INSERT, updating an indexed versus a non-indexed column, and
 building an index -- and turn each into bytes per row so they can be compared directly.`,
+      reading:
+        code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (sections "Fault Tolerance", "WAL Levels"); Chapter 5 "Page Pruning and HOT Updates" (section "HOT Updates")`,
+      readingNotes: code`
+Chapter 11 provides WAL and WAL-level context, while Chapter 5 explains why HOT updates avoid index
+work when a row stays on its page. This lesson prices batching, COPY, indexed updates, and index
+builds, extending those mechanisms into practical write-amplification measurements.`,
       syntaxBreakdown: code`
-pg_wal_lsn_diff(end, start) is the byte cost of everything that happened in between; wrapping
-statements in \gset'd LSNs is the general recipe for pricing any operation. \gexec runs each row
-of a result as its own statement, which is how you get N separate autocommit transactions out of
-one query. COPY uses heap_multi_insert, which packs many tuples into one WAL record, while
-INSERT ... SELECT logs one record per tuple. A HOT update writes only a heap record; an update
-that changes an indexed column must also write index records, and pg_stat_user_tables.n_tup_upd
-versus n_tup_hot_upd counts which happened (call pg_stat_force_next_flush() first, statistics are
-buffered).`,
+### In plain terms
+
+This experiment measures how many WAL bytes different ways of doing equivalent work produce. You
+compare transaction batching, COPY, HOT versus indexed updates, and a new index build, then divide by
+rows or updates so the costs are comparable. The measurements turn storage, archive, and replication
+capacity into numbers rather than guesses.
+
+### What you are learning
+
+- **Batching:** A commit record and flush cost are overhead that can be amortized across many rows.
+- **HOT updates:** Changing a non-indexed column may avoid new index entries when space permits.
+- **Write amplification:** Logical row changes can produce very different WAL volumes.
+
+### Piece by piece
+
+- **pg_wal_lsn_diff()** (SQL function). What it is: subtraction of two LSN positions in bytes.
+  - What it does here: It prices each insertion, update loop, and index build between saved endpoints.
+  - What it gives us: **wal_bytes** and **bytes_per_row/bytes_per_update** for direct comparisons.
+- **\gset** (psql command). What it is: query-result capture into psql variables.
+  - What it does here: It stores **a1** through **i2**, the endpoints around each operation.
+  - What it gives us: Exact reusable boundaries instead of hand-copied LSNs.
+- **\gexec** (psql command). What it is: a command that executes each result row as SQL.
+  - What it does here: It turns 2,000 generated INSERT strings into 2,000 autocommit transactions.
+  - What it gives us: The separate-commit row in the cost table.
+- **COPY ... TO/FROM ... CSV** (SQL data-transfer command). What it is: bulk export and import through a CSV file.
+  - What it does here: It generates and then loads the same 2,000 rows using multi-row WAL records.
+  - What it gives us: A much smaller **bytes_per_row** value than individual INSERT paths.
+- **DO $$ ... FOR ... LOOP** (server-side PL/pgSQL block). What it is: a loop that runs many SQL statements in one transaction.
+  - What it does here: It repeats 2,000 inserts or 1,000 updates while avoiding client round trips.
+  - What it gives us: A controlled denominator and a batched transaction cost.
+- **fillfactor = 70**, primary key, and **CREATE INDEX** (storage option and DDL). What they are: spare-page space, an indexed identifier, and a secondary index.
+  - What it does here: It creates HOT-eligible plain updates and non-HOT indexed updates, then builds a new index.
+  - What it gives us: Different record types and index size for explaining write amplification.
+- **pg_get_wal_records_info()** (pg_walinspect function). What it is: a decoder of records in each update range.
+  - What it does here: It groups HOT_UPDATE, INSERT_LEAF, SPLIT_L, and PRUNE records.
+  - What it gives us: Counts and summed lengths showing why indexed updates cost more.
+- **pg_stat_force_next_flush()** (SQL function). What it is: a request to publish buffered statistics now.
+  - What it does here: It makes the following table-statistics query reflect the update loops.
+  - What it gives us: Fresh counters rather than stale values.
+- **pg_stat_user_tables.n_tup_upd** and **n_tup_hot_upd** (statistics columns). What they are: total and HOT-update counters.
+  - What it does here: It reports how many updates used each path.
+  - What it gives us: A behavioral cross-check for the WAL record breakdown.
+- **pg_relation_size('wal_amp_id_idx')** (SQL size function). What it is: the physical byte size of the built index.
+  - What it does here: It measures the output relation after CREATE INDEX.
+  - What it gives us: **index_bytes** to compare with WAL bytes and quantify build amplification.`,
       setup: code`
 drop table if exists wal_amp;
 create table wal_amp(id int, v text) with (autovacuum_enabled = off);
