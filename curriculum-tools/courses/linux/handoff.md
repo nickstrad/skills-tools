@@ -37,6 +37,11 @@
   finally. `docker info` failed and neither the systemd bus nor a usable daemon exists here, so the
   Ubuntu 24.04 image build/runtime test could not run in this workspace. No test builder, container,
   or image was created. Run the command below on the dedicated VM before declaring runtime acceptance.
+- Disk-safety follow-up: the test now owns a unique labeled image/container and unique Buildx
+  builder, prunes only that private builder, removes the exact BuildKit container/state-volume
+  prefix, conditionally removes the helper image only when the run introduced it, verifies all
+  run-owned resources are absent, and fails cleanup if absence cannot be proved. Static Bash,
+  ShellCheck, diff, and no-broad-prune checks passed; the no-daemon path created no resources.
 - Builds, checks, tests, lesson validation, leak checks, and CLI smoke tests: pending.
 - Shell validator: focused suite passed `6 passed | 0 failed`; targeted `deno fmt --check`,
   `deno lint`, and `deno check` passed. A real legacy smoke selection of PostgreSQL
@@ -56,6 +61,9 @@
 ## Commits and pushes
 
 - `4521813` — bootstrap/Docker safety; pushed to `origin/main`.
+- `e6ab578` — persistent shell validator and six initial regression tests; pushed to `origin/main`.
+- External PostgreSQL work advanced `main` through `84d8dad`; Linux commits remain ancestors and no
+  PostgreSQL files were staged by this workflow.
 
 ## Next resume command
 

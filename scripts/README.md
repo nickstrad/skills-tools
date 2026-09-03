@@ -77,10 +77,17 @@ build fails:
   `service` when possible, then restores the prior unit state on exit. A
   daemon that was already running is left running.
 - **No unrelated cleanup.** Each run gets a unique image tag, container name,
-  and Buildx builder. On exit, only those resources are removed; the test
-  never runs a host-wide `docker system prune`, and pre-existing images,
-  containers, volumes, networks, and build cache remain untouched. A run
-  still takes roughly 15-25 minutes on a cold cache.
+  and Buildx builder. The image and run container carry a unique run label;
+  BuildKit's generated builder container and state/cache volume are removed by
+  exact per-run name/prefix after the builder is pruned and deleted. On exit,
+  cleanup verifies that the image, container, builder, BuildKit container,
+  state volume, and run-labeled resources are all gone. The pinned BuildKit
+  helper image is removed only when it was absent before the run; a
+  pre-existing helper image is retained. If cleanup cannot verify this
+  (including a daemon disappearing during cleanup), the test exits non-zero.
+  It never runs a host-wide `docker system prune`, and pre-existing images,
+  containers, volumes, networks, and build cache remain untouched. A run still
+  takes roughly 15-25 minutes on a cold cache.
 
 Inside a container there is no systemd and the kernel belongs to the host, so
 `lab-setup.sh` installs the Docker and PostgreSQL packages without starting
