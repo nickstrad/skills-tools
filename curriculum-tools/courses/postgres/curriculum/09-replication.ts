@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const REPLICATION: Module = {
   category: "replication",
@@ -933,7 +934,8 @@ A replication slot is a server-side promise to keep WAL until a consumer has rea
   - What it gives us: slots_left = 0 confirms no abandoned consumer can keep WAL after cleanup.
   - What it does here: Releases the lab's WAL after the observation.
 `,
-      caution: code`
+      caution: code`${ARCHIVE_PRUNING_REMINDER}
+
 This lesson writes about 120 MB of WAL into $PGLAB and into the archive, and briefly sets
 max_slot_wal_keep_size = 64MB on the primary. The last steps reset it, drop both slots, and put the
 standby back to slot-free streaming; do not stop before them. An orphaned slot on a real primary is

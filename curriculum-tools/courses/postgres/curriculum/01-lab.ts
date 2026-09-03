@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const LAB: Module = {
   category: "lab-setup",
@@ -200,29 +201,11 @@ A PostgreSQL node is a process tree over one directory: pages in base/, the writ
 pg_wal/, transaction status in pg_xact/, and control metadata in global/pg_control. Owning all of
 it lets you treat the database like any other stateful service you might operate: something you
 can kill, copy, replay, and replicate rather than a black box behind a connection string.`,
-      caution: code`
-This is a throwaway cluster: never point PGLAB at a directory that already holds data you care
-about, and if port 5440 is taken on your machine, choose another and use it in every lesson.
+      caution: code`This is a throwaway cluster: never point PGLAB at a directory that already holds
+data you care about, and if port 5440 is taken on your machine, choose another and use it in every
+lesson.
 
-The archive folder grows and you will have to prune it. Here is why and how. PostgreSQL writes
-every change first to the write-ahead log (WAL), a sequence of 16 MB files under
-$PGLAB/primary/pg_wal. The server reuses those files on its own, but archive_mode = on tells it
-to copy each finished file into $PGLAB/archive first, and nothing ever deletes those copies. The
-course needs them: point-in-time recovery (module 08) replays them, module 07 reads them with
-pg_waldump, and the timeline history files that modules 08, 09 and 15 look at land there too. The
-cost is that the archive grows by the full volume of WAL the experiments generate, several GB over
-the course.
-
-When "df -h" shows the disk getting tight, it is safe to delete archived files older than the
-start of your newest base backup, because a restore always starts from that backup and only needs
-WAL written after it. Module 08 creates that backup in $PGLAB/backup1; its file backup_label has a
-line "START WAL LOCATION: ... (file X)" where X is a 24-character WAL file name. Run, as the
-postgres OS user with /usr/lib/postgresql/16/bin on PATH:
-  pg_archivecleanup $PGLAB/archive X
-pg_archivecleanup deletes every file in the given folder that sorts before X and keeps X itself.
-Before you reach module 08 there is no backup, so every archived file can go. Never run it against
-$PGLAB/primary/pg_wal: that folder belongs to the running server, which needs those files for
-crash recovery and replication.`,
+${ARCHIVE_PRUNING_REMINDER}`,
       challenge: code`
 Read $PGLAB/primary/postgresql.conf from the top and note which settings need a restart
 (context = postmaster) versus a reload: select name, context from pg_settings where name in

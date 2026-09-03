@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const INCIDENTS: Module = {
   category: "reliability",
@@ -120,7 +121,8 @@ the filesystem.
   - What they do here: They filter log lines about slot invalidation and order them chronologically.
   - What they give us: The server's LOG, DETAIL, and HINT lines that explain why the slot was invalidated.
 `,
-      caution: code`
+      caution: code`${ARCHIVE_PRUNING_REMINDER}
+
 This lesson writes about 120 MB of WAL into $PGLAB and the archive, and changes two settings with
 ALTER SYSTEM. The last steps drop the slot, reset both settings and drop the table; do not stop
 before them, or you will leave a slot behind on your own lab. Do NOT try to reproduce the real

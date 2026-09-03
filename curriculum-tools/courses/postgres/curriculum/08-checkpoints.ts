@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const CHECKPOINTS: Module = {
   category: "checkpointing",
@@ -642,7 +643,8 @@ while copying. You verify the manifest, deliberately corrupt one file, and confi
 - **PG_VERSION** (data-directory marker). What it is: a small file identifying the PostgreSQL major version.
   - What it does here: Appending text makes the manifest mismatch; writing **16** restores the expected value.
   - What it gives us: A controlled verification failure followed by **backup successfully verified**.`,
-      caution: code`
+      caution: code`${ARCHIVE_PRUNING_REMINDER}
+
 This lesson writes about 330 MB into $PGLAB/backup1; check free space first. Leave the backup in
 place when you are finished: the next lesson restores from it, and module 09 may reuse it to seed
 a standby.`,
@@ -839,7 +841,8 @@ difference between history reconstruction and ordinary rollback concrete.
   - What they are: recovery-state, history-ID, relation-existence, and segment-name readers.
   - What it does here: It compares the promoted copy with the untouched primary.
   - What it gives us: false/2 on the promoted copy and NULL for the dropped table on the primary.`,
-      caution: code`
+      caution: code`${ARCHIVE_PRUNING_REMINDER}
+
 This lesson drops a table in the lab database on purpose and starts a SECOND PostgreSQL instance
 on port 5441. Nothing here touches the 5440 server's data directory. The final block stops and
 deletes $PGLAB/pitr so the lab is back to its module-01 layout -- do not skip it. $PGLAB/backup1
@@ -1045,6 +1048,7 @@ This lesson is short and read-only: look at the history file, count the segments
 the archive, and reason out the consequence that sets up the whole replication module. A server
 that has diverged onto its own timeline cannot follow a server on another one, because their logs
 agree on a prefix and then disagree, and there is no way to apply one on top of the other.`,
+      caution: ARCHIVE_PRUNING_REMINDER,
       reading:
         code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
       syntaxBreakdown: code`

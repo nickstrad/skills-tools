@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const WAL: Module = {
   category: "wal",
@@ -629,6 +630,7 @@ directory, which is the moment WAL stops being a crash-recovery detail and becom
       readingNotes: code`
 Chapter 10 describes finite WAL segments, their naming, and setup and monitoring choices. This lesson
 walks the segment directory and observes archiving, extending local WAL into the backup boundary.`,
+      caution: ARCHIVE_PRUNING_REMINDER,
       syntaxBreakdown: code`
 ### In plain terms
 

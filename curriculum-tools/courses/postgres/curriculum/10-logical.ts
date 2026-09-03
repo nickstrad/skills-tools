@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
 
 export const LOGICAL: Module = {
   category: "logical-replication",
@@ -812,6 +813,7 @@ acknowledged, forever, no matter how much that is. In this lesson you stop the c
 the publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then
 you restart the consumer, watch the retention drain, and clean up everything the module created --
 because an abandoned slot is the single most common way a PostgreSQL server fills its disk.`,
+      caution: ARCHIVE_PRUNING_REMINDER,
       reading:
         'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
       syntaxBreakdown: code`
