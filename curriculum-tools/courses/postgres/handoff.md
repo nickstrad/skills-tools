@@ -17,8 +17,7 @@ another review or stop after planning: implementation and validation are authori
 ## Current state
 
 - Branch main, remote origin `git@github.com:nickstrad/skills-tools.git`; fetched successfully.
-- No PostgreSQL source edits yet. Prior review and its knowledge-index row were uncommitted at
-  start.
+- Three agents are implementing chunk1; original MVCC source already has in-progress edits.
 - Active unrelated SQLite changes include its course, generated lessons, shared `src/main.ts`,
   `tests/main_test.ts`, bootstrap and Docker scripts. Never stage these with PostgreSQL changes.
 - Shared-engine work includes slug-preserving progress reseeding. Do not edit those files; verify
@@ -31,6 +30,8 @@ another review or stop after planning: implementation and validation are authori
   `/tmp/postgres-pivot-20260904/socket`, port5540, role postgres. DBs: pivot_storage,
   pivot_visibility, pivot_primary. Extensions installed. Setup script `/tmp/pg-pivot-lab.sh`.
   Switching OS users required escalation; approved prefix `bash /tmp/pg-pivot-lab.sh`.
+- Local socket access requires escalation too; `psql` prefix approved after sandbox denial. Primary
+  SELECT1 connection check passed.
 - Original learner progress SHA256:
   c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f.
 - No changed-lesson runtime validation yet; agents are implementing.
@@ -53,15 +54,18 @@ another review or stop after planning: implementation and validation are authori
 
 ## Durable constraints
 
-Preserve original lessons 1–7 exactly. Keep course revision 2, explicit revision 3 for material
-edits. Keep surviving slugs, map retirements and ordinals. Do not edit learner progress. No blanket
-git add, reset, stash, force-push, or changes to other agents' files. Do not crash the learner's
-port-5440 lab. Use an owned private cluster and separate databases; coordinate global operations
-serially.
+Preserve original lessons 1–7 exactly. Keep course revision 2, explicit revision 4 for material
+edits (some existing checkpoint lessons already use3). Keep surviving slugs, map retirements and
+ordinals. Do not edit learner progress. No blanket git add, reset, stash, force-push, or changes to
+other agents' files. Do not crash the learner's port-5440 lab. Use an owned private cluster and
+separate databases; coordinate global operations serially.
 
 ## Commits and evidence
 
-Chunk 0 is being committed with this handoff, plan, prior review, and completed-seven baseline. Use
-`git log --oneline -- courses/postgres/handoff.md` from curriculum-tools to find the current
-checkpoint commit; subsequent updates record preceding committed checkpoints. No runtime evidence
-yet.
+- `4406657` pushed: initial plan, review, handoff and completed-seven baseline.
+- `6d2fe8a` pushed: exact chunk1 contracts, guide interfaces and lab/agent ownership.
+- `90e82d4` pushed: user-requested repo-wide project scale and progressive ownership alignment.
+  Updated learning_path, AUTHORING, curriculum-author skill and wrapper template; recorded reusable
+  findings in docs/knowledge/progressive-course-design.md and index. Skill validator and scoped
+  format/diff checks passed. Installed author skill is a symlink to the edited repository source.
+- No changed-lesson runtime evidence yet; agents are implementing. No learner progress mutation.
