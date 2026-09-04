@@ -6,14 +6,60 @@ export const LOCAL_SYSTEMS: Module = {
   lessons: [
     {
       slug: "transactional-outbox",
-      title: "Close the dual-write gap with a transactional outbox",
+      title: "Use SQLite's one-file commit boundary for an outbox",
       difficulty: "intermediate",
       tags: ["outbox", "atomicity", "transactions", "idempotency"],
       prerequisites: ["idempotent-retry-ledger"],
       overview:
-        "Update domain state and append the message describing that update in one SQLite transaction. Then run a rollback variant to show that a failed transaction emits neither half of the intended effect.",
-      syntaxBreakdown:
-        "A UNIQUE operation_id gives an outbox event stable identity. BEGIN, COMMIT, and ROLLBACK define one atomic state transition. SELECT joins domain state to durable intent for inspection.",
+        "Use SQLite's one-file transaction to commit a domain update and the durable intent to deliver it, then roll back a second attempt. The evidence is a precise commit boundary: both tables change together inside this database file, while delivery to anything outside the file remains a later responsibility.",
+      syntaxBreakdown: `
+### In plain terms
+
+This experiment asks which parts of a local state change SQLite can make atomic. The account balance and its outbox row are committed together or rolled back together, so a worker that later reads the outbox can find durable intent for every committed debit. An outbox is a table of pending delivery intent; it does not make a network or other external action part of SQLite's transaction.
+
+### What you are learning
+
+- **One-file commit boundary**: A SQLite transaction commits changes to the tables in this database file as one state transition, or makes none of them durable.
+- **Stable operation identity**: A UNIQUE operation ID gives a retryable event an identity that can be checked again without inventing another event.
+- **Delivery boundary**: The published flag records local acknowledgement state; it does not prove that a separate delivery process or remote system performed the effect.
+
+### Piece by piece
+
+- **DROP TABLE IF EXISTS** (SQL schema command)
+  - What it is: A conditional table removal.
+  - What it does here: It makes the disposable accounts and outbox tables safe to recreate when the setup is rerun.
+  - What it gives us: A clean local database state; it does not affect any external system.
+- **CREATE TABLE** (SQL schema command)
+  - What it is: A table definition for rows SQLite stores in this file.
+  - What it does here: It creates domain state in **accounts** and delivery intent in **outbox**.
+  - What it gives us: Two tables whose rows can be inspected before and after each transaction.
+  - The **PRIMARY KEY** columns identify rows, and **UNIQUE operation_id** rejects a second outbox row with the same operation identity.
+  - **NOT NULL** and **DEFAULT 0** enforce required values and make a new event start as unpublished.
+- **BEGIN** (SQL transaction command)
+  - What it is: The start of a transaction, SQLite's unit of atomic local change.
+  - What it does here: It groups the balance update and outbox insert into one pending state transition.
+  - What it gives us: Until **COMMIT**, another connection cannot treat these writes as durable committed state.
+- **UPDATE accounts** (SQL data-change statement)
+  - What it is: A row mutation selected by a WHERE condition.
+  - What it does here: It subtracts the debit amount from account 1 inside the open transaction.
+  - What it gives us: The balance that must agree with the corresponding outbox payload after commit.
+- **INSERT INTO outbox** (SQL data-change statement)
+  - What it is: A new durable-intent row insertion.
+  - What it does here: It records operation **op-001** and its debit payload in the same transaction as the balance change.
+  - What it gives us: A row a later delivery worker can read; **published = 0** means this local row is still pending.
+- **COMMIT** (SQL transaction command)
+  - What it is: The successful end of a transaction.
+  - What it does here: It makes the account update and outbox insert one durable SQLite commit.
+  - What it gives us: The joined SELECT should show balance 85 alongside op-001.
+- **SELECT ... JOIN ... USING** (SQL observation query)
+  - What it is: A query that combines related rows through their shared **account_id** column.
+  - What it does here: It displays domain state and delivery intent together after the commit.
+  - What it gives us: One line of evidence that the committed balance and event belong to the same local transition.
+- **ROLLBACK** (SQL transaction command)
+  - What it is: An explicit cancellation of the current transaction.
+  - What it does here: It discards the op-002 debit and its outbox insert after they have been issued but before commit.
+  - What it gives us: The later **balance_after_rollback** and **durable_events** queries show which state crossed SQLite's commit boundary.
+`,
       setup: code`
 DROP TABLE IF EXISTS outbox;
 DROP TABLE IF EXISTS accounts;
@@ -37,27 +83,77 @@ SELECT count(*) AS durable_events FROM outbox;
       expectedResult:
         "The committed operation leaves balance 85 and one outbox row for op-001. The rollback variant leaves balance at 85 and durable_events at 1: neither the debit nor op-002 exists. The outbox is pending (published = 0) until a separate delivery process acknowledges it.",
       systemsLens:
-        "The outbox closes the dual-write gap by placing domain state and delivery intent behind one local commit point. A later worker may deliver at least once, but it cannot observe intent for a state change that rolled back.",
+        "SQLite's distinctive contribution here is a one-file commit boundary: domain state and delivery intent cross it together, and the rollback evidence shows exactly what stays out. That boundary is strong for a local or offline process, but it ends at the database file; a later worker, network call, broker, or remote service must provide delivery, retry, and any downstream deduplication guarantee.",
       challenge:
-        "Add a foreign key and a query that lists unpublished events older than a chosen timestamp. Which invariant belongs in SQLite and which belongs in the delivery service?",
+        "Keep the same experiment but add a delivery-attempt timestamp and inspect only rows with published = 0. Which facts can SQLite commit atomically in this file, and what evidence would you need from the delivery service before claiming the external effect happened?",
       caution:
         "The outbox is not a distributed transaction or proof of remote delivery. It records durable intent; delivery, retry, and downstream deduplication remain separate responsibilities.",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
       minVersion: "3.53.4",
+      revision: 2,
       estimatedMinutes: 20,
     },
     {
       slug: "outbox-replay-after-crash",
-      title: "Make an outbox replay safe after worker death",
+      title: "Replay across SQLite's acknowledgement gap",
       difficulty: "advanced",
       tags: ["outbox", "deduplication", "retries", "crash-recovery"],
       prerequisites: ["transactional-outbox"],
       overview:
-        "Commit an outbox claim, stop before acknowledgement, and restart a worker against the same row. A downstream receipt ledger keyed by operation_id turns the replay into one logical effect while retaining at-least-once delivery semantics.",
-      syntaxBreakdown:
-        "UPDATE ... RETURNING claims and displays one row. INSERT OR IGNORE makes a replay a no-op at the receipt boundary. changes() reports whether the current statement inserted a new effect.",
+        "Commit a worker claim, stop before its acknowledgement, and then replay the same durable row after the worker restarts. SQLite preserves the in-flight state and the receipt ledger in the local file, so the second attempt can be recognized; the acknowledgement gap still means an external effect may have happened before the process failed.",
+      syntaxBreakdown: `
+### In plain terms
+
+This experiment makes the worker's acknowledgement gap visible: a claim commits in SQLite, but the worker dies before recording that it finished. A restarted worker reads the same durable local state, records one receipt keyed by the operation ID, and then safely sees a duplicate as a no-op. The receipt ledger is local SQLite evidence of accepted intent; it cannot prove that a separate email service, API, or other external resource performed exactly one effect.
+
+### What you are learning
+
+- **Durable state across restart**: A committed claim and its attempt count remain in the SQLite file after the worker process disappears.
+- **Acknowledgement gap**: Failure between an external effect and the local acknowledgement can cause a replay, so delivery is at least once unless the effect boundary deduplicates it.
+- **Receipt-ledger location**: The receipt row is stored in **delivery_receipts**, beside the replay state in this local database; its scope and durability are the scope and durability of that file.
+
+### Piece by piece
+
+- **DROP TABLE IF EXISTS** (SQL schema command)
+  - What it is: A conditional table removal.
+  - What it does here: It clears both disposable tables so the replay starts with no prior receipt.
+  - What it gives us: A repeatable local failure-window experiment.
+- **CREATE TABLE** (SQL schema command)
+  - What it is: A definition for SQLite-managed durable rows.
+  - What it does here: **outbox_replay** stores the operation, payload, status, and attempts; **delivery_receipts** stores one accepted effect per operation ID.
+  - What it gives us: A place to observe the worker state and the receipt ledger separately.
+  - The **PRIMARY KEY** on operation_id makes an operation identity unique in each table, while **DEFAULT** values make new work pending with zero attempts.
+- **BEGIN IMMEDIATE** (SQL transaction command)
+  - What it is: A transaction start that requests SQLite's writer reservation immediately.
+  - What it does here: It makes the claim and later receipt/status updates short, serialized local state transitions.
+  - What it gives us: A committed claim that is visible as one SQLite state change before the simulated worker death.
+- **UPDATE ... RETURNING** (SQL data-change statement and result clause)
+  - What it is: An update with a guarded row change that also returns the changed columns.
+  - What it does here: It changes only a pending send to **in_flight**, increments attempts, and prints the claimed identity, status, and count.
+  - What it gives us: The concrete claim evidence: **send-001**, **in_flight**, and **attempts = 1**.
+- **COMMIT** (SQL transaction command)
+  - What it is: The point where the current transaction's changes become durable in SQLite.
+  - What it does here: It commits the claim before the worker-died observation, leaving no acknowledgement yet.
+  - What it gives us: A restart can recover the row because the claim crossed the local commit boundary.
+- **INSERT OR IGNORE** (SQL insert conflict policy)
+  - What it is: An insert that skips a row when a uniqueness constraint conflicts instead of failing the statement.
+  - What it does here: It inserts the receipt on the first replay and treats the same operation ID as a duplicate on the second replay.
+  - What it gives us: A controlled duplicate boundary rather than a second receipt row.
+- **SELECT changes()** (SQLite scalar function)
+  - What it is: A function reporting rows changed by the immediately preceding INSERT, UPDATE, or DELETE.
+  - What it does here: It distinguishes the first receipt insertion from the duplicate replay.
+  - What it gives us: **new_effect_on_first_replay = 1** and **new_effect_on_duplicate_replay = 0**.
+- **UPDATE outbox_replay ... SET status = 'done'** (SQL data-change statement)
+  - What it is: A status transition for the durable local work row.
+  - What it does here: It acknowledges completion in SQLite after the receipt insert succeeds.
+  - What it gives us: The final **status** and **attempts** query shows the recovered row as done after one retry attempt.
+- **SELECT count(*) AS logical_effects** (SQL observation query)
+  - What it is: A count over the receipt ledger.
+  - What it does here: It checks whether duplicate delivery produced another locally recorded effect.
+  - What it gives us: **logical_effects = 1**, even though the operation was replayed.
+`,
       setup: code`
 DROP TABLE IF EXISTS delivery_receipts;
 DROP TABLE IF EXISTS outbox_replay;
@@ -85,15 +181,16 @@ SELECT count(*) AS logical_effects FROM delivery_receipts;
       expectedResult:
         "The claim commits as status in_flight with attempts = 1, then the simulated worker death leaves it unacknowledged. The first replay inserts one receipt (new_effect_on_first_replay = 1) and marks the outbox done; the duplicate replay reports 0 new effects. The final logical_effects count is 1 even though delivery was attempted again.",
       systemsLens:
-        "A crash between remote effect and local acknowledgement creates at-least-once delivery. Exactly-once-looking behavior comes from an atomic identity ledger at the effect boundary, not from pretending a process cannot fail between two systems.",
+        "SQLite makes the worker's local state durable across restart and lets a receipt ledger enforce one local row per operation identity. The acknowledgement gap remains between that local commit and any external effect: replay is expected, and exactly-once-looking behavior requires the external effect boundary to honor the same identity or provide its own idempotency guarantee.",
       challenge:
-        "Delete the receipt and replay with a different payload. What key and validation rule would prevent an operation ID from being reused for a different effect?",
+        "Replay with a different payload and inspect the receipt ledger's existing row. What SQLite key and payload-validation rule would stop an operation ID from being reused for a different effect, and what must the external service verify before acknowledging delivery?",
       caution:
         "The SQL simulation models the failure window; it does not kill a real process or prove remote side effects are transactional. Use stable operation identities and make downstream operations genuinely idempotent.",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
       minVersion: "3.53.4",
+      revision: 2,
       estimatedMinutes: 25,
     },
     {
@@ -152,14 +249,59 @@ SELECT job_id, state, owner, attempt FROM durable_jobs ORDER BY job_id;
     },
     {
       slug: "lease-expiry-and-fencing",
-      title: "Fence a stale worker after lease takeover",
+      title: "Use a SQLite conditional write as a resource-side fence",
       difficulty: "advanced",
       tags: ["leases", "fencing", "optimistic-concurrency", "retries"],
       prerequisites: ["durable-job-claims"],
       overview:
-        "Expire worker A's lease, let worker B take over with a higher fencing token, then submit A's late completion. The stale completion must update zero rows even though A still believes it owns the job.",
-      syntaxBreakdown:
-        "The token column is monotonically increasing ownership evidence. UPDATE ... WHERE token = ? is a compare-and-swap guard. changes() exposes whether a stale completion was accepted.",
+        "Let worker B take over an expired row with a higher token, then submit worker A's late completion through SQLite's conditional UPDATE. The stale write changes zero rows because the resource-side row no longer carries A's token, showing exactly where SQLite can enforce fencing and where an external resource must enforce it again.",
+      syntaxBreakdown: `
+### In plain terms
+
+This experiment treats the **leased_jobs** row as the protected resource. A fencing token is a monotonically increasing number attached to the current owner; a completion is accepted only when its owner, token, and state still match the row in SQLite. The zero-row stale completion is a resource-side rejection inside SQLite, but an email provider, object store, or other external resource must perform an equivalent token check at its own boundary.
+
+### What you are learning
+
+- **Conditional write**: An UPDATE whose WHERE clause includes the expected owner and token acts like a compare-and-swap against the current SQLite row.
+- **Resource-side fencing**: The resource that accepts a completion must reject an old token after takeover, even if the stale worker is still running.
+- **Boundary of SQLite fencing**: SQLite serializes and guards writes to this file only; it cannot automatically prevent a stale worker from affecting an external resource.
+
+### Piece by piece
+
+- **DROP TABLE IF EXISTS** (SQL schema command)
+  - What it is: A conditional table removal.
+  - What it does here: It resets the disposable lease row so the takeover and stale-write sequence is repeatable.
+  - What it gives us: A known token and expiry from which to observe ownership changes.
+- **CREATE TABLE** (SQL schema command)
+  - What it is: A definition for the resource state SQLite protects.
+  - What it does here: It gives each job an owner, fencing **token**, expiry, state, and result.
+  - What it gives us: One row whose token and result can be inspected after every guarded write.
+  - **NOT NULL** keeps ownership evidence present, while **result** remains nullable until a completion is accepted.
+- **SELECT job_id, state, owner, token, lease_until** (SQL observation query)
+  - What it is: A query of the current resource-side ownership record.
+  - What it does here: It shows worker A's initial claim and token 1 before takeover.
+  - What it gives us: The baseline against which the higher token and new owner are compared.
+- **UPDATE ... WHERE lease_until <= 200** (SQL conditional data-change statement)
+  - What it is: An update whose predicate must prove that the existing lease has expired.
+  - What it does here: It lets worker B replace A, increments the token, and sets B's later expiry.
+  - What it gives us: **takeover_rows = 1**, with worker-b and token 2 in the following SELECT.
+- **SELECT changes()** (SQLite scalar function)
+  - What it is: A function reporting rows changed by the immediately preceding write.
+  - What it does here: It reports whether the takeover or either completion actually matched its guard.
+  - What it gives us: **stale_completion_rows = 0** proves A's old token was rejected; **current_completion_rows = 1** proves B's current token was accepted.
+- **UPDATE ... WHERE owner = 'worker-a' AND token = 1 AND state = 'claimed'** (SQL conditional data-change statement)
+  - What it is: A completion write guarded by all of A's old ownership evidence.
+  - What it does here: It attempts the late stale completion after B has taken over.
+  - What it gives us: Zero changed rows, so A cannot overwrite the resource-side result in SQLite.
+- **UPDATE ... WHERE owner = 'worker-b' AND token = 2 AND state = 'claimed'** (SQL conditional data-change statement)
+  - What it is: The same resource-side fence evaluated with the current owner's evidence.
+  - What it does here: It accepts B's completion and writes **result-b**.
+  - What it gives us: One changed row and a final result owned by worker-b with token 2.
+- **SELECT ... FROM leased_jobs** (SQL observation query)
+  - What it is: A final read of the protected resource row.
+  - What it does here: It displays the owner, token, state, and result after both completion attempts.
+  - What it gives us: The durable proof that the stale result was not written.
+`,
       setup: code`
 DROP TABLE IF EXISTS leased_jobs;
 CREATE TABLE leased_jobs(job_id INTEGER PRIMARY KEY, state TEXT NOT NULL, owner TEXT, token INTEGER NOT NULL, lease_until INTEGER NOT NULL, result TEXT);
@@ -179,15 +321,16 @@ SELECT job_id, state, owner, token, result FROM leased_jobs;
       expectedResult:
         "Worker B's takeover changes one row and raises token to 2. Worker A's late completion changes zero rows (stale_completion_rows = 0), while B's guarded completion changes one row. The final result is result-b, owned by worker-b with token 2; the stale worker cannot overwrite it.",
       systemsLens:
-        "Expiry permits progress after a failed owner; fencing prevents an old owner from acting after that progress. The monotonically increasing token is a local form of authority that downstream writes must verify.",
+        "The SQLite conditional UPDATE is a resource-side fence: the row itself rejects a completion carrying an obsolete token. That is sufficient when the protected effect is committed in SQLite, but serialization of this file does not fence an email, API, object store, or other external resource; that resource must verify the token at its own boundary before applying the effect.",
       challenge:
-        "Move the token check into a separate result table with a UNIQUE job_id and test a duplicate completion. Which boundary must enforce the fence if the side effect is outside SQLite?",
+        "Move the result into a separate SQLite table with UNIQUE job_id and keep the token in the guarded write. Then model the same completion against an external resource: what token must that resource receive and check at its own boundary before accepting a stale worker's effect?",
       caution:
         "Wall-clock expiry can jump or be misconfigured. Production leases need a clock policy, bounded durations, and a fencing check at every side-effecting boundary.",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
       minVersion: "3.53.4",
+      revision: 2,
       estimatedMinutes: 20,
     },
     {

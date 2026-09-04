@@ -43,6 +43,22 @@ flags. The goal is to develop a mental model of what each primitive provides,
 how it behaves under load, where its boundaries are, and how it composes with
 other primitives.
 
+## Depth and overlap rule
+
+Apply "deep once, contrast thereafter" across the entire learning path. Teach a
+systems concept from first principles in the project that exposes it most
+clearly, then use later projects to reveal different implementations,
+operational boundaries, failure modes, or trade-offs. Matching vocabulary is not
+automatically redundant: a later experiment earns its place when it produces
+materially different evidence and changes the learner's model.
+
+After two substantially different implementations have separated a general
+principle from one product's design, further projects should normally assume the
+principle and concentrate on what is new. Do not omit a tool's internals merely
+because familiar labels such as transactions, logs, indexes, isolation, resource
+limits, or health checks reappear; do avoid another ground-up explanation when
+the mechanism and lesson outcome add no meaningful contrast.
+
 ## Track 1: Databases, data, and storage
 
 ### 1. PostgreSQL — deep project
@@ -80,6 +96,13 @@ Keep this architectural comparison in view:
 | Client/server database           | Embedded database   |
 | Concurrent multi-process service | Local durable state |
 
+SQLite is the deliberate second implementation for transactional storage, so its
+file header, pager, B-tree, rollback-journal, single-writer locking, WAL
+sidecar, checkpoint, backup, and recovery experiments are useful contrast, not
+duplication. When a lesson revisits a general application pattern already taught
+with PostgreSQL, it should assume that concept and concentrate on the different
+SQLite mechanism or local/offline operating boundary.
+
 ### 3. DuckDB
 
 DuckDB introduces analytical database architecture without requiring another
@@ -105,6 +128,27 @@ The important distinction is:
 ```text
 OLTP-style, row-oriented architecture  ↔  OLAP-style, analytical architecture
 ```
+
+Keep DuckDB compact: roughly 30–36 high-signal lessons. Its primary job is to
+teach columnar storage, vectorized and pipelined execution, blocking operators,
+memory-bounded algorithms, spilling, scan parallelism, and Parquet layout and
+pushdown. Avoid re-teaching shared concepts such as basic SQL, transaction
+vocabulary, query-plan terminology, and generic durability principles from first
+principles when earlier courses have already established them. This is not a
+reason to omit DuckDB internals: use comparative experiments to teach DuckDB's
+own storage, concurrency, MVCC, WAL, checkpoint, and index behavior where its
+embedded analytical architecture produces a different mechanism, trade-off, or
+observable result.
+
+Under this rule, PostgreSQL supplies the deepest treatment of transactional
+storage, while SQLite provides the second implementation needed to separate the
+general principles from PostgreSQL's design. DuckDB therefore needs only about
+4–6 focused experiments on transactions, concurrency, WAL, checkpoints,
+recovery, and indexes—enough to expose its architectural boundary, not another
+ground-up sequence. As a rough allocation, spend 75% of the course on
+distinctive OLAP execution, storage, memory, parallelism, and file-layout
+behavior; 15% on those transactional and durability contrasts; and 10% on
+cross-engine capstones.
 
 ### 4. Redis / Valkey
 
@@ -227,6 +271,14 @@ docker history
 
 Connect Docker’s abstractions back to Linux directly in later lessons.
 
+Make Docker a moderately deep project of roughly 30–45 lessons. Concentrate on
+what systemd and Kubernetes do not teach directly: reproducible image builds,
+content-addressed layers, registries, container creation, namespace composition,
+OverlayFS copy-on-write behavior, local bridge networking, and the lifecycle of
+bind mounts, volumes, and ephemeral container state. Resource controls and
+restart behavior should point back to Linux and forward to Kubernetes rather
+than becoming three separate treatments of the same mechanism.
+
 ### 12. Linux networking
 
 Use `ip addr`, `ip link`, `ip route`, `ip neigh`, `ip netns`, `ss`, `bridge`,
@@ -250,6 +302,13 @@ controls.
 
 Operate services from the other projects with systemd rather than treating this
 as an isolated administration course.
+
+Keep systemd focused at roughly 12–18 experiments. The target is host-level
+systems intuition—process supervision, signals, readiness notification,
+watchdogs, restart backoff, boot and shutdown ordering, cgroup resource control,
+managed state directories, and service hardening—not broad systemd
+administration. Prefer breaking and recovering a real stateful service from an
+earlier course so the material complements Docker and Kubernetes.
 
 ### 15. Firecracker — advanced / later
 
@@ -283,6 +342,17 @@ primarily as a deployment tool.
 Progress through pods, desired state, scheduling, health, resources, networking,
 storage, controllers, reconciliation, and failure/recovery. Relate each
 abstraction back to the Linux and container concepts learned earlier.
+
+Make Kubernetes a later, deep project of roughly 60–80 lessons, after the
+learner has practical grounding in Linux processes, namespaces, cgroups, Docker,
+Linux networking, nftables, storage, and systemd. Understand etcd's role in the
+control plane before going deeply into cluster failure and recovery; completing
+the etcd project first is preferable when scheduling permits. Avoid using
+Kubernetes to reteach image construction or single-host process supervision. Its
+unique focus is multi-node desired-state reconciliation, scheduling and
+placement, service discovery, rollout control, persistent-volume orchestration,
+policy, controller design, and failures that cross node or control-plane
+boundaries.
 
 ## Track 4: Distributed systems
 

@@ -291,6 +291,52 @@ boundary of the tool—not merely recalling PRAGMAs.
    course evidence or SQLite documentation. Lens: choosing a storage system means matching
    guarantees and limits to requirements.
 
+## Retrofit: deep once, contrast thereafter
+
+The ordered learning path teaches transactional storage deeply in PostgreSQL and uses SQLite as the
+second implementation that separates general principles from one database's design. Preserve this
+course's standalone usability, but do not spend full lessons re-deriving a shared application or
+planning concept when the experiment can instead expose SQLite's different mechanism, boundary, or
+evidence. This retrofit is wording-led: preserve each slug, prerequisite, setup, code, expected
+result, lesson order, and safety contract unless validation proves the existing experiment cannot
+support the sharper claim. Bump each changed lesson's revision.
+
+1. `idempotent-retry-ledger` (lesson 23) — Retitle and reframe the experiment around SQLite's local
+   commit boundary: a unique operation identity and its domain effect live in one file and one
+   transaction. Assume the general retry/idempotency problem rather than teaching it again. Make the
+   systems lens distinguish the SQLite mechanism and state plainly that a side effect outside the
+   database is not covered by this atomic boundary.
+2. `query-plan-as-evidence` (lesson 35) — Retitle and reframe the experiment around SQLite's compact
+   `EXPLAIN QUERY PLAN` vocabulary: `SCAN`, `SEARCH`, and `USING COVERING INDEX`, including what
+   this interface does not measure. Assume the general idea of reading a plan. Keep timing
+   subordinate to the access-path evidence and make the challenge test a SQLite-specific plan
+   boundary.
+3. `transactional-outbox` (lesson 39) — Retitle and reframe the outbox as an application of SQLite's
+   one-file commit boundary for a local or offline process. Do not re-teach the generic outbox
+   pattern at length. Use the rollback evidence to identify exactly what SQLite makes atomic and
+   what delivery still leaves outside the transaction.
+4. `outbox-replay-after-crash` (lesson 40) — Retitle and reframe the experiment around the
+   acknowledgement gap at SQLite's process boundary. Concentrate on durable local state across
+   worker restart, the receipt ledger's location, and the remaining external-effect limitation
+   instead of another general lecture on at-least-once delivery.
+5. `lease-expiry-and-fencing` (lesson 42) — Retitle and reframe the experiment around SQLite's
+   conditional write as the resource-side fence. Assume the general stale-lease problem. Emphasize
+   that serialization through SQLite is sufficient only when the protected effect is committed in
+   SQLite; an external resource must enforce the token at its own boundary.
+
+Acceptance for all five lessons:
+
+- The title, overview, syntax breakdown, systems lens, and challenge focus on the SQLite-specific
+  evidence; the lesson remains understandable when taken independently.
+- Shared terminology is defined briefly where necessary, but the prose does not reproduce the
+  PostgreSQL course's conceptual arc.
+- Existing commands still produce every line promised by `expectedResult`; wording does not claim
+  evidence the experiment never emits.
+- Run `deno task build sqlite`, targeted real-tool validation for lessons 23, 35, 39, 40, and 42 on
+  a fresh private database, `deno task check`, and `deno task test`. Read the validation output for
+  unexpected errors rather than treating timeout completion as a pass, then smoke-test the five
+  rendered lessons with the course-local tutor binary.
+
 ## Implementation contract
 
 1. Replace the placeholder module and create these files in order: `01-lab-file.ts`, `02-pages.ts`,

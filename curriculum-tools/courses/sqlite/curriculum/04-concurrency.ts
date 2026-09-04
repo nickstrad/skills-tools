@@ -255,7 +255,7 @@ SELECT 'winner', body, version FROM document WHERE id=1;`,
     },
     {
       slug: "idempotent-retry-ledger",
-      title: "Put retry identity and its effect in one transaction",
+      title: "Deduplicate retries within SQLite's one-file commit boundary",
       difficulty: "intermediate",
       tags: ["idempotency", "retries", "atomicity", "deduplication", "transactions"],
       prerequisites: ["compare-and-swap-update"],
@@ -264,9 +264,57 @@ SELECT 'winner', body, version FROM document WHERE id=1;`,
       sessions: 1,
       estimatedMinutes: 15,
       overview:
-        code`Apply the same operation twice through a unique ledger row and a domain update. The first attempt changes the account; the replay records no second effect.`,
-      syntaxBreakdown:
-        code`A UNIQUE operation_id makes the ledger the deduplication boundary. INSERT OR IGNORE is idempotent, and changes() gates the domain mutation to the newly claimed operation.`,
+        code`Assume an at-least-once caller may submit the same operation more than once. Put a unique operation identity and its account change in one transaction against one SQLite database file, then replay that identity and observe that the balance changes only once. This local commit boundary does not include an email, payment call, or other effect performed outside the file.`,
+      syntaxBreakdown: code`### In plain terms
+
+Assume an at-least-once caller can retry an operation after losing its response. An operation identity is a stable key for that logical operation, and the local transaction boundary is the point where SQLite commits all writes to this one database file together. This experiment stores the identity in a ledger table and the domain effect in an account table, so a replay can be recognized before it changes the balance again. A side effect outside the file, such as sending an email or charging a card, is not part of SQLite's transaction and cannot be rolled back by it.
+
+### What you are learning
+
+- **One-file atomicity** means the ledger claim and account update become visible together at COMMIT or neither remains after ROLLBACK.
+- **Unique operation identity** turns a repeated delivery into a primary-key conflict on the same logical operation rather than a second ledger row.
+- **Conflict-as-no-op** uses INSERT OR IGNORE and changes() so only a newly inserted identity gates the domain update.
+- **External-effect boundary** means SQLite can protect durable local state, but it cannot atomically include a remote API, email provider, or other system.
+
+### Piece by piece
+
+- **DROP TABLE IF EXISTS** (SQL schema-reset clause)
+  - What it is: IF EXISTS makes dropping an absent table harmless.
+  - What it does here: It makes the setup repeatable by removing the prior ledger and account from this learner-owned database before recreating them.
+  - What it gives us: Every run starts with one account at balance 100 and an empty operation ledger.
+- **PRIMARY KEY** (table constraint)
+  - What it is: A primary key requires each operation_id to be unique and identifies one ledger row.
+  - What it does here: The operation identity op-42 can be inserted once; the replay encounters the same key.
+  - What it gives us: The ledger row is SQLite's durable deduplication evidence, while NOT NULL on applied_at rejects an incomplete claim.
+- **BEGIN IMMEDIATE** (transaction-start statement)
+  - What it is: It starts a transaction and obtains SQLite's writer admission before the statements that follow.
+  - What it does here: Each attempt groups its ledger insert and account update inside one local transaction.
+  - What it gives us: The commit boundary is explicit, and another writer cannot interleave a partial attempt into this file.
+- **INSERT OR IGNORE** (conflict-handling clause)
+  - What it is: OR IGNORE suppresses a constraint conflict and leaves the conflicting row unchanged instead of raising an error.
+  - What it does here: The first op-42 insert adds a ledger row; the replay's identical operation_id is ignored.
+  - What it gives us: The following changes() call reports 1 for a new claim and 0 for a replay, making the decision observable.
+- **changes()** (SQLite scalar function)
+  - What it is: It returns the number of rows changed by the most recent INSERT, UPDATE, or DELETE on this connection.
+  - What it does here: SELECT prints the result of each ledger insert, and the value is then used to gate the account UPDATE.
+  - What it gives us: claim 1 = 1 proves ownership of the new identity; claim 2 = 0 proves the replay did not insert a second ledger row.
+- **UPDATE ... AND changes()=1** (conditional update predicate)
+  - What it is: The extra predicate makes the account mutation conditional on the immediately preceding ledger insert changing one row.
+  - What it does here: The first attempt adds 10 to account 1, while the replay matches no account row because its claim changed zero rows.
+  - What it gives us: The balance moves from 100 to 110 once, which is the domain-effect evidence.
+- **SELECT count(*) FROM applied_operations** (scalar subquery)
+  - What it is: The parenthesized SELECT computes one value from the ledger table for the outer result row.
+  - What it does here: It counts committed operation identities alongside the final account balance.
+  - What it gives us: A count of 1 proves that the replay did not create a second ledger row.
+- **COMMIT** (transaction-end statement)
+  - What it is: It records the current transaction's successful writes as one committed unit in the database file.
+  - What it does here: It publishes the ledger claim and account change together for each attempt.
+  - What it gives us: The final query can inspect both the balance and the single durable ledger row after the two commit boundaries.
+- **ROLLBACK** (transaction-end statement used in the challenge)
+  - What it is: It abandons every uncommitted write in the current transaction.
+  - What it does here: Replacing the first COMMIT with ROLLBACK removes both the first ledger claim and its account update.
+  - What it gives us: The retry can claim the same operation identity, demonstrating that an uncommitted local effect was not permanently consumed.
+`,
       setup: code`DROP TABLE IF EXISTS applied_operations;
 DROP TABLE IF EXISTS account;
 CREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
@@ -289,9 +337,9 @@ SELECT 'after replay', balance, (SELECT count(*) FROM applied_operations) FROM a
       expectedResult:
         code`The first claim reports 1 and balance becomes 110. The replay claim reports 0, its gated UPDATE changes no row, and final output is balance 110 with one ledger row.`,
       systemsLens:
-        code`At-least-once delivery becomes safe when operation identity and the side effect share an atomic commit boundary; retries then collapse to one durable effect.`,
+        code`SQLite's mechanism here is a local transaction over tables in one database file: a primary-key operation identity and its domain mutation cross the same commit boundary, so duplicate deliveries collapse to one durable local effect. That is not end-to-end idempotency; an email, payment request, message publish, or other external effect cannot be included in or undone by this SQLite transaction. Embedded applications, offline agents, and local job receipts use this boundary, then need an outbox or provider-side idempotency at the external system's own boundary.`,
       challenge:
-        code`Make the first transaction roll back after claiming. What should the retry observe, and why is that desirable?`,
+        code`Change the first COMMIT to ROLLBACK after the account UPDATE, then run the second attempt. Predict claim 2 and the final balance: the local claim and account change should both disappear, allowing the retry to claim op-42 and apply the effect. Now imagine an email or payment call happened between the UPDATE and ROLLBACK. Which local rows disappear, and what effect can SQLite not undo?`,
       caution:
         code`Do not split the ledger insert and account update into separate transactions: a crash between them can create a permanently skipped effect.`,
       studyCheckpoint: {
@@ -315,7 +363,7 @@ serializable isolation, rollback locking, and retry boundaries before moving on 
 1024-byte example and trust the runtime page size instead.
         `,
       },
-      revision: 1,
+      revision: 2,
       minVersion: "3.53.4",
     },
   ],
