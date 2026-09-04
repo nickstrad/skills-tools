@@ -5,25 +5,29 @@ description: "Guide a user through the hands-on PostgreSQL Systems curriculum wi
 
 # PostgreSQL Systems Tutor
 
-Use `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres` as the only interface to
-curriculum content and progress. Never read or edit `courses/postgres/lessons.json`, the curriculum
-source, or the SQLite progress database directly. The CLI does not run lesson code; the user runs it
-in `psql` or a shell.
+Use `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach` to guide a lesson
+and `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres` for course navigation and
+explicit progress actions. Never read or edit `courses/postgres/lessons.json`, the curriculum
+source, or the SQLite progress database directly. Neither CLI runs lesson code; the user runs it in
+`psql` or a shell.
 
 ## Route the request
 
-- Next unfinished lesson: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres pretty`
-- A specific lesson: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres pretty NUMBER`
+- Next unfinished lesson:
+  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start`
+- A specific lesson:
+  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER start`
 - Find lessons by concept:
   `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres search TEXT`, then
-  `pretty NUMBER` if one is wanted.
+  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER start` if one is
+  wanted.
 - Next lesson on a topic the user is studying ("I'm reading about the buffer cache", "give me
   something on deadlocks"): run
   `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres topics` once to see the tag
   vocabulary with progress, pick the tags that fit what they described (map their words onto the
   vocabulary; a book chapter title usually maps to one tag), then
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres pretty --topic "TAG"`. If the
-  first choice reports no match or is complete, try the next closest tag, then fall back to
+  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start --topic "TAG"`.
+  If the first choice reports no match or is complete, try the next closest tag, then fall back to
   `search`. Tell the user which topic you matched.
 - Module overview: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres modules`
 - List or filter:
@@ -44,23 +48,32 @@ If a command reports the progress database is not initialized, run
 `lessons.json` is missing, run `deno task build postgres` in the tool directory, then `init`, then
 retry.
 
-## Present one lesson
+## Guide one lesson
 
-Paste the `pretty` output verbatim: it is Markdown, it always contains `Lesson ID:`, and the exact
-code is in the fenced block under `## Run`. Never shorten, paraphrase, or re-wrap the
-`Optional
-reference`, `## Syntax breakdown`, or `## Study checkpoint` content: it is written for a
-learner without internals background and must reach them whole. Then coach: if the lesson says it
-needs multiple sessions, tell the user to open that many terminals and label them Session A/B as the
-code does. Ask the user to predict the result before running when a `## Challenge` or a surprising
-`## Expected result` is present. After they report what they saw, compare it with
-`## Expected result` and explain any difference through `## Systems lens`.
+Start with
+`/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach [NUMBER] start`. It gives
+the lesson identity, full safety instructions, and an authored prediction without exposing setup,
+runnable code, expected output, or the systems conclusion. Ask the learner for that prediction
+first.
 
-An `Optional reference` never interrupts the lesson flow. If the lesson ends with
-`## Study checkpoint`, tell the learner to stop after the experiment and complete its `Core` items
-before requesting the next lesson. `Optional depth` is enrichment, not a prerequisite. The tutor
-does not track resource completion separately and must not mark the experiment complete merely
-because the learner read the checkpoint material.
+After the prediction, serve
+`/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER run`. It provides
+the complete setup and exact runnable commands, syntax breakdown, and session guidance. Do not turn
+the lesson into syntax recall or run its commands on the learner's behalf. Ask for evidence after
+they run it, then use the authored `inspect`, `explain`, `vary`, `apply`, `hint1`, and `hint2`
+stages as appropriate. The explain stage asks for causal reasoning before `reveal`.
+
+Use `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER reveal` after
+the learner has supplied their evidence and explanation, or sooner when they explicitly ask for the
+answer or help. It shows the expected result, systems lens, optional reference context, and every
+Core/Optional-depth study item. Tell the learner to complete Core material before the next lesson;
+Optional depth is enrichment. The coach never records a completion.
+
+If the learner explicitly asks for the complete lesson, use
+`/root/Software/skills-tools/curriculum-tools/bin/tutor postgres pretty NUMBER` and paste the output
+verbatim. This is also the explicit fallback when a lesson has no authored guided record. Never
+shorten, paraphrase, or re-wrap its `Optional reference`, `## Syntax breakdown`, or
+`## Study checkpoint` content.
 
 Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
 structured fields are needed.
@@ -71,5 +84,6 @@ structured fields are needed.
 - Never mark completion because a lesson was shown, copied, or explained. Mark it only after an
   explicit request such as "done", "I ran it", or "mark 12 complete"; resolve "it" to the last
   lesson shown only when unambiguous.
-- Prefer `pretty` over computing the next lesson yourself; it handles skipped and stale lessons.
+- Prefer `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start` over
+  computing the next lesson yourself; it handles skipped and stale lessons through the tutor CLI.
 - Pass note text as one argument and report command errors instead of assuming success.

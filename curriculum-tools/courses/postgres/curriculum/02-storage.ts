@@ -427,17 +427,18 @@ visibility is decided at read time from the header, not by hiding the bytes.`,
         "write-amplification",
         "indexes",
       ],
-      title: "HOT updates: why leaving a page half empty makes writes cheaper",
+      title: "HOT updates: how reserved page space can make writes cheaper",
       difficulty: "advanced",
       safetyLevel: "ddl",
       runIn: "tool",
       estimatedMinutes: 20,
       prerequisites: ["update-writes-a-new-tuple"],
+      revision: 4,
       overview: code`
-If a new row version fits on the same page and no indexed column changed, PostgreSQL can do a
-Heap-Only Tuple update: the new version is chained off the old line pointer and no index entry is
-written at all. Run the identical workload against two tables that differ only in fillfactor and
-count how many updates qualify.`,
+A Heap-Only Tuple (HOT) update can put a replacement row version on the old row's page without a
+new index entry, but it needs page space and unchanged indexed columns. Compare matched tables at
+fillfactor 100 and 70, first with one long transaction and then with separately committed updates.
+The counters, page counts, and tuple pointers show why both free space and transaction shape matter.`,
       reading: code`
 PostgreSQL 14 Internals, Chapter 5 "Page Pruning and HOT Updates" (sections "Page Pruning", "HOT Updates")`,
       readingNotes: code`
@@ -449,13 +450,18 @@ then read both sections to explain the counters and page flags.
       syntaxBreakdown: code`
 ### In plain terms
 
-These two tables receive the same updates, but one leaves 30 percent of each page empty. PostgreSQL can use that reserved room for a new version when the changed column is not indexed; that is a HOT update. Counters and page slots show the space-for-write trade.
+These matched tables receive the same logical updates, but one reserves 30 percent of each page at
+initial load. PostgreSQL can make a HOT update when a non-indexed change fits on the old page.
+You will compare one transaction with separate autocommit statements, because commit boundaries
+change when an old version can become removable during later page access.
 
 ### What you are learning
 
-- Fillfactor reserves page room for future updates and trades initial density for fewer index writes.
-- HOT requires the new version to fit on the same page and no indexed column to change.
-- Statistics count all updates separately from HOT updates, while page flags reveal pruning.
+- Fillfactor reserves page room for future updates, exchanging initial density for an opportunity
+  to avoid index maintenance.
+- HOT requires an unchanged indexed key and room for the replacement version on its old heap page.
+- Transaction boundaries affect when old versions become removable; counters and page pointers are
+  evidence, rather than a promise of a fixed HOT percentage.
 
 ### Piece by piece
 
@@ -467,14 +473,26 @@ These two tables receive the same updates, but one leaves 30 percent of each pag
   - What it is: an anonymous server-side procedure with a loop.
   - What it does here: repeats the non-indexed tag update 20 times for 100 rows in each table.
   - What it gives us: 2000 updates per table for a fair comparison.
-- **pg_sleep(1)** (SQL function)
-  - What it is: pauses one second.
-  - What it does here: allows cumulative statistics to flush before they are read.
-  - What it gives us: reliable n_tup_upd and n_tup_hot_upd values.
+- **CREATE TABLE ... (LIKE ... INCLUDING ALL)** (DDL copying clause)
+  - What it is: creates a new table from another table's definition and copies its constraints and
+    indexes as well as its columns.
+  - What it does here: gives the separately committed case fresh tables with the same primary-key
+    index as the first case.
+  - What it gives us: a fair indexed-id phase; a plain LIKE would omit that index.
+- **\\gexec** (psql query-result execution command)
+  - What it is: sends each SQL command returned by the preceding query back to PostgreSQL.
+  - What it does here: runs each generated UPDATE as its own psql statement, so normal autocommit
+    gives every round a separate transaction.
+  - What it gives us: a controlled contrast with the DO block, which is one transaction.
+- **pg_stat_force_next_flush() and pg_stat_clear_snapshot()** (statistics functions)
+  - What they are: the first requests a statistics flush; the second discards this session's cached
+    statistics snapshot.
+  - What they do here: make the following pg_stat_user_tables read as fresh as the server can provide.
+  - What they give us: counters that can be compared without relying on an arbitrary sleep.
 - **pg_stat_user_tables** (statistics view)
   - What it is: per-table update counters.
   - What it does here: reports n_tup_upd, n_tup_hot_upd, and pages.
-  - What it gives us: st_hot near 0 percent HOT and st_hot_ff in the hundreds; exact counts vary.
+  - What it gives us: total updates, HOT updates, their ratio, and page counts for each matched table.
 - **round(..., 1) and nullif(..., 0)** (SQL functions)
   - What they are: round formats the percentage to one decimal place, and nullif changes a zero
     denominator to NULL instead of raising a division-by-zero error.
@@ -486,108 +504,141 @@ These two tables receive the same updates, but one leaves 30 percent of each pag
   - What it gives us: heap-page cost of write amplification.
 - **heap_page_items and get_raw_page** (pageinspect functions)
   - What they are: decode each block's item slots.
-  - What they do here: count lp_flags after HOT chains are pruned opportunistically.
-  - What they give us: flag 1 normal, 2 redirect, 3 dead, 0 unused; qualitative counts matter more than exact totals.
-- **UNION ALL** (SQL set operator)
-  - What it is: combines result rows while retaining duplicates.
-  - What it does here: puts the two tables' flag counts into one census before ordering them.
-  - What it gives us: side-by-side evidence for st_hot and st_hot_ff.
-- **generate_series and LATERAL** (SQL row generation and correlation)
-  - What they are: generate one block number per page and run pageinspect once per block.
-  - What they do here: census every page in both relations.
-  - What they give us: evidence from all scanned blocks rather than a sample.
-- **ALTER TABLE ... SET (fillfactor = 70); VACUUM FULL** (challenge operations)
-  - What they are: change future fill and rewrite the table.
-  - What they do here: rebuild st_hot before repeating the workload.
-  - What they give us: a test of the HOT prediction; VACUUM FULL takes an exclusive lock.
+  - What they do here: inspect line-pointer state and a tuple's physical target after the workload.
+  - What they give us: flag 1 normal, 2 redirect, 3 dead, or 0 unused; redirects and changed t_ctid
+    are qualitative chain evidence, while ordinary page pruning can affect other dead tuples too.
+- **UPDATE ... SET id = id + 1000** (indexed-column update)
+  - What it is: an update of the primary-key column, whose B-tree entry must change.
+  - What it does here: provides a phase that cannot qualify as HOT.
+  - What it gives us: total-update growth while the HOT counter remains unchanged.
+- **DROP TABLE IF EXISTS / CREATE TABLE / INSERT ... generate_series** (challenge reset)
+  - What they are: idempotent lab cleanup followed by the same primary-key schema and 100-row load
+    used in the controlled cases.
+  - What they do here: create fresh matched fillfactor-100 and fillfactor-80 histories.
+  - What they give us: a comparison not distorted by the preceding twenty-round cases.
+- **pg_stat_force_next_flush() followed by pg_stat_clear_snapshot()** (challenge statistics read)
+  - What they are: a standalone request for the updater to publish counters, followed by discarding
+    this session's cached statistics snapshot before reading it.
+  - What they do here: occur after the ten separate update rounds and before the comparison query.
+  - What they give us: fresh total and HOT counter deltas for just the variation tables.
 
 `,
       setup: code`
-drop table if exists st_hot;
-drop table if exists st_hot_ff;
-create table st_hot(id int primary key, tag text, payload text)
+drop table if exists st_hot_tx_100, st_hot_tx_70, st_hot_commit_100, st_hot_commit_70;
+create table st_hot_tx_100(id int primary key, tag text, payload text)
   with (fillfactor = 100, autovacuum_enabled = off);
-create table st_hot_ff(id int primary key, tag text, payload text)
+create table st_hot_tx_70(id int primary key, tag text, payload text)
   with (fillfactor = 70, autovacuum_enabled = off);
-insert into st_hot    select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
-insert into st_hot_ff select g, 'a', repeat('p', 200) from generate_series(1, 100) g;`,
+insert into st_hot_tx_100 select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
+insert into st_hot_tx_70  select g, 'a', repeat('p', 200) from generate_series(1, 100) g;`,
       code: code`
-select relname, reloptions, pg_relation_size(oid) / 8192 as pages
-from pg_class where relname in ('st_hot','st_hot_ff') order by relname;
+select relname, reloptions, pg_relation_size(oid) / current_setting('block_size')::int as pages
+from pg_class where relname in ('st_hot_tx_100','st_hot_tx_70') order by relname;
 
--- Same workload on both tables: 20 rounds x 100 rows, touching only the
--- non-indexed column "tag". Only fillfactor differs.
+-- Controlled case 1: the complete loop is one transaction.
 do $sql$
 begin
   for i in 1..20 loop
-    update st_hot    set tag = 'a' || i;
-    update st_hot_ff set tag = 'a' || i;
+    update st_hot_tx_100 set tag = 'tx-' || i;
+    update st_hot_tx_70  set tag = 'tx-' || i;
   end loop;
 end
 $sql$;
-
-select pg_sleep(1);
+select pg_stat_force_next_flush();
+select pg_stat_clear_snapshot();
 select relname, n_tup_upd, n_tup_hot_upd,
        round(100.0 * n_tup_hot_upd / nullif(n_tup_upd,0), 1) as hot_pct,
-       pg_relation_size(relid) / 8192 as pages
-from pg_stat_user_tables where relname in ('st_hot','st_hot_ff') order by relname;
+       pg_relation_size(relid) / current_setting('block_size')::int as pages
+from pg_stat_user_tables where relname in ('st_hot_tx_100','st_hot_tx_70') order by relname;
 
--- Now change the INDEXED column. HOT is impossible: the index must be updated.
-update st_hot_ff set id = id + 1000;
-select pg_sleep(1);
-select relname, n_tup_upd, n_tup_hot_upd
-from pg_stat_user_tables where relname = 'st_hot_ff';
+-- Controlled case 2 uses fresh matched tables, not the first case's history.
+create table st_hot_commit_100 (like st_hot_tx_100 including all)
+  with (fillfactor = 100, autovacuum_enabled = off);
+create table st_hot_commit_70  (like st_hot_tx_70 including all)
+  with (fillfactor = 70, autovacuum_enabled = off);
+insert into st_hot_commit_100 select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
+insert into st_hot_commit_70  select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
 
--- The fingerprint HOT leaves behind. lp_flags: 0 unused, 1 normal, 2 REDIRECT
--- (an index still points here; follow it to the current version), 3 dead.
--- Nothing has been vacuumed; this is opportunistic pruning on page access.
-select 'st_hot' as rel, lp_flags, count(*)
-from generate_series(0, pg_relation_size('st_hot')::int / 8192 - 1) b,
-     lateral heap_page_items(get_raw_page('st_hot', b))
-group by 1, 2
-union all
-select 'st_hot_ff', lp_flags, count(*)
-from generate_series(0, pg_relation_size('st_hot_ff')::int / 8192 - 1) b,
-     lateral heap_page_items(get_raw_page('st_hot_ff', b))
-group by 1, 2
-order by 1, 2;`,
+-- Each result is an UPDATE. psql's normal autocommit commits every \gexec command separately.
+select format('update %I set tag = %L', relname, 'commit-' || round_no)
+from generate_series(1, 20) round_no
+cross join (values ('st_hot_commit_100'), ('st_hot_commit_70')) as t(relname)
+order by round_no, relname
+\gexec
+
+select pg_stat_force_next_flush();
+select pg_stat_clear_snapshot();
+select relname, n_tup_upd, n_tup_hot_upd,
+       round(100.0 * n_tup_hot_upd / nullif(n_tup_upd,0), 1) as hot_pct,
+       pg_relation_size(relid) / current_setting('block_size')::int as pages
+from pg_stat_user_tables where relname in ('st_hot_commit_100','st_hot_commit_70') order by relname;
+
+-- An indexed-key change cannot be HOT. The total grows; the HOT counter does not.
+select n_tup_upd as total_before, n_tup_hot_upd as hot_before
+from pg_stat_user_tables where relname = 'st_hot_commit_70';
+update st_hot_commit_70 set id = id + 1000;
+select pg_stat_force_next_flush();
+select pg_stat_clear_snapshot();
+select n_tup_upd as total_after, n_tup_hot_upd as hot_after
+from pg_stat_user_tables where relname = 'st_hot_commit_70';
+
+-- Flags and t_ctid are physical chain evidence, not fixed quotas.
+select lp, lp_flags, t_ctid
+from heap_page_items(get_raw_page('st_hot_commit_70', 0))
+where lp_flags <> 0
+order by lp
+limit 25;`,
       expectedResult: code`
-Both tables start about the same size (st_hot 4 pages at fillfactor 100, st_hot_ff 5 pages at 70:
-reserving space costs you space up front).
+Each controlled case reports 2,000 total non-indexed updates for each table. The fillfactor-70 table
+starts with at least as many pages as its fillfactor-100 mate because it reserves room. Its HOT ratio
+will often be higher, but neither a packed table's ratio nor either page count has a universal fixed
+value: tuple size, page history, and opportunistic pruning all affect the outcome.
 
-After the identical 2000 updates each:
+The second pair is fresh, so its separately committed rounds are not contaminated by the long
+transaction's history. Compare its HOT ratio and pages with the first pair. A committed old version
+can become removable before a later statement, while versions made earlier in one still-open
+transaction cannot; page access and pruning determine how much of that opportunity is used.
 
-  relname   | n_tup_upd | n_tup_hot_upd | hot_pct | pages
-  st_hot    |      2000 |             0 |     0.0 |    64
-  st_hot_ff |      2000 |           619 |    31.0 |    65
-
-Zero HOT updates on the packed table: with fillfactor 100 there is never room for the new version
-on the row's own page, so every update writes a new heap tuple AND a new index entry. Your
-st_hot_ff number will be near 619 but need not match exactly; what must hold is st_hot = 0 and
-st_hot_ff in the hundreds.
-
-The last 100 updates change the indexed column id: n_tup_upd goes 2000 -> 2100 while n_tup_hot_upd
-stays at 619, i.e. not one of them was HOT.
-
-The line-pointer census is the clearest evidence of all. st_hot has 2100 pointers, all lp_flags = 1
-(normal): 100 live tuples and 2000 dead ones that nothing has been able to clean up. st_hot_ff (in
-our run) has 200 normal, 31 lp_flags = 2 REDIRECT pointers, 1381 lp_flags = 3 dead, and 6 unused.
-The redirects are HOT chains that page pruning collapsed: the index still points at that slot, and
-the slot forwards to the current version. Neither table has been vacuumed - HOT pruning happens
-opportunistically when a backend touches a full page, and only HOT chains can be pruned that way.
-Exact counts drift between runs; the qualitative split (st_hot: only flag 1, st_hot_ff: redirects
-and reclaimed dead pointers) is the result.`,
+For st_hot_commit_70, total_after is 100 greater than total_before after the indexed-id phase, while
+hot_after equals hot_before. The page sample may contain normal, redirect, dead, or unused slots;
+a redirect and a changed t_ctid show an in-page chain. Other dead tuples may be pruned too, so flags
+are evidence to interpret with the counters, not a HOT-only census.`,
       systemsLens: code`
-This is the classic space-for-writes trade: reserve free space on every page and you buy cheaper
-updates (one page dirtied instead of one page plus every index), pack pages full and you buy
-density at the cost of write amplification. The same knob appears as B-tree fill factor, LSM
-compaction thresholds, and slack in log-structured allocators. The second half of the lesson is the
-harder lesson for schema design: an index on a column your workload updates is not just a read
-optimisation you pay for once, it disables HOT for every update of that row.`,
+Reserved page space can lower update work when the workload repeatedly changes non-indexed columns,
+but it costs density and can hurt read locality or cache use. The appropriate fillfactor depends on
+the row width, update pattern, indexes, and space budget. This resembles B-tree fillfactor and slack
+in other write-optimized structures: capacity reserved for future change is valuable only when that
+change actually arrives.`,
       challenge: code`
-Rebuild st_hot with fillfactor 70 (alter table st_hot set (fillfactor = 70); vacuum full st_hot;)
-and rerun the loop. Does the HOT ratio match st_hot_ff? Then try fillfactor 40 - is the ratio
-monotonic in free space?`,
+Reset a fresh matched pair, then run the same ten separately committed tag-update rounds at
+fillfactor 100 and 80. This is independent of the earlier tables:
+
+drop table if exists st_hot_var_100, st_hot_var_80;
+create table st_hot_var_100(id int primary key, tag text, payload text)
+  with (fillfactor = 100, autovacuum_enabled = off);
+create table st_hot_var_80(id int primary key, tag text, payload text)
+  with (fillfactor = 80, autovacuum_enabled = off);
+insert into st_hot_var_100 select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
+insert into st_hot_var_80  select g, 'a', repeat('p', 200) from generate_series(1, 100) g;
+select format('update %I set tag = %L', relname, 'variation-' || round_no)
+from generate_series(1, 10) round_no
+cross join (values ('st_hot_var_100'), ('st_hot_var_80')) as t(relname)
+order by round_no, relname
+\gexec
+
+-- Issue this as its own updater statement, then read a fresh statistics snapshot.
+select pg_stat_force_next_flush();
+select pg_stat_clear_snapshot();
+select relname, n_tup_upd, n_tup_hot_upd,
+       round(100.0 * n_tup_hot_upd / nullif(n_tup_upd, 0), 1) as hot_pct,
+       pg_relation_size(relid) / current_setting('block_size')::int as pages
+from pg_stat_user_tables
+where relname in ('st_hot_var_100', 'st_hot_var_80')
+order by relname;
+
+Each table should show 1,000 total updates. Compare their HOT counters and pages as a workload
+measurement, not a fixed promise. For a workload that mostly reads rows after a one-time load,
+would the extra reserved pages still be a good trade?`,
     },
     {
       slug: "toast-and-large-values",
@@ -598,6 +649,7 @@ monotonic in free space?`,
       runIn: "tool",
       estimatedMinutes: 15,
       prerequisites: ["page-header-and-line-pointers"],
+      revision: 4,
       overview: code`
 A tuple must fit in an 8 KB page, so a 100 KB value cannot be stored inline. PostgreSQL first tries
 to compress it, and if it still does not fit, moves it to a side table in chunks and leaves an
@@ -656,8 +708,15 @@ A row cannot contain an arbitrarily large value because it must fit on an 8 KB p
   - What they give us: sequence 0 through 50 and maximum chunk size near 1996 bytes.
 - **EXPLAIN (ANALYZE, BUFFERS, costs off, timing off, summary off)** (plan options)
   - What it is: executes and reports buffer activity without noisy estimates or timings.
-  - What it does here: compares inline row 1 with out-of-line row 2.
-  - What it gives us: shared hit counts; the TOAST fetch has more hits than inline fetch.
+  - What it does here: compares a narrow projection with an expression that must fetch the payload.
+  - What it gives us: shared buffer activity; accessing the out-of-line payload normally needs more
+    buffer work than reading the label alone.
+- **UPDATE ... SET label / UPDATE ... SET body** (row-version updates)
+  - What they are: updates that replace the heap row version, first leaving the payload unchanged
+    and then supplying a new value.
+  - What they do here: separate a label-only change from replacement of an out-of-line datum.
+  - What they give us: chunk and relation-size evidence that unchanged external values are normally
+    preserved, while a replacement creates a new external value.
 - **ALTER TABLE ... ALTER COLUMN body SET STORAGE external** (challenge DDL)
   - What it is: changes the TOAST policy to avoid compression while allowing external storage.
   - What it does here: forces the compressible value to use chunks when reinserted.
@@ -694,48 +753,59 @@ select count(*) as chunks, min(chunk_seq) as first_seq, max(chunk_seq) as last_s
        max(length(chunk_data)) as chunk_bytes
 from :toast_name;
 
--- Reading the out-of-line value means walking the TOAST index and every chunk.
--- Same query shape, same row count, two very different buffer counts.
+-- A narrow projection has no reason to detoast body. length(body) does.
 explain (analyze, buffers, costs off, timing off, summary off)
-  select length(body) from st_toast where id = 1;   -- inline, compressed
+  select label from st_toast where id = 2;
 explain (analyze, buffers, costs off, timing off, summary off)
-  select length(body) from st_toast where id = 2;   -- out of line, 51 chunks`,
+  select length(body) from st_toast where id = 2;
+
+-- Record the external value, change only the label, then replace the body.
+select count(distinct chunk_id) as values, count(*) as chunks,
+       pg_relation_size(:'toast_name') as toast_bytes_before
+from :toast_name;
+update st_toast set label = 'incompressible-renamed' where id = 2;
+select count(distinct chunk_id) as values, count(*) as chunks,
+       pg_relation_size(:'toast_name') as toast_bytes_after_label
+from :toast_name;
+update st_toast set body = (select string_agg(md5(('new-' || g)::text), '')
+                            from generate_series(1, 3125) g)
+where id = 2;
+select count(distinct chunk_id) as values, count(*) as chunks,
+       pg_relation_size(:'toast_name') as toast_bytes_after_body
+from :toast_name;
+select lp, lp_len, t_ctid from heap_page_items(get_raw_page('st_toast', 0)) order by lp;`,
       expectedResult: code`
-The TOAST table exists from the moment the table has a varlena column: pg_toast.pg_toast_17134 (the
-number is st_toast's OID).
+The TOAST relation name contains this table's changing OID. Both values are 100,000 characters, but
+the repeated value has a far smaller stored datum after compression, while the varied value is stored
+out of line. The heap stays small; heap_page_items shows a compact inline tuple and an external-value
+pointer, while the TOAST relation reports ordered chunks with chunk_seq beginning at zero.
 
-  id | label          | chars  | stored_bytes
-   1 | compressible   | 100000 |         1156
-   2 | incompressible | 100000 |       100000
+The narrow label query has an index/heap plan that does not need TOAST chunks. The length(body) query
+has more shared hits or reads because PostgreSQL retrieves the external value through its TOAST index
+and chunks. Exact counters depend on what was already in shared buffers; a shared-buffer read can be
+satisfied by the operating-system cache, so it is not proof of device I/O.
 
-Both are 100000 characters. The repeated 'x' compresses 86x with pglz and, at 1156 bytes, fits
-inline. The md5 concatenation is incompressible, so it is pushed out of line whole.
-
-heap=8192 toast=106496 total=172032: the heap is still a single 8 KB page even though the table
-holds 200 KB of text. heap_page_items proves it - lp 1 has lp_len 1200 (the compressed value stored
-inline) and lp 2 has lp_len 61 (id, label, and an 18-byte TOAST pointer).
-
-The TOAST table holds 51 chunks, chunk_seq 0..50, each up to 1996 bytes: 50 full chunks plus a
-remainder, four chunks per TOAST page.
-
-The two EXPLAINs price the difference. Fetching the inline value costs "Buffers: shared hit=2";
-fetching the out-of-line one costs "Buffers: shared hit=16" for the same single row - one heap page
-plus a descent of the TOAST index plus all thirteen chunk pages. Detoasting does not appear as a node in
-the plan, only as buffer traffic, which is why a query over a wide table can be far slower than its
-plan suggests.`,
+The chunk count and TOAST relation size are normally unchanged after the label-only update: the new
+heap version still refers to the existing out-of-line datum. Replacing body creates a new external
+value, so chunk population or relation allocation can grow until cleanup reclaims old versions. An
+unchanged allocated file size alone never proves that no write occurred.`,
       systemsLens: code`
-Chunking plus an indirection pointer is the universal answer to "values whose size the block layout
-cannot bound": TOAST here, extents and overflow pages elsewhere, blob storage with a key in the row
-in an application. The consequences are all the ones you would predict for such a scheme. A large
-value costs an extra index lookup and N chunk fetches on read, an UPDATE of any column may rewrite
-the whole chain, and logical decoding and replication move the reassembled value. Two design rules
-follow: keep large blobs in their own table so scans of the hot columns stay cheap, and never store
-something you only ever fetch whole in a column you index or update frequently.`,
+Chunking plus an indirection pointer is a common way to fit unbounded values into page-oriented
+storage: TOAST here, overflow pages elsewhere, or a separate object store. It adds an index walk and
+chunk reads when code needs the value, while changes that leave the value unchanged can retain the
+existing external datum. Measure actual access patterns before splitting values into another table or
+service; a split adds its own joins, integrity rules, and failure modes.`,
       challenge: code`
-Force the compressible value out of line with
-"alter table st_toast alter column body set storage external" and reinsert row 1. Compare
-pg_column_size and the chunk count. Which do you want for a value your application always reads in
-full, and which for one it substring()s?`,
+Force a controlled replacement of row 1's value without compression:
+
+alter table st_toast alter column body set storage external;
+update st_toast set body = repeat('x', 100000) where id = 1;
+select id, pg_column_size(body) as stored_bytes from st_toast where id = 1;
+select count(*) as chunks, max(length(chunk_data)) as chunk_bytes from :toast_name;
+
+Compare the new stored size and chunks with the lesson's initial values. For a value an application
+always reads in full, versus one it only sometimes fetches, what would you measure before changing
+storage policy?`,
     },
     {
       slug: "buffer-cache-and-io",
@@ -752,6 +822,24 @@ full, and which for one it substring()s?`,
       runIn: "tool",
       estimatedMinutes: 20,
       prerequisites: ["table-is-a-file", "install-lab-extensions"],
+      revision: 4,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 1 §1.1, subheadings "Files and Forks" and "Pages" (printed pp. 24–28)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 3 §3.1 "Page Structure" (printed pp. 62–64)`,
+          },
+        ],
+        rationale: code`
+You have observed relation files, page allocation, tuple layout, cached pages, and dirty-page
+flushing. Read these bounded sections to consolidate the physical model before the course moves into
+transaction IDs. Skip exact example filenames, relfilenodes, and catalog output in the book.`,
+      },
       overview: code`
 Every page a backend touches goes through shared_buffers. Read a table whose pages were pushed out
 of the cache and see the reads turn into hits on the second pass; then dirty some pages and watch a
@@ -768,7 +856,10 @@ to interpret hit/read/dirtied and why a checkpoint does not evict pages.
       syntaxBreakdown: code`
 ### In plain terms
 
-The buffer cache is shared memory where PostgreSQL keeps recently used pages. The first scan can read pages from the operating system, while the second reuses cached pages; an UPDATE makes buffers dirty, and CHECKPOINT writes them without throwing them away. You will observe all three states.
+The buffer cache is shared memory where PostgreSQL keeps recently used pages. The first scan can
+require PostgreSQL to populate shared buffers, while the second reuses them; an UPDATE makes buffers
+dirty, and CHECKPOINT writes them without throwing them away. A PostgreSQL buffer read can still be
+satisfied by the operating-system cache, so the counters do not directly time physical storage.
 
 ### What you are learning
 
@@ -793,7 +884,8 @@ The buffer cache is shared memory where PostgreSQL keeps recently used pages. Th
 - **EXPLAIN (ANALYZE, BUFFERS, costs off, timing off, summary off)** (plan options)
   - What it is: executes and reports buffer counters without noisy estimates or timing.
   - What it does here: compares the first and second count(*) scans.
-  - What it gives us: first hit + read equals page count; second scan should be all hits.
+  - What it gives us: first hit + read is approximately the scanned relation's blocks; the repeat
+    scan should have fewer reads, though concurrent activity and cache layout can change the split.
 - **CHECKPOINT** (server command)
   - What it is: flushes dirty shared buffers and records a WAL checkpoint position.
   - What it does here: establishes clean state, then flushes updated st_events pages.
@@ -811,11 +903,12 @@ The buffer cache is shared memory where PostgreSQL keeps recently used pages. Th
   - What they do here: ensure cache rows belong to this table and database.
   - What they give us: safe filtering when other databases share the cache.
 
-- **LEFT JOIN, coalesce, and LIMIT 10** (challenge query clauses/functions)
-  - What they are: LEFT JOIN keeps buffers with no matching relation, coalesce supplies the label
-    unused when the relation name is null, and LIMIT 10 keeps the largest ten groups.
-  - What they do here: rank cache consumers while retaining unassigned buffer slots.
-  - What they give us: relation names and counts, including unused space that helps judge cache size.
+- **CREATE TABLE AS and pg_prewarm(..., 'buffer')** (challenge tools)
+  - What they are: a query-built lab table and an extension function that loads a relation into
+    shared buffers.
+  - What they do here: create one controlled working-set variation and then warm it deliberately.
+  - What they give us: a before/after buffer contrast, while reminding us that one sample cannot
+    establish a production cache size.
 
 `,
       setup: code`
@@ -867,22 +960,16 @@ where relfilenode = pg_relation_filenode('st_events')
   and reldatabase = (select oid from pg_database where datname = current_database())
   and relforknumber = 0;`,
       expectedResult: code`
-st_cold is 26 MB / 3264 pages against 128MB of shared_buffers, so the whole table fits - yet the
-first scan is not all hits:
+st_cold's page count and shared_buffers setting establish the scale of this run. For the first scan,
+the EXPLAIN line's shared hit plus shared read is normally close to the relation's scanned blocks;
+the identical second scan normally has fewer reads, often none. The exact split depends on cache
+contents and activity. A PostgreSQL "read" means shared_buffers did not already contain that block;
+the operating system may still serve it from memory rather than a storage device.
 
-  first  scan: Buffers: shared hit=2048 read=1216 dirtied=1216
-  second scan: Buffers: shared hit=3264
-
-hit + read = 3264 = the page count of the table, exactly. The 1216 reads are the pages that CREATE
-TABLE AS pushed out through its 16 MB ring buffer; "dirtied" is the first reader setting hint bits.
-The second scan reads nothing.
-
-For st_events: 6 buffers, dirty 0 right after CHECKPOINT. After the UPDATE all six blocks report
-isdirty = t with usagecount 5 - and only twenty rows on block 0 actually changed. The other five
-blocks are dirty because the sequential scan that looked for id <= 20 set hint bits on every tuple
-it inspected. Reads dirty pages in PostgreSQL; that is not a typo in your monitoring. After the
-second CHECKPOINT all 6 buffers are still resident and dirty is back to 0: a checkpoint writes
-pages out, it does not evict them.`,
+Immediately after CHECKPOINT, st_events has resident buffers with dirty = 0. The UPDATE produces one
+or more isdirty rows; a scan may also dirty pages by setting hint bits. After the second CHECKPOINT,
+the same relation buffers can remain resident while dirty returns to 0. This proves a checkpoint
+flushes dirty buffers; it does not evict them.`,
       systemsLens: code`
 Three properties to carry away. (1) It is a write-back cache: a committed transaction is durable
 because its WAL record is on disk, not because its page is - the page may sit dirty in memory for
@@ -891,168 +978,17 @@ the same trade as an LSM's memtable flush interval or a Raft snapshot interval. 
 ring buffers mean a big sequential job does not evict everyone else's working set, which is why
 "just look at the cache hit ratio" is a poor capacity signal.`,
       challenge: code`
-Sum pg_buffercache by relation to find your top cache consumers:
-select coalesce(c.relname, 'unused') as rel, count(*) from pg_buffercache b left join pg_class c on
-b.relfilenode = pg_relation_filenode(c.oid) group by 1 order by 2 desc limit 10. How many buffers
-are still unused, and what does that say about whether shared_buffers is too large here?`,
-    },
-    {
-      slug: "free-space-map-and-reuse",
-      tags: [
-        "storage",
-        "free-space-map",
-        "vacuum",
-        "bloat",
-        "space-reclamation",
-      ],
-      title: "The free space map: why a heap file almost never shrinks",
-      difficulty: "intermediate",
-      safetyLevel: "writes-data",
-      runIn: "tool",
-      estimatedMinutes: 15,
-      prerequisites: ["update-writes-a-new-tuple", "install-lab-extensions"],
-      overview: code`
-Delete half a table and the file stays exactly the same size. Vacuum it and the file still stays
-the same size - but now the free space map knows about the holes, and the next inserts go into old
-pages instead of extending the file. Space is recycled in place, not returned to the OS.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "Files and Forks"); Chapter 6 "Vacuum and Autovacuum" (section "Vacuum")`,
-      readingNotes: code`
-The lesson separates the relation file's high-water mark from reusable space: Chapter 1 introduces
-the FSM fork, and Chapter 6 explains how VACUUM removes dead tuples and publishes free space. The
-book does not use pg_freespacemap itself, so the view is a course-facing measurement; run first,
-then read the cited sections to connect avail values to vacuum's work.
-`,
-      revision: 3,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 1 §1.1, subheadings "Files and Forks" and "Pages" (printed pp. 24–28)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 3 §3.1 "Page Structure" (printed pp. 62–64)`,
-          },
-        ],
-        rationale: code`
-You observed the relation file, forks, page-sized allocation, and reusable space in lessons 5–11.
-Read these bounded sections to consolidate that physical model before the course moves into
-transaction IDs. Skip from the PG14 text: exact example filenames, relfilenodes, and catalog output;
-resume with lesson 12 when you finish.
-`,
-      },
-      syntaxBreakdown: code`
-### In plain terms
+Create one controlled working set, then compare an ordinary first scan with deliberate warming:
 
-Deleting rows marks their versions dead but does not normally shorten the table file. VACUUM makes that space reusable and records it in the free-space map (FSM), so later inserts fill old holes. VACUUM FULL is different: it rewrites the table and can return pages to the operating system.
+drop table if exists st_working_set;
+create table st_working_set as select * from st_cold where id <= 10000;
+explain (analyze, buffers, costs off, timing off, summary off) select count(*) from st_working_set;
+select pg_prewarm('st_working_set', 'buffer');
+explain (analyze, buffers, costs off, timing off, summary off) select count(*) from st_working_set;
 
-### What you are learning
-
-- File size is a high-water mark; reusable holes and filesystem size are separate facts.
-- The FSM reports approximate free bytes per block after vacuum has inspected dead tuples.
-- A rewrite changes relfilenode and can shrink a relation, but needs an exclusive lock.
-
-### Piece by piece
-
-- **pg_relation_size('st_events') / 8192** (size calculation)
-  - What it is: exact heap bytes divided by one page.
-  - What it does here: compares page count through delete, vacuum, and rewrite.
-  - What it gives us: ordinary VACUUM leaves the page count unchanged.
-- **pg_freespace('st_events')** (pg_freespacemap function)
-  - What it is: returns blkno and approximate avail bytes from the FSM fork, rounded to 32 bytes.
-  - What it does here: shows no reusable space after DELETE, then holes after VACUUM.
-  - What it gives us: per-block free-space evidence.
-- **DELETE** (DML operation)
-  - What it is: marks matching row versions deleted for MVCC.
-  - What it does here: removes even IDs, then a later quarter of rows.
-  - What it gives us: fewer visible rows but unchanged file size.
-- **VACUUM st_events** (maintenance command)
-  - What it is: removes reclaimable dead versions and updates FSM and visibility information.
-  - What it does here: makes deleted space available while retaining the file.
-  - What it gives us: larger avail values and reused blocks.
-- **generate_series(2001,2500)** (row generator)
-  - What it is: produces 500 new IDs.
-  - What it does here: inserts rows after vacuum.
-  - What it gives us: ctid block numbers showing old-page reuse rather than a new tail block.
-- **(ctid::text::point)[0]::int** (cast and subscripting expression)
-  - What it is: converts ctid text to a point and extracts its first coordinate, the block number.
-  - What it does here: groups newly inserted rows by heap block.
-  - What it gives us: block distribution proving space reuse.
-- **VACUUM FULL** (rewriting maintenance command)
-  - What it is: compacts a relation by writing a replacement file.
-  - What it does here: runs after the second delete and vacuum.
-  - What it gives us: fewer pages and a different filenode; it needs ACCESS EXCLUSIVE and extra disk space.
-
-`,
-      setup: code`
-drop table if exists st_events;
-create table st_events(id int primary key, payload text) with (autovacuum_enabled = off);
-insert into st_events select g, 'event-' || g from generate_series(1,1000) g;`,
-      code: code`
-select pg_relation_size('st_events') / 8192 as pages_before;
-select blkno, avail from pg_freespace('st_events') order by blkno;
-
-delete from st_events where id % 2 = 0;
-select pg_relation_size('st_events') / 8192 as pages_after_delete;
-select blkno, avail from pg_freespace('st_events') order by blkno;
-
--- VACUUM (module 04 explains it properly; here it is just the thing that
--- reclaims dead tuples and publishes the free space).
-vacuum st_events;
-select pg_relation_size('st_events') / 8192 as pages_after_vacuum;
-select blkno, avail from pg_freespace('st_events') order by blkno;
-
--- New rows should land in the recycled space, not at the end of the file.
-insert into st_events select g, 'reinserted-' || g from generate_series(2001, 2500) g;
-select pg_relation_size('st_events') / 8192 as pages_after_reinsert;
-select (ctid::text::point)[0]::int as blk, count(*)
-from st_events where id >= 2001 group by 1 order by 1;
-
--- What it takes to actually give the space back. Delete a quarter of the rows,
--- VACUUM (recycles in place), then VACUUM FULL (rewrites the relation).
-delete from st_events where id % 4 = 1;
-vacuum st_events;
-select count(*) as live_rows from st_events;
-select pg_relation_size('st_events') / 8192 as pages_before_full,
-       pg_relation_filenode('st_events') as filenode_before;
-vacuum full st_events;
-select pg_relation_size('st_events') / 8192 as pages_after_full,
-       pg_relation_filenode('st_events') as filenode_after;`,
-      expectedResult: code`
-pages_before is 6 and every FSM entry reads avail = 0: the pages were packed by the initial insert.
-
-After deleting 500 of the 1000 rows, pages_after_delete is still 6 and the FSM still says 0
-everywhere. DELETE writes a transaction id into t_xmax and nothing else; the space is not free yet
-because other snapshots may still need those versions.
-
-After VACUUM, pages_after_vacuum is still 6 - the file did not shrink - but the FSM now reports
-about 3680-3744 bytes free on blocks 0-4 and 6368 on the last, partly filled block.
-
-Reinserting 500 rows leaves pages_after_reinsert at 6, and the new rows are spread over the old
-pages (roughly 77, 78, 77, 78, 77 on blocks 0-4 and 113 on block 5), not appended to a block 6.
-
-Deleting a further quarter (625 live_rows remain) and vacuuming again still leaves
-pages_before_full = 6. VACUUM FULL is the only thing here that returns space to the filesystem:
-pages_after_full is 4, and filenode_after is a different number from filenode_before, because
-VACUUM FULL does not compact the file - it writes a brand new relation and swaps it in. That is
-also why it needs an ACCESS EXCLUSIVE lock and twice the disk space, and why it is not something
-you run on a live table.`,
-      systemsLens: code`
-Storage engines reclaim space by recycling blocks, not by returning them, because giving memory or
-disk back to the allocator requires compaction and compaction requires either a lock or a rewrite.
-This is why a table's file size is a high-water mark of its historical peak, why bloat is a
-steady-state property you monitor rather than an error, and why "the deletes ran, why is the disk
-still full" is a recurring incident. The same shape appears in heap fragmentation, in LSM trees
-before compaction, and in log segments that only free on rotation.`,
-      challenge: code`
-Repeat the experiment but delete the FIRST half (id <= 500) instead of every other row, then vacuum
-and check pg_relation_size. When does vacuum truncate the file, and why does deleting the tail
-behave differently from deleting the head?`,
-      caution: code`
-VACUUM FULL rewrites the whole table under an ACCESS EXCLUSIVE lock. It is safe on this 6-page lab
-table and dangerous on a production one.`,
+Does warming remove shared reads for this table on this run? That answer alone cannot size
+shared_buffers: the production working set, concurrent relations, operating-system cache, and
+latency requirements still matter.`,
     },
   ],
 };

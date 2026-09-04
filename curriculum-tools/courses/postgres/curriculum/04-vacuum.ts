@@ -5,160 +5,20 @@ export const VACUUM: Module = {
   title: "Vacuum: dead tuples, visibility, bloat, and freezing",
   lessons: [
     {
-      slug: "dead-tuples-accumulate",
-      title: "Every UPDATE leaves a corpse",
+      slug: "vacuum-reclaims-in-place",
+      title: "VACUUM makes space reusable inside the table",
       difficulty: "beginner",
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
       estimatedMinutes: 12,
       prerequisites: ["install-lab-extensions", "process-model"],
-      overview: code`
-An UPDATE in PostgreSQL never overwrites a row. It writes a brand new tuple and marks the old one
-dead, because some other transaction may still need to see the old version. Garbage collection is a
-separate, asynchronous job. This lesson makes the garbage: update 20000 rows three times and measure
-how much space the dead versions take, both from the statistics view (an estimate the server keeps
-for free) and from pgstattuple (an exact count that costs a full scan).`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Operations on Tuples"); Chapter 6 "Vacuum and Autovacuum" (section "Automatic Vacuum and Analysis")`,
-      readingNotes: code`
-Chapter 3 explains why UPDATE creates new tuple versions, while Chapter 6 describes the statistics
-used to decide when automatic vacuuming is needed. This lesson measures those versions through both
-pg_stat_user_tables and an exact pgstattuple scan, showing where the cheap estimate diverges. Run it
-before reading the chapters, then use them to interpret pruning and autovacuum decisions.`,
-      syntaxBreakdown: code`
-### In plain terms
-
-This experiment makes PostgreSQL's copy-on-update behavior visible at scale. Three updates of 20,000
-rows create many replacement versions; the logical row count stays the same while the heap grows and
-dead versions accumulate. You compare a fast statistics estimate with an exact full-table scan so you
-can tell operational signals from a diagnostic measurement.
-
-### What you are learning
-
-- **Dead tuples:** Old row versions remain until cleanup because another snapshot might need them.
-- **HOT updates:** A heap-only update can reuse a page without changing an index entry when the row
-  fits and indexed columns are unchanged.
-- **Estimated versus exact metrics:** PostgreSQL statistics are cheap and approximate; pgstattuple
-  reads every page for exact counts.
-
-### Piece by piece
-
-- **CREATE TABLE IF NOT EXISTS** (SQL DDL)
-  - What it is: It creates the lab table if absent; the primary key on id indexes the identifier.
-  - What it does here: It defines the table used for repeated update churn.
-  - What it gives us: A stable relation for measuring heap growth.
-- **ALTER TABLE ... SET (autovacuum_enabled = off)** (relation setting)
-  - What it is: It changes options stored for one table; disabling autovacuum stops background cleanup
-    from removing evidence during this lesson.
-  - What it does here: It keeps dead-version counts and free space observable until the explicit scan.
-  - What it gives us: A controlled before/after comparison.
-- **TRUNCATE** (table reset)
-  - What it is: It removes all rows efficiently.
-  - What it does here: It makes setup repeatable before loading 20,000 rows.
-  - What it gives us: A known starting relation size.
-- **generate_series(1, 20000)** and **repeat('x', 100)** (SQL functions)
-  - What they are: generate_series emits integers in a range; repeat creates a 100-character filler.
-  - What they do here: They supply IDs, values, and row padding.
-  - What they give us: Rows large enough to make page growth and reuse measurable.
-- **VACUUM (ANALYZE)** (maintenance command and option)
-  - What it is: VACUUM reclaims eligible dead space; ANALYZE refreshes planner statistics.
-  - What it does here: It starts measurements from a clean, analyzed table.
-  - What it gives us: n_live_tup near 20,000 and n_dead_tup at zero.
-- **pg_relation_size('vac_t') / 8192** and **pg_size_pretty(...)** (size functions)
-  - What they are: pg_relation_size returns main-fork bytes; dividing by 8192 converts them to heap
-    pages, while pg_size_pretty formats bytes as kB or MB.
-  - What they do here: They measure the file before and after updates in machine- and human-readable
-    forms.
-  - What they give us: Physical growth even though the logical row count is unchanged.
-- **pg_stat_user_tables** (statistics view)
-  - What it is: It reports approximate per-table activity and tuple counters.
-  - What it does here: It reads n_live_tup, n_dead_tup, n_tup_upd, and n_tup_hot_upd for vac_t.
-  - What it gives us: A cheap estimate of live/dead rows and how many updates were HOT.
-- **pgstattuple('vac_t')** (extension inspection function)
-  - What it is: It scans the whole table and counts physical live tuples, dead tuples, and free bytes.
-  - What it does here: It supplies an exact check before and after the three UPDATE passes.
-  - What it gives us: tuple_count, dead_tuple_count, dead_tuple_percent, and free_percent.
-- **UPDATE ... SET n = n + 1** (data-change statement)
-  - What it is: It changes every row's non-indexed integer value and creates a new tuple version.
-  - What it does here: Running it three times creates three rounds of churn.
-  - What it gives us: Larger relation size, update counters, and dead/free tuple evidence.
-- **pg_sleep(1)** (delay function)
-  - What it is: It pauses the current session for one second.
-  - What it does here: It gives the statistics collector time to expose update counters.
-  - What it gives us: More reliable post-update statistics without changing table data.
-- **n_tup_hot_upd** (statistics column)
-  - What it is: The count of updates using heap-only chains without new index entries.
-  - What it does here: It is compared with total updates after packed pages leave little room.
-  - What it gives us: Evidence that almost all updates needed ordinary new index pointers.
-- **ALTER TABLE ... SET (fillfactor = 70)** (challenge relation option)
-  - What it is: Fillfactor reserves roughly 30% of each new heap page for future updates; old pages
-    need a rebuild to acquire that room.
-  - What it does here: The variation repeats churn with spare page capacity.
-  - What it gives us: A higher HOT-update count and less file growth.
-`,
-      setup: code`
-create table if not exists vac_t(id int primary key, n int, pad text);
-alter table vac_t set (autovacuum_enabled = off);
-truncate vac_t;
-insert into vac_t select g, g, repeat('x', 100) from generate_series(1, 20000) g;
-vacuum (analyze) vac_t;`,
-      code: code`
--- Session A
-select pg_relation_size('vac_t') / 8192 as pages, pg_size_pretty(pg_relation_size('vac_t')) as size;
-select n_live_tup, n_dead_tup from pg_stat_user_tables where relname = 'vac_t';
-select tuple_count, dead_tuple_count, dead_tuple_percent, free_percent from pgstattuple('vac_t');
--- Session A
-update vac_t set n = n + 1;
-update vac_t set n = n + 1;
-update vac_t set n = n + 1;
--- Session A
-select pg_sleep(1);
-select n_live_tup, n_dead_tup, n_tup_upd, n_tup_hot_upd
-from pg_stat_user_tables where relname = 'vac_t';
-select pg_relation_size('vac_t') / 8192 as pages, pg_size_pretty(pg_relation_size('vac_t')) as size;
-select tuple_count, dead_tuple_count, dead_tuple_percent, free_percent from pgstattuple('vac_t');`,
-      expectedResult: code`
-The freshly loaded table is 345 pages (2760 kB), n_live_tup = 20000, n_dead_tup = 0, and pgstattuple
-reports dead_tuple_count = 0 with free_percent = 0.59 - a densely packed heap.
-
-Three whole-table updates later the file is 1379 pages (11 MB): four times the size for exactly the
-same 20000 logical rows, because each pass appended a new version of every row. The statistics view
-claims n_live_tup = 40000 and n_dead_tup = 60000 with n_tup_upd = 60000 and n_tup_hot_upd = 40 -
-almost nothing was a HOT update, since the freshly packed pages had no room for a second version.
-
-pgstattuple disagrees, and the disagreement is the point: it counts dead_tuple_count = 20010,
-dead_tuple_percent = 23.56, free_percent = 48.66. Two thirds of the dead versions are already gone.
-Ordinary page access prunes dead tuples opportunistically, so passes 2 and 3 cleaned up after passes
-1 and 2 as they rewrote each page - but the space they freed stayed inside those pages, and the
-counter in pg_stat_user_tables was never corrected. Half the file is now free space.`,
-      systemsLens: code`
-This is copy-on-write with deferred garbage collection, the same design as an LSM tree's obsolete
-SSTables or a log-structured filesystem's stale blocks: writes are cheap and never block readers,
-and the cost is moved into a background reclaimer plus the storage to hold garbage until it runs.
-Two consequences follow everywhere this pattern appears. First, your steady-state footprint is a
-function of write rate and reclaim latency, not of logical data size. Second, the accounting the
-system shows you is an estimate maintained by the writers, so it drifts from reality - trust the
-cheap estimate for triggering work and the expensive scan for diagnosing it.`,
-      challenge: code`
-Repeat with a table created at fillfactor 70 (ALTER TABLE vac_t SET (fillfactor = 70), then rebuild)
-and watch n_tup_hot_upd jump: leaving room on each page lets updates stay put, keeps the index
-pointing at the same line pointer, and stops the file from growing.`,
-    },
-    {
-      slug: "vacuum-reclaims-in-place",
-      title: "VACUUM is a compactor, not a shrinker",
-      difficulty: "beginner",
-      safetyLevel: "writes-data",
-      runIn: "tool",
-      sessions: 1,
-      estimatedMinutes: 12,
-      prerequisites: ["dead-tuples-accumulate"],
+      revision: 4,
       overview: code`
 Plain VACUUM removes dead tuples and their index entries, records the freed space in the free space
-map, and then leaves the file exactly as long as it found it. Watch the verbose output account for
-every dead version, watch the file size not move, and then watch 10000 new rows disappear into the
-holes vacuum punched.`,
+map. It can truncate empty pages at the end, but cannot move live rows to consolidate interior holes.
+In this fixture the file stays the same size. Observe reclaimed tuple space, then insert 10000 new
+rows and measure whether they fit inside the existing allocation.`,
       reading:
         `PostgreSQL 14 Internals, Chapter 6 "Vacuum and Autovacuum" (sections "Vacuum", "Vacuum Phases"); Chapter 8 "Rebuilding Tables and Indexes" (section "Full Vacuuming")`,
       readingNotes: code`
@@ -251,8 +111,9 @@ from pg_freespace('vac_t');
 insert into vac_t select g, g, repeat('y', 100) from generate_series(20001, 30000) g;
 select pg_relation_size('vac_t') / 8192 as pages_after_10k_more_rows, count(*) as rows from vac_t;`,
       expectedResult: code`
-Before vacuum the table is 1379 pages and the free space map advertises nothing useful, because
-nobody has told it about the holes.
+On the validated PostgreSQL16 run, the table was 1379 pages before vacuum. The following numbers
+are sample evidence; allocation, pruning and index history can change them. Compare your own
+before/after page counts, removed versions, advertised free bytes and logical row counts.
 
 The verbose output for lab.public.vac_t reports:
   pages: 0 removed, 1379 remain, 1379 scanned (100.00% of total)
@@ -264,29 +125,33 @@ pointers (item identifiers) were left behind by earlier opportunistic pruning, a
 free those, because only VACUUM knows it has removed every index entry pointing at them. A second
 INFO block does the same for the TOAST table, which is empty.
 
-After vacuum: pages_after = 1379 - not one page was given back. n_dead_tup = 0, pgstattuple reports
+After vacuum: pages_after = 1379 - not one page was given back. pgstattuple reports
 dead_tuple_count = 0 and free_percent = 74.83, and pg_freespace now advertises free space on all
 1379 pages, 8449248 bytes in total, up to 8160 bytes in a single page.
+
+The statistics estimate n_dead_tup can already be zero, or can retain a larger historical value
+until the collector refreshes it; do not use it as the proof that cleanup completed. The exact scan
+and free-space-map output are the evidence for this experiment.
 
 Then 10000 fresh rows are inserted and the table is still 1379 pages: every new row fit in a hole.
 Vacuum did not make the file smaller, it made the file reusable.`,
       systemsLens: code`
-Reclaiming space in place and republishing it through an allocator (the free space map) is the
-cheap half of compaction: it is incremental, interruptible, and never invalidates a physical
-address, so concurrent readers and index entries stay valid. The expensive half - actually
-returning space to the operating system - requires moving live data, which means rewriting
-addresses, which means excluding everyone. Most storage engines make the same split (an LSM's
-tombstone drop versus a full compaction, a filesystem's free list versus a defrag). The operational
-rule that falls out of it: bloat that plateaus is fine, because the space is being recycled; bloat
-that grows means reclamation is losing the race, and only then do you need the exclusive-lock tool.`,
+Reclamation and relocation solve different problems. Ordinary VACUUM makes eligible interior space
+reusable; it can also truncate an empty file tail. VACUUM FULL instead rewrites live data and needs
+an exclusive table lock. Neither operation makes an old snapshot stop needing history. First identify
+whether growth comes from retained versions, insufficient cleanup capacity, a growing live dataset,
+or unused allocation. Then decide whether to bound a reader, improve cleanup, change the workload,
+or schedule a rewrite. A stable file size alone does not establish healthy latency or capacity.`,
       challenge: code`
-Run VACUUM (VERBOSE) a second time with no intervening writes and watch "index scan not needed" and
-"tuples: 0 removed" - and note it still scans far fewer pages, because the visibility map now marks
-them all-visible and lets vacuum skip them entirely.`,
+Immediately after the first VACUUM and before the reinsertion step, run VACUUM (VERBOSE) again.
+Compare tuples removed, scanned pages and index-cleanup decisions. With no intervening writes,
+all-visible metadata can let it skip work; compare observed counts rather than requiring an exact
+scan percentage.`,
     },
     {
       slug: "vacuum-full-rewrites-and-locks",
       title: "VACUUM FULL: a new file, and a queue behind it",
+      revision: 4,
       difficulty: "intermediate",
       safetyLevel: "locking",
       runIn: "tool",
@@ -428,13 +293,11 @@ which is to say a different file. pages_before was 1379 (vacuum had already empt
 but kept the file) and pages_after is 345, back to the size of a freshly loaded table, with
 pgstattuple showing dead_tuple_count = 0 and free_percent about 0.59.`,
       systemsLens: code`
-Compaction that relocates data cannot be done under a shared lock, because the addresses other
-readers hold stop being valid. Every system that offers both an in-place reclaim and a rewrite
-draws this line: online reclaim keeps availability and gives back nothing, offline rewrite gives
-back everything and costs a full outage on that object plus a second copy of it on disk. When you
-need the file smaller on a table that must stay available, the answer is a third design - copy the
-live data into a new relation while replaying concurrent changes and swap at the end under a brief
-lock, which is what pg_repack and most online schema-change tools do.`,
+PostgreSQL's VACUUM FULL excludes concurrent table access while it replaces physical storage. This
+is one relocation design, not a universal requirement that every storage engine stop readers for
+all compaction. An online rewrite needs another coordination protocol to capture concurrent changes,
+build replacement storage and switch readers safely. That trades the long exclusive interval for
+extra storage, change tracking and a final synchronization point; it still needs measured bounds.`,
       caution: code`
 VACUUM FULL needs room for a full second copy of the table and its indexes, and it blocks every
 reader and writer for the whole rewrite. Never reach for it on a live table without knowing the
@@ -447,6 +310,7 @@ that a rewrite converts into an outage for the whole table.`,
     {
       slug: "visibility-map-and-index-only-scans",
       title: "The visibility map is what makes index-only scans possible",
+      revision: 4,
       difficulty: "intermediate",
       safetyLevel: "writes-data",
       runIn: "tool",
@@ -579,7 +443,7 @@ number of scattered writes can invalidate a large fraction of it. That is why a 
 but constant write rate spread over every page can lose index-only scans entirely, and why vacuum
 frequency is a query-plan concern and not just a disk-space concern.`,
       challenge: code`
-Concentrate the same 200 updates on one page instead of spreading them (WHERE id <= 200) and
+Concentrate the same 200 updates on a few adjacent pages (WHERE id <= 200) and
 compare: the same number of dirtied rows costs a couple of hundred heap fetches instead of a few
 thousand. Locality of writes, not their volume, decides how much of the summary survives.`,
     },
@@ -592,27 +456,50 @@ thousand. Locality of writes, not their volume, decides how much of the summary 
       sessions: 1,
       estimatedMinutes: 15,
       prerequisites: ["vacuum-reclaims-in-place"],
+      revision: 4,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 4 §4.5 "Transaction Horizon" (printed pp. 87–89)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 6 §§6.1–6.3 (printed pp. 102–109)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 6 §6.5, subheadings "About the Autovacuum Mechanism", "Which Tables Need to be Vacuumed?", and "Which Tables Need to Be Analyzed?" (printed pp. 110–113)`,
+          },
+        ],
+        rationale: code`
+You observed version cleanup, in-place reuse, visibility information, and an autovacuum threshold.
+Read these bounded sections to connect the safety horizon and the background control loop. Skip exact
+autovacuum defaults, threshold numbers, and monitoring output; continue when you have the mechanism.
+`,
+      },
       overview: code`
-Nobody runs VACUUM by hand in production; the autovacuum launcher does, when a table's estimated
-dead tuples exceed threshold + scale_factor * reltuples. This lesson makes that formula fire on
-demand by setting the threshold to 50 and the scale factor to 0 on one table, dirtying 1000 rows,
-and then polling until the worker shows up. The second half of the lesson is the waiting: the
-launcher only wakes every autovacuum_naptime seconds, so the reaction time is a minute even when
-the trigger condition was met instantly.`,
+Autovacuum schedules routine cleanup when a table's estimated dead tuples exceed
+threshold + scale_factor * reltuples; manual VACUUM also has operational uses. This lesson sets a small table-local
+threshold, then performs three modest independently committed write batches and measures the growing
+dead-version backlog. A bounded poll may observe an autovacuum completion, but timing is not a
+guarantee: if it does not appear, the diagnostics still prove eligibility and tell you what to inspect.`,
       reading:
         `PostgreSQL 14 Internals, Chapter 6 "Vacuum and Autovacuum" (sections "Automatic Vacuum and Analysis", "Monitoring")`,
       readingNotes: code`
 Chapter 6 explains the dead-tuple threshold formula, the launcher and worker, and the monitoring views
-that show completed or active vacuum work. This lesson lowers one table's threshold, creates 1,000
-dead tuples, and polls until the worker resets the count. Run it first, then read the chapter to place
-the observed naptime delay and progress view in the larger autovacuum control loop.`,
+that show completed or active vacuum work. This lesson lowers one table's threshold, creates bounded
+write batches, and records the observed backlog and worker counters. Run it first, then read the
+chapter to place an observed completion or the bounded diagnostic outcome in the control loop.`,
       syntaxBreakdown: code`
 ### In plain terms
 
 Autovacuum is a background garbage collector that wakes periodically and checks whether each table
 has crossed its cleanup threshold. This experiment sets a very small threshold for one table, creates
-1,000 dead tuples, and polls until the worker appears to clean them. The wait demonstrates that
-meeting a threshold is immediate but noticing it depends on the launcher's schedule.
+three batches of 1,000 updates, and polls for completion evidence. Estimates arrive asynchronously,
+and scheduling depends on the launcher and available workers; neither eligibility nor completion
+is guaranteed to appear in the first sample.
 
 ### What you are learning
 
@@ -646,7 +533,8 @@ meeting a threshold is immediate but noticing it depends on the launcher's sched
   - What it is: It reports approximate tuple counters and maintenance timestamps.
   - What it does here: It reads last_autovacuum, autovacuum_count, and n_dead_tup before and after
     churn.
-  - What it gives us: n_dead_tup near 1,000 before cleanup, then zero and count 1 after the worker.
+  - What it gives us: a changing dead-tuple estimate and an increase from the recorded initial
+    autovacuum_count if a worker completes; neither initial value must be zero.
 - **UPDATE vac_t SET n = n + 1 WHERE id <= 1000** (churn operation)
   - What it is: It creates replacement versions for the first 1,000 rows.
   - What it does here: It crosses the table threshold while leaving other rows alone.
@@ -655,8 +543,8 @@ meeting a threshold is immediate but noticing it depends on the launcher's sched
   - What it is: now() returns the current transaction time; the cast keeps time to whole seconds.
   - What it does here: It labels the update and each poll.
   - What it gives us: A readable delay between dirtied_at and last_autovacuum.
-- **\\watch i=5 c=14** (psql polling meta-command)
-  - What it is: It repeats the previous query every 5 seconds (i) for 14 cycles (c), then stops.
+- **\\watch i=5 c=12** (psql polling meta-command)
+  - What it is: It repeats the previous query every 5 seconds (i) for 12 cycles (c), then stops.
   - What it does here: It observes n_dead_tup and autovacuum_count until a worker completes.
   - What it gives us: Repeated rows showing count 0, then n_dead_tup near zero and count 1.
 - **pg_stat_progress_vacuum** (progress view)
@@ -668,10 +556,10 @@ meeting a threshold is immediate but noticing it depends on the launcher's sched
   - What it is: RESET removes table-specific options and returns to inherited defaults.
   - What it does here: It cleans up the lab after the experiment.
   - What it gives us: Future runs are not permanently affected by this lesson's low threshold.
-- **autovacuum_vacuum_cost_delay = 100ms** (challenge throttle)
+- **autovacuum_vacuum_cost_delay = 20** (challenge throttle)
   - What it is: A per-table delay limiting how aggressively vacuum consumes I/O resources.
-  - What it does here: It slows a larger cleanup enough for progress to be observable.
-  - What it gives us: heap_blks_scanned increasing slowly and a concrete view of throttling.
+  - What it does here: It adds a table-local 20-millisecond cost delay during the variation.
+  - What it gives us: a controlled throttle, though a short worker can still finish between samples.
 `,
       setup: code`
 create table if not exists vac_t(id int primary key, n int, pad text);
@@ -691,250 +579,44 @@ select reloptions from pg_class where relname = 'vac_t';
 select last_autovacuum, autovacuum_count, n_dead_tup
 from pg_stat_user_tables where relname = 'vac_t';
 -- Session A
-update vac_t set n = n + 1 where id <= 1000;
+select format('update vac_t set n = n + 1 where id <= 1000;') from generate_series(1, 3) \gexec
 select now()::time(0) as dirtied_at, n_dead_tup
 from pg_stat_user_tables where relname = 'vac_t';
 -- Session A
 select now()::time(0) as t, n_dead_tup, autovacuum_count, last_autovacuum::time(0)
-from pg_stat_user_tables where relname = 'vac_t' \watch i=5 c=14
+from pg_stat_user_tables where relname = 'vac_t' \watch i=5 c=12
 -- Session A
-select relname, phase, heap_blks_total, heap_blks_scanned from pg_stat_progress_vacuum;
+select relid::regclass as relation, phase, heap_blks_total, heap_blks_scanned
+from pg_stat_progress_vacuum where datid = (select oid from pg_database where datname=current_database())
+  and relid = 'vac_t'::regclass;
 alter table vac_t reset (autovacuum_vacuum_threshold, autovacuum_vacuum_scale_factor,
                          autovacuum_analyze_threshold);`,
       expectedResult: code`
-autovacuum is on and autovacuum_naptime is 1min. After the ALTER, reloptions reads
+The lab normally has autovacuum on and autovacuum_naptime = 1min; record your actual settings. After the ALTER, reloptions reads
 {autovacuum_enabled=on,autovacuum_vacuum_threshold=50,autovacuum_vacuum_scale_factor=0,
-autovacuum_analyze_threshold=1000000}. Before the experiment last_autovacuum is empty and
-autovacuum_count = 0.
+autovacuum_analyze_threshold=1000000}. Record initial last_autovacuum and autovacuum_count;
+rerunning the experiment can retain a previous timestamp and a nonzero count.
 
-The UPDATE dirties 1000 rows, so n_dead_tup jumps to about 1000 - already twenty times the
-threshold of 50. Nothing happens for a while anyway. The \watch poll then prints the same row every
-5 seconds with n_dead_tup = 1000 and autovacuum_count = 0, and somewhere in the first minute the
-row flips: n_dead_tup = 0, autovacuum_count = 1, and last_autovacuum is a timestamp a few tens of
-seconds after dirtied_at. On a lab cluster with nothing else to do, expect it to fire within about
-a minute of the update - the trigger condition was met immediately, and the entire delay is the
-launcher's naptime.
+The three batches create roughly 3,000 updates, so n_dead_tup should exceed the threshold of 50 even
+though the exact estimate reflects statistics timing and page pruning. The \watch output either shows
+the useful transition--autovacuum_count increases, last_autovacuum advances, and the backlog falls--or
+it ends with the table still eligible. The latter is not a failed lesson: record autovacuum,
+autovacuum_naptime, reloptions, n_dead_tup, and pg_stat_progress_vacuum, then inspect worker slots
+and server logs before deciding why a worker did not run.
 
-pg_stat_progress_vacuum is almost always empty by the time you look: vacuuming 1000 dead tuples in
-a 345-page table takes milliseconds. The row you are chasing lives for less time than the wait for
-it, which is the shape of every threshold-plus-poll system.`,
+pg_stat_progress_vacuum is often empty because a short worker can finish between samples. A live row
+is extra evidence about phase and scanned pages, not a required outcome. The table settings are reset
+at the end in either case.`,
       systemsLens: code`
-Background reclamation is a control loop, and this lesson exposes both of its constants: a trigger
-(how much garbage before we care) and a period (how long before we notice). Tuning only the trigger
-is the classic mistake. A small, extremely hot table can cycle its entire contents several times
-within one naptime, so it is never more than a minute from being triggered and never less than a
-minute from being cleaned - and it bloats regardless of how low you set the threshold. The fix is
-the period, or a dedicated worker, or accepting that the table needs manual vacuum. The mirror
-image is a huge table with the default scale factor of 0.2, which needs a fifth of itself to die
-before anything happens; both failures come from expressing the trigger in the wrong units for the
-workload.`,
+Background reclamation is a control loop: a trigger says when work is eligible, and scheduling plus
+worker capacity says when it happens. The three batches show why a small hot table can accumulate a
+backlog while it waits for that loop. The operational signal is the direction of dead versions and
+completed autovacuums over time, together with the oldest snapshot that might block cleanup; one
+minute of polling is deliberately not a promise about a shared server.`,
       challenge: code`
-Set autovacuum_vacuum_cost_delay high on the table (say 100ms) and repeat with a much larger churn:
-the worker now shows up in pg_stat_progress_vacuum for long enough to watch heap_blks_scanned crawl.
-That cost delay is the throttle that keeps autovacuum from saturating your I/O - and the reason a
-badly throttled autovacuum can never catch up with a busy table.`,
-    },
-    {
-      slug: "long-transaction-bloats-everyone",
-      title: "One idle transaction, everybody's bloat",
-      difficulty: "advanced",
-      safetyLevel: "locking",
-      runIn: "tool",
-      sessions: 2,
-      estimatedMinutes: 15,
-      prerequisites: ["vacuum-reclaims-in-place", "dead-tuples-accumulate"],
-      overview: code`
-Vacuum may only remove a version that no possible snapshot can still need, so its cutoff is the
-oldest snapshot in the whole cluster. One session sitting in an open transaction pins that cutoff,
-and every other session's garbage piles up behind it - in tables the idle session has never even
-read. Here Session B opens a repeatable-read transaction and does nothing else while Session A
-churns a ten-row table 300 times. Ten logical rows will occupy two hundred pages, and vacuum will
-tell you, in one line, exactly whose fault it is.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Transaction Horizon"); Chapter 6 "Vacuum and Autovacuum" (section "Database Horizon Revisited"); Chapter 8 "Rebuilding Tables and Indexes" (section "Precautions")`,
-      readingNotes: code`
-Chapter 4 defines the oldest-observer horizon, Chapter 6 shows how it limits vacuum, and Chapter 8
-describes the operational precautions around rebuilding bloated relations. This lesson pins a tiny
-table with a repeatable-read transaction, measures the resulting 201 pages, and then shows cleanup
-after the blocker commits. Run it before the chapters, then use the three discussions to connect a
-local idle session to the global cost of retained history.`,
-      revision: 3,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 4 §4.5 "Transaction Horizon" (printed pp. 87–89)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 6 §§6.1–6.3 (printed pp. 102–109)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 6 §6.5, subheadings "About the Autovacuum Mechanism", "Which Tables Need to be Vacuumed?", and "Which Tables Need to Be Analyzed?" (printed pp. 110–113)`,
-          },
-        ],
-        rationale: code`
-You observed dead versions, VACUUM cleanup, visibility information, autovacuum thresholds, and a
-long transaction pinning cleanup in lessons 18–23. Read these sections to consolidate the horizon as
-the safety boundary for garbage collection and the vacuum/autovacuum control loop. Skip from the PG14
-text: exact autovacuum defaults, threshold numbers, and monitoring output; resume with lesson 24 when
-you finish.
-`,
-      },
-      syntaxBreakdown: code`
-### In plain terms
-
-This experiment shows how one long-lived reader can make a small table retain hundreds of pages of
-old versions. Session B takes a repeatable-read snapshot and does no more work; Session A updates the
-same ten rows 300 times, then vacuum reports every old version as blocked. Once B commits, vacuum can
-reclaim the tuples, although the file remains large until a rewrite.
-
-### What you are learning
-
-- **Snapshot pinning:** A snapshot held open is an observer that keeps old row versions potentially
-  visible, so vacuum must preserve them.
-- **Global horizon:** The oldest backend xmin determines how far cleanup can advance.
-- **Bloat and reuse:** Reclamation frees space inside the existing file; returning it to the OS needs
-  a separate rewrite such as VACUUM FULL.
-
-### Piece by piece
-
-- **CREATE TABLE / ALTER TABLE / TRUNCATE / INSERT** (setup)
-  - What they are: They create the small table, disable autovacuum, clear old contents, and insert
-    ten rows with 500-character padding.
-  - What they do here: They establish a one-page starting point and prevent background cleanup.
-  - What they give us: A controlled relation whose growth is easy to measure.
-- **generate_series(1, 10)** and **repeat('x', 500)** (SQL functions)
-  - What they are: They generate ten integer IDs and padded text values.
-  - What they do here: They make each replacement version large enough to consume pages.
-  - What they give us: A visible size change from one page to about 201 pages.
-- **VACUUM vac_small** (maintenance command)
-  - What it is: It reclaims eligible dead tuples and updates reusable-space metadata.
-  - What it does here: Setup cleans the initial table; the later runs demonstrate blocked and released
-    cleanup.
-  - What it gives us: Before/after dead-tuple evidence.
-- **pg_relation_size('vac_small') / 8192** (size measurement)
-  - What it is: It converts relation bytes to 8 KiB page count.
-  - What it does here: It runs before churn, after 300 updates, and after cleanup.
-  - What it gives us: One page initially, roughly 201 during the pin, and still 201 after vacuum.
-- **BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ** (transaction setup)
-  - What it is: It starts a transaction with a snapshot fixed for its lifetime.
-  - What it does here: B reads once and stays idle, preserving the old snapshot while A writes.
-  - What it gives us: The horizon holder that prevents vacuum from removing old versions.
-- **SELECT count(*) FROM vac_small** (snapshot-establishing read)
-  - What it is: It counts the ten rows without changing data.
-  - What it does here: B's first statement creates the repeatable-read snapshot.
-  - What it gives us: A visible count and a backend_xmin that can pin cleanup.
-- **pg_backend_pid()** (session identity function)
-  - What it is: It returns B's backend process ID.
-  - What it does here: It labels the idle session in case multiple activity rows are present.
-  - What it gives us: A PID to correlate with pg_stat_activity.
-- **DO $$ ... $$** (anonymous PL/pgSQL block)
-  - What it is: It runs procedural code as one transaction.
-  - What it does here: **FOR i IN 1..300** executes UPDATE vac_small 300 times.
-  - What it gives us: About 3,000 old versions retained because B's snapshot may need them.
-- **pg_stat_activity** (backend activity view)
-  - What it is: It reports session state and snapshot metadata.
-  - What it does here: The query selects non-NULL backend_xmin, orders by xid age, and shows **state**
-    and a boolean derived from **xact_start**.
-  - What it gives us: B as idle in transaction with backend_xmin equal to vacuum's cutoff.
-- **age(backend_xmin)** (xid-age expression)
-  - What it is: It compares an xid's age to the current counter without treating xid as an ordinary
-    sortable integer.
-  - What it does here: It orders horizon holders from oldest to newest.
-  - What it gives us: The session with greatest cleanup impact first.
-- **VACUUM (VERBOSE)** (maintenance command and output option)
-  - What it is: VERBOSE prints pages, tuple counts, index cleanup, and the removable cutoff.
-  - What it does here: The first run attempts cleanup while B is idle; the second runs after COMMIT.
-  - What it gives us: First “0 removed ... 3000 are dead but not yet removable”; later “3000 removed”.
-- **COMMIT** (transaction control)
-  - What it is: It ends B's transaction and releases its snapshot.
-  - What it does here: It lets A's next vacuum treat the old versions as removable.
-  - What it gives us: The transition from blocked cleanup to successful reclamation.
-- **pgstattuple('vac_small')** (exact physical scan)
-  - What it is: It counts live/dead tuples and free space by reading the relation directly.
-  - What it does here: It verifies that dead tuples disappear while the file page count remains high.
-  - What it gives us: dead_tuple_count near zero and free_percent near 99 after cleanup.
-- **idle_in_transaction_session_timeout = '5s'** (challenge setting)
-  - What it is: A session setting that terminates a connection idle inside an open transaction for the
-    specified duration.
-  - What it does here: It kills B automatically, releasing the pinned snapshot.
-  - What it gives us: A FATAL timeout message and a vacuum that can reclaim without waiting manually.
-- **READ COMMITTED with BEGIN only** (challenge isolation variation)
-  - What it is: The default isolation mode; merely opening it does not create a snapshot until a query.
-  - What it does here: B runs no SELECT, so it publishes no backend_xmin.
-  - What it gives us: A contrast showing that snapshots, not open transactions alone, hold the horizon.
-`,
-      setup: code`
-create table if not exists vac_small(id int primary key, n int, pad text);
-alter table vac_small set (autovacuum_enabled = off);
-truncate vac_small;
-insert into vac_small select g, 0, repeat('x', 500) from generate_series(1, 10) g;
-vacuum vac_small;`,
-      code: code`
--- Session A
-select pg_relation_size('vac_small') / 8192 as pages_before, count(*) as rows from vac_small;
--- Session B
-begin transaction isolation level repeatable read;
-select count(*) from vac_small;
-select pg_backend_pid() as b_pid;
--- Session A
-do $$ begin for i in 1..300 loop update vac_small set n = n + 1; end loop; end $$;
-select pg_relation_size('vac_small') / 8192 as pages_after_churn, count(*) as rows from vac_small;
--- Session A
-vacuum (verbose) vac_small;
-select pid, backend_xmin, state, left(query, 30) as query
-from pg_stat_activity where backend_xmin is not null order by age(backend_xmin) desc;
--- Session B
-commit;
--- Session A
-select pg_sleep(1);
-vacuum (verbose) vac_small;
--- Session A
-select pg_relation_size('vac_small') / 8192 as pages_final, count(*) as rows from vac_small;
-select dead_tuple_count, free_percent from pgstattuple('vac_small');`,
-      expectedResult: code`
-The table starts at 1 page with 10 rows. Session B opens a repeatable-read transaction, reads the
-count, and then just sits there.
-
-Session A's 300-iteration loop leaves the table at 201 pages - still 10 rows. Normally most of that
-would have been pruned away while the loop ran; it could not be, because B's snapshot might still
-need those versions.
-
-The first VACUUM (VERBOSE) says so directly:
-  pages: 0 removed, 201 remain, 201 scanned (100.00% of total)
-  tuples: 0 removed, 3010 remain, 3000 are dead but not yet removable
-  removable cutoff: 3091, which was 1 XIDs old when operation ended
-  index scan not needed: 0 pages from table (0.00% of total) had 0 dead item identifiers removed
-Zero reclaimed out of three thousand. pg_stat_activity confirms the culprit: B is "idle in
-transaction" with backend_xmin = 3091, the exact cutoff vacuum reported.
-
-B commits. The very next VACUUM (VERBOSE) reports:
-  tuples: 3000 removed, 10 remain, 0 are dead but not yet removable
-  index scan needed: 200 pages from table (99.50% of total) had 2000 dead item identifiers removed
-The garbage is gone - and the file is still 201 pages, with free_percent near 99. B's idleness cost
-20x permanent disk footprint on a table B never touched, and only a rewrite will give it back.`,
-      systemsLens: code`
-A global GC horizon turns any long-lived reader into a cluster-wide liability: the reclaimer's
-progress is min() over every participant, so the slowest one sets the rate for all. This is the
-same hazard as a stuck replication slot pinning WAL, an unacknowledged consumer pinning a Kafka
-segment, or one long JVM thread holding a reference into an old generation. Two lessons transfer.
-First, bound the horizon rather than trusting clients: idle_in_transaction_session_timeout kills
-sessions that hold a transaction open without doing work, and
-transaction_timeout / statement_timeout bound the honest ones - these are availability settings, not
-hygiene. Second, watch the horizon itself, not its symptoms: alert on the age of the oldest
-backend_xmin (and of the oldest replication slot and prepared transaction), because by the time you
-notice the bloat the space is already spent and only an exclusive-lock rewrite returns it.`,
-      caution: code`
-On a replica-facing cluster the same horizon can be pinned remotely by hot_standby_feedback and by
-inactive replication slots, so a completely idle primary can still fail to reclaim anything.`,
-      challenge: code`
-Set idle_in_transaction_session_timeout = '5s' in Session B before its BEGIN, redo the experiment,
-and watch B get killed with "FATAL: terminating connection due to idle-in-transaction timeout"
-while A's next vacuum reclaims everything. Then measure how many pages the loop leaves behind when
-nothing is pinning the horizon - it should be a handful, not two hundred.`,
+Rerun setup, set autovacuum_vacuum_cost_delay = 20 on **vac_t**, and use the same three generated
+batches. If pg_stat_progress_vacuum catches a worker, compare its phase and scanned blocks with the
+normal run; always reset that table option afterwards.`,
     },
   ],
 };

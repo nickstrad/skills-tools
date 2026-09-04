@@ -1,5 +1,9 @@
 # PostgreSQL Systems: module plan
 
+Refactor in progress: [REWORK-PLAN.md](REWORK-PLAN.md) and its bounded designs supersede affected
+sections below. This original module outline remains a reference until final integration. Use
+[lesson-map.md](lesson-map.md) for current numbers, surviving slugs and reading stops.
+
 Audience: a software engineer who builds and operates distributed systems and wants to understand
 PostgreSQL as a storage/replication system, not as a DBA. Every lesson is an experiment: setup,
 action, observation, expected result, systems lens. The lab is the cluster from module 01 (port

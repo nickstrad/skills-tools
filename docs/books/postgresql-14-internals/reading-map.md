@@ -1,5 +1,9 @@
 # Reading map: course lessons → PostgreSQL 14 Internals
 
+The table below preserves the original 96-lesson research numbering. During the approved refactor,
+use the [current lesson and checkpoint map](../../../curriculum-tools/courses/postgres/lesson-map.md)
+for active numbers and consolidated slugs. Match book citations by slug, not by an old ordinal.
+
 One row per lesson in `courses/postgres/lessons.json` (96 lessons). The
 "Reading" column is the exact line to print at the top of the lesson. Chapter
 and section titles are quoted verbatim from the book's table of contents (see

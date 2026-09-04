@@ -469,7 +469,7 @@ Chapter 3 describes insert, commit, abort, and update as tuple operations whose 
 separate from commit status. This lesson makes that separation concrete by reading pg_xact_status,
 then inspecting aborted tuple headers that remain on the page. Read the chapter after running the
 experiment to connect its tuple diagrams to the aborted and committed examples.`,
-      revision: 3,
+      revision: 4,
       studyCheckpoint: {
         core: [
           {
@@ -483,10 +483,10 @@ experiment to connect its tuple diagrams to the aborted and committed examples.`
           },
         ],
         rationale: code`
-You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility in lessons
-12–15. Read these sections to connect the tuple headers and commit/abort status to the formal snapshot
+You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility.
+Read these sections to connect the tuple headers and commit/abort status to the formal snapshot
 model before the horizon and freezing work. Skip from the PG14 text: exact infomask bit values,
-catalog output, and example transaction numbers; resume with lesson 16 when you finish.
+catalog output, and example transaction numbers; resume with the horizon experiment when you finish.
 `,
       },
       syntaxBreakdown: code`
@@ -566,11 +566,11 @@ path marks its version visible.
 - **\\! ls -l PATH** (psql shell escape)
   - What it is: It runs the given operating-system command from psql; **ls -l** lists file sizes and
     ownership.
-  - What it does here: It lists **/var/lib/postgresql/pglab/primary/pg_xact**.
+  - What it does here: It lists **$PGLAB/primary/pg_xact** using the shell environment established in the toolkit lesson.
   - What it gives us: The small **0000** segment that stores status for this short-lived lab.
 - **t_infomask and HEAP_XMIN_COMMITTED (challenge)** (tuple hint metadata)
   - What they are: **t_infomask** contains tuple flags; bit 256 is the committed-creator hint.
-  - What they do here: Diffing two page dumps shows the first read setting the hint bit.
+  - What they do here: Comparing page dumps around an ordinary SELECT can show a visibility check setting the hint bit.
   - What they give us: Evidence that a SELECT can cache commit status and dirty a page.
 `,
       setup: ACCOUNTS,
@@ -601,7 +601,7 @@ select pg_xact_status(:good_xid::text::xid8) as good_status,
 select count(*) as rows_visible_now from mv_accounts;
 
 -- the commit log is a handful of bytes per transaction, in its own directory
-\! ls -l /var/lib/postgresql/pglab/primary/pg_xact`,
+\! ls -l "$PGLAB/primary/pg_xact"`,
       expectedResult: code`
 Inside the transaction rows_visible_inside_txn = 4 (dave is there) and bob's balance is 0. After
 ROLLBACK, rows_visible_after_rollback = 3 and bob is back at 100 -- nothing was undone, the reader
@@ -620,8 +620,9 @@ original at lp 2 is even marked deleted by 3164. Nothing on the page distinguish
 from a committed transaction's work.
 The second transaction commits, so pg_xact_status prints 'committed' for good_xid and still
 'aborted' for the doomed one, and rows_visible_now = 4 (erin joined; dave never did).
-The ls shows one small segment file, "0000", 8192 bytes, owned by postgres: that file is the entire
-verdict on every transaction the cluster has ever run.`,
+In this young lab, ls normally shows a small segment named "0000". A longer-running cluster can
+have more segments, and old status history is eventually removed; this directory is not a permanent
+audit log of every transaction the cluster has ever run.`,
       systemsLens: code`
 Separating "what was written" from "was it committed" is what makes abort O(1) instead of O(work
 done). The price is an extra lookup on every visibility check, which is why PostgreSQL caches
@@ -630,146 +631,174 @@ second reader does not pay for it. Every commit protocol has this shape: the dur
 record is the truth, and the bulky data is speculative until it points at one. It is also why the
 first reader after a crash is slower than the second.`,
       challenge: code`
-Run the page dump twice and diff t_infomask between the runs. The first read after the commit sets
-the HEAP_XMIN_COMMITTED hint bit (256) in the header, so the second reader never consults pg_xact
-again -- a cache write performed by a SELECT, which is why a read-only query can dirty pages.`,
+Raw page inspection does not perform tuple visibility checks. Use a fresh committed tuple and put an
+ordinary SELECT between the page dumps instead:
+
+drop table if exists mv_hint;
+create table mv_hint(id int);
+insert into mv_hint values (1);
+select lp, t_infomask from heap_page_items(get_raw_page('mv_hint', 0));
+select * from mv_hint;
+select lp, t_infomask from heap_page_items(get_raw_page('mv_hint', 0));
+
+Compare the committed-creator hint (t_infomask & 256). A normal read can cache transaction status
+in the header; an already-set hint need not change again. Explain why inspecting bytes twice alone
+would not cause that visibility work.`,
     },
     {
       slug: "xmin-horizon-blocks-cleanup",
-      title: "One idle transaction pins every dead row in the cluster",
+      title: "An old snapshot turns ordinary churn into retained history",
       difficulty: "advanced",
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
-      estimatedMinutes: 18,
+      estimatedMinutes: 20,
       prerequisites: ["commit-visibility-and-clog"],
+      revision: 4,
       overview: code`
-Dead versions can only be reclaimed once no snapshot could still need them. The cutoff is the
-minimum xmin over every snapshot in the cluster, so a single session sitting in an open transaction
-holds the horizon down for everyone -- in this database and, for the shared horizon, beyond it. You
-will delete rows, fail to vacuum them away, watch the blocker in pg_stat_activity, then release it
-and vacuum again.`,
+Dead versions can only be reclaimed once no snapshot could still need them. This experiment runs the
+same bounded, separately committed update churn twice. In the baseline, VACUUM reclaims old versions.
+In the pinned run, Session B holds a repeatable-read snapshot, so the same cleanup must retain them.
+You will match VACUUM's removable cutoff to B's exact backend_xmin, release B, and measure that
+logical rows never changed while dead versions became reusable space.`,
       reading:
         `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Transaction Horizon"); Chapter 6 "Vacuum and Autovacuum" (section "Database Horizon Revisited")`,
       readingNotes: code`
 Chapter 4 defines the transaction horizon as the oldest snapshot that may still need a row version,
-and Chapter 6 applies that horizon to vacuum cleanup. This lesson holds a repeatable-read snapshot,
-then shows the exact cutoff and blocked dead tuples before releasing it. Run it first, then read the
-two sections to connect backend_xmin and vacuum's removable cutoff to the formal horizon model.`,
+and Chapter 6 applies that horizon to vacuum cleanup. The matched baseline and pinned runs separate
+ordinary pruning from retention caused by an old snapshot. Read after the experiment to connect B's
+backend_xmin and VACUUM's removable cutoff to the formal horizon model.`,
       syntaxBreakdown: code`
 ### In plain terms
 
-This experiment proves that vacuum cannot remove a dead row while an older snapshot might still read
-it. Session B takes a repeatable-read snapshot and then sits idle; Session A deletes two rows and
-vacuum reports them as not yet removable. When B commits, the same vacuum can reclaim them. A single
-forgotten transaction can therefore make storage grow for work it never performed.
+The baseline and pinned cases run the same separately committed updates. In one case VACUUM can
+remove old versions immediately; in the other, B's old snapshot means it must retain them. The row
+count stays fixed, so the changed dead-tuple and free-space measurements isolate reclamation.
 
 ### What you are learning
 
-- **Vacuum horizon:** Cleanup uses the oldest snapshot's xmin as a safety boundary.
-- **backend_xmin:** A backend advertises the oldest transaction ID its snapshot still needs.
-- **Dead versus removable:** A tuple can be logically dead but physically retained until every older
-  observer is gone.
+- **Snapshot horizon:** An old snapshot can make a logically dead version still unsafe to remove.
+- **Matched experiment:** A no-reader baseline separates normal page pruning from retention caused by B.
+- **Reusable space:** Plain VACUUM frees bytes inside the table; it does not normally shrink its file.
 
 ### Piece by piece
 
-- **VACUUM** (maintenance command)
-  - What it is: It scans a table and reclaims tuple and index space that no snapshot can need.
-  - What it does here: The first run is blocked by B's snapshot; the second runs after B commits.
-  - What it gives us: Verbose counts showing zero removed before release and two removed afterward.
-- **VERBOSE** (VACUUM option)
-  - What it is: It asks VACUUM to print per-table progress and cleanup accounting.
-  - What it does here: It exposes the removable cutoff and the “dead but not yet removable” count.
-  - What it gives us: Text that can be matched directly to B's **backend_xmin**.
-- **BEGIN ISOLATION LEVEL REPEATABLE READ** (transaction setup)
-  - What it is: It opens one transaction and fixes its snapshot at the first query.
-  - What it does here: B reads the table once and keeps that snapshot while A deletes rows.
-  - What it gives us: A persistent observer that prevents cleanup.
-- **pgstattuple('mv_accounts')** (extension inspection function)
-  - What it is: It scans the relation and counts live and dead tuples directly, rather than using
-    statistics estimates.
-  - What it does here: It measures the table before and after B's snapshot is released.
-  - What it gives us: **live** and **dead** columns showing two dead rows before vacuum can remove them.
-- **DELETE ... WHERE id IN (...)** (data-change statement)
-  - What it is: DELETE marks matching row versions deleted; **IN (2, 3)** selects Bob and Carol.
-  - What it does here: It creates the dead versions while B may still need the prior snapshot.
-  - What it gives us: **dead = 2** from pgstattuple.
-- **pg_stat_activity** (backend activity view)
-  - What it is: It reports each server session's state and transaction metadata.
-  - What it does here: The query selects sessions with a non-NULL **backend_xmin**, sorts by
-    **age(backend_xmin)**, and shows whether **xact_start** is present.
-  - What it gives us: B as **idle in transaction**, with the oldest backend_xmin matching vacuum's cutoff.
-- **age(backend_xmin)** (xid-age function)
-  - What it is: It measures how old an xid is relative to the current transaction counter; xid values
-    themselves are not ordered like ordinary integers.
-  - What it does here: It orders the sessions from oldest horizon holder to newest.
-  - What it gives us: The session most likely to pin cleanup appears first.
+- **CREATE TABLE, ALTER TABLE, TRUNCATE, and INSERT** (setup commands)
+  - What they are: They create the disposable table, disable only its autovacuum, reset it, and load
+    ten padded rows.
+  - What they do here: They give both cases identical logical starting data.
+  - What they give us: A fair comparison without cleanup from an earlier run.
+- **format, generate_series, and \gexec** (psql-generated SQL)
+  - What they are: generate_series emits 100 rows, format creates one UPDATE string per row, and
+    \gexec executes each generated string as a separate statement.
+  - What they do here: They create independently committed churn instead of one giant transaction.
+  - What they give us: Old versions from a bounded sequence of completed writes.
+- **VACUUM (VERBOSE, ANALYZE)** (maintenance command)
+  - What it is: It removes eligible versions, prints its removable cutoff and tuple accounting, and
+    refreshes tuple estimates.
+  - What it does here: It runs after baseline churn, while B pins the second case, and after B commits.
+  - What it gives us: The before-release and after-release reclamation evidence.
+- **pg_relation_size and pgstattuple** (physical inspection functions)
+  - What they are: The first reports allocated main-fork bytes; the second scans live, dead, and free
+    tuple space exactly.
+  - What they do here: They compare page allocation and dead/reusable bytes across both cases.
+  - What they give us: Ten logical rows with different retained-dead and free-space outcomes.
+- **SET application_name** (session setting)
+  - What it is: It labels B's backend in server activity views.
+  - What it does here: It gives A a stable identity for the snapshot holder.
+  - What it gives us: A query that identifies this reader without guessing among other sessions.
+- **BEGIN ISOLATION LEVEL REPEATABLE READ and SELECT** (transaction and snapshot)
+  - What they are: The first SELECT fixes B's snapshot for the transaction's life.
+  - What they do here: B sees the ten rows before A's pinned churn and remains open.
+  - What they give us: A backend_xmin that prevents old versions becoming removable.
+- **pg_stat_activity.backend_xmin** (activity-view field)
+  - What it is: The oldest xid B's advertised snapshot may still need.
+  - What it does here: A reads B's state, xmin, and transaction start before its first pinned VACUUM.
+  - What it gives us: The exact xid to compare with VACUUM's removable cutoff.
 - **COMMIT** (transaction control)
-  - What it is: It ends B's transaction and releases its snapshot and locks.
-  - What it does here: It removes B's xmin from the global horizon.
-  - What it gives us: The follow-up vacuum is now allowed to remove both dead rows.
-- **TOAST** (oversized-value storage)
-  - What it is: PostgreSQL's auxiliary relation for values too large to fit in the main tuple.
-  - What it does here: VERBOSE may print an additional empty TOAST block; it is not the table being
-    measured.
-  - What it gives us: A reminder to identify the **mv_accounts** block when reading vacuum output.
+  - What it is: It ends B's snapshot-holding transaction.
+  - What it does here: It releases the blocker before A's final VACUUM.
+  - What it gives us: Retained dead tuples becoming removable while row count remains ten.
 `,
-      setup: ACCOUNTS,
+      setup: code`
+create table if not exists mv_horizon (
+  id int primary key,
+  n int not null,
+  pad text not null
+);
+alter table mv_horizon set (autovacuum_enabled = off);
+truncate mv_horizon;
+insert into mv_horizon select g, 0, repeat('x', 500) from generate_series(1, 10) g;
+vacuum (analyze) mv_horizon;`,
       code: code`
--- Session A
-vacuum mv_accounts;
-select tuple_count as live, dead_tuple_count as dead from pgstattuple('mv_accounts');
+-- Session A: baseline. Each generated UPDATE commits independently.
+select pg_relation_size('mv_horizon') / 8192 as baseline_pages_before, count(*) as baseline_rows
+from mv_horizon;
+select format('update mv_horizon set n = n + 1;') from generate_series(1, 100) \gexec
+vacuum (verbose, analyze) mv_horizon;
+select count(*) as baseline_rows_after, pg_relation_size('mv_horizon') / 8192 as baseline_pages_after
+from mv_horizon;
+select tuple_count as baseline_live, dead_tuple_count as baseline_dead, free_percent as baseline_free
+from pgstattuple('mv_horizon');
 
--- Session B
+-- Session A: reset to the matched starting state.
+truncate mv_horizon;
+insert into mv_horizon select g, 0, repeat('x', 500) from generate_series(1, 10) g;
+vacuum (analyze) mv_horizon;
+
+-- Session B: take and hold the old snapshot.
+set application_name = 'mvcc-horizon-reader';
 begin isolation level repeatable read;
-select count(*) as b_sees from mv_accounts;
+select count(*) as b_sees_before_churn from mv_horizon;
 
--- Session A
-delete from mv_accounts where id in (2, 3);
-select tuple_count as live, dead_tuple_count as dead from pgstattuple('mv_accounts');
-select pid, state, backend_xmin, xact_start is not null as in_txn
-from pg_stat_activity where backend_xmin is not null order by age(backend_xmin) desc;
-vacuum (verbose) mv_accounts;
+-- Session A: the same independently committed updates now run behind B's snapshot.
+select format('update mv_horizon set n = n + 1;') from generate_series(1, 100) \gexec
+select count(*) as pinned_rows, pg_relation_size('mv_horizon') / 8192 as pinned_pages_before_vacuum
+from mv_horizon;
+select pid, state, backend_xmin, xact_start
+from pg_stat_activity where application_name = 'mvcc-horizon-reader';
+vacuum (verbose, analyze) mv_horizon;
+select tuple_count as pinned_live, dead_tuple_count as pinned_dead, free_percent as pinned_free
+from pgstattuple('mv_horizon');
 
 -- Session B
 commit;
 
 -- Session A
-vacuum (verbose) mv_accounts;
-select tuple_count as live, dead_tuple_count as dead from pgstattuple('mv_accounts');`,
+vacuum (verbose, analyze) mv_horizon;
+select count(*) as released_rows, pg_relation_size('mv_horizon') / 8192 as released_pages
+from mv_horizon;
+select tuple_count as released_live, dead_tuple_count as released_dead, free_percent as released_free
+from pgstattuple('mv_horizon');`,
       expectedResult: code`
-After the DELETE, pgstattuple reports live = 1, dead = 2. Session B is idle in a transaction and
-publishes the oldest backend_xmin, for example
-    pid  |        state        | backend_xmin | in_txn
-  -------+---------------------+--------------+--------
-   89220 | idle in transaction |         1054 | t
-   89222 | active              |         1056 | t
-The first VACUUM refuses to reclaim anything:
-  INFO:  vacuuming "lab.public.mv_accounts"
-  tuples: 0 removed, 3 remain, 2 are dead but not yet removable
-  removable cutoff: 1054, which was 3 XIDs old when operation ended
-The cutoff is exactly B's backend_xmin. After B commits, the same VACUUM succeeds:
-  tuples: 2 removed, 1 remain, 0 are dead but not yet removable
-  removable cutoff: 1057, which was 0 XIDs old when operation ended
-  index scan needed: 1 pages from table (100.00% of total) had 2 dead item identifiers removed
-and pgstattuple then reports live = 1, dead = 0. B never touched mv_accounts after its first
-SELECT: merely holding a snapshot was enough.`,
+The baseline starts and ends with 10 logical rows. Its 100 separately committed updates may grow the
+heap while they run, but VACUUM reports old tuples removed and pgstattuple reports baseline_dead = 0.
+The table may retain allocated pages; baseline_free is evidence that their bytes are reusable.
+
+The reset also starts with 10 rows. Session B reports b_sees_before_churn = 10, then the activity
+query identifies exactly one **mvcc-horizon-reader** backend with a non-NULL backend_xmin. The pinned
+run still reports pinned_rows = 10, but its first verbose VACUUM reports old tuples that are dead but
+not yet removable. Its **removable cutoff** is B's backend_xmin; absolute xid values and retained
+physical-version counts vary with page pruning and server version.
+
+After B commits, the next VACUUM reports those old versions removed. released_rows remains 10,
+released_dead becomes 0, and released_free rises. released_pages commonly stays at the pinned size:
+plain VACUUM made bytes reusable inside the relation; it did not promise to return pages to the OS.`,
       systemsLens: code`
-Garbage collection in a multi-version system is bounded by min(observers), and that minimum is
-taken across the whole cluster, including replicas with hot_standby_feedback and unconsumed
-replication slots. So the cost of one slow consumer is paid globally, in bloat and in scan time, by
-workloads that have nothing to do with it. Every distributed system with reader-visible history has
-this coupling -- Kafka retention held by a stuck consumer group, an S3-backed table format pinned by
-an old snapshot id, a Cassandra tombstone kept for gc_grace_seconds. The operational answer is the
-same everywhere: bound how long any observer may hold the horizon, which in PostgreSQL means
-idle_in_transaction_session_timeout, statement_timeout, and alerting on the age of the oldest xmin.`,
+Garbage collection in a multi-version system is bounded by its oldest relevant observer. The baseline
+and pinned cases have the same writes and logical data; the old snapshot alone changes whether
+versions can be reclaimed. PostgreSQL combines several horizon inputs for different cleanup duties,
+so treat a user-table blocker as evidence about this relation's cleanup, not a complete inventory of
+every cluster-wide retention source. Operations should bound transaction lifetime and alert on old
+active snapshots before retention turns into capacity pressure.`,
       caution: code`
-On a busy system this is the single most common cause of runaway bloat. An "idle in transaction"
-session that a connection pool forgot about will stop vacuum cluster-wide for as long as it lives.`,
+This lesson disables autovacuum only on its disposable table. Do not copy that setting to an
+application table. In production, find the actual blocker before terminating a session: it may be a
+valid report or migration, and cancelling it changes application behaviour.`,
       challenge: code`
-Repeat with B in a plain read-committed transaction that has only run "begin;" and no query at all:
-B publishes no backend_xmin and vacuum succeeds. The horizon is held by snapshots, not by open
-transactions -- the xmin appears at B's first statement.`,
+Repeat only the pinned case with B running **begin;** but no query. Run the same generated updates,
+inspect B in pg_stat_activity, and then VACUUM. If B has no snapshot/backend_xmin, cleanup should
+match the baseline. That variation distinguishes an open connection from an old snapshot.`,
     },
     {
       slug: "wraparound-and-freezing",

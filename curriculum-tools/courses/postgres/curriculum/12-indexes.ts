@@ -719,7 +719,7 @@ covering index in place.`,
       safetyLevel: "ddl",
       runIn: "tool",
       estimatedMinutes: 20,
-      prerequisites: ["btree-page-anatomy", "dead-tuples-accumulate"],
+      prerequisites: ["btree-page-anatomy", "vacuum-reclaims-in-place"],
       overview: code`
 Update an indexed column and the B-tree cannot update in place either: it inserts a new entry, and
 the old one stays until VACUUM removes it, by which point the page has split. Here you churn the

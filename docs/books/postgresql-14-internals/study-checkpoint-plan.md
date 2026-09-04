@@ -1,5 +1,9 @@
 # PostgreSQL study checkpoint plan
 
+The table below preserves the original 96-lesson research numbering. During the approved refactor,
+use the [current lesson and checkpoint map](../../../curriculum-tools/courses/postgres/lesson-map.md)
+for active numbers and consolidated slugs. Match book citations by slug, not by an old ordinal.
+
 This plan adds seven deliberate reading pauses to the 96-lesson PostgreSQL Systems course. The
 pauses are course-order stops: finish the named lesson, read the bounded core items, then resume
 with the next numbered lesson. Existing per-lesson `reading` and `readingNotes` citations remain
