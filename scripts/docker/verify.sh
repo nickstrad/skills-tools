@@ -73,6 +73,14 @@ for check in "${CHECKS[@]}"; do
     fi
 done
 
+expected_sqlite_version="${SQLITE_VERSION:-3.53.4}"
+installed_sqlite_version="$(sqlite3 --version 2>/dev/null | awk '{print $1}')"
+if [[ "${installed_sqlite_version}" != "${expected_sqlite_version}" ]]; then
+    printf 'sqlite3      WRONG VERSION (expected %s, got %s)\n' \
+        "${expected_sqlite_version}" "${installed_sqlite_version:-missing}"
+    failures+=("sqlite3 ${expected_sqlite_version}")
+fi
+
 echo
 
 if (( ${#failures[@]} > 0 )); then

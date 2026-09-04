@@ -56,16 +56,17 @@ stat -c 'lab.db bytes=%s path=%n' "$SQLITE_LAB/lab.db"
       code: code`.headers on
 .mode box
 SELECT sqlite_version() AS sqlite_version;
-SELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;
+SELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%DBPAGE%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;
 .print -- CLI commands relevant to this course
 .help backup
 .help recover`,
       expectedResult:
-        code`The version query prints 3.45.1 (or another version at least 3.45). The compile-option query records whether ENABLE_DBSTAT_VTAB appears; this installation should report it. Help includes .backup and .recover entries. Missing optional features are evidence to record, not reasons to assume they exist.`,
+        code`The version query prints 3.53.4 (or another version at least 3.53.4). The compile-option query records ENABLE_DBSTAT_VTAB and ENABLE_DBPAGE_VTAB on the course installation. Help includes .backup and .recover entries. Missing optional features are evidence to record, not reasons to assume they exist.`,
       systemsLens:
         code`Deployed capability is a runtime fact. Reproducible operations begin by measuring the binary and its feature set, just as a service checks protocol and storage capabilities at startup.`,
       challenge:
         code`Run SELECT sqlite_compileoption_used('ENABLE_DBSTAT_VTAB'); and compare its integer result with the compile-options list.`,
+      revision: 2,
     },
     {
       slug: "share-one-file-between-sessions",

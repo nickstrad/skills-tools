@@ -24,17 +24,18 @@ orderings, failure modes, and trade-offs over tuning advice.
 
 See `src/types.ts` for the `Lesson` type. Field notes:
 
-| Field          | Meaning                                                                                                                                                                                                                                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `slug`         | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                                                                                                                                                                                          |
-| `tags`         | 2-5 kebab-case topic labels. `tutor <id> next --topic TEXT` serves the next unfinished lesson whose tags/category/title match every word, and `topics` lists them. Align tags with the chapters of the canonical book for the tool plus systems concepts, and keep a vocabulary list in `courses/<id>/PLAN.md`. |
-| `reading`      | Optional. Where the course's canonical book covers this lesson, printed at the top of the write-up. See "The reading line".                                                                                                                                                                                     |
-| `readingNotes` | Optional. How the experiment overlaps with the cited chapter, printed as its own section after the overview. Omit when the book does not cover the lesson. See "The reading line".                                                                                                                              |
-| `runIn`        | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                                                                                                                                                                                    |
-| `sessions`     | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                                                                                                                                                                                |
-| `safetyLevel`  | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.                                                                                                                                                                 |
-| `minVersion`   | Version string the lesson was validated on; defaults to `course.json`.                                                                                                                                                                                                                                          |
-| `revision`     | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                                                                                                                                                                                     |
+| Field             | Meaning                                                                                                                                                                                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `slug`            | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                                                                                                                                                                                          |
+| `tags`            | 2-5 kebab-case topic labels. `tutor <id> next --topic TEXT` serves the next unfinished lesson whose tags/category/title match every word, and `topics` lists them. Align tags with the chapters of the canonical book for the tool plus systems concepts, and keep a vocabulary list in `courses/<id>/PLAN.md`. |
+| `reading`         | Optional. Where the course's canonical book covers this lesson, printed as an **Optional reference** at the top of the write-up. See "The reading line".                                                                                                                                                        |
+| `readingNotes`    | Optional. How the experiment overlaps with the cited chapter, printed as optional reference context after the overview. Omit when the book does not cover the lesson. See "The reading line".                                                                                                                   |
+| `studyCheckpoint` | Optional. A deliberate pause after the experiment with bounded core excerpts and optional depth material. It is generic enough for books, papers, blogs, documentation, and videos; see "Study checkpoints".                                                                                                    |
+| `runIn`           | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                                                                                                                                                                                    |
+| `sessions`        | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                                                                                                                                                                                |
+| `safetyLevel`     | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.                                                                                                                                                                 |
+| `minVersion`      | Version string the lesson was validated on; defaults to `course.json`.                                                                                                                                                                                                                                          |
+| `revision`        | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                                                                                                                                                                                     |
 
 `code` is a raw tagged-template helper: backslashes are literal, so `\timing` and `\d` survive.
 Avoid literal backticks and `${` inside a `code` template.
@@ -89,18 +90,52 @@ explains this" rather than use the concept unexplained.
 
 ## The reading line
 
-`reading` is optional metadata that prints as one line right after the `Meta`/`Topics` lines. Use it
-when the course has a canonical book: a citation only (book, chapter number and exact title, section
-when you are sure of it), no explanatory prose. If the book does not cover the lesson, say so
-plainly and name the closest background chapter. Keep the course's chapter digest in
-`courses/<id>/docs/` so every author cites the same titles.
+`reading` is optional metadata that prints as an **Optional reference** line right after the
+`Meta`/`Topics` lines. Use it when the course has a canonical book: a citation only (book, chapter
+number and exact title, section when you are sure of it), no explanatory prose. If the book does not
+cover the lesson, say so plainly and name the closest background chapter. Keep the course's chapter
+digest in `courses/<id>/docs/` so every author cites the same titles.
 
 When a lesson cites a chapter, also fill `readingNotes`: one or two short paragraphs on how the
 experiment overlaps with the book. Say which mechanism, structure, or section the lesson shows live,
 what the book explains that the experiment does not, where the lesson goes beyond or differs from
 the book (a newer tool version, a different view name), and whether to read the chapter before or
 after running the lesson. Leave it out when there is no overlap; a citation that says "not covered"
-never carries notes.
+never carries notes. The renderer labels these notes as optional and tells the learner to continue
+unless the lesson ends with a study checkpoint.
+
+## Study checkpoints
+
+Use `studyCheckpoint` sparingly when a learner should pause after completing an experiment and
+consolidate what they just observed before moving to the next lesson. The checkpoint is an optional
+lesson field, not a separate lesson or a progress state. Its presence means “stop here”; the tutor
+does not try to verify that the learner studied the material.
+
+Each checkpoint has a non-empty `core` array and may have an `optionalDepth` array. Core items are
+the short path that the learner should complete before continuing. Optional-depth items are clearly
+labelled as enrichment and must not be prerequisites for later lessons. Every item has a `source`
+and a bounded `locator`:
+
+```ts
+studyCheckpoint: {
+  core: [
+    { source: "A systems paper", locator: "Sections 2–3, ‘The write path’" },
+  ],
+  optionalDepth: [
+    { source: "Project documentation", locator: "‘Recovery’ subsection" },
+    { source: "Conference talk", locator: "12:30–18:00" },
+  ],
+  rationale: "The experiment exposed the ordering; these excerpts explain why it is required.",
+}
+```
+
+Scope each item to sections, subsections, page ranges, article headings or anchors, and video
+timestamps. Do not assign an entire book, chapter, paper, or long video as a checkpoint. Aim for
+roughly 15–35 minutes of core study so the course remains experiment-led; put broader background in
+`optionalDepth` or leave it as an ordinary `reading` citation. Keep `reading` and `readingNotes` for
+the existing canonical-book citation and experiment-overlap explanation; they do not create a stop.
+Rendered checkpoints appear after the Challenge and before Your note, with the instruction to stop
+before the next lesson.
 
 ## Build, validate, ship
 

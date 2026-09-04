@@ -1,3 +1,16 @@
+/** A bounded external study item, such as a book section, paper, or video segment. */
+export type StudyResource = {
+  source: string;
+  locator: string;
+};
+
+/** A deliberate pause after an experiment, with a short core path and optional depth. */
+export type StudyCheckpoint = {
+  core: StudyResource[];
+  optionalDepth?: StudyResource[];
+  rationale: string;
+};
+
 /** One hands-on lesson in a course. Field names are tool-agnostic. */
 export type Lesson = {
   ordinal: number;
@@ -19,6 +32,8 @@ export type Lesson = {
    * does not cover the lesson).
    */
   readingNotes?: string;
+  /** A bounded study pause shown after the experiment and before the next lesson. */
+  studyCheckpoint?: StudyCheckpoint;
   /** What you are about to observe and why it matters. */
   overview: string;
   /**
@@ -106,6 +121,58 @@ export const SAFETY = new Set([
 ]);
 export const RUN_IN = new Set(["tool", "shell", "mixed"]);
 
+function validateStudyResources(
+  value: unknown,
+  where: string,
+  requireOne: boolean,
+): asserts value is StudyResource[] {
+  if (!Array.isArray(value) || (requireOne && value.length === 0)) {
+    const requirement = requireOne ? "a non-empty array" : "an array";
+    throw new Error(`${where} must be ${requirement} of study resources`);
+  }
+  for (const [i, resource] of value.entries()) {
+    const resourceWhere = `${where}[${i}]`;
+    if (!resource || typeof resource !== "object" || Array.isArray(resource)) {
+      throw new Error(`${resourceWhere} must be an object`);
+    }
+    const x = resource as Record<string, unknown>;
+    for (const field of ["source", "locator"] as const) {
+      const text = x[field];
+      if (typeof text !== "string" || !text.trim()) {
+        throw new Error(`${resourceWhere} has an empty ${field}`);
+      }
+      if (text.includes("\n") || text.includes("\r")) {
+        throw new Error(`${resourceWhere} ${field} must be one line`);
+      }
+    }
+  }
+}
+
+/** Validate an optional study checkpoint, including values loaded from JSON. */
+export function validateStudyCheckpoint(
+  value: unknown,
+  where = "studyCheckpoint",
+): asserts value is StudyCheckpoint {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${where} must be an object`);
+  }
+  const checkpoint = value as Record<string, unknown>;
+  validateStudyResources(checkpoint.core, `${where}.core`, true);
+  if (checkpoint.optionalDepth !== undefined) {
+    validateStudyResources(
+      checkpoint.optionalDepth,
+      `${where}.optionalDepth`,
+      false,
+    );
+  }
+  if (
+    typeof checkpoint.rationale !== "string" ||
+    !checkpoint.rationale.trim()
+  ) {
+    throw new Error(`${where} has an empty rationale`);
+  }
+}
+
 export function validateLessons(lessons: Lesson[]): void {
   if (lessons.length === 0) {
     throw new Error("a course must contain at least one lesson");
@@ -155,6 +222,9 @@ export function validateLessons(lessons: Lesson[]): void {
       if (!lesson.reading) {
         throw new Error(`${where} has readingNotes without reading`);
       }
+    }
+    if (lesson.studyCheckpoint !== undefined) {
+      validateStudyCheckpoint(lesson.studyCheckpoint, `${where} studyCheckpoint`);
     }
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(lesson.slug)) {
       throw new Error(`${where} has a bad slug`);
@@ -206,6 +276,20 @@ export function trim(text: string): string {
   return text.replace(/^\n/, "").replace(/\s+$/, "");
 }
 
+function trimStudyResource(resource: StudyResource): StudyResource {
+  return { source: resource.source.trim(), locator: resource.locator.trim() };
+}
+
+function trimStudyCheckpoint(checkpoint: StudyCheckpoint): StudyCheckpoint {
+  return {
+    core: checkpoint.core.map(trimStudyResource),
+    ...(checkpoint.optionalDepth !== undefined
+      ? { optionalDepth: checkpoint.optionalDepth.map(trimStudyResource) }
+      : {}),
+    rationale: checkpoint.rationale.trim(),
+  };
+}
+
 export function buildLessons(course: Course, modules: Module[]): Lesson[] {
   const drafts: (Draft & { category: string })[] = [];
   for (const m of modules) {
@@ -217,6 +301,12 @@ export function buildLessons(course: Course, modules: Module[]): Lesson[] {
     ordinalBySlug.set(d.slug, i + 1);
   });
   const lessons = drafts.map((d, i): Lesson => {
+    if (d.studyCheckpoint !== undefined) {
+      validateStudyCheckpoint(
+        d.studyCheckpoint,
+        `lesson ${i + 1} (${d.slug}) studyCheckpoint`,
+      );
+    }
     const prerequisites = (d.prerequisites ?? []).map((slug) => {
       const ordinal = ordinalBySlug.get(slug);
       if (!ordinal) {
@@ -237,6 +327,7 @@ export function buildLessons(course: Course, modules: Module[]): Lesson[] {
       prerequisites,
       ...(d.reading ? { reading: trim(d.reading) } : {}),
       ...(d.readingNotes ? { readingNotes: trim(d.readingNotes) } : {}),
+      ...(d.studyCheckpoint ? { studyCheckpoint: trimStudyCheckpoint(d.studyCheckpoint) } : {}),
       overview: trim(d.overview),
       syntaxBreakdown: trim(d.syntaxBreakdown),
       ...(d.setup ? { setup: trim(d.setup) } : {}),

@@ -47,7 +47,7 @@ SELECT 'source remains', count(*) FROM records;`,
       caution:
         code`This intentionally unsafe exercise copies only a disposable source and never overwrites the original. Do not copy live SQLite files in production this way.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "online-cli-backup",
@@ -92,7 +92,7 @@ SELECT 'source final', count(*) FROM events;`,
       caution:
         code`A backup is only as current as its capture point; schedule and monitor it rather than treating it as continuous replication.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "vacuum-into-snapshot",
@@ -132,7 +132,7 @@ SELECT 'source rows/free pages', count(*), (SELECT freelist_count FROM pragma_fr
       caution:
         code`The destination must not already exist; this lesson removes only its uniquely named disposable copy.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "integrity-and-domain-checks",
@@ -174,7 +174,7 @@ SELECT 'domain ready count', count(*) FROM child WHERE state='ready';
       caution:
         code`Foreign keys are connection settings; every writer must enable PRAGMA foreign_keys=ON rather than relying on a process-wide default.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "recover-damaged-copy",
@@ -209,15 +209,40 @@ INSERT INTO observations SELECT x, printf('reading-%04d', x) FROM n;`,
 .shell sqlite3 "$TUTOR_SQLITE_DB" "PRAGMA integrity_check; SELECT 'source_rows', count(*) FROM observations;"
       `,
       expectedResult:
-        code`leaf_pages is about 60 at a 1 KiB page size or about 15 at 4 KiB, and damaged_leaf_page names the leaf that was zeroed. quick_check on the copy reports a btreeInitPage error for that page and the full scan fails with database disk image is malformed (the CLI also notes that the system command returned a nonzero status). The chunk loop prints unreadable for only the 100-row ranges that touch the damaged leaf: one chunk at 1 KiB pages, two or three at 4 KiB depending on where the leaf boundary falls. The recovered file passes integrity_check and holds 3000 minus 100 per unreadable chunk (for example 2900 or 2800 rows), with min/max ids showing the surviving range. On the installed SQLite 3.45.1 build .recover prints recover_available=no followed by no such table: sqlite_dbpage; a build with that extension prints yes and a line count. The source still prints ok and source_rows|3000.`,
+        code`leaf_pages is about 60 at a 1 KiB page size or about 15 at 4 KiB, and damaged_leaf_page names the leaf that was zeroed. quick_check on the copy reports a btreeInitPage error for that page and the full scan fails with database disk image is malformed (the CLI also notes that the system command returned a nonzero status). The chunk loop prints unreadable for only the 100-row ranges that touch the damaged leaf: one chunk at 1 KiB pages, two or three at 4 KiB depending on where the leaf boundary falls. The recovered file passes integrity_check and holds 3000 minus 100 per unreadable chunk (2900 rows in the validated 1 KiB run), with min/max ids showing the surviving range. The course's SQLite 3.53.4 build prints recover_available=yes with a nonzero SQL line count because it enables sqlite_dbpage. The source still prints ok and source_rows|3000.`,
       systemsLens:
         code`Recovery tools maximize readable evidence after an incident: the structure that survives (here, key routing through intact interior pages) bounds what can be salvaged, and the loss is measured, not guessed. Only a verified, engine-coordinated backup can support a stated RPO/RTO restoration guarantee.`,
       challenge:
         code`Zero the table's root page (rootpage in sqlite_schema) instead of a leaf and rerun the chunk loop. Explain why the salvage rate collapses even though most leaf bytes are untouched, and what that says about where backups must be verified.`,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[SQLite Backup API](https://sqlite.org/backup.html)",
+            locator:
+              "Sections 1 (Using the SQLite Online Backup API), 1.1 (Other Backup Techniques), and 3.1 (File and Database Connection Locking)",
+          },
+          {
+            source:
+              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            locator:
+              "Sections 1.2 (Backup or restore while a transaction is active), 1.3 (Deleting a hot journal), and 1.4 (Mispairing database files and hot journals)",
+          },
+        ],
+        optionalDepth: [
+          {
+            source:
+              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            locator:
+              "Sections 2.1 (Filesystems with broken or missing lock implementations), 2.5 (Unlinking or renaming a database file while in use), and 3.2 (Disabling sync using PRAGMAs)",
+          },
+        ],
+        rationale:
+          "Across lessons 30–34 you saw a main-file copy miss live WAL state, created engine-coordinated snapshots, checked both structural and domain integrity, and measured salvage from a damaged copy. Read these excerpts before continuing to distinguish a consistent backup from byte copying or salvage, and to understand why live journals and their database file must remain paired.",
+      },
       caution:
         code`This deliberately corrupts only the uniquely named TUTOR_SQLITE_DB.damaged.db copy and preserves the source. Never point dd or .recover at a production database.`,
-      revision: 2,
-      minVersion: "3.45",
+      revision: 3,
+      minVersion: "3.53.4",
     },
   ],
 };

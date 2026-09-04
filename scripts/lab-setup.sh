@@ -13,10 +13,17 @@ set -euo pipefail
 # Environment overrides (all optional):
 #   NODE_VERSION  Node.js major installed through NVM (default 22).
 #   NVM_VERSION   NVM release tag (default v0.40.6).
+#   SQLITE_VERSION, SQLITE_AUTOCONF_VERSION, SQLITE_RELEASE_YEAR, and
+#   SQLITE_SHA3_256 must be overridden together to select another verified
+#   SQLite release (defaults describe 3.53.4).
 # ============================================================
 
 NODE_VERSION="${NODE_VERSION:-22}"
 NVM_VERSION="${NVM_VERSION:-v0.40.6}"
+SQLITE_VERSION="${SQLITE_VERSION:-3.53.4}"
+SQLITE_AUTOCONF_VERSION="${SQLITE_AUTOCONF_VERSION:-3530400}"
+SQLITE_RELEASE_YEAR="${SQLITE_RELEASE_YEAR:-2026}"
+SQLITE_SHA3_256="${SQLITE_SHA3_256:-454e45f61c6bd75b7420e7190732dea03ce6639c63ada47bbc592f67fc340338}"
 
 echo "========================================"
 echo " Ubuntu development environment setup"
@@ -66,6 +73,7 @@ echo "==> Installing base and systems tools..."
 $SUDO apt-get install -y \
     ca-certificates \
     curl \
+    openssl \
     wget \
     gnupg \
     git \
@@ -90,6 +98,7 @@ $SUDO apt-get install -y \
     findutils \
     strace \
     lsof \
+    libreadline-dev \
     less \
     unzip \
     zip \
@@ -104,7 +113,58 @@ $SUDO apt-get install -y \
     bat \
     httpie \
     sysstat \
+    zlib1g-dev \
     linux-tools-common
+
+# ------------------------------------------------------------
+# SQLite - verified upstream source release
+#
+# Ubuntu 24.04 currently supplies SQLite 3.45.1. Keep the distro package for
+# system integration, but install the course runtime under /usr/local so the
+# CLI and shared library include the WAL-reset fix and inspection extensions.
+# ------------------------------------------------------------
+
+echo
+echo "==> Installing SQLite ${SQLITE_VERSION} from verified upstream source..."
+
+SQLITE_BUILD_DIR="$(mktemp -d)"
+cleanup_sqlite_build() {
+    rm -rf -- "${SQLITE_BUILD_DIR}"
+}
+trap cleanup_sqlite_build EXIT
+
+SQLITE_ARCHIVE="${SQLITE_BUILD_DIR}/sqlite-autoconf-${SQLITE_AUTOCONF_VERSION}.tar.gz"
+curl -fL \
+    "https://www.sqlite.org/${SQLITE_RELEASE_YEAR}/sqlite-autoconf-${SQLITE_AUTOCONF_VERSION}.tar.gz" \
+    -o "${SQLITE_ARCHIVE}"
+
+SQLITE_ACTUAL_SHA3="$(openssl dgst -sha3-256 "${SQLITE_ARCHIVE}" | awk '{print $NF}')"
+if [[ "${SQLITE_ACTUAL_SHA3}" != "${SQLITE_SHA3_256}" ]]; then
+    echo "SQLite archive SHA3-256 mismatch: expected ${SQLITE_SHA3_256}, got ${SQLITE_ACTUAL_SHA3}" >&2
+    exit 1
+fi
+
+tar --no-same-owner -xzf "${SQLITE_ARCHIVE}" \
+    -C "${SQLITE_BUILD_DIR}" \
+    --strip-components=1
+
+(
+    cd "${SQLITE_BUILD_DIR}"
+    CFLAGS="-O2 -DSQLITE_ENABLE_DBSTAT_VTAB -DSQLITE_ENABLE_DBPAGE_VTAB -DSQLITE_ENABLE_BYTECODE_VTAB -DSQLITE_ENABLE_EXPLAIN_COMMENTS" \
+        ./configure --prefix=/usr/local
+    make -j"$(nproc)"
+    $SUDO make install
+)
+$SUDO ldconfig
+
+SQLITE_INSTALLED_VERSION="$(/usr/local/bin/sqlite3 --version | awk '{print $1}')"
+if [[ "${SQLITE_INSTALLED_VERSION}" != "${SQLITE_VERSION}" ]]; then
+    echo "SQLite installation mismatch: expected ${SQLITE_VERSION}, got ${SQLITE_INSTALLED_VERSION}" >&2
+    exit 1
+fi
+
+cleanup_sqlite_build
+trap - EXIT
 
 # perf is a thin wrapper in linux-tools-common; the real binary ships in a
 # kernel-specific package that may not exist for every droplet kernel.

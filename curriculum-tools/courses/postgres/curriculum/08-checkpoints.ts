@@ -423,6 +423,27 @@ setting back and prove postgresql.auto.conf is clean again.`,
 Chapter 10's WAL setup section explains checkpoint thresholds and the monitoring signals around them.
 This lesson lowers max_wal_size to trigger WAL-driven checkpoints during a bulk write, showing the
 back-pressure and warning messages live.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 10 §§10.1–10.4 (printed pp. 164–175)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 10 §10.6 "WAL Setup" (printed pp. 177–181)`,
+          },
+        ],
+        rationale: code`
+You observed the WAL and checkpoint machinery in lessons 39–48. Read these sections to consolidate
+WAL-before-data, LSNs, segment layout, checkpoint redo bounds, crash recovery, and configuration
+tradeoffs. Keep the lessons as your primary treatment of commit latency and
+full-page-write costs, which the assigned excerpts do not cover in depth. Skip from the PG14 text:
+checkpoint defaults, example segment names and LSNs, and exact pg_waldump command output; resume with
+lesson 49 when you finish.
+`,
+      },
       syntaxBreakdown: code`
 ### In plain terms
 

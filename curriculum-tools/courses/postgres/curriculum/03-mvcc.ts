@@ -469,6 +469,26 @@ Chapter 3 describes insert, commit, abort, and update as tuple operations whose 
 separate from commit status. This lesson makes that separation concrete by reading pg_xact_status,
 then inspecting aborted tuple headers that remain on the page. Read the chapter after running the
 experiment to connect its tuple diagrams to the aborted and committed examples.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 3 §§3.2–3.3 "Row Version Layout" and "Operations on Tuples" (printed pp. 64–74)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 4 §§4.1–4.3 (printed pp. 80–86)`,
+          },
+        ],
+        rationale: code`
+You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility in lessons
+12–15. Read these sections to connect the tuple headers and commit/abort status to the formal snapshot
+model before the horizon and freezing work. Skip from the PG14 text: exact infomask bit values,
+catalog output, and example transaction numbers; resume with lesson 16 when you finish.
+`,
+      },
       syntaxBreakdown: code`
 ### In plain terms
 

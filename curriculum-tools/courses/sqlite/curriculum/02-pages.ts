@@ -213,6 +213,27 @@ SELECT 'after_reuse' AS phase, page_count, freelist_count FROM pragma_page_count
         code`Reuse and compaction are separate policies. Freelist reuse avoids immediate allocation, while VACUUM trades availability and a rewrite for a smaller file and denser layout.`,
       caution:
         code`Only the uniquely named TUTOR_SQLITE_DB-vacuum.db copy is rewritten. Keep the original evidence and never VACUUM a live production file merely to chase a size number.`,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+            locator:
+              `§1.2 “Pages”; §1.3.2 “Page Size”; §§1.5–1.7 “The Freelist”, “B-tree Pages”, and “Cell Payload Overflow Pages”; §§2.3–2.5 on rowid tables, WITHOUT ROWID tables, and indexes`,
+          },
+        ],
+        optionalDepth: [
+          {
+            source: "[Architecture of SQLite](https://sqlite.org/arch.html)",
+            locator: `“Overview”, “B-Tree”, and “Page Cache”`,
+          },
+        ],
+        rationale: code`
+You just observed page-aligned growth, B-tree shape, rowid and WITHOUT ROWID layout differences,
+overflow chains, and freelist reuse across lessons 6–11. Read these bounded file-format sections to
+connect those observations into one physical model of pages, keys, payload, and free space before
+moving on to journals; the optional architecture excerpts are enrichment, not a prerequisite.
+        `,
+      },
     },
   ],
 };

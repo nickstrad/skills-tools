@@ -3,7 +3,7 @@
   "name": "SQLite Systems",
   "description": "Embedded database internals: pager, journaling modes, locking, and WAL",
   "tool": "sqlite3",
-  "minVersion": "3.45",
+  "minVersion": "3.53.4",
   "revision": 1,
   "repl": {
     "command": [

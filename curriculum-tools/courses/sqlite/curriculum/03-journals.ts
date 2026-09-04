@@ -235,11 +235,12 @@ printf 'NORMAL elapsed_seconds='; cat "$TUTOR_SQLITE_DB-NORMAL.time"
 printf 'OFF elapsed_seconds='; cat "$TUTOR_SQLITE_DB-OFF.time"
       `,
       expectedResult:
-        code`On the validated SQLite 3.45.1 run, strace recorded FULL=8, NORMAL=6, and OFF=0 synchronization calls, with elapsed times of about 0.12s, 0.12s, and 0.03s respectively. Repeat runs may vary with filesystem, kernel, and load; treat these as evidence from one bounded run, not universal ratios or a power-loss simulation.`,
+        code`On the validated SQLite 3.53.4 run, strace recorded FULL=8, NORMAL=6, and OFF=0 synchronization calls, with elapsed times of about 0.09s, 0.04s, and 0.04s respectively. Repeat runs may vary with filesystem, kernel, and load; treat these as evidence from one bounded run, not universal ratios or a power-loss simulation.`,
       systemsLens:
         code`Acknowledgement latency buys a specific persistence contract. Observed sync ordering is evidence of what the engine requested from this filesystem, not an abstract guarantee independent of filesystem and hardware behavior.`,
       caution:
         code`No process-kill or power-loss claim follows from this lesson. Run on a disposable path and preserve trace files with the database files they describe.`,
+      revision: 2,
     },
     {
       slug: "batching-changes-the-cost",
@@ -278,11 +279,35 @@ sqlite3 "$TUTOR_SQLITE_DB-autocommit" 'SELECT count(*) AS rows FROM t;'
 sqlite3 "$TUTOR_SQLITE_DB-batch" 'SELECT count(*) AS rows FROM t;'
       `,
       expectedResult:
-        code`Both databases report rows = 200. On the validated SQLite 3.45.1 run, autocommit recorded 804 sync calls and took about 7.23s, while batch recorded 8 sync calls and took about 0.15s. Filesystem, kernel, and load change elapsed time and counts; the durable lesson is the large transaction-boundary difference, and the larger batch is one larger unit of failure if it aborts.`,
+        code`Both databases report rows = 200. On the validated SQLite 3.53.4 run, autocommit recorded 804 sync calls and took about 6.54s, while batch recorded 8 sync calls and took about 0.07s. Filesystem, kernel, and load change elapsed time and counts; the durable lesson is the large transaction-boundary difference, and the larger batch is one larger unit of failure if it aborts.`,
       systemsLens:
         code`Group commit amortizes durability costs while enlarging the unit of failure. This is the same throughput-versus-recovery trade-off seen in logs, queues, and storage engines.`,
       challenge:
         code`Change 200 rows to 2000 and plot sync calls against row count; predict where measurement becomes dominated by other overhead.`,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[Atomic Commit In SQLite](https://sqlite.org/atomiccommit.html)",
+            locator:
+              `§§3.4–3.5, 3.7–3.11, 4.2, and 4.6: rollback-journal updates, database writes, synchronization, journal invalidation, and hot-journal recovery`,
+          },
+        ],
+        optionalDepth: [
+          {
+            source:
+              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            locator: `§§3.2 and 4.1 on disabling sync and non-powersafe flash controllers`,
+          },
+        ],
+        rationale: code`
+You just saw rollback journals appear and disappear, hot-journal recovery restore committed state,
+sync-call differences under FULL/NORMAL/OFF, and batching amortize transaction-boundary work across
+lessons 12–17. Read these rollback-mode sections to explain the required write and sync ordering
+behind that evidence before moving on; this document does not describe WAL, and the corruption
+material is optional operational context.
+        `,
+      },
+      revision: 2,
     },
   ],
 };

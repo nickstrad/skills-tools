@@ -10,7 +10,7 @@ systems idea. All work stays under a disposable learner-owned lab directory.
 
 ## Scope and guardrails
 
-- Use only SQLite 3.45+, `sqlite3`, and standard shell tools such as `strace`, `xxd`, `stat`,
+- Use only SQLite 3.53.4+, `sqlite3`, and standard shell tools such as `strace`, `xxd`, `stat`,
   `timeout`, and `dd`.
 - Do not require language bindings, custom C code, Docker, network services, VFS implementations, or
   external projects built around SQLite.
@@ -69,7 +69,7 @@ that define the experiment.
    chosen absolute path and a repeatable reset procedure. Lens: safe systems experiments require
    ownership, isolation, and a known initial state.
 2. `inspect-build-capabilities` — Query `sqlite_version()`, `PRAGMA compile_options`, and relevant
-   CLI help after opening the lab. Expect SQLite 3.45+ and explicitly record whether `dbstat` and
+   CLI help after opening the lab. Expect SQLite 3.53.4+ and explicitly record whether `dbstat` and
    other optional features are present. Lens: deployed capability is a runtime fact, not a package
    name or assumption.
 3. `share-one-file-between-sessions` — Open two CLI processes on the same path; commit a row in A
@@ -310,7 +310,7 @@ boundary of the tool—not merely recalling PRAGMAs.
 ## Validation and acceptance
 
 - Run `deno task build sqlite`, `deno task check`, and `deno task test` after each module batch.
-- Validate every tool lesson against SQLite 3.45.1 with a fresh `TUTOR_SQLITE_DB`. Compare real
+- Validate every tool lesson against SQLite 3.53.4 with a fresh `TUTOR_SQLITE_DB`. Compare real
   evidence with `expectedResult`; a timeout-free harness run alone is not a pass.
 - Validate multi-session lessons against one shared file and run parallel module validation only
   with separate lab directories.

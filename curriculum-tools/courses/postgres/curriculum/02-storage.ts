@@ -923,6 +923,26 @@ the FSM fork, and Chapter 6 explains how VACUUM removes dead tuples and publishe
 book does not use pg_freespacemap itself, so the view is a course-facing measurement; run first,
 then read the cited sections to connect avail values to vacuum's work.
 `,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 1 §1.1, subheadings "Files and Forks" and "Pages" (printed pp. 24–28)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 3 §3.1 "Page Structure" (printed pp. 62–64)`,
+          },
+        ],
+        rationale: code`
+You observed the relation file, forks, page-sized allocation, and reusable space in lessons 5–11.
+Read these bounded sections to consolidate that physical model before the course moves into
+transaction IDs. Skip from the PG14 text: exact example filenames, relfilenodes, and catalog output;
+resume with lesson 12 when you finish.
+`,
+      },
       syntaxBreakdown: code`
 ### In plain terms
 

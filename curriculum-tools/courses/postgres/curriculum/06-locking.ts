@@ -837,6 +837,35 @@ Chapter 12 explains waits on transaction IDs, and Chapter 19 describes index acc
 including uniqueness enforcement. This lesson combines those mechanisms in a two-inserter race and
 adds the user-facing ON CONFLICT outcome, which the book does not present as a full exercise. Read
 the chapters before running it, then use pg_locks to connect the index decision to xid state.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 12 §12.5 "Wait Queue" (printed pp. 206–209)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 13 §13.1 "Lock Design" (printed pp. 210–211)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 13 §13.4 "Wait Queue", subheading "Exclusive Modes" (printed pp. 215–220)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 13 §13.6 "Deadlocks" (printed pp. 225–230)`,
+          },
+        ],
+        rationale: code`
+You observed tuple row locks, blocking queues, and deadlocks in lessons 31–38. Read these selected
+sections to consolidate row-lock storage, queued ownership, and deadlock detection. Keep the lessons
+as your primary treatment of NOWAIT/SKIP LOCKED, advisory locks, and unique-key races; the assigned
+excerpts do not cover those workflows. Skip from the PG14 text: multixact internals, exact lock
+catalog rows, and version-specific output/API details; resume with lesson 39 when you finish.
+`,
+      },
       setup: code`
 create table if not exists lk_uniq(k int primary key, who text);
 truncate lk_uniq;`,

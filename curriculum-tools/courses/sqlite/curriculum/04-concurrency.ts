@@ -59,7 +59,7 @@ SELECT 'committed value', value FROM counter WHERE id=1;`,
       caution:
         code`The exact busy error text is CLI/version dependent; the lock boundary and the measured zero wait, not the wording, are the evidence.`,
       revision: 2,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "immediate-reserves-writer",
@@ -109,7 +109,7 @@ SELECT id, note FROM events ORDER BY id;`,
       caution:
         code`B's first BEGIN is intentionally a bounded 250 ms failure, not a release-dependent blocking step. A commits only after that failure; do not run both transactions in one sqlite3 process.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "rollback-reader-writer-blocking",
@@ -158,7 +158,7 @@ SELECT 'B committed', count(*) FROM messages;`,
       caution:
         code`A's transaction must remain open between SELECT and COMMIT; an autocommit SELECT releases its lock immediately. B's COMMIT waits up to 30 seconds, so switch to A and commit while it waits. If it does time out, B's transaction is still open (a failed COMMIT does not roll back): commit A, then run B's COMMIT again.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "busy-timeout-bounds-wait",
@@ -207,7 +207,7 @@ SELECT 'retry after release', changes() AS changed, done FROM work;`,
       caution:
         code`The background holder is a disposable sqlite3 process that commits or exits on its own within a few seconds; the sleeps are demonstration delays, not a durability or power-loss test.`,
       revision: 2,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "compare-and-swap-update",
@@ -251,7 +251,7 @@ SELECT 'winner', body, version FROM document WHERE id=1;`,
       caution:
         code`The version check and mutation must be one SQL statement; separate SELECT and unconditional UPDATE reintroduces the race.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "idempotent-retry-ledger",
@@ -294,8 +294,29 @@ SELECT 'after replay', balance, (SELECT count(*) FROM applied_operations) FROM a
         code`Make the first transaction roll back after claiming. What should the retry observe, and why is that desirable?`,
       caution:
         code`Do not split the ledger insert and account update into separate transactions: a crash between them can create a permanently skipped effect.`,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[Isolation In SQLite](https://sqlite.org/isolation.html)",
+            locator: `“Isolation Between Database Connections” and “Isolation And Concurrency”`,
+          },
+          {
+            source:
+              "[File Locking And Concurrency In SQLite Version 3](https://sqlite.org/lockingv3.html)",
+            locator:
+              `§§2–3, §4.1, and §5: the five locking states, obtaining locks, and rollback-mode lock transitions`,
+          },
+        ],
+        rationale: code`
+You just observed deferred and immediate admission, reader/writer blocking, bounded busy waits,
+compare-and-swap conflicts, and idempotent retries across lessons 18–23. Read these short
+rollback-mode documents to turn the observed errors into a state-machine model of serialized writes,
+serializable isolation, rollback locking, and retry boundaries before moving on to WAL; ignore the locking document’s old
+1024-byte example and trust the runtime page size instead.
+        `,
+      },
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
   ],
 };

@@ -43,7 +43,7 @@ SELECT count(*) AS matching_rows FROM plan_events WHERE tenant = 'tenant-37';
       safetyLevel: "ddl",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 20,
     },
     {
@@ -97,7 +97,7 @@ SELECT 'after_index_maintenance' AS observation, page_count, page_size FROM prag
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 25,
     },
     {
@@ -139,7 +139,7 @@ EXPLAIN QUERY PLAN SELECT body FROM skewed_events WHERE region = 'rare-region' A
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 25,
     },
     {
@@ -167,7 +167,7 @@ rm -f "$db" "$db-journal" "$db-wal" "$db-shm"
 sqlite3 "$db" 'PRAGMA journal_mode=DELETE; CREATE TABLE writes(id INTEGER PRIMARY KEY, worker TEXT, payload TEXT);'
 
 echo '--- autocommit: 200 transactions ---'
-time sh -c 'i=1; while [ "$i" -le 200 ]; do sqlite3 "$1" "INSERT INTO writes(worker,payload) VALUES (\"auto\",\"$i\");" >/dev/null; i=$((i + 1)); done' sh "$db"
+time sh -c 'i=1; while [ "$i" -le 200 ]; do sqlite3 "$1" "INSERT INTO writes(worker,payload) VALUES ('\''auto'\'', $i);" >/dev/null; i=$((i + 1)); done' sh "$db"
 echo '--- one batch: 200 rows ---'
 time sqlite3 "$db" <<'SQL'
 BEGIN;
@@ -176,11 +176,11 @@ INSERT INTO writes(worker, payload) SELECT 'batch', x FROM n;
 COMMIT;
 SQL
 echo '--- two competing writers: holder keeps the lock 1 s, racer budget 100 ms per attempt ---'
-(printf '%s\n' 'PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ("holder","lock");'; sleep 1; printf '%s\n' 'ROLLBACK;') | sqlite3 "$db" >/dev/null &
+(printf '%s\n' "PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ('holder','lock');"; sleep 1; printf '%s\n' 'ROLLBACK;') | sqlite3 "$db" >/dev/null &
 holder=$!
 sleep 0.2
 set +e
-time timeout 5 sh -c 'i=1; while [ "$i" -le 50 ]; do sqlite3 "$1" "PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\"racer\",\"$i\"); COMMIT;" >/dev/null 2>&1 || echo busy; i=$((i + 1)); done' sh "$db" >"$lab_dir/writer-racer.out"
+time timeout 5 sh -c 'i=1; while [ "$i" -le 50 ]; do sqlite3 "$1" "PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ('\''racer'\'', $i); COMMIT;" >/dev/null 2>&1 || echo busy; i=$((i + 1)); done' sh "$db" >"$lab_dir/writer-racer.out"
 racer_status=$?
 set -e
 wait "$holder"
@@ -193,13 +193,31 @@ rm -f "$db" "$db-journal" "$db-wal" "$db-shm"
         "SQLite has one writer at a time. Batching amortizes commit work, while competing writers turn the serialization point into a queue whose throughput, wait budget, and failure rate must be measured for the actual workload: the same 50 attempts split into failures and successes purely by when the holder released.",
       challenge:
         "Repeat with batches of 10, 50, and 500 and graph rows per second against batch size. Then raise the racer's busy_timeout to 2000 and predict busy_attempts and the total elapsed time before running it.",
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[SQLite Query Planning](https://sqlite.org/queryplanner.html)",
+            locator:
+              "Sections 1.1–1.3 (Tables Without Indices, Lookup By Rowid, Lookup By Index), 1.6–1.7 (Multi-Column Indices, Covering Indexes), 2 (Sorting), 3 (Searching And Sorting At The Same Time), and 4 (WITHOUT ROWID tables)",
+          },
+        ],
+        optionalDepth: [
+          {
+            source:
+              "[SQLite: Past, Present, and Future](https://www.vldb.org/pvldb/vol15/p3535-gaffney.pdf)",
+            locator: "Section 2, “Architecture”",
+          },
+        ],
+        rationale:
+          "Across lessons 35–38 you observed scans become searches, measured index read/write costs, let ANALYZE change a plan, and measured a workload-specific writer envelope. Read these sections before continuing to connect that evidence to search cost, locality, sorting work, and the trade-offs behind WITHOUT ROWID; the paper is optional historical context, not a source of current benchmark promises.",
+      },
       caution:
         "Run this only with a uniquely named disposable path. The holder releases its lock by rolling back after one second, the racer loop is bounded by timeout, and the outputs are workload evidence, not a durability or power-loss test.",
       safetyLevel: "locking",
       runIn: "shell",
       sessions: 1,
-      minVersion: "3.45",
-      revision: 2,
+      minVersion: "3.53.4",
+      revision: 3,
       estimatedMinutes: 30,
     },
   ],

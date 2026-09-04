@@ -1,7 +1,13 @@
 import { DatabaseSync } from "node:sqlite";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type Course, type Lesson, validateLessons } from "./types.ts";
+import {
+  type Course,
+  type Lesson,
+  type StudyCheckpoint,
+  validateLessons,
+  validateStudyCheckpoint,
+} from "./types.ts";
 
 type Row = Record<string, unknown>;
 type Output = { log(value: string): void; error(value: string): void };
@@ -26,6 +32,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   tags TEXT NOT NULL DEFAULT ',',
   reading TEXT NOT NULL DEFAULT '',
   reading_notes TEXT NOT NULL DEFAULT '',
+  study_checkpoint TEXT NOT NULL DEFAULT '',
   overview TEXT NOT NULL,
   syntax_breakdown TEXT NOT NULL,
   setup TEXT NOT NULL DEFAULT '',
@@ -240,6 +247,14 @@ function migrate(db: DatabaseSync): void {
     db.prepare(
       "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(4,'lesson reading notes')",
     ).run();
+    if (!columns.some((c) => c.name === "study_checkpoint")) {
+      db.exec(
+        "ALTER TABLE lessons ADD COLUMN study_checkpoint TEXT NOT NULL DEFAULT ''",
+      );
+    }
+    db.prepare(
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(5,'lesson study checkpoint')",
+    ).run();
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");
@@ -250,13 +265,14 @@ function migrate(db: DatabaseSync): void {
 async function seed(db: DatabaseSync, course: string): Promise<number> {
   const lessons = await loadLessons(course);
   const upsert = db.prepare(`
-    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,reading,reading_notes,
+    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,reading,reading_notes,study_checkpoint,
       overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,
       safety_level,run_in,sessions,min_version,estimated_minutes,revision)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,slug=excluded.slug,title=excluded.title,
       category=excluded.category,difficulty=excluded.difficulty,tags=excluded.tags,
-      reading=excluded.reading,reading_notes=excluded.reading_notes,overview=excluded.overview,
+      reading=excluded.reading,reading_notes=excluded.reading_notes,study_checkpoint=excluded.study_checkpoint,
+      overview=excluded.overview,
       syntax_breakdown=excluded.syntax_breakdown,setup=excluded.setup,code=excluded.code,
       expected_result=excluded.expected_result,systems_lens=excluded.systems_lens,
       challenge=excluded.challenge,caution=excluded.caution,safety_level=excluded.safety_level,
@@ -284,6 +300,7 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
         `,${(x.tags ?? []).join(",")},`,
         x.reading ?? "",
         x.readingNotes ?? "",
+        x.studyCheckpoint ? JSON.stringify(x.studyCheckpoint) : "",
         x.overview,
         x.syntaxBreakdown,
         x.setup ?? "",
@@ -331,6 +348,22 @@ function tagsOf(row: Row): string[] {
   return String(row.tags ?? "").split(",").filter(Boolean);
 }
 
+function parseStudyCheckpoint(raw: unknown): StudyCheckpoint | undefined {
+  if (raw === undefined || raw === null || raw === "") return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(String(raw));
+  } catch {
+    throw new Error("invalid stored study checkpoint: malformed JSON");
+  }
+  try {
+    validateStudyCheckpoint(parsed, "stored study checkpoint");
+  } catch (error) {
+    throw new Error(`invalid stored study checkpoint: ${(error as Error).message}`);
+  }
+  return parsed;
+}
+
 /** SQL filter matching every whitespace-separated word of a topic against tags, category, title. */
 function topicFilter(topic: string): { sql: string; values: string[] } {
   const terms = topic.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -343,6 +376,7 @@ function topicFilter(topic: string): { sql: string; values: string[] } {
 }
 
 function cleanLesson(row: Row): Row {
+  const studyCheckpoint = parseStudyCheckpoint(row.study_checkpoint);
   return {
     ordinal: row.ordinal,
     slug: row.slug,
@@ -352,6 +386,7 @@ function cleanLesson(row: Row): Row {
     tags: tagsOf(row),
     reading: row.reading || undefined,
     readingNotes: row.reading_notes || undefined,
+    ...(studyCheckpoint ? { studyCheckpoint } : {}),
     status: row.stale ? "stale" : row.status,
     sessions: row.sessions,
     runIn: row.run_in,
@@ -396,14 +431,17 @@ function renderLesson(row: Row, course: Course): string {
   if ((x.tags as string[]).length) {
     meta.push(`**Topics:** ${(x.tags as string[]).join(", ")}`);
   }
-  if (x.reading) meta.push(`**Reading:** ${x.reading}`);
+  if (x.reading) meta.push(`**Optional reference:** ${x.reading}`);
   meta.push(`Lesson ID: ${x.ordinal}`);
   // Two trailing spaces make each metadata line a hard break in Markdown.
   const parts = [`# Lesson ${x.ordinal}: ${x.title}`, meta.join("  \n")];
   const section = (title: string, body: unknown) => parts.push(`## ${title}\n${body}`);
   section("Overview", x.overview);
   if (x.readingNotes) {
-    section("How this overlaps with the book", x.readingNotes);
+    section(
+      "Optional reference context",
+      `You do not need to stop for this reference. Continue with the experiment; only a Study checkpoint at the end asks you to pause before the next lesson.\n\n${x.readingNotes}`,
+    );
   }
   section("Syntax breakdown", x.syntaxBreakdown);
   if (x.caution) section("Caution", x.caution);
@@ -412,6 +450,24 @@ function renderLesson(row: Row, course: Course): string {
   section("Expected result", x.expectedResult);
   section("Systems lens", x.systemsLens);
   if (x.challenge) section("Challenge", x.challenge);
+  if (x.studyCheckpoint) {
+    const checkpoint = x.studyCheckpoint as StudyCheckpoint;
+    const body = [
+      "Stop here after completing the experiment. Complete the Core excerpts before continuing.",
+      `### Core\n${checkpoint.core.map((item) => `- ${item.source} — ${item.locator}`).join("\n")}`,
+    ];
+    if (checkpoint.optionalDepth?.length) {
+      body.push(
+        `### Optional depth\nRead these only if you want to go deeper.\n\n${
+          checkpoint.optionalDepth
+            .map((item) => `- ${item.source} — ${item.locator}`)
+            .join("\n")
+        }`,
+      );
+    }
+    body.push(`### Why here\n${checkpoint.rationale}`);
+    section("Study checkpoint — stop before the next lesson", body.join("\n\n"));
+  }
   if (x.notes) section("Your note", x.notes);
   return parts.join("\n\n");
 }

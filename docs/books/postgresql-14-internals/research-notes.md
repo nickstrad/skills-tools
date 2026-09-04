@@ -12,6 +12,7 @@ already settled.
 | `postgresql_internals-14_en.pdf` | The book itself (English edition, Postgres Professional, free download). Do not re-extract it per turn.                                                                                            |
 | `pg14-internals-chapters.md`     | Full table of contents with page numbers, per-chapter coverage (commands, views, extensions, settings each chapter uses), what the book does not cover, and a "where to look for ..." topic index. |
 | `reading-map.md`                 | One row per lesson of the PostgreSQL course (96 lessons): the `reading` citation each lesson prints, plus "How I mapped" notes for the doubtful ones.                                              |
+| `study-checkpoint-plan.md`       | Seven short, course-order reading stops selected from the per-lesson map, including what PostgreSQL 14-specific material to skip.                                                                  |
 | `research-notes.md`              | This file: method, chapter numbering, coverage headline, and the judgement calls.                                                                                                                  |
 
 ## Chapter numbering (global, 1-29)

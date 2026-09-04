@@ -750,6 +750,21 @@ Chapter 2 says serializable transactions may fail and must be retried, but it do
 client loop or idempotency keys. This lesson extends that guidance with a PL/pgSQL demonstration of
 the wrong retry scope and an ON CONFLICT deduplication key. Read the chapter first for the failure
 contract, then run this lesson for the application design consequences.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 2 §2.3 "Isolation Levels in PostgreSQL" (printed pp. 44–60)`,
+          },
+        ],
+        rationale: code`
+You observed statement snapshots, lost updates, snapshot-isolation anomalies, SSI, and serialization
+retries in lessons 24–30. Read this section to consolidate the isolation behavior and the reason an
+application must retry in a new transaction. Skip from the PG14 text: exact timing, default-setting
+values, and example output; resume with lesson 31 when you finish.
+`,
+      },
       setup: code`
 create table if not exists iso_accounts (
   id int primary key,

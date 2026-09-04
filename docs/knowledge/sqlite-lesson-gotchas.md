@@ -10,8 +10,14 @@ findings fixed, commit cd06ded).
 - The lab ends up in 1024-byte pages after module 2. Any later lesson whose evidence depends on
   page geometry must force `PRAGMA journal_mode=DELETE` (and, where needed, its own page size) in
   its setup, or its counts drift with lesson order.
-- SQLite 3.45.1 on this host has `dbstat` but no `sqlite_dbpage`, so `.recover` fails. Lessons
-  cannot depend on it.
+- The former SQLite 3.45.1 package on this host had `dbstat` but no `sqlite_dbpage`, so `.recover`
+  failed. The source-built 3.53.4 course runtime enables both extensions; recovery lessons still
+  detect capabilities rather than assuming every external SQLite build matches it.
+- SQLite 3.53's upstream CLI build defaults to strict quoting (`SQLITE_DQS=0`). Lesson 38 had relied
+  on double-quoted string literals inside nested shell commands; it now emits standard single-quoted
+  SQL strings. Keep the strict build so future lessons reveal this portability bug.
+- Install `libreadline-dev` and `zlib1g-dev` before configuring the upstream source. Without them the
+  CLI silently builds without line editing/history and compression support.
 - Scoped checks were necessary because `deno task check` failed on another course's unformatted
   files at the time (see `repo-tooling.md`).
 

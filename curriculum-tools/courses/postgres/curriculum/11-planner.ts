@@ -236,6 +236,28 @@ Chapter 17 explains sampled column summaries, most-common-value lists, histogram
 statistics. This lesson makes those structures visible through pg_stats and pg_statistic_ext_data,
 then demonstrates missing, stale, and correlated statistics. Read the chapter after the first run
 so the estimates you see have a concrete explanation.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 16 §16.2, subheadings "Planning" and "Execution" (printed pp. 257–265)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 17 §§17.1–17.5 (printed pp. 271–282; stop before §17.6 on p. 283)`,
+          },
+        ],
+        rationale: code`
+You observed EXPLAIN estimates versus actuals, buffer evidence, and several ways statistics produce
+bad row estimates in lessons 66–67. Read these focused sections to consolidate the planner pipeline
+and the sampled evidence behind estimates before the next lessons turn to access paths, joins,
+memory, and parallelism. Skip from the PG14 text: exact estimates, sample contents, default
+statistics targets, and version-specific planner output/API names; resume with lesson 68 when you
+finish.
+`,
+      },
       syntaxBreakdown: code`
 ### In plain terms
 

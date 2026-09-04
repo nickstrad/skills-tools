@@ -23,7 +23,18 @@ Canonical folder:
 | `pg14-internals-chapters.md`     | Find chapter summaries, commands, views, settings, coverage gaps, and the topic-to-section index.                                  |
 | `lesson-writeup-spec.md`         | Author or review lesson `reading`, `readingNotes`, and `syntaxBreakdown` metadata consistently.                                    |
 | `lesson-retrofit-findings.md`    | Reuse the coverage decisions, cross-version cautions, writing lessons, and integration audit findings from the 96-lesson retrofit. |
+| `study-checkpoint-plan.md`       | Follow or revise the seven bounded, course-order reading stops and their PostgreSQL-version exclusions.                            |
 | `postgresql_internals-14_en.pdf` | Primary source. Consult only when the Markdown research leaves a real ambiguity or the user requests page-level verification.      |
+
+### SQLite readings
+
+Selective SQLite source research and the course-order checkpoint design live in
+[`readings/sqlite/`](readings/sqlite/):
+
+- [`research-notes.md`](readings/sqlite/research-notes.md) — annotated primary-source inventory,
+  exact section scopes, time estimates, version caveats, and rejected readings.
+- [`study-checkpoint-plan.md`](readings/sqlite/study-checkpoint-plan.md) — six proposed mandatory
+  reading stops after lessons 11, 17, 23, 29, 34, and 38, plus implementation and validation rules.
 
 Do not repeatedly extract or scan the whole PDF. Improve the reusable research
 notes when new verification changes a conclusion.

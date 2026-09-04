@@ -758,6 +758,31 @@ describes the operational precautions around rebuilding bloated relations. This 
 table with a repeatable-read transaction, measures the resulting 201 pages, and then shows cleanup
 after the blocker commits. Run it before the chapters, then use the three discussions to connect a
 local idle session to the global cost of retained history.`,
+      revision: 3,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 4 §4.5 "Transaction Horizon" (printed pp. 87–89)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator: `Chapter 6 §§6.1–6.3 (printed pp. 102–109)`,
+          },
+          {
+            source: "PostgreSQL 14 Internals",
+            locator:
+              `Chapter 6 §6.5, subheadings "About the Autovacuum Mechanism", "Which Tables Need to be Vacuumed?", and "Which Tables Need to Be Analyzed?" (printed pp. 110–113)`,
+          },
+        ],
+        rationale: code`
+You observed dead versions, VACUUM cleanup, visibility information, autovacuum thresholds, and a
+long transaction pinning cleanup in lessons 18–23. Read these sections to consolidate the horizon as
+the safety boundary for garbage collection and the vacuum/autovacuum control loop. Skip from the PG14
+text: exact autovacuum defaults, threshold numbers, and monitoring output; resume with lesson 24 when
+you finish.
+`,
+      },
       syntaxBreakdown: code`
 ### In plain terms
 

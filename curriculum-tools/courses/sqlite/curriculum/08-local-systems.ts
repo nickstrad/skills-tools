@@ -45,7 +45,7 @@ SELECT count(*) AS durable_events FROM outbox;
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 20,
     },
     {
@@ -93,7 +93,7 @@ SELECT count(*) AS logical_effects FROM delivery_receipts;
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 25,
     },
     {
@@ -146,7 +146,7 @@ SELECT job_id, state, owner, attempt FROM durable_jobs ORDER BY job_id;
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       revision: 2,
       estimatedMinutes: 25,
     },
@@ -187,7 +187,7 @@ SELECT job_id, state, owner, token, result FROM leased_jobs;
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 20,
     },
     {
@@ -230,7 +230,7 @@ SELECT body AS body_after_rollback, count(*) AS oplog_rows FROM local_notes CROS
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 25,
     },
     {
@@ -290,7 +290,7 @@ rm -f "$sender_db" "$receiver_db" "$sender_db-journal" "$receiver_db-journal" "$
       safetyLevel: "writes-data",
       runIn: "shell",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 30,
     },
     {
@@ -370,7 +370,7 @@ SELECT replica, next_seq FROM sync_state ORDER BY replica;
       safetyLevel: "writes-data",
       runIn: "tool",
       sessions: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
       estimatedMinutes: 35,
     },
   ],

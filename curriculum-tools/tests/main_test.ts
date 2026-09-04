@@ -44,10 +44,103 @@ Deno.test("init seeds every lesson and is idempotent", async () => {
     const row = db.prepare(
       "SELECT count(*) AS count, min(ordinal) AS first, max(ordinal) AS last FROM lessons WHERE active=1",
     ).get() as Record<string, number>;
+    const checkpointColumn = db.prepare(
+      "SELECT name FROM pragma_table_info('lessons') WHERE name='study_checkpoint'",
+    ).get();
+    const migration = db.prepare(
+      "SELECT name FROM schema_migrations WHERE version=5",
+    ).get() as Record<string, string> | undefined;
     db.close();
     const expected = await lessonCount();
     if (row.count !== expected || row.first !== 1 || row.last !== expected) {
       throw new Error(JSON.stringify(row));
+    }
+    if (!checkpointColumn || migration?.name !== "lesson study checkpoint") {
+      throw new Error("study checkpoint migration was not installed");
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("init migrates a pre-checkpoint database without changing old lesson data", async () => {
+  const dir = await Deno.makeTempDir();
+  const path = `${dir}/progress.sqlite`;
+  try {
+    const db = new DatabaseSync(path);
+    db.exec(`
+      CREATE TABLE lessons (
+        id INTEGER PRIMARY KEY,
+        ordinal INTEGER NOT NULL UNIQUE,
+        slug TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        difficulty TEXT NOT NULL,
+        tags TEXT NOT NULL DEFAULT ',',
+        reading TEXT NOT NULL DEFAULT '',
+        reading_notes TEXT NOT NULL DEFAULT '',
+        overview TEXT NOT NULL,
+        syntax_breakdown TEXT NOT NULL,
+        setup TEXT NOT NULL DEFAULT '',
+        code TEXT NOT NULL,
+        expected_result TEXT NOT NULL,
+        systems_lens TEXT NOT NULL,
+        challenge TEXT NOT NULL DEFAULT '',
+        caution TEXT NOT NULL DEFAULT '',
+        safety_level TEXT NOT NULL,
+        run_in TEXT NOT NULL,
+        sessions INTEGER NOT NULL DEFAULT 1,
+        min_version TEXT NOT NULL,
+        estimated_minutes INTEGER NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
+        active INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL DEFAULT ''
+      );
+      INSERT INTO lessons(
+        id, ordinal, slug, title, category, difficulty, overview, syntax_breakdown,
+        code, expected_result, systems_lens, safety_level, run_in, min_version,
+        estimated_minutes
+      ) VALUES(900, 900, 'old-lesson', 'Old lesson', 'old', 'beginner',
+        'old overview', 'old syntax', 'old code', 'old result', 'old lens',
+        'read-only', 'tool', '1', 1);
+    `);
+    db.close();
+    const out = capture();
+    if (await run([COURSE, "init", "--db", path], out.io) !== 0) {
+      throw new Error(out.stderr.join("\n"));
+    }
+    const migrated = new DatabaseSync(path);
+    const column = migrated.prepare(
+      "SELECT name FROM pragma_table_info('lessons') WHERE name='study_checkpoint'",
+    ).get();
+    const old = migrated.prepare(
+      "SELECT title, study_checkpoint FROM lessons WHERE id=900",
+    ).get() as Record<string, string>;
+    migrated.close();
+    if (!column || old.title !== "Old lesson" || old.study_checkpoint !== "") {
+      throw new Error(JSON.stringify({ column, old }));
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("re-seeding preserves progress and checkpoint metadata", async () => {
+  const { dir, path } = await initTemp();
+  try {
+    await run(
+      [COURSE, "done", "11", "--note", "completed the experiment", "--db", path],
+      capture().io,
+    );
+    await run([COURSE, "init", "--db", path], capture().io);
+    const shown = capture();
+    await run([COURSE, "show", "11", "--json", "--db", path], shown.io);
+    const lesson = JSON.parse(shown.stdout[0]);
+    if (
+      lesson.status !== "done" || lesson.notes !== "completed the experiment" ||
+      !lesson.studyCheckpoint || lesson.studyCheckpoint.core.length === 0
+    ) {
+      throw new Error(shown.stdout[0]);
     }
   } finally {
     await Deno.remove(dir, { recursive: true });
@@ -66,7 +159,7 @@ Deno.test("show, done, next, undone, skip, and status preserve explicit progress
     const lesson = JSON.parse(shown.stdout[0]);
     if (
       lesson.ordinal !== 2 || !lesson.overview || !lesson.syntaxBreakdown ||
-      !lesson.code
+      !lesson.code || "studyCheckpoint" in lesson
     ) {
       throw new Error(shown.stdout[0]);
     }
@@ -444,7 +537,69 @@ Deno.test("build rejects malformed reading metadata", () => {
   }
 });
 
-Deno.test("pretty prints Reading between Meta and Overview when a lesson has one", async () => {
+Deno.test("build trims and validates a study checkpoint", () => {
+  const course: Course = {
+    id: "x",
+    name: "X",
+    description: "",
+    tool: "x",
+    minVersion: "1",
+    revision: 1,
+  };
+  const draft = {
+    slug: "a",
+    title: "t",
+    difficulty: "beginner" as const,
+    overview: "o",
+    syntaxBreakdown: "s",
+    code: "c",
+    expectedResult: "e",
+    systemsLens: "l",
+    safetyLevel: "read-only" as const,
+    runIn: "tool" as const,
+    estimatedMinutes: 1,
+    studyCheckpoint: {
+      core: [{ source: "  Book  ", locator: "  Section 1  " }],
+      optionalDepth: [{ source: "Paper", locator: "  2:00–4:00  " }],
+      rationale: "  Connect the evidence to the model.  ",
+    },
+  };
+  const lessons = buildLessons(course, [{
+    category: "c",
+    title: "m",
+    lessons: [draft],
+  }]);
+  if (
+    lessons[0].studyCheckpoint?.core[0].source !== "Book" ||
+    lessons[0].studyCheckpoint.core[0].locator !== "Section 1" ||
+    lessons[0].studyCheckpoint.optionalDepth?.[0].locator !== "2:00–4:00" ||
+    lessons[0].studyCheckpoint.rationale !== "Connect the evidence to the model."
+  ) {
+    throw new Error(JSON.stringify(lessons[0].studyCheckpoint));
+  }
+
+  const malformed = [
+    { core: [], rationale: "why" },
+    { core: [{ source: "Book\n", locator: "Section 1" }], rationale: "why" },
+    { core: [{ source: "Book", locator: "" }], rationale: "why" },
+    { core: [{ source: "Book", locator: "Section 1" }], rationale: "  " },
+  ];
+  for (const studyCheckpoint of malformed) {
+    let threw = false;
+    try {
+      buildLessons(course, [{
+        category: "c",
+        title: "m",
+        lessons: [{ ...draft, studyCheckpoint }],
+      }]);
+    } catch {
+      threw = true;
+    }
+    if (!threw) throw new Error(`accepted ${JSON.stringify(studyCheckpoint)}`);
+  }
+});
+
+Deno.test("pretty prints an optional reference between Meta and Overview when a lesson has one", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
@@ -459,10 +614,12 @@ Deno.test("pretty prints Reading between Meta and Overview when a lesson has one
     }
     const text = out.stdout[0];
     const meta = text.indexOf("\n**Meta:** ");
-    const reading = text.indexOf("\n**Reading:** Book, Chapter 9  \n");
+    const reading = text.indexOf(
+      "\n**Optional reference:** Book, Chapter 9  \n",
+    );
     const overview = text.indexOf("\n## Overview\n");
     const notes = text.indexOf(
-      "\n## How this overlaps with the book\noverlap text\n",
+      "\n## Optional reference context\n",
     );
     const breakdown = text.indexOf("\n## Syntax breakdown\n");
     if (
@@ -471,10 +628,79 @@ Deno.test("pretty prints Reading between Meta and Overview when a lesson has one
       throw new Error(text);
     }
     if (breakdown < notes) throw new Error(text);
+    if (
+      !text.includes(
+        "only a Study checkpoint at the end asks you to pause before the next lesson.\n\noverlap text",
+      )
+    ) {
+      throw new Error(text);
+    }
     const styled = capture();
     await run([COURSE, "pretty", "1", "--db", path, "--ansi"], styled.io);
     if (!styled.stdout[0].includes("\x1b[1;33mSyntax breakdown\x1b[0m")) {
       throw new Error(styled.stdout[0]);
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("pretty prints a study checkpoint after Challenge and before Your note", async () => {
+  const { dir, path } = await initTemp();
+  try {
+    const db = new DatabaseSync(path);
+    db.prepare(
+      "UPDATE lessons SET challenge = ?, study_checkpoint = ? WHERE ordinal = 1",
+    ).run(
+      "try the same observation with another value",
+      JSON.stringify({
+        core: [{ source: "Book", locator: "Section 2" }],
+        optionalDepth: [{ source: "Paper", locator: "Figure 1" }],
+        rationale: "The experiment made the ordering visible.",
+      }),
+    );
+    db.close();
+    await run([COURSE, "note", "1", "remember the ordering", "--db", path], capture().io);
+    const json = capture();
+    await run([COURSE, "show", "1", "--db", path, "--json"], json.io);
+    const parsed = JSON.parse(json.stdout[0]);
+    if (
+      parsed.studyCheckpoint.core[0].locator !== "Section 2" ||
+      parsed.studyCheckpoint.optionalDepth[0].source !== "Paper"
+    ) {
+      throw new Error(json.stdout[0]);
+    }
+    const out = capture();
+    if (await run([COURSE, "pretty", "1", "--db", path, "--plain"], out.io) !== 0) {
+      throw new Error(out.stderr[0]);
+    }
+    const text = out.stdout[0];
+    const challenge = text.indexOf("\n## Challenge\n");
+    const checkpoint = text.indexOf(
+      "\n## Study checkpoint — stop before the next lesson\n",
+    );
+    const note = text.indexOf("\n## Your note\n");
+    if (!(challenge >= 0 && challenge < checkpoint && checkpoint < note)) {
+      throw new Error(text);
+    }
+    if (
+      !text.includes("\n### Core\n- Book — Section 2") ||
+      !text.includes("\n### Optional depth\nRead these only if you want to go deeper.") ||
+      !text.includes("\n### Why here\nThe experiment made the ordering visible.")
+    ) {
+      throw new Error(text);
+    }
+    const corrupted = new DatabaseSync(path);
+    corrupted.prepare(
+      "UPDATE lessons SET study_checkpoint = ? WHERE ordinal = 1",
+    ).run("not-json");
+    corrupted.close();
+    const bad = capture();
+    if (await run([COURSE, "show", "1", "--db", path, "--json"], bad.io) !== 1) {
+      throw new Error("corrupt checkpoint was accepted");
+    }
+    if (!bad.stderr[0].includes("invalid stored study checkpoint: malformed JSON")) {
+      throw new Error(bad.stderr[0]);
     }
   } finally {
     await Deno.remove(dir, { recursive: true });

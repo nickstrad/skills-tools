@@ -43,7 +43,7 @@ SELECT 'B sees committed WAL state', count(*) FROM notes;
       caution:
         code`Never copy just the main file while WAL contains committed frames; use an engine-coordinated backup.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "reader-and-writer-overlap",
@@ -85,7 +85,7 @@ SELECT 'A current', count(*) FROM items;`,
       caution:
         code`Readers must actually keep a transaction open; two autocommit SELECT statements can observe different snapshots.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "snapshot-reader",
@@ -127,7 +127,7 @@ SELECT 'A after transaction', count(*) FROM log;`,
       caution:
         code`The snapshot is connection/transaction state, not a copy you can safely move between files.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "busy-snapshot-upgrade",
@@ -172,7 +172,7 @@ SELECT 'A retry view', body FROM docs WHERE id=1;`,
       caution:
         code`The default CLI exposes the primary error text; bindings can inspect the extended SQLITE_BUSY_SNAPSHOT result code.`,
       revision: 2,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
     {
       slug: "checkpoint-modes",
@@ -218,15 +218,15 @@ PRAGMA wal_checkpoint(RESTART);
 PRAGMA wal_checkpoint(TRUNCATE);
 .shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal";`,
       expectedResult:
-        code`On SQLite 3.45.1 with the default 4 KiB layout, the four calls while B's snapshot is open report PASSIVE 0|6|5, then FULL 1|6|5, RESTART 1|6|5, and TRUNCATE 1|6|5. After B commits, FULL and RESTART report 0|6|6, TRUNCATE reports 0|0|0, and the WAL stat is 0 bytes. Page layout can change the frame counts, but the relationship is stable: PASSIVE makes partial progress, the stronger calls cannot finish past the reader, and release permits full checkpoint plus truncation.`,
+        code`On SQLite 3.53.4 with the default 4 KiB layout, the four calls while B's snapshot is open report PASSIVE 0|6|5, then FULL 1|6|5, RESTART 1|6|5, and TRUNCATE 1|6|5. After B commits, FULL and RESTART report 0|6|6, TRUNCATE reports 0|0|0, and the WAL stat is 0 bytes. Page layout can change the frame counts, but the relationship is stable: PASSIVE makes partial progress, the stronger calls cannot finish past the reader, and release permits full checkpoint plus truncation.`,
       systemsLens:
         code`Applying log frames and reclaiming log space are distinct operations. A slow observer sets the safe reclamation horizon and can turn checkpoint work into backpressure.`,
       challenge:
         code`Repeat with no reader. Which modes converge to the same result, and why is PASSIVE still useful for low-latency maintenance?`,
       caution:
         code`Checkpoint results and exact sidecar sizes vary with page size and scheduling; compare the busy/log/checkpointed relationship rather than relying on one literal triple.`,
-      revision: 1,
-      minVersion: "3.45",
+      revision: 2,
+      minVersion: "3.53.4",
     },
     {
       slug: "checkpoint-starvation",
@@ -277,10 +277,28 @@ SELECT 'current rows', count(*) FROM queue;`,
         code`The slowest observer controls garbage collection. In WAL this is a local form of backpressure: unbounded reader lifetimes become unbounded log-space demand.`,
       challenge:
         code`Set a WAL size alert and choose a policy for readers that exceed it: cancellation, restart, or allowing growth.`,
+      studyCheckpoint: {
+        core: [
+          {
+            source: "[SQLite Write-Ahead Logging](https://sqlite.org/wal.html)",
+            locator:
+              "§1 “Overview”; §§2–2.3 “How WAL Works”; §§3–3.3 “Activating And Configuring WAL Mode”; §9 “Sometimes Queries Return SQLITE_BUSY In WAL Mode”; omit the struck-through pre-3.11 warning and §11 bug mechanics",
+          },
+        ],
+        optionalDepth: [
+          {
+            source: "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+            locator:
+              "Section 4, especially 4.3–4.6 (checkpointing, reset and reuse, the reader algorithm, and the WAL-index)",
+          },
+        ],
+        rationale:
+          "You just saw a live reader hold back checkpoint progress while committed writes enlarged the WAL sidecar. Read these bounded sections before continuing to connect that evidence to WAL append and commit records, reader end-marks, checkpointing, reuse, and the fact that WAL still has busy cases and one writer. The 3.53.4 course minimum includes the WAL-reset fix; older SQLite 3.7.0–3.51.2 installations should use 3.51.3+ or an official fixed backport for production.",
+      },
       caution:
         code`WAL is same-host coordination, not replication or consensus; do not place the files on NFS, SMB, or a synchronized cloud directory.`,
       revision: 1,
-      minVersion: "3.45",
+      minVersion: "3.53.4",
     },
   ],
 };

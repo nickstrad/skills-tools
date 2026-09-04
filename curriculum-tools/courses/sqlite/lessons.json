@@ -20,7 +20,7 @@
     "safetyLevel": "ddl",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 10,
     "revision": 1
   },
@@ -41,16 +41,16 @@
     "overview": "Open the lab and inspect the runtime rather than inferring capabilities from a package name. Record the SQLite version, compile-time options, and help for optional inspection commands.",
     "syntaxBreakdown": "sqlite_version() is the engine version; PRAGMA compile_options exposes build flags; .help filters CLI help. The dbstat virtual table is useful only when the build includes ENABLE_DBSTAT_VTAB.",
     "setup": ".print -- The wrapper has already opened $TUTOR_SQLITE_DB",
-    "code": ".headers on\n.mode box\nSELECT sqlite_version() AS sqlite_version;\nSELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;\n.print -- CLI commands relevant to this course\n.help backup\n.help recover",
-    "expectedResult": "The version query prints 3.45.1 (or another version at least 3.45). The compile-option query records whether ENABLE_DBSTAT_VTAB appears; this installation should report it. Help includes .backup and .recover entries. Missing optional features are evidence to record, not reasons to assume they exist.",
+    "code": ".headers on\n.mode box\nSELECT sqlite_version() AS sqlite_version;\nSELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%DBPAGE%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;\n.print -- CLI commands relevant to this course\n.help backup\n.help recover",
+    "expectedResult": "The version query prints 3.53.4 (or another version at least 3.53.4). The compile-option query records ENABLE_DBSTAT_VTAB and ENABLE_DBPAGE_VTAB on the course installation. Help includes .backup and .recover entries. Missing optional features are evidence to record, not reasons to assume they exist.",
     "systemsLens": "Deployed capability is a runtime fact. Reproducible operations begin by measuring the binary and its feature set, just as a service checks protocol and storage capabilities at startup.",
     "challenge": "Run SELECT sqlite_compileoption_used('ENABLE_DBSTAT_VTAB'); and compare its integer result with the compile-options list.",
     "safetyLevel": "read-only",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 8,
-    "revision": 1
+    "revision": 2
   },
   {
     "ordinal": 3,
@@ -76,7 +76,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -104,7 +104,7 @@
     "safetyLevel": "read-only",
     "runIn": "mixed",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 2
   },
@@ -132,7 +132,7 @@
     "safetyLevel": "ddl",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -160,7 +160,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -188,7 +188,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -216,7 +216,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -244,7 +244,7 @@
     "safetyLevel": "ddl",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -272,7 +272,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -291,6 +291,21 @@
     "prerequisites": [
       10
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+          "locator": "§1.2 “Pages”; §1.3.2 “Page Size”; §§1.5–1.7 “The Freelist”, “B-tree Pages”, and “Cell Payload Overflow Pages”; §§2.3–2.5 on rowid tables, WITHOUT ROWID tables, and indexes"
+        }
+      ],
+      "optionalDepth": [
+        {
+          "source": "[Architecture of SQLite](https://sqlite.org/arch.html)",
+          "locator": "“Overview”, “B-Tree”, and “Page Cache”"
+        }
+      ],
+      "rationale": "You just observed page-aligned growth, B-tree shape, rowid and WITHOUT ROWID layout differences,\noverflow chains, and freelist reuse across lessons 6–11. Read these bounded file-format sections to\nconnect those observations into one physical model of pages, keys, payload, and free space before\nmoving on to journals; the optional architecture excerpts are enrichment, not a prerequisite."
+    },
     "overview": "Delete most rows, observe free pages and unchanged file size, reuse some pages with new inserts, and run VACUUM on a uniquely named copy.",
     "syntaxBreakdown": "freelist_count counts reusable pages; VACUUM rewrites a compact database; .shell cp preserves the source before the rewrite; page_count and stat expose size. The setup forces rollback mode with PRAGMA journal_mode=DELETE because page geometry cannot change in WAL mode and in WAL the main file alone is not the database.",
     "setup": "PRAGMA journal_mode=DELETE;\nPRAGMA page_size=1024;\nVACUUM;\nDROP TABLE IF EXISTS retained;\nCREATE TABLE retained(id INTEGER PRIMARY KEY, payload TEXT);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 3000) INSERT INTO retained SELECT x, printf('payload-%05d', x) FROM n;",
@@ -301,7 +316,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 18,
     "revision": 1
   },
@@ -329,7 +344,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -357,7 +372,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 18,
     "revision": 2
   },
@@ -384,7 +399,7 @@
     "safetyLevel": "dangerous",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -411,7 +426,7 @@
     "safetyLevel": "dangerous",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -432,15 +447,15 @@
     "overview": "Use strace to compare synchronization calls for bounded FULL, NORMAL, and OFF rollback-mode workloads. Treat the trace as an observation of the contract, not a timing benchmark.",
     "syntaxBreakdown": "strace -e trace=fsync,fdatasync records synchronization syscalls; -o writes a trace file; PRAGMA synchronous selects durability behavior; grep -c counts observed calls.",
     "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\ncommand -v strace\nrm -f \"$TUTOR_SQLITE_DB-FULL\" \"$TUTOR_SQLITE_DB-NORMAL\" \"$TUTOR_SQLITE_DB-OFF\" \"$TUTOR_SQLITE_DB-FULL.trace\" \"$TUTOR_SQLITE_DB-NORMAL.trace\" \"$TUTOR_SQLITE_DB-OFF.trace\" \"$TUTOR_SQLITE_DB-FULL.time\" \"$TUTOR_SQLITE_DB-NORMAL.time\" \"$TUTOR_SQLITE_DB-OFF.time\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-FULL.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-FULL.trace\" sqlite3 \"$TUTOR_SQLITE_DB-FULL\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-NORMAL.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-NORMAL.trace\" sqlite3 \"$TUTOR_SQLITE_DB-NORMAL\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=NORMAL; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\n /usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-OFF.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-OFF.trace\" sqlite3 \"$TUTOR_SQLITE_DB-OFF\" \"PRAGMA journal_mode=DELETE; PRAGMA synchronous=OFF; CREATE TABLE t(x); BEGIN; WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO t SELECT x FROM n; COMMIT;\"\nprintf 'FULL sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-FULL.trace\" || true\nprintf 'NORMAL sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-NORMAL.trace\" || true\nprintf 'OFF sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-OFF.trace\" || true\nprintf 'FULL elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-FULL.time\"\nprintf 'NORMAL elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-NORMAL.time\"\nprintf 'OFF elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-OFF.time\"",
-    "expectedResult": "On the validated SQLite 3.45.1 run, strace recorded FULL=8, NORMAL=6, and OFF=0 synchronization calls, with elapsed times of about 0.12s, 0.12s, and 0.03s respectively. Repeat runs may vary with filesystem, kernel, and load; treat these as evidence from one bounded run, not universal ratios or a power-loss simulation.",
+    "expectedResult": "On the validated SQLite 3.53.4 run, strace recorded FULL=8, NORMAL=6, and OFF=0 synchronization calls, with elapsed times of about 0.09s, 0.04s, and 0.04s respectively. Repeat runs may vary with filesystem, kernel, and load; treat these as evidence from one bounded run, not universal ratios or a power-loss simulation.",
     "systemsLens": "Acknowledgement latency buys a specific persistence contract. Observed sync ordering is evidence of what the engine requested from this filesystem, not an abstract guarantee independent of filesystem and hardware behavior.",
     "caution": "No process-kill or power-loss claim follows from this lesson. Run on a disposable path and preserve trace files with the database files they describe.",
     "safetyLevel": "writes-data",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
-    "revision": 1
+    "revision": 2
   },
   {
     "ordinal": 17,
@@ -456,18 +471,33 @@
     "prerequisites": [
       16
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[Atomic Commit In SQLite](https://sqlite.org/atomiccommit.html)",
+          "locator": "§§3.4–3.5, 3.7–3.11, 4.2, and 4.6: rollback-journal updates, database writes, synchronization, journal invalidation, and hot-journal recovery"
+        }
+      ],
+      "optionalDepth": [
+        {
+          "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+          "locator": "§§3.2 and 4.1 on disabling sync and non-powersafe flash controllers"
+        }
+      ],
+      "rationale": "You just saw rollback journals appear and disappear, hot-journal recovery restore committed state,\nsync-call differences under FULL/NORMAL/OFF, and batching amortize transaction-boundary work across\nlessons 12–17. Read these rollback-mode sections to explain the required write and sync ordering\nbehind that evidence before moving on; this document does not describe WAL, and the corruption\nmaterial is optional operational context."
+    },
     "overview": "Insert the same bounded rows in autocommit and one explicit transaction, comparing elapsed time and synchronization-call counts.",
     "syntaxBreakdown": "An autocommit statement is its own transaction; BEGIN/COMMIT groups statements; strace captures sync calls; awk generates deterministic SQL.",
     "code": "set -eu\nif [ -z \"${TUTOR_SQLITE_DB:-}\" ]; then echo 'set TUTOR_SQLITE_DB to an absolute disposable path'; exit 2; fi\nTUTOR_SQLITE_DB=${TUTOR_SQLITE_DB}\ncase \"$TUTOR_SQLITE_DB\" in /*) ;; *) echo 'TUTOR_SQLITE_DB must be absolute'; exit 2;; esac\ncase \"$TUTOR_SQLITE_DB\" in *.db) ;; *) echo 'TUTOR_SQLITE_DB must end in .db'; exit 2;; esac\nPARENT_DIR=$(dirname \"$TUTOR_SQLITE_DB\")\nif [ \"$PARENT_DIR\" = / ] || [ ! -d \"$PARENT_DIR\" ] || [ ! -w \"$PARENT_DIR\" ]; then echo 'database parent must be an existing writable non-root directory'; exit 2; fi\nrm -f \"$TUTOR_SQLITE_DB-autocommit\" \"$TUTOR_SQLITE_DB-batch\" \"$TUTOR_SQLITE_DB-autocommit.sql\" \"$TUTOR_SQLITE_DB-batch.sql\" \"$TUTOR_SQLITE_DB-autocommit.trace\" \"$TUTOR_SQLITE_DB-batch.trace\" \"$TUTOR_SQLITE_DB-autocommit.time\" \"$TUTOR_SQLITE_DB-batch.time\"\necho 'PRAGMA journal_mode=DELETE; CREATE TABLE t(x INTEGER);' > \"$TUTOR_SQLITE_DB-autocommit.sql\"\nawk 'BEGIN { for (i=1; i<=200; i++) print \"INSERT INTO t VALUES (\" i \");\"; }' >> \"$TUTOR_SQLITE_DB-autocommit.sql\"\necho 'PRAGMA journal_mode=DELETE; CREATE TABLE t(x INTEGER); BEGIN;' > \"$TUTOR_SQLITE_DB-batch.sql\"\nawk 'BEGIN { for (i=1; i<=200; i++) print \"INSERT INTO t VALUES (\" i \");\"; }' >> \"$TUTOR_SQLITE_DB-batch.sql\"\necho 'COMMIT;' >> \"$TUTOR_SQLITE_DB-batch.sql\"\n/usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-autocommit.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-autocommit.trace\" sqlite3 \"$TUTOR_SQLITE_DB-autocommit\" < \"$TUTOR_SQLITE_DB-autocommit.sql\"\n/usr/bin/time -f '%e' -o \"$TUTOR_SQLITE_DB-batch.time\" strace -qq -f -e trace=fsync,fdatasync -o \"$TUTOR_SQLITE_DB-batch.trace\" sqlite3 \"$TUTOR_SQLITE_DB-batch\" < \"$TUTOR_SQLITE_DB-batch.sql\"\nprintf 'autocommit sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-autocommit.trace\" || true\nprintf 'batch sync_calls='; grep -Ec 'fsync|fdatasync' \"$TUTOR_SQLITE_DB-batch.trace\" || true\nprintf 'autocommit elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-autocommit.time\"\nprintf 'batch elapsed_seconds='; cat \"$TUTOR_SQLITE_DB-batch.time\"\nsqlite3 \"$TUTOR_SQLITE_DB-autocommit\" 'SELECT count(*) AS rows FROM t;'\nsqlite3 \"$TUTOR_SQLITE_DB-batch\" 'SELECT count(*) AS rows FROM t;'",
-    "expectedResult": "Both databases report rows = 200. On the validated SQLite 3.45.1 run, autocommit recorded 804 sync calls and took about 7.23s, while batch recorded 8 sync calls and took about 0.15s. Filesystem, kernel, and load change elapsed time and counts; the durable lesson is the large transaction-boundary difference, and the larger batch is one larger unit of failure if it aborts.",
+    "expectedResult": "Both databases report rows = 200. On the validated SQLite 3.53.4 run, autocommit recorded 804 sync calls and took about 6.54s, while batch recorded 8 sync calls and took about 0.07s. Filesystem, kernel, and load change elapsed time and counts; the durable lesson is the large transaction-boundary difference, and the larger batch is one larger unit of failure if it aborts.",
     "systemsLens": "Group commit amortizes durability costs while enlarging the unit of failure. This is the same throughput-versus-recovery trade-off seen in logs, queues, and storage engines.",
     "challenge": "Change 200 rows to 2000 and plot sync calls against row count; predict where measurement becomes dominated by other overhead.",
     "safetyLevel": "writes-data",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
-    "revision": 1
+    "revision": 2
   },
   {
     "ordinal": 18,
@@ -495,7 +525,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 2
   },
@@ -525,7 +555,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -555,7 +585,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -585,7 +615,7 @@
     "safetyLevel": "locking",
     "runIn": "mixed",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 2
   },
@@ -615,7 +645,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -635,6 +665,19 @@
     "prerequisites": [
       22
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[Isolation In SQLite](https://sqlite.org/isolation.html)",
+          "locator": "“Isolation Between Database Connections” and “Isolation And Concurrency”"
+        },
+        {
+          "source": "[File Locking And Concurrency In SQLite Version 3](https://sqlite.org/lockingv3.html)",
+          "locator": "§§2–3, §4.1, and §5: the five locking states, obtaining locks, and rollback-mode lock transitions"
+        }
+      ],
+      "rationale": "You just observed deferred and immediate admission, reader/writer blocking, bounded busy waits,\ncompare-and-swap conflicts, and idempotent retries across lessons 18–23. Read these short\nrollback-mode documents to turn the observed errors into a state-machine model of serialized writes,\nserializable isolation, rollback locking, and retry boundaries before moving on to WAL; ignore the locking document’s old\n1024-byte example and trust the runtime page size instead."
+    },
     "overview": "Apply the same operation twice through a unique ledger row and a domain update. The first attempt changes the account; the replay records no second effect.",
     "syntaxBreakdown": "A UNIQUE operation_id makes the ledger the deduplication boundary. INSERT OR IGNORE is idempotent, and changes() gates the domain mutation to the newly claimed operation.",
     "setup": "DROP TABLE IF EXISTS applied_operations;\nDROP TABLE IF EXISTS account;\nCREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);\nCREATE TABLE applied_operations(operation_id TEXT PRIMARY KEY, applied_at TEXT NOT NULL);\nINSERT INTO account VALUES (1, 100);",
@@ -646,7 +689,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -676,7 +719,7 @@
     "safetyLevel": "writes-data",
     "runIn": "mixed",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -706,7 +749,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -736,7 +779,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 12,
     "revision": 1
   },
@@ -766,7 +809,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 2
   },
@@ -789,16 +832,16 @@
     "syntaxBreakdown": "PRAGMA wal_checkpoint(mode) returns busy, log frames, and checkpointed frames. PASSIVE does not wait; FULL waits for writers; RESTART also waits for readers to end; TRUNCATE additionally truncates the WAL.",
     "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS frames;\nCREATE TABLE frames(id INTEGER PRIMARY KEY, note TEXT);\nINSERT INTO frames(note) VALUES ('base');",
     "code": "-- Session A\nPRAGMA wal_autocheckpoint=0;\n\n-- Session B\nBEGIN;\nSELECT 'reader pins snapshot', count(*) FROM frames;\n\n-- Session A\nINSERT INTO frames(note) VALUES ('frame-1'), ('frame-2'), ('frame-3'), ('frame-4'), ('frame-5'), ('frame-6'), ('frame-7'), ('frame-8');\n.timeout 100\nPRAGMA wal_checkpoint(PASSIVE);\nPRAGMA wal_checkpoint(FULL);\nPRAGMA wal_checkpoint(RESTART);\nPRAGMA wal_checkpoint(TRUNCATE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\"\n\n-- Session B\nCOMMIT;\n\n-- Session A\nPRAGMA wal_checkpoint(FULL);\nPRAGMA wal_checkpoint(RESTART);\nPRAGMA wal_checkpoint(TRUNCATE);\n.shell stat -c '%n %s bytes' \"$TUTOR_SQLITE_DB-wal\";",
-    "expectedResult": "On SQLite 3.45.1 with the default 4 KiB layout, the four calls while B's snapshot is open report PASSIVE 0|6|5, then FULL 1|6|5, RESTART 1|6|5, and TRUNCATE 1|6|5. After B commits, FULL and RESTART report 0|6|6, TRUNCATE reports 0|0|0, and the WAL stat is 0 bytes. Page layout can change the frame counts, but the relationship is stable: PASSIVE makes partial progress, the stronger calls cannot finish past the reader, and release permits full checkpoint plus truncation.",
+    "expectedResult": "On SQLite 3.53.4 with the default 4 KiB layout, the four calls while B's snapshot is open report PASSIVE 0|6|5, then FULL 1|6|5, RESTART 1|6|5, and TRUNCATE 1|6|5. After B commits, FULL and RESTART report 0|6|6, TRUNCATE reports 0|0|0, and the WAL stat is 0 bytes. Page layout can change the frame counts, but the relationship is stable: PASSIVE makes partial progress, the stronger calls cannot finish past the reader, and release permits full checkpoint plus truncation.",
     "systemsLens": "Applying log frames and reclaiming log space are distinct operations. A slow observer sets the safe reclamation horizon and can turn checkpoint work into backpressure.",
     "challenge": "Repeat with no reader. Which modes converge to the same result, and why is PASSIVE still useful for low-latency maintenance?",
     "caution": "Checkpoint results and exact sidecar sizes vary with page size and scheduling; compare the busy/log/checkpointed relationship rather than relying on one literal triple.",
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
-    "revision": 1
+    "revision": 2
   },
   {
     "ordinal": 29,
@@ -816,6 +859,21 @@
     "prerequisites": [
       28
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[SQLite Write-Ahead Logging](https://sqlite.org/wal.html)",
+          "locator": "§1 “Overview”; §§2–2.3 “How WAL Works”; §§3–3.3 “Activating And Configuring WAL Mode”; §9 “Sometimes Queries Return SQLITE_BUSY In WAL Mode”; omit the struck-through pre-3.11 warning and §11 bug mechanics"
+        }
+      ],
+      "optionalDepth": [
+        {
+          "source": "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+          "locator": "Section 4, especially 4.3–4.6 (checkpointing, reset and reuse, the reader algorithm, and the WAL-index)"
+        }
+      ],
+      "rationale": "You just saw a live reader hold back checkpoint progress while committed writes enlarged the WAL sidecar. Read these bounded sections before continuing to connect that evidence to WAL append and commit records, reader end-marks, checkpointing, reuse, and the fact that WAL still has busy cases and one writer. The 3.53.4 course minimum includes the WAL-reset fix; older SQLite 3.7.0–3.51.2 installations should use 3.51.3+ or an official fixed backport for production."
+    },
     "overview": "Pin an old reader, commit repeated batches, and attempt passive checkpoints. Observe WAL growth and incomplete progress until the reader releases its snapshot.",
     "syntaxBreakdown": "wal_autocheckpoint=0 makes the backlog visible. A passive checkpoint reports progress without waiting; TRUNCATE after the reader ends reclaims the file.",
     "setup": "PRAGMA journal_mode=WAL;\nPRAGMA wal_autocheckpoint=0;\nDROP TABLE IF EXISTS queue;\nCREATE TABLE queue(id INTEGER PRIMARY KEY, payload TEXT);\nINSERT INTO queue(payload) VALUES ('anchor');",
@@ -827,7 +885,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -857,7 +915,7 @@
     "safetyLevel": "dangerous",
     "runIn": "mixed",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -888,7 +946,7 @@
     "safetyLevel": "writes-data",
     "runIn": "mixed",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -918,7 +976,7 @@
     "safetyLevel": "writes-data",
     "runIn": "mixed",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -947,7 +1005,7 @@
     "safetyLevel": "ddl",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 15,
     "revision": 1
   },
@@ -967,20 +1025,39 @@
     "prerequisites": [
       33
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[SQLite Backup API](https://sqlite.org/backup.html)",
+          "locator": "Sections 1 (Using the SQLite Online Backup API), 1.1 (Other Backup Techniques), and 3.1 (File and Database Connection Locking)"
+        },
+        {
+          "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+          "locator": "Sections 1.2 (Backup or restore while a transaction is active), 1.3 (Deleting a hot journal), and 1.4 (Mispairing database files and hot journals)"
+        }
+      ],
+      "optionalDepth": [
+        {
+          "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+          "locator": "Sections 2.1 (Filesystems with broken or missing lock implementations), 2.5 (Unlinking or renaming a database file while in use), and 3.2 (Disabling sync using PRAGMAs)"
+        }
+      ],
+      "rationale": "Across lessons 30–34 you saw a main-file copy miss live WAL state, created engine-coordinated snapshots, checked both structural and domain integrity, and measured salvage from a damaged copy. Read these excerpts before continuing to distinguish a consistent backup from byte copying or salvage, and to understand why live journals and their database file must remain paired."
+    },
     "overview": "Preserve an original, corrupt one leaf page of a multi-page table in a uniquely named copy, watch structural checks and a full scan fail, then salvage every intact leaf by key range into a third database. The B-tree's own key routing is the salvage tool; .recover is tried as an optional extra.",
     "syntaxBreakdown": "dbstat lists the table's leaf pages; dd zeroes the chosen page's header in the copy. A full scan must visit every leaf, but WHERE id BETWEEN a AND b descends only into leaves that hold that key range, so ranges that avoid the damaged leaf still read. ATTACH lets one INSERT ... SELECT move each readable range into the recovered file. .recover needs the sqlite_dbpage extension and is reported either way.",
     "setup": ".print -- close every other sqlite3 session first: the next line must print delete\nPRAGMA journal_mode=DELETE;\nDROP TABLE IF EXISTS observations;\nCREATE TABLE observations(id INTEGER PRIMARY KEY, reading TEXT NOT NULL);\nWITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<3000)\nINSERT INTO observations SELECT x, printf('reading-%04d', x) FROM n;",
     "code": "-- Session A\n.shell rm -f \"$TUTOR_SQLITE_DB.damaged.db\" \"$TUTOR_SQLITE_DB.recovered.db\" \"$TUTOR_SQLITE_DB.recover.sql\" \"$TUTOR_SQLITE_DB.recover.err\"\n.shell cp \"$TUTOR_SQLITE_DB\" \"$TUTOR_SQLITE_DB.damaged.db\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \"SELECT 'leaf_pages=' || count(*) FROM dbstat WHERE name='observations' AND pagetype='leaf';\"\n.shell page=$(sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \"SELECT pageno FROM dbstat WHERE name='observations' AND pagetype='leaf' ORDER BY pageno LIMIT 1 OFFSET 1\"); psz=$(sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" 'PRAGMA page_size'); echo \"damaged_leaf_page=$page page_size=$psz\"; dd if=/dev/zero of=\"$TUTOR_SQLITE_DB.damaged.db\" bs=1 seek=$(( (page - 1) * psz )) count=256 conv=notrunc status=none\n.shell sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \"PRAGMA quick_check; SELECT 'full_scan_rows', count(*) FROM observations;\"\n.shell sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" \"CREATE TABLE observations(id INTEGER PRIMARY KEY, reading TEXT NOT NULL);\"\n.shell for start in $(seq 1 100 3000); do end=$((start + 99)); sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" \"ATTACH '$TUTOR_SQLITE_DB.recovered.db' AS rec; INSERT INTO rec.observations SELECT id, reading FROM observations WHERE id BETWEEN $start AND $end;\" 2>/dev/null || echo \"chunk $start-$end unreadable\"; done\n.shell sqlite3 \"$TUTOR_SQLITE_DB.recovered.db\" \"PRAGMA integrity_check; SELECT 'recovered_rows', count(*), min(id), max(id) FROM observations;\"\n.shell if sqlite3 \"$TUTOR_SQLITE_DB.damaged.db\" .recover >\"$TUTOR_SQLITE_DB.recover.sql\" 2>\"$TUTOR_SQLITE_DB.recover.err\"; then echo \"recover_available=yes sql_lines=$(wc -l <$TUTOR_SQLITE_DB.recover.sql)\"; else echo recover_available=no; head -c 120 \"$TUTOR_SQLITE_DB.recover.err\"; echo; fi\n.shell sqlite3 \"$TUTOR_SQLITE_DB\" \"PRAGMA integrity_check; SELECT 'source_rows', count(*) FROM observations;\"",
-    "expectedResult": "leaf_pages is about 60 at a 1 KiB page size or about 15 at 4 KiB, and damaged_leaf_page names the leaf that was zeroed. quick_check on the copy reports a btreeInitPage error for that page and the full scan fails with database disk image is malformed (the CLI also notes that the system command returned a nonzero status). The chunk loop prints unreadable for only the 100-row ranges that touch the damaged leaf: one chunk at 1 KiB pages, two or three at 4 KiB depending on where the leaf boundary falls. The recovered file passes integrity_check and holds 3000 minus 100 per unreadable chunk (for example 2900 or 2800 rows), with min/max ids showing the surviving range. On the installed SQLite 3.45.1 build .recover prints recover_available=no followed by no such table: sqlite_dbpage; a build with that extension prints yes and a line count. The source still prints ok and source_rows|3000.",
+    "expectedResult": "leaf_pages is about 60 at a 1 KiB page size or about 15 at 4 KiB, and damaged_leaf_page names the leaf that was zeroed. quick_check on the copy reports a btreeInitPage error for that page and the full scan fails with database disk image is malformed (the CLI also notes that the system command returned a nonzero status). The chunk loop prints unreadable for only the 100-row ranges that touch the damaged leaf: one chunk at 1 KiB pages, two or three at 4 KiB depending on where the leaf boundary falls. The recovered file passes integrity_check and holds 3000 minus 100 per unreadable chunk (2900 rows in the validated 1 KiB run), with min/max ids showing the surviving range. The course's SQLite 3.53.4 build prints recover_available=yes with a nonzero SQL line count because it enables sqlite_dbpage. The source still prints ok and source_rows|3000.",
     "systemsLens": "Recovery tools maximize readable evidence after an incident: the structure that survives (here, key routing through intact interior pages) bounds what can be salvaged, and the loss is measured, not guessed. Only a verified, engine-coordinated backup can support a stated RPO/RTO restoration guarantee.",
     "challenge": "Zero the table's root page (rootpage in sqlite_schema) instead of a leaf and rerun the chunk loop. Explain why the salvage rate collapses even though most leaf bytes are untouched, and what that says about where backups must be verified.",
     "caution": "This deliberately corrupts only the uniquely named TUTOR_SQLITE_DB.damaged.db copy and preserves the source. Never point dd or .recover at a production database.",
     "safetyLevel": "dangerous",
     "runIn": "mixed",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
-    "revision": 2
+    "revision": 3
   },
   {
     "ordinal": 35,
@@ -1007,7 +1084,7 @@
     "safetyLevel": "ddl",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -1037,7 +1114,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
     "revision": 1
   },
@@ -1066,7 +1143,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
     "revision": 1
   },
@@ -1085,9 +1162,24 @@
     "prerequisites": [
       37
     ],
+    "studyCheckpoint": {
+      "core": [
+        {
+          "source": "[SQLite Query Planning](https://sqlite.org/queryplanner.html)",
+          "locator": "Sections 1.1–1.3 (Tables Without Indices, Lookup By Rowid, Lookup By Index), 1.6–1.7 (Multi-Column Indices, Covering Indexes), 2 (Sorting), 3 (Searching And Sorting At The Same Time), and 4 (WITHOUT ROWID tables)"
+        }
+      ],
+      "optionalDepth": [
+        {
+          "source": "[SQLite: Past, Present, and Future](https://www.vldb.org/pvldb/vol15/p3535-gaffney.pdf)",
+          "locator": "Section 2, “Architecture”"
+        }
+      ],
+      "rationale": "Across lessons 35–38 you observed scans become searches, measured index read/write costs, let ANALYZE change a plan, and measured a workload-specific writer envelope. Read these sections before continuing to connect that evidence to search cost, locality, sorting work, and the trade-offs behind WITHOUT ROWID; the paper is optional historical context, not a source of current benchmark promises."
+    },
     "overview": "Run bounded autocommit and batched writes against a disposable rollback-mode database, then launch two bounded writer processes. Record throughput and busy outcomes for this filesystem instead of inventing a universal SQLite limit.",
     "syntaxBreakdown": "sqlite3 -cmd applies PRAGMAs before a script. .timer reports CLI timing. timeout bounds a process so contention cannot leave a lesson hanging. BEGIN and COMMIT define the unit over which the writer lock and durability work are amortized.",
-    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nparent=$(dirname -- \"$db\")\nif [ \"$parent\" = / ] || [ ! -d \"$parent\" ] || [ ! -w \"$parent\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\nbase=$db\nlab_dir=$(dirname -- \"$base\")\ndb=$lab_dir/writer-envelope.sqlite\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"\nsqlite3 \"$db\" 'PRAGMA journal_mode=DELETE; CREATE TABLE writes(id INTEGER PRIMARY KEY, worker TEXT, payload TEXT);'\n\necho '--- autocommit: 200 transactions ---'\ntime sh -c 'i=1; while [ \"$i\" -le 200 ]; do sqlite3 \"$1\" \"INSERT INTO writes(worker,payload) VALUES (\\\"auto\\\",\\\"$i\\\");\" >/dev/null; i=$((i + 1)); done' sh \"$db\"\necho '--- one batch: 200 rows ---'\ntime sqlite3 \"$db\" <<'SQL'\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO writes(worker, payload) SELECT 'batch', x FROM n;\nCOMMIT;\nSQL\necho '--- two competing writers: holder keeps the lock 1 s, racer budget 100 ms per attempt ---'\n(printf '%s\\n' 'PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\"holder\",\"lock\");'; sleep 1; printf '%s\\n' 'ROLLBACK;') | sqlite3 \"$db\" >/dev/null &\nholder=$!\nsleep 0.2\nset +e\ntime timeout 5 sh -c 'i=1; while [ \"$i\" -le 50 ]; do sqlite3 \"$1\" \"PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES (\\\"racer\\\",\\\"$i\\\"); COMMIT;\" >/dev/null 2>&1 || echo busy; i=$((i + 1)); done' sh \"$db\" >\"$lab_dir/writer-racer.out\"\nracer_status=$?\nset -e\nwait \"$holder\"\nprintf 'racer_exit=%s busy_attempts=%s racer_rows=%s rows=%s pages=%s\\n' \"$racer_status\" \"$(wc -l < \"$lab_dir/writer-racer.out\")\" \"$(sqlite3 \"$db\" \"SELECT count(*) FROM writes WHERE worker='racer'\")\" \"$(sqlite3 \"$db\" 'SELECT count(*) FROM writes')\" \"$(sqlite3 \"$db\" 'PRAGMA page_count')\"\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"",
+    "code": "set -eu\ndb=$(printenv TUTOR_SQLITE_DB || true)\nif [ -z \"$db\" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi\ncase \"$db\" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac\nparent=$(dirname -- \"$db\")\nif [ \"$parent\" = / ] || [ ! -d \"$parent\" ] || [ ! -w \"$parent\" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi\nif [ -L \"$db\" ] || { [ -e \"$db\" ] && [ ! -f \"$db\" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi\nbase=$db\nlab_dir=$(dirname -- \"$base\")\ndb=$lab_dir/writer-envelope.sqlite\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"\nsqlite3 \"$db\" 'PRAGMA journal_mode=DELETE; CREATE TABLE writes(id INTEGER PRIMARY KEY, worker TEXT, payload TEXT);'\n\necho '--- autocommit: 200 transactions ---'\ntime sh -c 'i=1; while [ \"$i\" -le 200 ]; do sqlite3 \"$1\" \"INSERT INTO writes(worker,payload) VALUES ('\\''auto'\\'', $i);\" >/dev/null; i=$((i + 1)); done' sh \"$db\"\necho '--- one batch: 200 rows ---'\ntime sqlite3 \"$db\" <<'SQL'\nBEGIN;\nWITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)\nINSERT INTO writes(worker, payload) SELECT 'batch', x FROM n;\nCOMMIT;\nSQL\necho '--- two competing writers: holder keeps the lock 1 s, racer budget 100 ms per attempt ---'\n(printf '%s\\n' \"PRAGMA busy_timeout=0; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ('holder','lock');\"; sleep 1; printf '%s\\n' 'ROLLBACK;') | sqlite3 \"$db\" >/dev/null &\nholder=$!\nsleep 0.2\nset +e\ntime timeout 5 sh -c 'i=1; while [ \"$i\" -le 50 ]; do sqlite3 \"$1\" \"PRAGMA busy_timeout=100; BEGIN IMMEDIATE; INSERT INTO writes(worker,payload) VALUES ('\\''racer'\\'', $i); COMMIT;\" >/dev/null 2>&1 || echo busy; i=$((i + 1)); done' sh \"$db\" >\"$lab_dir/writer-racer.out\"\nracer_status=$?\nset -e\nwait \"$holder\"\nprintf 'racer_exit=%s busy_attempts=%s racer_rows=%s rows=%s pages=%s\\n' \"$racer_status\" \"$(wc -l < \"$lab_dir/writer-racer.out\")\" \"$(sqlite3 \"$db\" \"SELECT count(*) FROM writes WHERE worker='racer'\")\" \"$(sqlite3 \"$db\" 'SELECT count(*) FROM writes')\" \"$(sqlite3 \"$db\" 'PRAGMA page_count')\"\nrm -f \"$db\" \"$db-journal\" \"$db-wal\" \"$db-shm\"",
     "expectedResult": "The script prints timings for 200 autocommit transactions and one 200-row transaction; the batch takes far less transaction-boundary work than autocommit (on the validated host about 0.15 s versus several seconds). The competing-writer run then prints racer_exit=0 with busy_attempts plus racer_rows equal to 50: while the holder keeps the lock for its first second, each 100 ms attempt fails (about 7 to 9 busy attempts), and every attempt after the holder rolls back succeeds, so rows is 400 plus racer_rows. Record the exact host-specific numbers as the measured envelope; a racer_exit of 124 means the 5 s bound cut the loop short and the host is slower than expected.",
     "systemsLens": "SQLite has one writer at a time. Batching amortizes commit work, while competing writers turn the serialization point into a queue whose throughput, wait budget, and failure rate must be measured for the actual workload: the same 50 attempts split into failures and successes purely by when the holder released.",
     "challenge": "Repeat with batches of 10, 50, and 500 and graph rows per second against batch size. Then raise the racer's busy_timeout to 2000 and predict busy_attempts and the total elapsed time before running it.",
@@ -1095,9 +1187,9 @@
     "safetyLevel": "locking",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 30,
-    "revision": 2
+    "revision": 3
   },
   {
     "ordinal": 39,
@@ -1125,7 +1217,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -1155,7 +1247,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
     "revision": 1
   },
@@ -1185,7 +1277,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
     "revision": 2
   },
@@ -1215,7 +1307,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 20,
     "revision": 1
   },
@@ -1245,7 +1337,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 25,
     "revision": 1
   },
@@ -1274,7 +1366,7 @@
     "safetyLevel": "writes-data",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 30,
     "revision": 1
   },
@@ -1304,7 +1396,7 @@
     "safetyLevel": "writes-data",
     "runIn": "tool",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 35,
     "revision": 1
   },
@@ -1334,7 +1426,7 @@
     "safetyLevel": "locking",
     "runIn": "tool",
     "sessions": 2,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 30,
     "revision": 1
   },
@@ -1364,7 +1456,7 @@
     "safetyLevel": "dangerous",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 45,
     "revision": 2
   },
@@ -1394,7 +1486,7 @@
     "safetyLevel": "writes-data",
     "runIn": "shell",
     "sessions": 1,
-    "minVersion": "3.45",
+    "minVersion": "3.53.4",
     "estimatedMinutes": 35,
     "revision": 1
   }
