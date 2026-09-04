@@ -1,6 +1,6 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Chunk 1 reviewed and validated; chunk 2 implementation in progress.**
+Updated 2026-09-04. **Chunk 1 committed/pushed; chunk 2 awaits primary integration review.**
 
 ## User authorization and intended result
 
@@ -27,15 +27,15 @@ another review or stop after planning: implementation and validation are authori
   integration on a copied progress database when that work lands.
 - Plan has chunks 0–7. Exact designs are authored by the primary before delegation, not left to
   agents.
-- Active Terra/high agents now follow designs/02-concurrent-clients.md: `guided_cli` owns
-  curriculum/05-isolation.ts, guides/05-isolation.ts and validation/02-isolation.md; `visibility`
-  owns the analogous 06-locking files. `storage` completed the corrected storage variation and
-  read-only worker review. Root06 was restored to HEAD for chunk1; finished locking files/report are
-  private at /tmp/pg-pivot-visibility-work. Isolation files remain private at
-  /tmp/pg-pivot-isolation-work. Copy them into root only after the chunk1 commit. Primary owns
-  client-protocol.ts, worker-protocol.ts and guide registry integration. Agents never commit or
-  build the root generated artifact. Isolation runtime now uses pivot_visibility after locking
-  finished; primary uses pivot_primary for foundation integration and protocol validation.
+- Terra/high agents completed designs/02-concurrent-clients.md subsets and transferred ONLY
+  curriculum/05-isolation.ts, curriculum/06-locking.ts, guides/05-isolation.ts,
+  guides/06-locking.ts, validation/02-isolation.md and validation/02-locking.md into root. Those six
+  files await primary review and commit. Their private copies remain /tmp/pg-pivot-isolation-work
+  and /tmp/pg-pivot-visibility-work. All three agents are finished/idle, not implementing new work.
+- Primary owns client-protocol.ts, worker-protocol.ts, the guide registry and unknown-outcome
+  protocol. The two helper drafts have primary runtime evidence in
+  validation/02-primary-protocols.md. Root generated lessons.json is still the committed chunk1
+  snapshot; rebuild only after reviewing the transferred module changes and updating guides/mod.ts.
 - Private PostgreSQL16.15 cluster: `/tmp/postgres-pivot-20260904/primary`, socket
   `/tmp/postgres-pivot-20260904/socket`, port5540, role postgres. DBs: pivot_storage,
   pivot_visibility, pivot_primary. Extensions installed. Setup script `/tmp/pg-pivot-lab.sh`.
@@ -65,16 +65,17 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Commit/push accepted chunk1 paths and this handoff, excluding chunk2 helpers/guides. Then copy
-   reviewed05/06 private implementations into root; integrate helper imports and guide registry.
-   Unknown-commit protocol remains primary work, as do later chunks3–7.
-2. Review every returned file and run important concurrency cases independently. The isolation agent
-   is validating the shell retry directly: the ordinary SQL harness skips shell lessons.
-3. Keep the built course, ordinal/checkpoint map and completed-seven comparison synchronized as each
-   chunk lands. Guide registry belongs to primary. Do not bump the course default revision.
-4. Record reusable findings in docs/knowledge (foundation findings now in
-   postgres-experiment-evidence.md), keep this handoff committed/pushed at checkpoints, and remove
-   it only after every approved chunk is complete. See REWORK-PLAN; do not stop after chunk1.
+1. Review transferred05/06 wording/code and validations. Integrate guides05/06 into guides/mod.ts.
+   Implement the new unknown-commit-outcome lesson per designs/02-concurrent-clients.md; primary
+   owns the receipt/payload/business-effect protocol and the lost-response experiment.
+2. Rebuild PostgreSQL, independently validate concurrent cores/variations, refresh map and copied
+   progress checks, then commit/push the accepted chunk2. Source modules are transferred but not yet
+   accepted merely because agents reported passing runs.
+3. Design and deliver chunks3–7 from REWORK-PLAN. No later performance, recovery, replication,
+   outbox/fencing or capstone chunk is complete. Continue bounded Terra/high delegation and primary
+   ownership of hard protocol/failure semantics and final review.
+4. Record durable findings in docs/knowledge, keep this handoff committed/pushed at checkpoints, and
+   remove it only after every approved chunk is complete. The overall refactor is not done.
 
 ## Durable constraints
 
@@ -97,3 +98,6 @@ separate databases; coordinate global operations serially.
 - Foundation acceptance is in validation/01-integration.md; later protocol prototypes are not final
   course acceptance. Overall refactor remains incomplete: chunks2–7 require implementation,
   integration and validation. Repo-wide learning guidance is already pushed.
+
+- `948f2d1` pushed: accepted guided foundation,93-lesson build, stable identity map, final runtime
+  evidence, copied-progress preservation and durable experiment findings.
