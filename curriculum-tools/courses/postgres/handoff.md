@@ -1,6 +1,6 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Chunk 1 committed/pushed; chunk 2 awaits primary integration review.**
+Updated 2026-09-04. **Chunk2 reviewed/validated; chunk3 private implementation active.**
 
 ## User authorization and intended result
 
@@ -16,66 +16,53 @@ another review or stop after planning: implementation and validation are authori
 
 ## Current state
 
-- Branch main, remote origin `git@github.com:nickstrad/skills-tools.git`; fetched successfully.
-- Chunk1 builds93 lessons. Primary final sequence8–20 completed13/13 without SQL errors or timeouts
-  using --timeout90000. See validation/01-integration.md for corrections, real output evidence,
-  copied progress migration and30 passing tests. First7 built objects and learner progress hash
-  remain identical. lesson-map.md records retirements/current reading stops.
-- Active unrelated SQLite changes include its course, generated lessons, shared `src/main.ts`,
-  `tests/main_test.ts`, bootstrap and Docker scripts. Never stage these with PostgreSQL changes.
-- Shared-engine work includes slug-preserving progress reseeding. Do not edit those files; verify
-  integration on a copied progress database when that work lands.
-- Plan has chunks 0–7. Exact designs are authored by the primary before delegation, not left to
-  agents.
-- Terra/high agents completed designs/02-concurrent-clients.md subsets and transferred ONLY
-  curriculum/05-isolation.ts, curriculum/06-locking.ts, guides/05-isolation.ts,
-  guides/06-locking.ts, validation/02-isolation.md and validation/02-locking.md into root. Those six
-  files await primary review and commit. Their private copies remain /tmp/pg-pivot-isolation-work
-  and /tmp/pg-pivot-visibility-work. All three agents are finished/idle, not implementing new work.
-- Primary owns client-protocol.ts, worker-protocol.ts, the guide registry and unknown-outcome
-  protocol. The two helper drafts have primary runtime evidence in
-  validation/02-primary-protocols.md. Root generated lessons.json is still the committed chunk1
-  snapshot; rebuild only after reviewing the transferred module changes and updating guides/mod.ts.
-- Private PostgreSQL16.15 cluster: `/tmp/postgres-pivot-20260904/primary`, socket
-  `/tmp/postgres-pivot-20260904/socket`, port5540, role postgres. DBs: pivot_storage,
-  pivot_visibility, pivot_primary. Extensions installed. Setup script `/tmp/pg-pivot-lab.sh`.
-  Switching OS users required escalation; approved prefix `bash /tmp/pg-pivot-lab.sh`.
-- Local socket access requires escalation too; `psql` prefix approved after sandbox denial. Primary
-  SELECT1 connection check passed.
-- Original learner progress SHA256:
-  c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f.
-- Storage core and variation evidence is in validation/01-storage.md; visibility/reclamation
-  evidence is in validation/01-visibility.md. Each agent built its own copy; neither private lesson
-  count is the final combined count. Core SQL ran on PostgreSQL16.15, not the learner cluster.
-- Guided CLI review corrections are implemented: full caution/version/run environment at run,
-  correct shell quoting, dynamic fixture completion count, explicit-help routing and no stale
-  prerequisite ordinal lookup. Agent reports four passing tests and a launcher smoke with spaces and
-  an apostrophe in the temporary progress path. Primary added shell/mixed rendering checks; all five
-  coaching tests and25 engine/validation tests pass.
-- Primary retry protocol prototype passed a controlled SQLSTATE40001 followed by a fresh successful
-  transaction and exactly one effect. Base result95|1; competitor+20 variation110|1. Scripts:
-  /tmp/pg-pivot-retry.sh and /tmp/pg-pivot-retry-variation.sh; evidence directories
-  /tmp/pg-retry-Potk2s and /tmp/pg-retry-yCqb11. Source client-protocol.ts is not yet integrated.
-- Primary worker-protocol.ts now exercises competing takeover and unavailable-claim retry after
-  rollback. Runtime passed with both rivals UPDATE0, stale/duplicate INSERT0, all three final
-  invariants true. Driver /tmp/validate-pg-worker.ts; raw /tmp/pg-pivot-worker.log. This is an
-  unintegrated chunk2 helper, not yet committed with lesson06.
-- Completed-seven hashes: `validation/completed-baseline.json`; original 96 lesson artifact
-  snapshot: `/tmp/postgres-pivot-original-lessons.json`.
+- Chunk1 is pushed as948f2d1. Protocol helpers were pushed as1d3c378.
+- Chunk2 is reviewed and validated, ready for scoped commit/push. Source05/06, helper checkpoint,
+  new request-protocol.ts and optimistic-protocol.ts, removal of old optimistic object from14,
+  guides05/06+registry, generated94-lesson artifact and identity map are the accepted change. See
+  validation/02-integration.md for primary evidence and exact limitations. Original first7 objects
+  and learner progress hash remain unchanged; copied refresh preserves all old IDs/history.
+- Whole concurrency sequence selected17 lessons:16 actual psql experiments plus shell retry skipped
+  by that harness. Retry was separately executed.30 engine/coaching tests pass. Unknown-outcome,
+  both deadlock victim paths, optimistic rollback, bounded DDL, timeout and advisory session-loss
+  variations were exercised by primary. Exact rendered request hint ran too.
+- Unknown response is explicitly an output-withholding fixture, not a network-disconnect test.
+  Receipts/payload/result and debit commit together. Real independent external effect/receiver
+  commits and replication-history loss are still later protocol work.
+- Planner/index work follows primary designs/03-workload-performance.md in PRIVATE copies only.
+  Terra/high storage owns11-planner.ts, guides11, validation03-planner in
+  /tmp/pg-pivot-planner-work. First subphases are done; final parallel-query/aggregate-telemetry
+  subphase and full private sequence are active. Do not overwrite it with root's old11 module.
+- Terra/high visibility finished private12-indexes.ts, guides12 and validation03-indexes in
+  /tmp/pg-pivot-visibility-work. Six changed/surviving cores validated, including new keyset, key
+  width, index-only coverage, concurrent build/recovery, rebuild and conditional uniqueness. Primary
+  must review all source/guide wording and exact variation evidence before accepting. It retires
+  index-only-scan-needs-visibility-map; update the map and cross references at integration.
+- guided_cli completed guide corrections and is idle. Primary owns all integration, workload
+  capacity/migration design and hard failure/protocol work. Agents do not commit or root-build.
+- Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
+  rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
+  touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
+- Original progress SHA256: c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f.
+- Baseline object hashes: validation/completed-baseline.json. Original artifact:
+  /tmp/postgres-pivot-original-lessons.json; original curriculum also survives in git history.
+- Primary scratch helpers: /tmp/refresh-pg-map.py and /tmp/check-pg-progress.py; request and
+  variation drivers /tmp/validate-pg-request.ts, /tmp/validate-pg-concurrency-variations.ts,
+  /tmp/validate-pg-exact-hint.ts. Raw log names are in validation/02-integration.md.
+- Unrelated Linux, article notes, repository-roadmap and Docker edits belong to other workstreams.
+  Never blanket stage or reset them. The user explicitly excluded SQLite work as well.
 
 ## Next actions
 
-1. Review transferred05/06 wording/code and validations. Integrate guides05/06 into guides/mod.ts.
-   Implement the new unknown-commit-outcome lesson per designs/02-concurrent-clients.md; primary
-   owns the receipt/payload/business-effect protocol and the lost-response experiment.
-2. Rebuild PostgreSQL, independently validate concurrent cores/variations, refresh map and copied
-   progress checks, then commit/push the accepted chunk2. Source modules are transferred but not yet
-   accepted merely because agents reported passing runs.
-3. Design and deliver chunks3–7 from REWORK-PLAN. No later performance, recovery, replication,
-   outbox/fencing or capstone chunk is complete. Continue bounded Terra/high delegation and primary
-   ownership of hard protocol/failure semantics and final review.
-4. Record durable findings in docs/knowledge, keep this handoff committed/pushed at checkpoints, and
-   remove it only after every approved chunk is complete. The overall refactor is not done.
+1. Format/scoped diff checks, commit/push accepted chunk2 with this handoff and design03.
+2. Review/transfer private planner/index results when complete; implement primary capacity and
+   bounded migration synthesis. Arrange final performance ordering before replication while
+   respecting true WAL/recovery prerequisites; do not create forward references.
+3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
+   durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
+4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
+   checks per chunk. Record durable findings, commit/push handoff updates, and delete this file only
+   after every authorized chunk is complete. Do not stop after the concurrency checkpoint.
 
 ## Durable constraints
 

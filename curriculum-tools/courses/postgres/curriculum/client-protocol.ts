@@ -118,6 +118,14 @@ export const RETRY: Draft = {
   prerequisites: ["serializable-ssi"],
   tags: ["serialization-failure", "retries", "transactions"],
   revision: 4,
+  studyCheckpoint: {
+    core: [{
+      source: "PostgreSQL 14 Internals",
+      locator: 'Chapter 2 §2.3 "Isolation Levels in PostgreSQL" (printed pp. 44–60)',
+    }],
+    rationale:
+      "You observed statement snapshots, lost updates, snapshot-isolation anomalies, SSI and whole-transaction retries. Read this section to consolidate the isolation guarantees before the unknown-outcome experiment. Skip exact timing, defaults and example output from the PostgreSQL14 text.",
+  },
   reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Serializable")',
   readingNotes:
     "Chapter 2 explains why a serialization failure can require a new attempt. This lesson adds the client boundary: a complete transaction, including its read and decision, starts again in a fresh connection. The shell scheduling gate and attempt logs are course additions. Read after observing the failure and recovery.",

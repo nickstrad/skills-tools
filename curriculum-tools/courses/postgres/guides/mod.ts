@@ -1,6 +1,14 @@
 import { guides as storage } from "./02-storage.ts";
 import { guides as mvcc } from "./03-mvcc.ts";
 import { guides as vacuum } from "./04-vacuum.ts";
+import { guides as isolation } from "./05-isolation.ts";
+import { guides as locking } from "./06-locking.ts";
 import type { Guide } from "./types.ts";
 
-export const GUIDES: Record<string, Guide> = { ...storage, ...mvcc, ...vacuum };
+export const GUIDES: Record<string, Guide> = {
+  ...storage,
+  ...mvcc,
+  ...vacuum,
+  ...isolation,
+  ...locking,
+};
