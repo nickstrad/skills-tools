@@ -2,7 +2,7 @@
 
 2026-09-04. The authority is `docs/learning_path.md`, `docs/AUTHORING.md`, and the checked-in
 curriculum-author skill. This is a deep Linux substrate course, not a command survey or a substitute
-for the networking, Docker, systemd, or tracing projects.
+for the networking, container internals, or tracing projects.
 
 ## Outcome and scope
 
@@ -69,3 +69,11 @@ check; report unrelated failures without changing concurrent PostgreSQL/SQLite w
 Commit and push this plan and the restart handoff before implementation, then each reviewed unit
 with generated artifacts and updated `handoff.md`. Never stage the whole repository. Keep per-change
 results in `validation/` and reusable discoveries in `docs/knowledge/`.
+
+## Completion — 2026-09-04
+
+All four designs accepted after primary review. The 72 stable lessons now connect bounded evidence
+to explicit learner decisions, with runnable variations and a service recovery incident. Primary
+verified all 72 lessons and all 72 authored variations, exercised privileged branches, rejected two
+negative service cases, checked isolated progress preservation, and passed repository checks and 30
+tests. See handoff.md and validation/ for the restart record and actual evidence.

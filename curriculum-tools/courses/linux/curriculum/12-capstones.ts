@@ -30,6 +30,7 @@ A slow task can compete for its allowed CPU even when the machine has idle CPUs 
 
 - **Lab paths and shell control.** LINUX_LAB selects the directory; the HOME fallback is used only when it is empty. **mkdir -p** creates it idempotently. UID and the shell PID ($$) distinguish this run's names. Quoted expansions keep paths intact. **printf** prints labeled values; **$(...)** captures output, and **$((...))** performs integer arithmetic.
 - **Ownership and cleanup.** **&** starts a child and **$!** records its exact PID. **trap ... EXIT** installs cleanup before the child starts. **kill** requests termination and **wait** reaps that child; **|| true** tolerates an already exited child during cleanup. **rm -f** removes only named lab files, and **trap - EXIT** clears the handler after explicit cleanup. Readiness loops use **test/[ ]**, **break**, and **sleep** to wait for observed state within a fixed bound; an assertion failure exits the experiment's subshell, not your terminal.
+- **: > "$PIDS"** creates or empties the run-specific PID record; the colon is Bash’s successful no-op.
 - **python3 -c** runs the supplied helper. **os.sched_getaffinity(0)** reads this process's permitted CPUs; **min** chooses a valid CPU even in a restricted container. **taskset -c "$cpu"** restricts each child to that CPU. The Python worker uses **time.monotonic** for a six-second wall-time bound.
 - **python3 - "$PIDS"** reads a program from the quoted PROBE here-document and the PID file from its first argument. **rsplit(')',1)** skips the parenthesized process name safely. The following fields 11 and 12 are user and system ticks; the helper subtracts two samples one second apart and asserts each worker executed. It prints affinity again to verify placement.
 - **ps -o pid=,stat=,psr=,pcpu=,time=** selects PID, state, last processor, lifetime CPU percentage and accumulated CPU time; equals signs suppress headings. **-p** selects only our comma-separated PIDs. **tr** converts newlines to commas and **sed 's/,$//'** removes the final comma.
@@ -104,7 +105,7 @@ printf 'cleanup=done\n'
       title: "Triage bounded anonymous memory growth",
       difficulty: "advanced",
       tags: ["troubleshooting", "virtual-memory", "resource-limits"],
-      prerequisites: ["observe-page-faults", "enforce-cgroup-budget"],
+      prerequisites: ["compare-rss-and-vsz", "inspect-cgroup-v2"],
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 17,
@@ -478,6 +479,8 @@ printf 'cleanup=done\n'
       difficulty: "advanced",
       tags: ["troubleshooting", "sockets", "file-descriptors", "processes", "filesystem"],
       prerequisites: [
+        "process-states",
+        "signal-disposition",
         "triage-cpu-saturation",
         "triage-memory-growth",
         "triage-fd-leak",
@@ -486,7 +489,7 @@ printf 'cleanup=done\n'
       ],
       safetyLevel: "writes-data",
       runIn: "shell",
-      estimatedMinutes: 22,
+      estimatedMinutes: 30,
       revision: 2,
       overview:
         code`A loopback service still has a listening socket, but a bounded health request receives no answer. Its process also holds a deleted log and several open files. Decide which observation explains the outage, which observations describe retained resources, and what evidence would prove availability recovered.`,

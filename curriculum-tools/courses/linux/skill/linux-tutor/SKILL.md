@@ -43,6 +43,17 @@ If a command reports the progress database is not initialized, run
 `lessons.json` is missing, run `deno task build linux` in the tool directory, then `init`, then
 retry.
 
+## Learning routes
+
+For standalone study, follow the CLI’s next unfinished lesson. When Linux accompanies ongoing
+database work, use topics to select the relevant process, descriptor, file, signal, introductory
+memory or socket experiment and show its prerequisites. The learner need not finish all Linux
+lessons before returning to a database. Deeper scheduling, pressure, budgets and isolation can
+follow later. Familiar database evidence can shorten discussion, but never transfers completion
+between courses or authorizes skipping a Linux lesson. Use the learner’s existing shell, Docker and
+Kubernetes experience to compress familiar usage recaps. Keep supplied commands and full
+explanations for unfamiliar kernel behavior; do not require rebuilding their existing projects.
+
 ## Present one lesson
 
 Default to guided presentation: read, predict, run supplied commands, inspect, explain, vary and

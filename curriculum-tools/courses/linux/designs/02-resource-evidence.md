@@ -24,3 +24,13 @@ build and run all owned lessons and new variations, and report each evidence lin
 results. Record skips honestly and report any runtime defect to the primary. Copy only owned
 modules/report back; do not modify shared artifacts, PLAN or commit. Primary owns final wording and
 review.
+
+## Primary review additions
+
+Review found three claims requiring a primary semantic pass after delegated delivery: atomic rename
+must reject an empty read rather than invent a missing-destination gap; host df changes must be
+sampled context while descriptor ownership proves hidden space; and the residency probe must sync
+newly written pages before advisory discard and avoid a monotonic-residency guarantee. Clarify that
+readlink -f permits a missing final path component and use stat -L to test target existence.
+Validate the exact published variations, including changed numeric assertions, rather than miniature
+proxy scripts.

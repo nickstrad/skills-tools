@@ -13,10 +13,24 @@ export const CPU: Module = {
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
+      revision: 2,
       overview:
         code`Run a bounded CPU loop and an equal-duration sleep under GNU time. Their wall durations are similar, but only the loop consumes substantial user CPU, separating elapsed waiting from processor execution.`,
-      syntaxBreakdown:
-        code`/usr/bin/time records user CPU and elapsed seconds; Python time.monotonic bounds a loop; sleep waits without runnable work; awk compares decimal measurements.`,
+      syntaxBreakdown: code`### In plain terms
+
+Two actions take similar elapsed time: one sleeps and one consumes CPU. Their time records show why latency and processor demand are separate measurements.
+
+### What you are learning
+
+- Wall time includes waiting; user CPU time counts execution.
+- Bounded work avoids turning a measurement lesson into host load.
+
+### Piece by piece
+
+- **/usr/bin/time -f** (external timer and format flag): **-f** emits selected user and elapsed fields; the absolute path avoids Bash's time keyword.
+- **time.monotonic** (Python clock): bounds the busy loop near 0.8 seconds without a wall-clock adjustment.
+- **sleep 0.8** (blocking action): waits for elapsed time without intentional CPU work.
+- **awk** (field reader): extracts labelled values and checks the relationship rather than an exact duration.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -43,6 +57,8 @@ printf 'cleanup=done\n'
         code`cpu_time_higher_for_loop=yes and wall_measurements=recorded. Both wall measurements are near the bounded 0.8-second action, while CPU user time for sleep is near zero; exact values vary.`,
       systemsLens:
         code`Wall time includes runnable, blocked, and sleeping intervals; CPU time counts time actually executing on a processor. Queueing systems, latency budgets, and capacity plans need both views.`,
+      challenge:
+        "**Predict:** For a 0.2-second sleep, which time field changes materially?\n\n**Inspect and explain:** Run **/usr/bin/time -f 'user=%U wall=%e' sleep 0.2** and explain why a wall delay is not CPU saturation evidence.\n\n**Vary:** Use exactly 0.2 seconds.\n\n**Hint:** Use external **/usr/bin/time**, not the shell keyword.\n\n**Apply:** Name both measurements to collect before scaling a latency-bound service.",
     },
     {
       slug: "load-average-runnable-work",
@@ -53,10 +69,24 @@ printf 'cleanup=done\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 14,
+      revision: 2,
       overview:
         code`Start at most four short CPU workers, release them together, and sample /proc/loadavg while they are busy. The instantaneous runnable count is evidence of scheduler demand; smoothed averages are intentionally not treated as immediate counters.`,
-      syntaxBreakdown:
-        code`nproc bounds worker count; marker files coordinate readiness and release; /proc/loadavg field four exposes runnable tasks; Python performs a bounded monotonic loop; exact PIDs are waited.`,
+      syntaxBreakdown: code`### In plain terms
+
+Several short workers wait at one gate and become runnable together. Loadavg field four gives an instantaneous runnable/total count; smoothed load and other host work are not attributed to these workers.
+
+### What you are learning
+
+- Runnable count is demand evidence, not CPU utilization.
+- Marker files make a bounded concurrent release observable.
+
+### Piece by piece
+
+- **nproc** and the cap at 4: choose no more than four workers regardless of host size.
+- **READY directory** and **RUN file**: each helper writes a marker then waits for RUN, avoiding a startup sample.
+- **/proc/loadavg field 4**: awk takes the runnable side before the slash; it is host-wide snapshot evidence.
+- **time.monotonic()+0.9** and **wait**: bound every busy loop and reap every recorded PID.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -105,6 +135,8 @@ printf 'cleanup=done\n'
         code`workers_started is between 1 and 4, runnable_during is at least 1, runnable_work=observed, and cleanup=done. runnable_before and load averages vary with other host activity.`,
       systemsLens:
         code`Load average tracks runnable and uninterruptible demand over time, not a direct CPU-percentage reading. A small workload can increase queueing pressure even when aggregate utilization is hard to interpret across many CPUs.`,
+      challenge:
+        '**Predict:** With one worker instead of four, must runnable_during equal one?\n\n**Inspect and explain:** Compare the runnable count with the worker count and account for unrelated host work.\n\n**Vary:** Rerun the complete lesson, replacing if [ "$workers" -gt 4 ]; then workers=4; fi with if [ "$workers" -gt 1 ]; then workers=1; fi. Keep readiness gates and exact-PID cleanup.\n\n**Hint:** The slash-separated field is runnable over total tasks.\n\n**Apply:** Explain why load alone cannot identify a CPU-incident process.',
     },
     {
       slug: "observe-context-switches",
@@ -115,10 +147,23 @@ printf 'cleanup=done\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Keep a sleeper and a bounded CPU loop alive together, then read each task's voluntary and nonvoluntary context-switch counters. The counters show that blocking and scheduler preemption are observable consequences of different execution paths.`,
-      syntaxBreakdown:
-        code`/proc/PID/status exposes voluntary_ctxt_switches and nonvoluntary_ctxt_switches; kill and wait provide exact cleanup; Python's monotonic loop remains bounded.`,
+      syntaxBreakdown: code`### In plain terms
+
+A sleeper and a busy helper remain alive long enough to inspect process counters. They demonstrate possible blocking and scheduler handoffs, though one sample cannot assign every switch cause.
+
+### What you are learning
+
+- Voluntary switches commonly accompany blocking.
+- Nonvoluntary switches depend on competition and available CPUs.
+
+### Piece by piece
+
+- **sleep 1** and the monotonic Python loop: create one blocking and one runnable task for bounded intervals.
+- **/proc/PID/status**: awk selects voluntary_ctxt_switches and nonvoluntary_ctxt_switches by name for each exact PID.
+- **kill**, **wait**, and **trap**: target, reap, and protect only the two recorded helpers.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -149,6 +194,8 @@ printf 'cleanup=done\n'
         code`All four labeled counters are nonempty, switch_counters_present=yes, and cleanup=done. The sleeper normally accumulates voluntary switches; CPU nonvoluntary counts depend on CPU availability and kernel scheduling.`,
       systemsLens:
         code`A context switch records a change of the running task. Voluntary switches commonly accompany sleep or blocking I/O, while nonvoluntary switches reflect scheduler decisions such as time-slice expiry or competition.`,
+      challenge:
+        "**Predict:** If the busy helper is replaced with sleep, which comparison becomes less informative?\n\n**Inspect and explain:** Compare each process’s two counters and state what a single snapshot cannot tell you about switch rates.\n\n**Vary:** Rerun the complete lesson, replacing the entire background python3 busy-loop command with sleep 0.8 &. Keep the following PID assignment and both counter observations.\n\n**Hint:** Counters are process-local snapshots and may start nonzero.\n\n**Apply:** State what workload and CPU-placement evidence is needed before acting on a switch counter.",
     },
     {
       slug: "change-scheduling-priority",
@@ -159,11 +206,25 @@ printf 'cleanup=done\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 15,
-      revision: 2,
+      revision: 3,
       overview:
-        code`Run two equal CPU workers on one allowed CPU, one at nice 0 and one at nice 10. Verify scheduler-visible priorities and compare work counts as a noisy demonstration of weighted fair sharing, not a fixed ratio.`,
-      syntaxBreakdown:
-        code`nice -n adds to the niceness the worker inherits from this shell (ps -o ni on $$ records that baseline); taskset -c constrains one CPU; ps -o ni reads priority; Python records bounded loop iterations to lab files.`,
+        code`Run two equal CPU workers on one allowed CPU, one with nice increment 0 and one with increment 10 relative to this shell. Verify scheduler-visible priorities and compare work counts as a noisy demonstration of weighted fair sharing, not a fixed ratio.`,
+      syntaxBreakdown: code`### In plain terms
+
+Two equal busy workers share one allowed CPU but receive different nice increments. The assertion is their difference from the inherited shell nice value; work counts are noisy context, never a promised ratio.
+
+### What you are learning
+
+- **nice -n** adds an increment to inherited niceness; it is not an absolute request.
+- Affinity creates bounded contention so relative weight is observable.
+
+### Piece by piece
+
+- **Cpus_allowed_list**: select the first CPU the shell may use, never a guessed CPU.
+- **taskset -c CPU**: **-c** accepts a CPU list and confines both workers to one allowed CPU.
+- **nice -n 0** and **nice -n 10**: **-n** supplies relative increments from the observed shell baseline.
+- **ps -o ni= -p PID**: **-o** selects niceness, **=** removes a heading, and **-p** selects the exact worker; the 10-point delta is the evidence.
+- **time.monotonic**, result files, **wait**, and **trap**: bound loops, collect counts, and clean only recorded workers.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -208,6 +269,8 @@ printf 'cleanup=done\n'
         code`nice0_observed equals shell_nice (0 in a normal interactive shell), nice10_observed is exactly 10 higher, priority_difference=10, both_workers_completed=yes, and cleanup=done. Work counts are positive but their ratio varies with host scheduling.`,
       systemsLens:
         code`Niceness changes a task's weight in fair scheduling; it does not reserve a CPU or guarantee a ratio. This distinction matters when translating service priority into latency and throughput expectations.`,
+      challenge:
+        "**Predict:** If the parent shell has nice 5, what niceness does **nice -n 10** request?\n\n**Inspect and explain:** Run **ps -o ni= -p $$; nice -n 1 bash -c 'ps -o ni= -p $$'** and explain why the second value is relative.\n\n**Vary:** Use increment one only.\n\n**Hint:** Record parent baseline before interpreting worker output.\n\n**Apply:** Decide whether nice alone protects an interactive service from batch work.",
     },
     {
       slug: "pin-cpu-affinity",
@@ -218,10 +281,24 @@ printf 'cleanup=done\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Choose the first CPU allowed to this shell, pin a bounded helper there, and inspect its kernel affinity list and current processor. Affinity narrows placement without changing the helper's code or host-wide scheduler policy.`,
-      syntaxBreakdown:
-        code`Cpus_allowed_list in /proc/PID/status reports a mask; taskset -pc changes one exact PID; ps -o psr samples the current processor; a readiness file bounds the race.`,
+      syntaxBreakdown: code`### In plain terms
+
+The lesson selects an already-allowed CPU and restricts one live helper to it. Its allowed list proves the change; the sampled current CPU is supporting evidence and can disappear when the helper exits.
+
+### What you are learning
+
+- Affinity narrows legal placement for one task.
+- Current-CPU sampling is transient; allowed-list state is configuration evidence.
+
+### Piece by piece
+
+- **Cpus_allowed_list**: read the shell’s allowed set then the helper’s changed set by field name.
+- **taskset -pc CPU PID**: **-p** targets an existing PID and **-c** uses CPU-list notation; it changes only the recorded helper.
+- **ps -o psr= -p PID**: **psr** is a processor sample; blank output means the short helper exited before reading.
+- **READY**, **wait**, and **trap**: avoid an affinity race and release only that helper.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -254,6 +331,8 @@ printf 'cleanup=done\n'
         code`allowed_list equals chosen_cpu, affinity_constrained=yes, and cleanup=done. observed_cpu is a sample and may be blank if the short helper exits between reads; it cannot be outside the allowed list while running.`,
       systemsLens:
         code`CPU affinity restricts one task's scheduler placement set. Pinning can improve cache locality or isolate noisy work, but it can also create a smaller bottleneck when the set is too narrow.`,
+      challenge:
+        '**Predict:** If a helper is allowed on two CPUs, can psr still print only one at a time?\n\n**Inspect and explain:** Explain the difference between the allowed CPU set and one observed processor.\n\n**Vary:** Rerun the complete lesson and insert taskset -pc "$p" immediately after the psr assignment, while the helper is alive. Compare this queried affinity with the sampled processor before cleanup.\n\n**Hint:** Never choose a CPU absent from Cpus_allowed_list.\n\n**Apply:** State what latency and queueing evidence to check before pinning production work.',
     },
     {
       slug: "set-io-priority",
@@ -264,10 +343,24 @@ printf 'cleanup=done\n'
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
+      revision: 2,
       overview:
         code`Make a bounded reader hold a lab-file read while its I/O class is set to idle, then query it with ionice. Comparing that class with the shell's class demonstrates that I/O scheduling is a separate axis from CPU niceness.`,
-      syntaxBreakdown:
-        code`ionice -c 3 assigns idle I/O class; ionice -p queries one exact PID; a bounded Python read keeps the target alive; trap waits and removes the lab file.`,
+      syntaxBreakdown: code`### In plain terms
+
+This assigns one live reader the idle I/O class, then queries its class separately from CPU niceness. It proves configured state, not a disk-throughput promise, because cache and the active I/O scheduler vary by host.
+
+### What you are learning
+
+- I/O class and CPU nice are separate scheduling dimensions.
+- Querying the target PID is required evidence of an intervention.
+
+### Piece by piece
+
+- **dd ... count=4**: creates a bounded four-MiB lab file for the reader.
+- **ionice -c 3 -p PID**: **-c 3** requests idle class and **-p** targets only the recorded PID.
+- **ionice -p PID**: prints the worker class; the shell query is comparison context.
+- **READY**, **time.sleep(1)**, **wait**, and **trap**: keep the reader alive for inspection then clean exact paths and PID.`,
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -300,6 +393,8 @@ printf 'cleanup=done\n'
         code`io_change=applied, worker_ionice contains idle, io_class=idle, and cleanup=done. The shell's class may be none or best-effort and is printed only for comparison.`,
       systemsLens:
         code`CPU scheduling weight and block-device I/O class affect different queues. A process can be CPU-favored yet I/O-deprioritized, so incident diagnosis must inspect both dimensions.`,
+      challenge:
+        '**Predict:** Does idle I/O class change the worker\'s CPU nice value?\n\n**Inspect and explain:** Explain why the queried I/O class and CPU nice value describe different scheduling policies.\n\n**Vary:** Rerun the complete lesson and insert ps -o ni= -p "$p" immediately after worker=$(ionice ...) captures the changed I/O class. Compare CPU niceness with I/O class before cleanup.\n\n**Hint:** Cached read throughput cannot prove I/O scheduling behavior.\n\n**Apply:** Name one CPU and one I/O measurement for a slow background compaction job.',
     },
   ],
 };

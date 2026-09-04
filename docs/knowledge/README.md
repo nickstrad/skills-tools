@@ -14,6 +14,7 @@ otherwise rediscover.
 | [validation-harness.md](validation-harness.md) | How `tools/validate.ts` drives a course, why "completed" is not "passed", how to isolate parallel runs, and how to read evidence. |
 | [subagent-workflow.md](subagent-workflow.md) | Directed delegation, owned files, evidence-based acceptance and primary writing/review across the Opus and Luna/high course passes. |
 | [shell-lesson-gotchas.md](shell-lesson-gotchas.md) | Pitfalls in Bash lessons (Linux course): `String.raw` code fields, `set -e` leaks, relative `nice`, two-session coordination files, `sudo`/`as_root`, mounts in subshells. |
+| [linux-evidence-and-variations.md](linux-evidence-and-variations.md) | Linux causal evidence, actual challenge validation, request/reply recovery, and sandbox versus lab capability boundaries. |
 | [command-inventory-extraction.md](command-inventory-extraction.md) | How to derive a course's real command inventory from `lessons.json`, including the wrapper and quoting cases a naive grep misses. |
 | [sqlite-lesson-gotchas.md](sqlite-lesson-gotchas.md) | SQLite feature probes, REPL quoting, page-size-dependent recovery, error classification, shell isolation and readiness-marker pitfalls. |
 | [sqlite-curriculum-design.md](sqlite-curriculum-design.md) | Design SQLite as a second systems course and avoid false evidence in retry, checkpoint, benchmark, offline-history and toolkit experiments. |

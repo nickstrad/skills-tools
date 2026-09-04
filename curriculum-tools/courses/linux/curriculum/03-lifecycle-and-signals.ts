@@ -1,5 +1,12 @@
 import { code, type Module } from "../../../src/types.ts";
 
+const explain = (plain: string, learning: string[], pieces: string[]) =>
+  `### In plain terms\n\n${plain}\n\n### What you are learning\n\n${
+    learning.map((x) => `- ${x}`).join("\n")
+  }\n\n### Piece by piece\n\n${pieces.map((x) => `- ${x}`).join("\n")}`;
+const challenge = (predict: string, inspect: string, vary: string, hint: string, apply: string) =>
+  `**Predict.** ${predict}\n\n**Inspect and explain.** ${inspect}\n\n**Vary.** ${vary}\n\n**Hint.** ${hint}\n\n**Apply.** ${apply}`;
+
 export const LIFECYCLE: Module = {
   category: "lifecycle-and-signals",
   title: "Control process lifetime, exit, and signal delivery",
@@ -13,10 +20,22 @@ export const LIFECYCLE: Module = {
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
+      revision: 2,
       overview:
         code`Run equal bounded sleeps in the foreground and background, measuring when the shell returns and when the work completes. The shell is a process supervisor that decides whether to wait immediately.`,
-      syntaxBreakdown:
-        code`An ampersand starts asynchronous work; $! records its PID; jobs lists shell jobs; date +%s%N supplies nanosecond timestamps; wait joins a child and returns its completion status.`,
+      syntaxBreakdown: explain(
+        "Equal sleeps show two shell supervision choices. The elapsed numbers are samples under current load, while the ordering relationship is the observation to defend.",
+        [
+          "Foreground work blocks the shell before its next command.",
+          "Background work returns control before an explicit join.",
+        ],
+        [
+          "**date +%s%N** prints a nanosecond-resolution epoch sample; subtracting two values with **$((...))** yields integer milliseconds. The **-lt** and **-ge** numeric tests compare those integer values; the challenge changes the supplied total-time lower bound with its shorter sleep.",
+          "A foreground **sleep 0.25** holds the shell. **sleep 0.25 &** backgrounds a child and **$!** records it.",
+          "**jobs -l** is a Bash job-table view; it is supporting observation, not the PID authority.",
+          "**wait PID** joins the child before measuring total duration. `foreground_ms`, `background_return_ms`, and `background_total_ms` vary with scheduling; the final relation is the check.",
+        ],
+      ),
       code: code`
 start_ns=$(date +%s%N)
 sleep 0.25
@@ -40,6 +59,13 @@ if [ "$background_return_ms" -lt "$foreground_ms" ] && [ "$background_total_ms" 
         code`foreground_ms is about 250 or more, background_return_ms is much smaller than foreground_ms, background_total_ms is at least 200, and shell_wait_relationship=observed. Exact timing varies with scheduler load; wait ensures the background child is reaped.`,
       systemsLens:
         code`Foreground execution couples the shell's next command to child completion; background execution separates submission from join. This is the basic supervision choice behind worker pools and asynchronous service startup.`,
+      challenge: challenge(
+        "Before running, how should foreground duration, background return time, and background total time relate?",
+        "Explain which timestamp brackets submission and which brackets completion.",
+        "In a full rerun, change both sleeps to 0.10 seconds and change the `background_total_ms -ge 200` assertion to `-ge 80` before comparing the same relationship.",
+        "Keep wait after the job listing so the background child is reaped; update the lower bound before the assertion executes.",
+        "Choose whether a service launcher should wait for readiness, completion, or neither, and name the evidence.",
+      ),
     },
     {
       slug: "wait-and-exit-status",
@@ -50,10 +76,21 @@ if [ "$background_return_ms" -lt "$foreground_ms" ] && [ "$background_total_ms" 
       safetyLevel: "read-only",
       runIn: "shell",
       estimatedMinutes: 8,
+      revision: 2,
       overview:
         code`Launch one child that exits successfully and one that exits with status 7, then capture both wait results. Exit status is a compact completion message from child to parent.`,
-      syntaxBreakdown:
-        code`bash -c runs an explicit child command; exit selects its status; wait joins a specific PID; $? is the status of the immediately preceding command, so capture it before another command runs.`,
+      syntaxBreakdown: explain(
+        "Two children make completion values visible. A nonzero exit is deliberately captured immediately, so it remains evidence instead of becoming an accidental shell failure.",
+        [
+          "Exit status is a small parent-visible completion channel.",
+          "The value of `$?` is overwritten by the next command.",
+        ],
+        [
+          "**bash -c 'exit N' &** starts a child with an explicit status and **$!** records its PID.",
+          "**wait PID** both joins the selected child and sets **$?** to its status. The assignment immediately following each wait preserves that value.",
+          "The printed PID/status pairs identify which child supplied 0 and 7. `exit_channel=preserved` compares the two intentional outcomes.",
+        ],
+      ),
       code: code`
 bash -c 'exit 0' &
 success_pid=$!
@@ -71,6 +108,8 @@ if [ "$success_status" -eq 0 ] && [ "$failure_status" -eq 7 ]; then printf 'exit
         code`success_status=0 and failure_status=7, with exit_channel=preserved. Child PIDs vary. The nonzero wait is intentionally captured, so it is evidence rather than an accidental validator failure.`,
       systemsLens:
         code`A wait status is an intentionally lossy result channel: it records success, application failure, or signal termination for the parent. Supervisors use this channel to choose retry, alert, or shutdown policy.`,
+      challenge:
+        "**Predict.** Before running, what status should the parent retain from the intentionally nonzero child?\n\n**Inspect and explain.** Point out why inserting printf between wait and the status assignment would destroy the evidence.\n\n**Vary.** Rerun the full block with exit 7 changed to exit 9 and the failure_status comparison changed from -eq 7 to -eq 9.\n\n**Hint.** Capture `$?` on the next line after the wait.\n\n**Apply.** Map status 0, a known application failure, and signal termination to three supervisor actions.",
     },
     {
       slug: "pipelines-are-processes",
@@ -81,11 +120,22 @@ if [ "$success_status" -eq 0 ] && [ "$failure_status" -eq 7 ]; then printf 'exit
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
-      revision: 2,
+      revision: 3,
       overview:
         code`Run a two-process pipeline whose left member fails after recording its PID. Inspect both member PIDs and Bash's PIPESTATUS vector to show that a pipeline is concurrent process composition, not one command.`,
-      syntaxBreakdown:
-        code`A pipe connects stdout to stdin; $? is the whole pipeline's status, which is the last member's unless pipefail selects the last nonzero one; PIPESTATUS records each member's status and is overwritten by the next command, so both are captured in one assignment line right after the pipeline; export passes lab filenames to pipeline children.`,
+      syntaxBreakdown: explain(
+        "A pipeline has two concurrent processes and several status views. The left side fails after producing a record; pipefail makes that upstream failure visible in the pipeline result.",
+        [
+          "A pipe connects one process's stdout to another's stdin.",
+          "PIPESTATUS is per-member evidence and is overwritten by later commands.",
+        ],
+        [
+          "**|** creates the kernel pipe. The first **bash -c** exits 7, while **cat** succeeds, so the first pipeline's ordinary `$?` is 0.",
+          "**set -o pipefail** changes Bash's whole-pipeline status to the rightmost nonzero member; **set +o pipefail** restores the initial policy.",
+          "The children write **BASHPID** into exported lab paths. **> /dev/null** discards the first test output; **cat > FILE** captures the second pipeline payload.",
+          "`pipeline_status=$? left_status=${PIPESTATUS[0]} right_status=${PIPESTATUS[1]}` must be one assignment line: it retains both pipeline and member results before any command overwrites them.",
+        ],
+      ),
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -116,6 +166,8 @@ trap - EXIT
         code`left_pid and right_pid are distinct positive PIDs; pipeline_output=left-output; status_without_pipefail=0 because the last member (cat) succeeded; left_status=7 right_status=0 pipeline_status=7 because pipefail reports the last nonzero member; and pipeline_members=failed-left-successful-right.`,
       systemsLens:
         code`Pipelines form a process graph joined by kernel pipes. A supervisor that reports only the final reader's status can hide an upstream failure, just as a distributed pipeline can hide a failed producer behind a healthy sink.`,
+      challenge:
+        "**Predict.** Before running, how do you predict the ordinary pipeline status and pipefail status will differ?\n\n**Inspect and explain.** Explain why the output file can contain left-output despite the left member's failure.\n\n**Vary.** Rerun the full block with both exit 7 commands changed to exit 3 and both -eq 7 comparisons changed to -eq 3. Keep the immediate combined status assignment.\n\n**Hint.** Do not insert a command between the pipeline and its combined status assignment.\n\n**Apply.** State which per-stage status a multi-step ingestion service should retain for diagnosis.",
     },
     {
       slug: "signal-disposition",
@@ -126,11 +178,22 @@ trap - EXIT
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 12,
-      revision: 2,
+      revision: 3,
       overview:
         code`Install a TERM handler in one child, wait for its readiness record, and send SIGTERM. The child converts asynchronous delivery into a durable receipt and a clean exit.`,
-      syntaxBreakdown:
-        code`trap installs a signal disposition; kill -0 probes existence without delivering a signal; kill -TERM requests graceful handling; wait captures the resulting exit status; a polling loop bounds readiness. The child runs its sleep in the background and blocks in wait, because Bash runs a trap only after the foreground command it is waiting for returns: a child written as trap ...; sleep 30 would receive TERM immediately but act on it 30 seconds later.`,
+      syntaxBreakdown: explain(
+        "A child advertises readiness, receives TERM, writes a receipt, and exits cleanly. The timing is sampled evidence of this shell's handler path, not a universal shutdown deadline.",
+        [
+          "A signal disposition is process policy for asynchronous delivery.",
+          "A foreground Bash wait would delay a trap, so the child waits on a background sleep.",
+        ],
+        [
+          "**trap ... TERM** installs the child's handler. It kills its recorded background sleep, writes `term_received`, and exits 0.",
+          "**: > READY_FILE** creates the readiness marker; the fixed **for** loop with **sleep 0.05** bounds the parent's wait.",
+          "**kill -0 PID** probes liveness without delivery. **kill -TERM PID** requests the handler path, and **wait** captures its status.",
+          "The two **date +%s%N** samples calculate `term_handled_ms`; scheduler load can move it, while receipt and exit status prove the chosen policy.",
+        ],
+      ),
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -164,6 +227,13 @@ trap - EXIT
         code`ready=yes, alive_before_term=yes, term_receipt=term_received, term_exit_status=0, term_handled_ms well under 1000, and handler_ran_promptly=yes. The handler chose a clean exit as soon as TERM arrived, killing its own 30-second sleep on the way out; readiness polling is bounded at ten short attempts.`,
       systemsLens:
         code`Signals are asynchronous requests interpreted by a process's disposition. Graceful shutdown is therefore a protocol—readiness, signal, drain, exit—not merely a numeric kill command.`,
+      challenge: challenge(
+        "Before running, what ordering should the readiness marker, TERM request, receipt, and wait result have?",
+        "Explain why the child uses `sleep 30 & ... wait` instead of foreground sleep.",
+        "Change only the readiness poll delay to 0.02 seconds and retain its finite attempt count.",
+        "Do not send TERM until READY_FILE exists.",
+        "Define the readiness, drain, and exit evidence required for a graceful worker shutdown.",
+      ),
     },
     {
       slug: "graceful-and-forced-stop",
@@ -174,11 +244,22 @@ trap - EXIT
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 10,
-      revision: 2,
+      revision: 3,
       overview:
         code`Give one child a TERM handler and send KILL to another identical sleeper. Their wait statuses expose the difference between cooperative cleanup and kernel-enforced termination.`,
-      syntaxBreakdown:
-        code`SIGTERM is catchable; SIGKILL cannot be caught or delayed; wait returns 128 plus the terminating signal number for a signalled child; the graceful child blocks in wait on a background sleep so its trap runs the moment TERM arrives (see lesson 16); trap ensures exact-PID fallback cleanup.`,
+      syntaxBreakdown: explain(
+        "Two recorded children receive different termination requests. One handles TERM and exits by policy; KILL ends the other in the kernel before it can run cleanup.",
+        [
+          "SIGTERM is catchable and cooperative.",
+          "SIGKILL is uncatchable; signalled wait status is shell-reported evidence.",
+        ],
+        [
+          "The graceful **bash -c** starts a background sleep, installs **trap ... TERM**, then **wait**s so its handler can run promptly.",
+          "The second **sleep 30 &** has no handler. **$!** records each PID and the EXIT trap has exact-PID forced fallback cleanup.",
+          "**kill -TERM** requests policy while **kill -KILL** ends the selected process. Each **wait** returns a status captured immediately.",
+          "`both_stopped_ms` is a timing sample; 137 commonly means 128 plus SIGKILL 9, but the labeled statuses identify the causal branch.",
+        ],
+      ),
       code: code`
 graceful_pid=
 forced_pid=
@@ -206,6 +287,13 @@ trap - EXIT
         code`graceful_status=0 and forced_status=137 (128+SIGKILL), producing stop_modes=cooperative-versus-kernel, with both_stopped_ms well under 1000 even though both children were sleeping for 30 seconds. If a shell reports a platform-specific signalled status, the labels still identify which exact child received each signal.`,
       systemsLens:
         code`TERM leaves policy to the application; KILL removes that policy and ends the task in the kernel. Operators need both paths: graceful draining for correctness and forced bounds for stuck processes.`,
+      challenge: challenge(
+        "Before running, what completion statuses do you predict for the TERM-handling child and the KILLed child?",
+        "Explain why a short elapsed sample does not prove that arbitrary TERM handlers are fast.",
+        "Change only the graceful child sleep to 5 seconds and repeat the same signal sequence.",
+        "Keep both recorded PIDs and the exact cleanup trap.",
+        "Specify the escalation deadline and evidence you would require before replacing TERM with KILL in production.",
+      ),
     },
     {
       slug: "zombies-and-orphans",
@@ -216,10 +304,22 @@ trap - EXIT
       safetyLevel: "writes-data",
       runIn: "shell",
       estimatedMinutes: 18,
+      revision: 2,
       overview:
         code`Use a bounded Python parent that leaves one exited child unreaped briefly and lets another child outlive it. Observe a Z state before wait, then compare the orphan's parent PID before and after reparenting.`,
-      syntaxBreakdown:
-        code`fork creates children; os._exit ends a child without Python cleanup; ps stat exposes Z; os.waitpid reaps a zombie; os.getppid reports the current parent; polling avoids an unbounded race.`,
+      syntaxBreakdown: explain(
+        "A bounded Python parent leaves one exited child unreaped briefly and lets another outlive it. The resulting state samples distinguish a zombie status record from an orphan's new parent relationship.",
+        [
+          "Exit and reaping are separate lifecycle events.",
+          "Orphan reparenting depends on the host's init or configured subreaper.",
+        ],
+        [
+          "**os.fork** creates the zombie and orphan children. **os._exit** ends a child without Python cleanup; **os.waitpid(z,0)** later reaps the zombie.",
+          "The Python helper writes its three PIDs and uses **time.sleep** to create bounded observation windows. **$!** records the outer Python parent for exact trap cleanup.",
+          "The shell polls fixed attempts for the PID and report files. **ps -o stat=** samples the zombie state; **awk -F=** reads before/after parent IDs.",
+          "`zombie_state=Z` and differing orphan PPIDs are observations. The new parent is commonly 1 but may be a subreaper, so the lesson reports a relationship rather than a fixed PID.",
+        ],
+      ),
       code: code`
 LAB=$LINUX_LAB
 if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi
@@ -259,6 +359,13 @@ trap - EXIT
         code`Exit and reaping are separate lifecycle events: a zombie retains a small status record until its parent waits, while an orphan is reparented so it can eventually be reaped. Both are failure modes for supervisors that neglect lifecycle ownership.`,
       caution:
         code`This experiment uses only two exact children and waits for bounded completion. Never generalize it into host-wide process cleanup.`,
+      challenge: challenge(
+        "Before running, which state and parentage changes would distinguish zombie retention from orphan reparenting?",
+        "Identify which labels are timing-sensitive snapshots and which record the causal wait/reparent sequence.",
+        "Change only the Python zombie delay from .25 to .35 seconds and repeat the same bounded checks.",
+        "Leave the PID-file polling and exact-PID trap intact.",
+        "Describe how a supervisor should distinguish unreaped children from workers merely reparented during a restart.",
+      ),
     },
   ],
 };
