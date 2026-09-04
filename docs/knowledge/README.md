@@ -24,6 +24,7 @@ otherwise rediscover.
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |
 | [prior-project-experience.md](prior-project-experience.md) | Pinned source review of Nick's quickspin and task-orchestrator repositories to identify coursework to omit or compress without copying his projects. |
+| [learner-background-sources.md](learner-background-sources.md) | Website, résumé, and prior-reading context for calibrating depth, with self-reported experience distinguished from source-verified implementation. |
 | [linux-database-integration.md](linux-database-integration.md) | Proposal for teaching selected Linux mechanisms inside PostgreSQL/SQLite and adapting the standalone Linux course without duplicating lessons or inferring completion. |
 
 ## Adding a finding

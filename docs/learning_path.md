@@ -50,6 +50,11 @@ that make the current experiment clearer; do not require completion of the entir
 before returning to databases. Preserve PostgreSQL → SQLite as the deliberate database sequence.
 Stage 1 is an early pass through Linux fundamentals, with deeper resource and isolation work later;
 it does not require duplicating lessons or changing their stored order.
+Nick's subsequently reported OSTEP/How Linux Works readings, repeated DDIA readings, and
+[website/résumé background](knowledge/learner-background-sources.md) reinforce this targeted approach.
+For concrete scope, see the [optional eight-lesson Linux route](knowledge/linux-database-integration.md#nicks-optional-early-linux-route):
+continue PostgreSQL and pull in observations as needed, or use a short optional pass. A separate
+Linux course split is not currently prescribed.
 
 Start synthesis incrementally: a supplied worker can use Docker Compose now, the analytical pipeline
 follows object storage, and isolation investigations use familiar containers with selected Linux

@@ -33,6 +33,61 @@ with a different Linux workload. Shared vocabulary alone does not establish equi
 
 ## How to apply
 
+### Nick's optional early Linux route
+
+Updated 2026-09-04 after Nick reported reading OSTEP and How Linux Works recently and DDIA several
+times, and requested a website/résumé review. See the [background sources](learner-background-sources.md).
+Recommendation: continue PostgreSQL; use selected Linux observations alongside it. There is no
+evidence here that an extended Linux prerequisite is needed. The earlier roadmap did not prescribe
+a fixed subset or require completing Linux modules 01–06 before PostgreSQL.
+
+If a separate short pass would be helpful, the following **eight existing lessons** provide a
+candidate route, not a newly authored course or required checklist. Lesson identities and estimates
+were checked through `tutor linux modules`, `list`, and `show NUMBER --json` on 2026-09-04.
+
+| Observation | Linux lesson (ordinal / stable slug) | Database use |
+| --- | --- | --- |
+| Correlate process identity | 9 / `proc-process-identity` | Connect a SQL backend PID to OS evidence. Recap if PostgreSQL process-model work already suffices. |
+| Inherited open-file reference | 21 / `inherited-open-files` | Identify who owns an open resource and how its lifetime extends. |
+| Unlinked file retained by a descriptor | 30 / `deleted-open-file` | Understand pathname removal versus resource reclamation using a disposable helper file. |
+| Path to mount/storage source | 31 / `map-mounts-and-devices` | Locate the filesystem that receives database writes. |
+| Virtual reservation versus resident memory | 38 / `compare-rss-and-vsz` | Interpret process memory without equating virtual size with RAM consumption. |
+| Bounded page-cache observation | 40 / `warm-the-page-cache` | Discuss the OS cache separately from PostgreSQL buffers; faster reads/global counters alone do not prove physical disk behavior. |
+| CPU versus elapsed time | 43 / `cpu-time-vs-wall-time` | Separate execution from waiting before explaining query latency. |
+| Port to process and descriptor | 56 / `map-port-to-process` | Identify the actual listener when investigating connections. |
+
+These are **8 of 72 lessons (about 11%)**, spanning parts of seven modules. Their authored estimates
+sum to **92 minutes**, which excludes coaching, unfamiliar setup, and variations. Allow roughly
+**2–3 hours** for this optional pass with a brief setup recap and a proposed 20–30-minute focused
+`strace` orientation; allow **3–4 hours** if several topics need explanation or variations. These
+are planning estimates, not measured completion times.
+
+Before using the standalone exercises, establish the owned lab directory and required tools and
+review exact-PID cleanup/traps as needed (lessons 1, 3, 6; 28 authored minutes if taken in full).
+Lesson 3 inventories the entire course; only tools needed for the selected route need to be
+available now. Recap PID/PPID, descriptor/inode vocabulary, background children and `wait` where
+unfamiliar. This selection does not establish a validated packaged mini-course with new setup.
+
+Conditional additions: 17 / `graceful-and-forced-stop` before lifecycle/recovery work;
+25 / `paths-and-inodes` before file-lifetime work; 58 / `unix-domain-socket` if local PostgreSQL
+connection evidence requires it. These add 32 authored minutes if all three are useful. Use
+database-specific shutdown instructions when returning to PostgreSQL.
+
+The roadmap's `strace` work is a separate focused workshop, not one of these 72 Linux lessons.
+Its purpose would be to relate calls, descriptors, paths, results, and timing to an owned process,
+then interpret the database course's existing synchronization observations. No new tracing lab is
+implemented or validated by this note. Reuse database evidence when it already answers the question.
+
+An even smaller route is to handle process identity and file lifetime only when needed now, memory
+and cache evidence around PostgreSQL buffer-cache work, and tracing when WAL/durability makes it
+useful. This avoids a separate study interruption. Preserve the later Linux work on reclaim/OOM,
+scheduling/pressure, resource limits/cgroups, socket lifecycle/backlog, namespaces, and service
+incidents; those topics are not all prerequisites for learning PostgreSQL internals.
+
+Keep this as a reading/experiment route through existing lessons for now. Nick asked whether a
+small course would help, not to split or delete the Linux course. No lesson or progress changes
+follow automatically from this recommendation.
+
 ### Start with observation bridges, not a course merger
 
 Prefer a short addition to a relevant database experiment: introduce the kernel concept, predict

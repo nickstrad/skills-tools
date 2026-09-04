@@ -9,6 +9,8 @@ reference.
 Read it before choosing course depth. The
 [prior-project review](knowledge/prior-project-experience.md) uses his repositories to identify
 familiar material to omit or compress; it is not a request to copy those projects.
+The [website and résumé notes](knowledge/learner-background-sources.md) add professional background,
+further project exposure, and provenance for the learner's OS/Linux/DDIA readings.
 
 [`learning_path.md`](learning_path.md) defines the recommended project flow, default local
 software, project depth, optional specialization branches, and cross-project synthesis.
