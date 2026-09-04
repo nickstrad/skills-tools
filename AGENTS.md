@@ -4,6 +4,15 @@ Read [`docs/README.md`](docs/README.md) before working in this repository. It
 indexes the durable research and operational notes that already exist; use those
 documents instead of repeating expensive discovery work.
 
+When planning or revising lessons, consult [`docs/articles/README.md`](docs/articles/README.md)
+for learner-selected articles and interests. Use relevant insights to motivate bounded
+experiments; distinguish the learner's preferences, source claims, and proposed applications.
+
+Read [`docs/learner-profile.md`](docs/learner-profile.md) to calibrate course depth. Nick's KCNA,
+Kubernetes production experience, Docker familiarity, and own repositories inform what to skip
+or shorten; they do not imply that every internals topic is already mastered or authorize copying
+his projects into coursework. Host-init administration is outside the requested learning path.
+
 ## PostgreSQL course and book
 
 The canonical PostgreSQL book material is under

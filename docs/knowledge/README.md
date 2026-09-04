@@ -23,6 +23,8 @@ otherwise rediscover.
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |
+| [prior-project-experience.md](prior-project-experience.md) | Pinned source review of Nick's quickspin and task-orchestrator repositories to identify coursework to omit or compress without copying his projects. |
+| [linux-database-integration.md](linux-database-integration.md) | Proposal for teaching selected Linux mechanisms inside PostgreSQL/SQLite and adapting the standalone Linux course without duplicating lessons or inferring completion. |
 
 ## Adding a finding
 

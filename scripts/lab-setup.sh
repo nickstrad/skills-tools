@@ -16,6 +16,7 @@ set -euo pipefail
 #   SQLITE_VERSION, SQLITE_AUTOCONF_VERSION, SQLITE_RELEASE_YEAR, and
 #   SQLITE_SHA3_256 must be overridden together to select another verified
 #   SQLite release (defaults describe 3.53.4).
+#   LAB_IMAGE_BUILD  Set to 1 during image builds to skip host-kernel packages.
 # ============================================================
 
 NODE_VERSION="${NODE_VERSION:-22}"
@@ -40,28 +41,19 @@ export DEBIAN_FRONTEND=noninteractive
 # ------------------------------------------------------------
 # Environment detection
 #
-# The target is a real droplet, but the script is also exercised inside a
-# container image build (see scripts/docker/) where PID 1 is not systemd
-# and the kernel belongs to the host. Both helpers below are true/false in
-# the way that leaves droplet behaviour exactly as it was.
+# The target is a real droplet, but image builds and containers share the
+# host kernel and should not install packages selected for that kernel.
 # ------------------------------------------------------------
-
-# systemd is the running init, so `systemctl` can manage units.
-# True on a droplet; false in a container image build.
-has_systemd() {
-    [[ -d /run/systemd/system ]]
-}
 
 # Running inside a container, where kernel-specific packages are useless
 # because the kernel is the host's and cannot be replaced from here.
-# The explicit markers cover `docker run` and Podman; a BuildKit image build
-# has none of them (no /.dockerenv, and cgroup v2 reports a bare "0::/"), so
-# fall back to "PID 1 is not systemd", which is never true on a droplet.
+# BuildKit may expose none of the runtime markers, so the Dockerfile sets
+# LAB_IMAGE_BUILD explicitly for the bootstrap command.
 in_container() {
-    [[ -f /.dockerenv ]] \
+    [[ "${LAB_IMAGE_BUILD:-0}" == "1" ]] \
+        || [[ -f /.dockerenv ]] \
         || [[ -f /run/.containerenv ]] \
-        || grep -qaE '(docker|lxc|containerd|kubepods)' /proc/1/cgroup 2>/dev/null \
-        || ! has_systemd
+        || grep -qaE '(docker|lxc|containerd|kubepods)' /proc/1/cgroup 2>/dev/null
 }
 
 echo
@@ -216,15 +208,7 @@ $SUDO apt-get install -y \
     docker-buildx-plugin \
     docker-compose-plugin
 
-# The packages above are all that a container image can get: without
-# systemd there is nothing to start the daemon, and dockerd would need
-# privileges the build does not have. The CLI, buildx and compose plugins
-# are still installed and report their versions.
-if has_systemd; then
-    $SUDO systemctl enable --now docker
-else
-    echo "systemd not running; installed Docker packages without starting the daemon."
-fi
+echo "Docker packages installed. Select a reachable daemon/context before running container labs."
 
 # ------------------------------------------------------------
 # PostgreSQL - official PGDG Apt repository
@@ -262,14 +246,7 @@ $SUDO apt-get install -y \
     postgresql-contrib \
     libpq-dev
 
-# Same reasoning as Docker: the server, client and contrib packages are
-# installed either way, but only a systemd host can run the cluster.
-if has_systemd; then
-    $SUDO systemctl enable postgresql
-    $SUDO systemctl start postgresql
-else
-    echo "systemd not running; installed PostgreSQL without starting a cluster."
-fi
+echo "PostgreSQL packages installed. The course creates and manages its own disposable cluster."
 
 # ------------------------------------------------------------
 # NVM + Node.js

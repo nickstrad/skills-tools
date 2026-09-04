@@ -31,6 +31,17 @@ explicitly scoped guarantees.
 - Use `docs/learning_path.md` for flexible focused/standard/deep scales and cross-project overlap.
   Use `curriculum-tools/docs/AUTHORING.md` for the canonical teaching and presentation contract.
   Do not copy PostgreSQL's total size or its specific task-runner workload into every course.
+- The 2026-09-04 roadmap revision places Linux observations and container lifecycle experiments early,
+  selects local software defaults, and makes advanced infrastructure a set of branches. Reuse
+  diagnostic workshops within workloads and build synthesis projects incrementally. A thematic
+  tool catalog is not the execution order, and a planned project is not a validated course.
+- Calibrate depth with `docs/learner-profile.md` and `prior-project-experience.md`. Nick's own
+  projects and Kubernetes/Docker experience justify omitting basic deployment and platform-build
+  assignments. They are experience evidence, not templates to copy into the curriculum.
+- Read `docs/articles/README.md` for learner-selected architectural examples. Preserve the
+  distinction between a stated interest, an article's claims, and an experiment we propose.
+  The Linux/database folding proposal in `linux-database-integration.md` is future design input;
+  it does not authorize implicit completion or removal of existing lessons.
 - Plan backwards from final evidence: a diagnosis, measured capacity, validated recovery, invariant
   or architecture decision. Name what the learner chooses at intermediate synthesis points.
 - Follow read/predict/run/inspect/explain/vary/apply flexibly. Supply code for new concepts and

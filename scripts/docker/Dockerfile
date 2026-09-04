@@ -27,10 +27,10 @@ RUN apt-get update \
 
 WORKDIR /opt/lab
 
-# The script under test, run exactly as a droplet operator would run it:
-# as root, with no arguments. A non-zero exit fails the build.
+# The script under test runs as root with the image-build marker, so kernel
+# package selection does not depend on the build host. A non-zero exit fails.
 COPY lab-setup.sh ./
-RUN chmod +x ./lab-setup.sh && ./lab-setup.sh
+RUN chmod +x ./lab-setup.sh && LAB_IMAGE_BUILD=1 ./lab-setup.sh
 
 # Verification stage: every tool the script promises must be on PATH and
 # runnable. verify-toolchain.sh exits non-zero on the first missing tool,

@@ -20,7 +20,7 @@ What it installs:
   OpenAI Codex, Claude Code (native installer), Deno, and the latest stable Go
   discovered from go.dev.
 - **Containers**: Docker Engine, Buildx, and Compose from the official Docker
-  Apt repository, enabled as a service.
+  Apt repository. Connect to a running daemon before starting container labs.
 - **Systems tools**: procps (`ps`, `pgrep`, `pmap`, `free`, `vmstat`), psmisc
   (`pstree`), util-linux (`findmnt`, `lsblk`, `lsns`, `unshare`, `nsenter`,
   `taskset`, `ionice`), coreutils, findutils, strace, lsof, htop, perf,
@@ -49,12 +49,18 @@ and the `.bashrc` block are skipped when present, and Deno, DuckDB, Go, Codex,
 and Claude Code are upgraded to their current releases. It ends by printing the
 installed versions.
 
+Bootstrap installs tools; it does not explicitly enable, start, or stop host daemons.
+Package-manager defaults may start services on a host. The image build blocks those starts.
+Use a reachable Docker context or `DOCKER_HOST`, and use the PostgreSQL course's own disposable
+cluster rather than depending on a host-managed database.
+
 Optional environment variables:
 
 | Variable       | Default   | Effect                                                                 |
 | -------------- | --------- | ---------------------------------------------------------------------- |
 | `NODE_VERSION` | `22`      | Node.js major installed through NVM.                                   |
 | `NVM_VERSION`  | `v0.40.6` | NVM release tag to install.                                            |
+| `LAB_IMAGE_BUILD` | `0` | Set to `1` in image builds to skip host-kernel packages; the test Dockerfile supplies it. |
 
 ## Testing the script
 
@@ -72,14 +78,13 @@ toolchain verification happens again at container runtime. The build fails if
 installed tool or Linux systems command is missing or not runnable. The script
 exits non-zero on any failure.
 
-Two conveniences, both handled by an `EXIT` trap so they also run when the
-build fails:
+The test requires `docker info` to succeed in the selected context. If the daemon
+is unavailable, it exits before creating resources and leaves startup to the
+environment. It never starts or stops a host daemon.
 
-- **Docker on demand.** The test first checks the daemon with `docker info`.
-  If it is unavailable, the test starts Docker through `systemctl` or
-  `service` when possible, then restores the prior unit state on exit. A
-  daemon that was already running is left running.
-- **No unrelated cleanup.** Each run gets a unique image tag, container name,
+Cleanup runs through an `EXIT` trap even when the build fails:
+
+- Each run gets a unique image tag, container name,
   and Buildx builder. The image and run container carry a unique run label;
   BuildKit's generated builder container and state/cache volume are removed by
   exact per-run name/prefix after the builder is pruned and deleted. On exit,
@@ -92,10 +97,9 @@ build fails:
   containers, volumes, networks, and build cache remain untouched. A run still
   takes roughly 15-25 minutes on a cold cache.
 
-Inside a container there is no systemd and the kernel belongs to the host, so
-`lab-setup.sh` installs the Docker and PostgreSQL packages without starting
-their services and skips the kernel-specific `perf` package. On a droplet, all
-three run as before.
+The image build sets `LAB_IMAGE_BUILD=1` and blocks package service startup.
+Bootstrap also recognizes common container-runtime markers. These environments
+share the host kernel, so it skips the kernel-specific `perf` package there.
 
 Notes:
 
@@ -104,7 +108,7 @@ Notes:
   it if neither exists for the droplet's kernel.
 - Mosh needs inbound UDP 60000-61000. Allow that range in the DigitalOcean
   Cloud Firewall if one is attached.
-- The PostgreSQL package starts a system cluster on port 5432. The PostgreSQL
+- The PostgreSQL package may create/start a system cluster on port 5432. The PostgreSQL
   course in `curriculum-tools/` builds its own disposable cluster on port 5440
   in its first lesson and never touches the system one.
 - After setup, clone this repository and symlink the skills as described in the

@@ -3,11 +3,31 @@
 Read this file before searching the repository or re-analyzing a bundled
 reference.
 
+## Learning roadmap
+
+[`learner-profile.md`](learner-profile.md) records Nick's stated experience and preferences.
+Read it before choosing course depth. The
+[prior-project review](knowledge/prior-project-experience.md) uses his repositories to identify
+familiar material to omit or compress; it is not a request to copy those projects.
+
+[`learning_path.md`](learning_path.md) defines the recommended project flow, default local
+software, project depth, optional specialization branches, and cross-project synthesis.
+Use it when choosing what to learn or author next; its future projects are not yet implemented
+courses. The [Linux/database integration proposal](knowledge/linux-database-integration.md)
+is a separate reference for a possible future course refactor.
+
 ## Repository knowledge
 
 [`knowledge/README.md`](knowledge/README.md) indexes reusable findings about the
 tutor engine, validation harness, course authoring workflow, and tool-specific
 pitfalls.
+
+## Articles and learner insights
+
+[`articles/README.md`](articles/README.md) indexes articles the learner finds compelling,
+their stated interests, and possible connections to lessons. Consult it when planning or
+revising courses. Start with the saved notes; reopen sources when a proposed experiment
+needs more precise verification. These are teaching inputs, not automatic course changes.
 
 ## Books and course research
 

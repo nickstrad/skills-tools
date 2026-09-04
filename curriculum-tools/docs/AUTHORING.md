@@ -20,6 +20,12 @@ They know basic SQL and a shell but not the tool's internals, so every lesson mu
 moving parts (see "Writing the syntax breakdown"). Prefer experiments that expose invariants,
 orderings, failure modes, and trade-offs over tuning advice.
 
+Calibrate assumed knowledge with the repository's
+[`learner profile`](../../docs/learner-profile.md). Nick has substantial Kubernetes/Docker
+experience and owns the repositories reviewed there. Compress familiar usage and elementary
+architecture; keep full explanations for unfamiliar mechanisms. The projects are experience
+evidence, not required implementations to copy or rebuild.
+
 ## Project scope and learner ownership
 
 Choose a focused, standard or deep scope using
