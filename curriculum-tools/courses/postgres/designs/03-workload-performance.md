@@ -1,5 +1,10 @@
 # Chunk 3: measured workload decisions
 
+Execution update, 2026-09-04: the user stopped parallel implementation. The primary now owns the
+remaining implementation, corrections, review and integration sequentially. The private planner and
+index drafts below are retained as review inputs; their old assignments are historical. Agents may
+only receive bounded verification tasks. The experiment requirements below still apply.
+
 Primary contract,2026-09-04. Implement in private copies while chunk2 integrates. Preserve original
 slugs unless retirement is explicit below. Existing material changes revision4; new lessons
 revision1. No root generated builds or commits by agents. No cluster settings/restarts or learner

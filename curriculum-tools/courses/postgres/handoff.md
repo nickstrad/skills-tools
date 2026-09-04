@@ -1,14 +1,17 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Chunk2 committed/pushed; chunk3 private cores complete, exact-hint validation
-active.**
+Updated 2026-09-04. **Sequential primary implementation adopted; chunk2 pushed; chunk3 drafts await
+primary review.**
 
 ## User authorization and intended result
 
 The learner completed original lessons 1–7. They approved the systems-engineering review and the
 guided read/predict/run/inspect/explain/vary/apply loop, with supplied commands and gradually
-reduced scaffolding. They explicitly requested a plan, bounded designs, Terra subagents on high,
-primary ownership of hard changes and final code/wording review, and commit/push for each chunk.
+reduced scaffolding. They requested plans, implementation, final code/wording review, and
+commit/push for each chunk. Their latest instruction, “stop and pivot to that approach,” supersedes
+the earlier Terra implementation assignments: primary now implements one section at a time. Agents
+are limited to narrowly scoped verification of supplied commands or finished changes. All three
+agents have finished their prior tasks; no parallel authoring remains active.
 
 Read `REWORK-PLAN.md`, then the active contracts in `designs/`, and the prior review at
 `../../../docs/knowledge/postgres-project1-review.md` (repository `docs/knowledge/`). Read repo
@@ -30,21 +33,23 @@ another review or stop after planning: implementation and validation are authori
 - Unknown response is explicitly an output-withholding fixture, not a network-disconnect test.
   Receipts/payload/result and debit commit together. Real independent external effect/receiver
   commits and replication-history loss are still later protocol work.
-- Planner/index work follows primary designs/03-workload-performance.md in PRIVATE copies only.
-  Terra/high storage owns11-planner.ts, guides11, validation03-planner in
-  /tmp/pg-pivot-planner-work. All seven cores, including parallel-query/aggregate-telemetry, and
-  their full private sequence passed. Primary requested actual execution of every exact guide hint
-  before transfer; storage owns that validation and report update. Do not overwrite it with root's
-  old11 module.
-- Terra/high visibility finished private12-indexes.ts, guides12 and validation03-indexes in
-  /tmp/pg-pivot-visibility-work. Six changed/surviving cores validated, including new keyset, key
-  width, index-only coverage, concurrent build/recovery, rebuild and conditional uniqueness. Primary
-  must review all source/guide wording before accepting. Visibility is now executing every exact
-  guide hint, particularly RR pagination and covering-update counters; the earlier report only
-  described bounded variations without establishing execution. It retires
-  index-only-scan-needs-visibility-map; update the map and cross references at integration.
-- guided_cli completed guide corrections and is idle. Primary owns all integration, workload
-  capacity/migration design and hard failure/protocol work. Agents do not commit or root-build.
+- Planner/index private drafts follow designs/03-workload-performance.md. Primary now owns them.
+  Preserve the drafts and their reports; do not replace root source until reviewed and corrected.
+- /tmp/pg-pivot-planner-work contains curriculum/11-planner.ts, guides/11-planner.ts and
+  validation/03-planner.md under courses/postgres/. All seven cores and their full sequence passed.
+  Storage then executed all seven exact hint2 commands, fixing psql meta-command line breaks and
+  adding explicit resets. Scripts/logs: /tmp/pg-pivot-planner-hints/ and
+  /tmp/pg-pivot-planner-hint-*.log. Statistics hint used the core's pl_tenant fixture in addition to
+  setup; primary must check that the learner-facing instructions make this dependency clear.
+- /tmp/pg-pivot-visibility-work contains the corresponding12-indexes source, guide and report. Six
+  cores passed. Hint validation found and fixed nonexistent ix_jobs to ix_orders. Immediate update
+  counters were0/0, so HOT evidence is still unproven; primary must repair the observation boundary
+  and execute it. The separate two-session RR pagination hint was NOT executed. Check every other
+  hint against its report too; do not infer acceptance from a completed agent task. Retires
+  index-only-scan-needs-visibility-map; update current mapping at integration.
+- Primary owns all remaining source, coaching, capacity/migration and failure/protocol work. Next
+  section is planner review/integration, then indexes, then capacity/migration/observability.
+  Optional agent work is fixed-scope verification only; no new lesson authoring assignments.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -59,11 +64,12 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Collect planner/index exact-hint execution reports, then perform primary source/wording review.
-   Chunk2 push succeeded (41323b2..d0ce060). No further chunk2 staging is pending.
-2. Review/transfer private planner/index results when complete; implement primary capacity and
-   bounded migration synthesis. Arrange final performance ordering before replication while
-   respecting true WAL/recovery prerequisites; do not create forward references.
+1. Primary reviews the complete planner source and guides, checks the exact-hint report and fixture
+   prerequisites, reruns representative experiments, then integrates that section. Chunk2 is pushed.
+2. Primary reviews indexes next, repairs counter observation, executes RR pagination and resolves
+   other evidence gaps. Then implement capacity and bounded migration synthesis sequentially.
+   Arrange final performance ordering before replication while respecting true WAL/recovery
+   prerequisites; do not create forward references.
 3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
    durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
 4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
@@ -98,3 +104,7 @@ separate databases; coordinate global operations serially.
 - `d0ce060` pushed: accepted concurrent clients, request-outcome recovery, 94-lesson build and
   chunk3 design. Latest user-facing estimate is roughly 30% complete / 70% remaining by effort, not
   a lesson count. Hard recovery, replication, durable protocols and final integration remain.
+
+- `644138f` pushed: concurrency delivery and performance-review checkpoint.
+- Latest workflow change: sequential primary implementation, bounded agent verification only.
+  Updated REWORK-PLAN, design03 and durable progressive-course-design notes with this handoff.

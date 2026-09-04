@@ -1,9 +1,12 @@
 # PostgreSQL systems engineering pivot
 
-Status: implementation authorized 2026-09-04. Scope is unfinished work after original lesson 7. The
-primary agent designs each chunk, delegates bounded implementations to gpt-5.6-terra at high,
-reviews all wording and code, validates the result, and commits/pushes each completed chunk. See
-[handoff.md](handoff.md) for the current checkpoint and [designs/](designs/) for exact contracts.
+Status: implementation authorized 2026-09-04. Scope is unfinished work after original lesson 7.
+The user changed the execution approach on 2026-09-04: the primary agent now designs and implements
+each section sequentially, reviews its wording and code, validates it, and commits/pushes each
+completed chunk. Agents may perform narrowly scoped verification of supplied commands or finished
+changes; parallel lesson authoring has stopped. This supersedes the earlier Terra implementation
+assignments in historical designs. See [handoff.md](handoff.md) for the current checkpoint and
+[designs/](designs/) for exact contracts.
 
 ## Teaching contract
 
@@ -55,8 +58,8 @@ simulation, concurrent insert-or-read, token enforcement and unconditional repli
 6. **Durable protocols.** Original 85–91 integrated with earlier claims: identity plus business
    effect atomically committed, receiver commits independently of sender acknowledgement, replay
    after lost acknowledgement, enforced fencing interface, durable 2PC decision recovery, missed
-   notification reconciliation. Primary implements hardest protocol boundaries; agents implement
-   exact supporting lesson and coaching designs.
+   notification reconciliation. Primary implements the protocol boundaries and supporting lessons
+   and coaching together, so their assumptions stay consistent.
 7. **Independent diagnosis and final integration.** Original 92–96 become symptom-first incidents
    and an operation-history/capacity capstone; detailed salvage and repeated freezing are optional
    depth. Refresh final PLAN, ordinal map, reading references/checkpoints, docs and wrapper.
@@ -75,10 +78,13 @@ evidence warrants smaller checkpoints. Do not substitute a partially validated c
   record old/new ordinal and slug mapping. No transferring a retired completion to a different task.
 - Keep the seven reading stops attached to appropriate surviving experiments and refresh ordinal
   references at integration. Reuse canonical book research; do not re-extract the PDF.
-- Agents own only files named in their individual contract. They do not commit, edit progress,
-  shared engine, other courses, generated root artifacts or another agent's files.
-- Agents build in private copies and validate in assigned scratch databases. Global settings,
-  restart, promotion, crash and corruption run serially with primary coordination.
+- Primary owns all remaining lesson implementation and integration. Finish a coherent section before
+  starting the next. Preserve returned private drafts as inputs for primary review.
+- Verification agents receive a fixed change or supplied experiment and explicit questions. They
+  report evidence and gaps rather than authoring lessons or expanding scope. They do not commit,
+  edit progress, shared engine, other courses, generated root artifacts or another agent's files.
+- Verification runs use assigned scratch databases. Global settings, restart, promotion, crash and
+  corruption run serially under primary ownership.
 - Commit only PostgreSQL-related paths/hunks. Active SQLite/bootstrap/shared-engine changes belong
   to the other workstream. Never stash or reset them. Fetch before pushing; never force-push.
 
