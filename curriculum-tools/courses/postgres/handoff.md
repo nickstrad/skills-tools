@@ -1,6 +1,7 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Chunk2 reviewed/validated; chunk3 private implementation active.**
+Updated 2026-09-04. **Chunk2 committed/pushed; chunk3 private cores complete, exact-hint validation
+active.**
 
 ## User authorization and intended result
 
@@ -17,9 +18,9 @@ another review or stop after planning: implementation and validation are authori
 ## Current state
 
 - Chunk1 is pushed as948f2d1. Protocol helpers were pushed as1d3c378.
-- Chunk2 is reviewed and validated, ready for scoped commit/push. Source05/06, helper checkpoint,
-  new request-protocol.ts and optimistic-protocol.ts, removal of old optimistic object from14,
-  guides05/06+registry, generated94-lesson artifact and identity map are the accepted change. See
+- Chunk2 is committed and pushed as d0ce060. Source05/06, helper checkpoint, new request-protocol.ts
+  and optimistic-protocol.ts, removal of old optimistic object from14, guides05/06+registry,
+  generated94-lesson artifact and identity map are the accepted change. See
   validation/02-integration.md for primary evidence and exact limitations. Original first7 objects
   and learner progress hash remain unchanged; copied refresh preserves all old IDs/history.
 - Whole concurrency sequence selected17 lessons:16 actual psql experiments plus shell retry skipped
@@ -31,12 +32,16 @@ another review or stop after planning: implementation and validation are authori
   commits and replication-history loss are still later protocol work.
 - Planner/index work follows primary designs/03-workload-performance.md in PRIVATE copies only.
   Terra/high storage owns11-planner.ts, guides11, validation03-planner in
-  /tmp/pg-pivot-planner-work. First subphases are done; final parallel-query/aggregate-telemetry
-  subphase and full private sequence are active. Do not overwrite it with root's old11 module.
+  /tmp/pg-pivot-planner-work. All seven cores, including parallel-query/aggregate-telemetry, and
+  their full private sequence passed. Primary requested actual execution of every exact guide hint
+  before transfer; storage owns that validation and report update. Do not overwrite it with root's
+  old11 module.
 - Terra/high visibility finished private12-indexes.ts, guides12 and validation03-indexes in
   /tmp/pg-pivot-visibility-work. Six changed/surviving cores validated, including new keyset, key
   width, index-only coverage, concurrent build/recovery, rebuild and conditional uniqueness. Primary
-  must review all source/guide wording and exact variation evidence before accepting. It retires
+  must review all source/guide wording before accepting. Visibility is now executing every exact
+  guide hint, particularly RR pagination and covering-update counters; the earlier report only
+  described bounded variations without establishing execution. It retires
   index-only-scan-needs-visibility-map; update the map and cross references at integration.
 - guided_cli completed guide corrections and is idle. Primary owns all integration, workload
   capacity/migration design and hard failure/protocol work. Agents do not commit or root-build.
@@ -54,7 +59,8 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Format/scoped diff checks, commit/push accepted chunk2 with this handoff and design03.
+1. Collect planner/index exact-hint execution reports, then perform primary source/wording review.
+   Chunk2 push succeeded (41323b2..d0ce060). No further chunk2 staging is pending.
 2. Review/transfer private planner/index results when complete; implement primary capacity and
    bounded migration synthesis. Arrange final performance ordering before replication while
    respecting true WAL/recovery prerequisites; do not create forward references.
@@ -83,8 +89,12 @@ separate databases; coordinate global operations serially.
 - `17df58c` pushed: previous handoff checkpoint. No learner progress mutation.
 - `d4dfd08` pushed: concurrent-client design and implementation checkpoint.
 - Foundation acceptance is in validation/01-integration.md; later protocol prototypes are not final
-  course acceptance. Overall refactor remains incomplete: chunks2–7 require implementation,
+  course acceptance. Overall refactor remains incomplete: chunks3–7 require implementation,
   integration and validation. Repo-wide learning guidance is already pushed.
 
 - `948f2d1` pushed: accepted guided foundation,93-lesson build, stable identity map, final runtime
   evidence, copied-progress preservation and durable experiment findings.
+
+- `d0ce060` pushed: accepted concurrent clients, request-outcome recovery, 94-lesson build and
+  chunk3 design. Latest user-facing estimate is roughly 30% complete / 70% remaining by effort, not
+  a lesson count. Hard recovery, replication, durable protocols and final integration remain.
