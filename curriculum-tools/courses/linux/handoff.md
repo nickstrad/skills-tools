@@ -6,24 +6,30 @@ OVERPLAN.md and designs/ before resuming.
 
 ## State
 
-- Audit and four change designs written; implementation is next.
-- 72 lessons and stable identities retained; all lack challenges and need authoring explanations.
-  Root owns capstones and delivery; three Terra/high batches own modules 01–04, 05–08 and 09–11
-  respectively in private copies.
-- Installed `/root/.codex/skills/linux-tutor` is a symlink to the repo wrapper.
-- Repo has concurrent PostgreSQL/SQLite changes. Never stage or revert those.
-- Work on main; origin fetched. Use explicit Linux paths when staging.
+- Planning checkpoint pushed as a71e0d6. Root capstones and guided wrapper reviewed; six real
+  experiments and all six authored variations pass. This commit contains only that finalized
+  implementation unit and its generated artifact.
+- Modules 01–04 were delivered but sent back for prediction wording, exact variation assertions and
+  EOF cleanup fixes. Modules 05–08 were sent back for variations that referenced already-cleaned
+  state and insufficient actual validation. Modules 09–11 are correcting sandbox-driven socket skips
+  and validating real branches.
+- Agents own those source files until corrected delivery. Do not commit their current working
+  versions yet. Designs record owned files; agents use private copies.
+- Installed `/root/.codex/skills/linux-tutor` remains a repo symlink.
+- Concurrent PostgreSQL/SQLite work includes new commits on main. Never stage or revert those files.
+  Explicit Linux paths only; inspect the index before committing.
 
 ## Next actions
 
-1. Commit/push planning checkpoint, dispatch agents with owned design files.
-2. Implement root incident design while agents work; keep this file current.
-3. Review each batch, run evidence checks, build Linux, commit/push reviewed units.
-4. Full serial validation, isolated progress reseed, scoped and repository checks; final
-   wording/PLAN/knowledge pass, then final commit/push.
+1. Review corrected Terra/high deliveries and actual variation evidence.
+2. Build all Linux sources and run full course serially on the disposable host; socket/mount/cgroup
+   experiments require an escalated validation command.
+3. Update PLAN and durable knowledge, test isolated progress reseeding, then run scoped and
+   repository checks. Commit/push finalized units with this handoff.
 
 ## Validation
 
-No new implementation validated yet. Deno is `/root/.deno/bin/deno`. Run from
-`/root/Software/skills-tools/curriculum-tools`. Give every run its own LINUX_LAB; never seed real
-progress. Harness completion alone does not prove expected output.
+See validation/04-integration.md for the capstone evidence and current cross-course check failures.
+Deno is `/root/.deno/bin/deno`. Run from `/root/Software/skills-tools/curriculum-tools`. Give every
+run its own LINUX_LAB; never seed real progress. Harness completion alone does not prove expected
+output.
