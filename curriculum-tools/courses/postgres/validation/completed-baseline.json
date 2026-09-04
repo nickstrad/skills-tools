@@ -1,0 +1,9 @@
+{
+  "build-lab-cluster": "41d65009430a50289091c0bde8d4bee5069684f37424e3c309959c6f1aa36c89",
+  "shell-and-psql-toolkit": "3137415f424b815fd7dc2a8a2940e78ac96176c2597e449b845fc6648350bb3c",
+  "install-lab-extensions": "5c076d60f2d28f91647817643a4a3c0348449fc4f7d7b1fc10e1b16b251c8347",
+  "process-model": "aef7b5823267e3fe0d1d75e64c4d94f8f63d7fedc905f5242dc8801243dd1532",
+  "table-is-a-file": "e1aa64c928f16e038a11d32d71b1c13fdaf4917488b164b56fd226c868533c74",
+  "page-header-and-line-pointers": "1520cffd9af0c8048f2ca1ae333f762525385ef635651da55f91eab9d5fc5271",
+  "update-writes-a-new-tuple": "5bc04284e123fb3a222993325c7ee4ed658cfe4147b64f248a45683bcd015cf6"
+}
