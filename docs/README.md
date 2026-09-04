@@ -34,7 +34,7 @@ Selective SQLite source research and the course-order checkpoint design live in
 - [`research-notes.md`](readings/sqlite/research-notes.md) — annotated primary-source inventory,
   exact section scopes, time estimates, version caveats, and rejected readings.
 - [`study-checkpoint-plan.md`](readings/sqlite/study-checkpoint-plan.md) — six proposed mandatory
-  reading stops after lessons 11, 17, 23, 29, 34, and 38, plus implementation and validation rules.
+  reading stops after lessons 13, 19, 25, 31, 37, and 41, plus implementation and validation rules.
 
 Do not repeatedly extract or scan the whole PDF. Improve the reusable research
 notes when new verification changes a conclusion.

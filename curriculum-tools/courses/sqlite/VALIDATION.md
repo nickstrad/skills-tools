@@ -155,8 +155,8 @@ threshold.
   reordering, retirement and reintroduction. A checkpoint-preservation test now selects checkpoint
   metadata instead of assuming an unrelated PostgreSQL display ordinal.
 - SQLite/src/tests scoped formatting, lint and typechecks passed. Repository-wide `deno task check`
-  was also attempted; concurrent PostgreSQL formatting changes prevented its formatting stage from
-  passing. Those unrelated sources were not edited to manufacture a global pass.
+  was also attempted; concurrent PostgreSQL/Linux formatting changes prevented its formatting stage
+  from passing. Those unrelated sources were not edited to manufacture a global pass.
 - Two refreshes on a byte copy preserved all 48 prior slug IDs; final active/retired counts are
   54/4. Real copied history had zero progress/attempt rows, so populated-history coverage comes from
   the regression test rather than that copy. All 54 rendered lessons retained their code and three

@@ -4,11 +4,11 @@ Design and validation boundaries established on 2026-09-04 for SQLite after Post
 
 ## What happened
 
-The course review applied `curriculum-tools/docs/learning_path.md`: learn shared concepts deeply
-once, then use the second engine to expose a different mechanism or ownership boundary. Adding
-more generic transaction, indexing, or outbox examples did not by itself advance that objective.
-The useful gaps were connection policy, error scope, foreground maintenance, independent commit
-histories, restored identities, and deployment decisions supported by actual evidence.
+The course review applied `docs/learning_path.md`: learn shared concepts deeply once, then use the
+second engine to expose a different mechanism or ownership boundary. Adding more generic
+transaction, indexing, or outbox examples did not by itself advance that objective. The useful gaps
+were connection policy, error scope, foreground maintenance, independent commit histories, restored
+identities, and deployment decisions supported by actual evidence.
 
 Several plausible-looking implementations did not demonstrate their stated mechanism:
 
@@ -22,9 +22,9 @@ Several plausible-looking implementations did not demonstrate their stated mecha
 
 ## Why it matters
 
-An experiment must exclude the alternative explanation for its output. A correct SQLite fact in
-the prose cannot rescue code that measures something else. In a second course, every retained
-overlap should earn its place through a concrete SQLite difference or a new application decision.
+An experiment must exclude the alternative explanation for its output. A correct SQLite fact in the
+prose cannot rescue code that measures something else. In a second course, every retained overlap
+should earn its place through a concrete SQLite difference or a new application decision.
 
 ## How to apply
 
@@ -34,8 +34,8 @@ overlap should earn its place through a concrete SQLite difference or a new appl
   `synchronous`, `foreign_keys`, busy timeout and automatic-checkpoint policy.
 - Explain retry scope explicitly: statement ABORT, savepoint rollback, full rollback, busy writer
   admission, retryable busy COMMIT, and stale WAL snapshot are different situations.
-- Compare checkpoint thresholds within one durability policy, then policies at one threshold.
-  Keep connections alive when inspecting WAL; last-close cleanup can erase the evidence.
+- Compare checkpoint thresholds within one durability policy, then policies at one threshold. Keep
+  connections alive when inspecting WAL; last-close cleanup can erase the evidence.
 - Separate instrumented observer latency from engine time. Use equal row counts and settings,
   persistent workers, an unpaced workload, live WAL samples, and separate success/busy/error counts.
   A mixed busy/success percentile is not successful-commit p95 or a production capacity limit.
@@ -53,9 +53,9 @@ overlap should earn its place through a concrete SQLite difference or a new appl
 - For external-content FTS5, test old-row misses, rebuild, trigger maintenance and rollback.
   `integrity-check` with rank 1 compares the index against external content; ordinary
   `PRAGMA integrity_check` alone does not establish semantic search completeness.
-- Label file-batch SQL as trusted lab transport, not an untrusted production wire protocol.
-  Preserve explicit assumptions about identity uniqueness, monotonic logical clocks and history
-  retention. Do not imply that deterministic last-writer-wins preserves every application's intent.
+- Label file-batch SQL as trusted lab transport, not an untrusted production wire protocol. Preserve
+  explicit assumptions about identity uniqueness, monotonic logical clocks and history retention. Do
+  not imply that deterministic last-writer-wins preserves every application's intent.
 
 Primary references: [transactions](https://sqlite.org/lang_transaction.html),
 [WAL](https://sqlite.org/wal.html), [ATTACH](https://sqlite.org/lang_attach.html),

@@ -12,10 +12,10 @@ otherwise rediscover.
 | --- | --- |
 | [repo-tooling.md](repo-tooling.md) | Deno location, scoped `fmt`/`lint`/`check` commands, formatter effects on Markdown, Docker test rig, and how to build a non-root test user. |
 | [validation-harness.md](validation-harness.md) | How `tools/validate.ts` drives a course, why "completed" is not "passed", how to isolate parallel runs, and how to read evidence. |
-| [subagent-workflow.md](subagent-workflow.md) | The spec-then-verify pattern for delegating mechanical lesson work to Opus subagents, including the private-copy setup and the equivalence checks. |
+| [subagent-workflow.md](subagent-workflow.md) | Directed delegation, owned files, evidence-based acceptance and primary writing/review across the Opus and Luna/high course passes. |
 | [shell-lesson-gotchas.md](shell-lesson-gotchas.md) | Pitfalls in Bash lessons (Linux course): `String.raw` code fields, `set -e` leaks, relative `nice`, two-session coordination files, `sudo`/`as_root`, mounts in subshells. |
 | [command-inventory-extraction.md](command-inventory-extraction.md) | How to derive a course's real command inventory from `lessons.json`, including the wrapper and quoting cases a naive grep misses. |
-| [sqlite-lesson-gotchas.md](sqlite-lesson-gotchas.md) | `sqlite3` REPL quirks that break lessons: `.shell` requoting, page-size drift across modules, missing `sqlite_dbpage`. |
+| [sqlite-lesson-gotchas.md](sqlite-lesson-gotchas.md) | SQLite feature probes, REPL quoting, page-size-dependent recovery, error classification, shell isolation and readiness-marker pitfalls. |
 | [sqlite-curriculum-design.md](sqlite-curriculum-design.md) | Design SQLite as a second systems course and avoid false evidence in retry, checkpoint, benchmark, offline-history and toolkit experiments. |
 | [lesson-identity-refresh.md](lesson-identity-refresh.md) | Preserve notes, completions and attempts when lessons move, retire or return; test refresh on copied progress. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
