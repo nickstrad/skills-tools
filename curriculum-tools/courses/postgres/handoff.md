@@ -1,6 +1,6 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Active: chunk 1, three bounded implementations and private validation.**
+Updated 2026-09-04. **Active: chunk 1 integration review; chunk 2 bounded implementation.**
 
 ## User authorization and intended result
 
@@ -17,15 +17,20 @@ another review or stop after planning: implementation and validation are authori
 ## Current state
 
 - Branch main, remote origin `git@github.com:nickstrad/skills-tools.git`; fetched successfully.
-- Three agents are implementing chunk1; original MVCC source already has in-progress edits.
+- All three chunk1 agents returned implementations and private validation. They are not yet
+  committed as an integrated lesson change. Primary review and combined-course validation remain.
 - Active unrelated SQLite changes include its course, generated lessons, shared `src/main.ts`,
   `tests/main_test.ts`, bootstrap and Docker scripts. Never stage these with PostgreSQL changes.
 - Shared-engine work includes slug-preserving progress reseeding. Do not edit those files; verify
   integration on a copied progress database when that work lands.
 - Plan has chunks 0–7. Exact designs are authored by the primary before delegation, not left to
   agents.
-- Active Terra/high agents: `guided_cli` owns designs/01-guided-cli.md files; `storage` owns
-  designs/01-storage.md files; `visibility` owns designs/01-visibility-reclamation.md files.
+- Active Terra/high agents now follow designs/02-concurrent-clients.md: `guided_cli` owns
+  curriculum/05-isolation.ts, guides/05-isolation.ts and validation/02-isolation.md; `visibility`
+  owns the analogous 06-locking files. `storage` is doing a read-only review of worker-protocol.ts.
+  Primary owns client-protocol.ts, worker-protocol.ts and guide registry integration. Agents never
+  commit or build the root generated artifact. The isolation agent must coordinate runtime use of
+  pivot_primary with the primary; the locking agent uses pivot_visibility.
 - Private PostgreSQL16.15 cluster: `/tmp/postgres-pivot-20260904/primary`, socket
   `/tmp/postgres-pivot-20260904/socket`, port5540, role postgres. DBs: pivot_storage,
   pivot_visibility, pivot_primary. Extensions installed. Setup script `/tmp/pg-pivot-lab.sh`.
@@ -34,13 +39,26 @@ another review or stop after planning: implementation and validation are authori
   SELECT1 connection check passed.
 - Original learner progress SHA256:
   c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f.
-- No changed-lesson runtime validation yet; agents are implementing.
+- Storage core and variation evidence is in validation/01-storage.md; visibility/reclamation
+  evidence is in validation/01-visibility.md. Each agent built its own copy; neither private lesson
+  count is the final combined count. Core SQL ran on PostgreSQL16.15, not the learner cluster.
+- Guided CLI review corrections are implemented: full caution/version/run environment at run,
+  correct shell quoting, dynamic fixture completion count, explicit-help routing and no stale
+  prerequisite ordinal lookup. Agent reports four passing tests and a launcher smoke with spaces and
+  an apostrophe in the temporary progress path; primary review remains.
+- Primary retry protocol prototype passed a controlled SQLSTATE40001 followed by a fresh successful
+  transaction and exactly one effect. Base result95|1; competitor+20 variation110|1. Scripts:
+  /tmp/pg-pivot-retry.sh and /tmp/pg-pivot-retry-variation.sh; evidence directories
+  /tmp/pg-retry-Potk2s and /tmp/pg-retry-yCqb11. Source client-protocol.ts is not yet integrated.
+- Primary worker-protocol.ts passes formatting/typecheck; runtime validation and takeover-race
+  review remain. It models short durable claims, generation checks, stale completion and rollback.
 - Completed-seven hashes: `validation/completed-baseline.json`; original 96 lesson artifact
   snapshot: `/tmp/postgres-pivot-original-lessons.json`.
 
 ## Next actions
 
-1. Primary designs/implements chunk-2 retry and durable-claim protocols while agents finish chunk1.
+1. Primary finishes chunk1 integration and validates the worker protocol while agents implement the
+   bounded chunk2 isolation/locking contract. Unknown-commit protocol remains primary work.
 2. Review returned owned files, build root PostgreSQL only, update cross-module prerequisites for
    retired slugs and verify completed-seven hashes. Guide registry belongs to primary.
 3. Run staged CLI tests and independently rerun changed storage/horizon experiments, then full chunk
@@ -68,4 +86,7 @@ separate databases; coordinate global operations serially.
   Updated learning_path, AUTHORING, curriculum-author skill and wrapper template; recorded reusable
   findings in docs/knowledge/progressive-course-design.md and index. Skill validator and scoped
   format/diff checks passed. Installed author skill is a symlink to the edited repository source.
-- No changed-lesson runtime evidence yet; agents are implementing. No learner progress mutation.
+- `17df58c` pushed: previous handoff checkpoint. No learner progress mutation.
+- Chunk1 reports and protocol prototypes above are implementation evidence, not final course
+  acceptance. User status questions have been answered explicitly: the overall refactor is not done;
+  repo-wide guidance is pushed, chunk1 awaits integrated review, and chunks2–7 remain.
