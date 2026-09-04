@@ -147,6 +147,93 @@ Deno.test("re-seeding preserves progress and checkpoint metadata", async () => {
   }
 });
 
+Deno.test("re-seeding follows lesson identity across reorder, removal and reinsertion", async () => {
+  const { dir, path } = await initTemp();
+  try {
+    const db = new DatabaseSync(path);
+    const first = db.prepare("SELECT id,slug FROM lessons WHERE ordinal=1").get() as {
+      id: number;
+      slug: string;
+    };
+    const second = db.prepare("SELECT id,slug FROM lessons WHERE ordinal=2").get() as {
+      id: number;
+      slug: string;
+    };
+    // Model the previous curriculum: these identities occupied the opposite positions.
+    db.prepare("UPDATE lessons SET slug='temporary-swap' WHERE id=?").run(first.id);
+    db.prepare("UPDATE lessons SET slug=? WHERE id=?").run(first.slug, second.id);
+    db.prepare("UPDATE lessons SET slug=? WHERE id=?").run(second.slug, first.id);
+    db.close();
+    await run(
+      [COURSE, "done", "1", "--note", "belongs to second slug", "--db", path],
+      capture().io,
+    );
+    await run([COURSE, "skip", "2", "--note", "belongs to first slug", "--db", path], capture().io);
+    const refresh = capture();
+    if (await run([COURSE, "init", "--db", path], refresh.io)) {
+      throw new Error(refresh.stderr.join("\n"));
+    }
+    const moved = capture();
+    await run([COURSE, "show", "2", "--json", "--db", path], moved.io);
+    const row = JSON.parse(moved.stdout[0]);
+    if (
+      row.slug !== second.slug || row.status !== "done" || row.notes !== "belongs to second slug"
+    ) {
+      throw new Error(`progress followed ordinal instead of slug: ${moved.stdout[0]}`);
+    }
+    const preserved = new DatabaseSync(path);
+    const attempts = preserved.prepare(
+      "SELECT count(*) n FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE l.slug=?",
+    ).get(second.slug) as { n: number };
+    if (attempts.n !== 1) throw new Error("attempt history did not follow identity");
+    // Removing an old identity and inserting its replacement must not transfer its completion.
+    preserved.prepare("UPDATE lessons SET slug='removed-fixture' WHERE slug=?").run(second.slug);
+    preserved.close();
+    if (await run([COURSE, "init", "--db", path], capture().io)) throw new Error("refresh failed");
+    const replacement = capture();
+    await run([COURSE, "show", "2", "--json", "--db", path], replacement.io);
+    if (JSON.parse(replacement.stdout[0]).status !== "todo") {
+      throw new Error("new lesson inherited progress");
+    }
+    const retired = new DatabaseSync(path);
+    const history = retired.prepare(
+      "SELECT l.active,p.notes FROM lessons l JOIN progress p ON p.lesson_id=l.id WHERE l.slug='removed-fixture'",
+    ).get() as { active: number; notes: string };
+    if (history.active !== 0 || history.notes !== "belongs to second slug") {
+      throw new Error("retired history lost");
+    }
+    const freshId = retired.prepare("SELECT id FROM lessons WHERE slug=?").get(second.slug) as {
+      id: number;
+    };
+    retired.prepare("UPDATE lessons SET slug='replacement-fixture' WHERE id=?").run(freshId.id);
+    retired.prepare("UPDATE lessons SET slug=? WHERE slug='removed-fixture'").run(second.slug);
+    retired.close();
+    for (let i = 0; i < 3; i++) {
+      if (await run([COURSE, "init", "--db", path], capture().io)) {
+        throw new Error("reintroduction failed");
+      }
+    }
+    const restored = capture();
+    await run([COURSE, "show", "2", "--json", "--db", path], restored.io);
+    if (JSON.parse(restored.stdout[0]).status !== "done") {
+      throw new Error("reintroduced identity lost completion");
+    }
+    const checked = new DatabaseSync(path);
+    if (checked.prepare("PRAGMA foreign_key_check").all().length) {
+      throw new Error("broken prerequisites");
+    }
+    const firstNow = checked.prepare(
+      "SELECT p.status,p.notes FROM progress p JOIN lessons l ON l.id=p.lesson_id WHERE l.slug=?",
+    ).get(first.slug) as { status: string; notes: string };
+    if (firstNow.status !== "skipped" || firstNow.notes !== "belongs to first slug") {
+      throw new Error("skip moved to wrong lesson");
+    }
+    checked.close();
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
 Deno.test("show, done, next, undone, skip, and status preserve explicit progress", async () => {
   const { dir, path } = await initTemp();
   try {

@@ -284,14 +284,19 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
   );
   db.exec("BEGIN IMMEDIATE");
   try {
-    // Lesson id = ordinal. Retire every row first so slugs can move between ordinals and
-    // lessons dropped from the curriculum stop being served while their progress rows survive.
-    db.exec(
-      "UPDATE lessons SET active=0, slug='retired:' || id || ':' || slug WHERE slug NOT LIKE 'retired:%'",
-    );
+    // Progress and attempts reference stable identities, not presentation order. Reordering
+    // a course must not attach a completion or note to the new occupant of an ordinal.
+    const previous = db.prepare("SELECT id,ordinal,slug FROM lessons").all() as Row[];
+    const idBySlug = new Map(previous.map((row) => [String(row.slug), Number(row.id)]));
+    let nextId = Math.max(0, ...previous.map((row) => Number(row.id)));
+    const offset = Math.max(lessons.length, ...previous.map((row) => Number(row.ordinal)), 0) + 1;
+    db.prepare("UPDATE lessons SET active=0,ordinal=?+id").run(offset);
+    const idByOrdinal = new Map<number, number>();
     for (const x of lessons) {
+      const id = idBySlug.get(x.slug) ?? ++nextId;
+      idByOrdinal.set(x.ordinal, id);
       upsert.run(
-        x.ordinal,
+        id,
         x.ordinal,
         x.slug,
         x.title,
@@ -319,8 +324,14 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
     }
     db.exec("DELETE FROM lesson_prerequisites");
     for (const x of lessons) {
-      for (const p of x.prerequisites) prerequisite.run(x.ordinal, p);
+      for (const p of x.prerequisites) {
+        prerequisite.run(idByOrdinal.get(x.ordinal)!, idByOrdinal.get(p)!);
+      }
     }
+    // Keep retired history addressable without growing temporary ordinals on each refresh.
+    const retired = db.prepare("SELECT id FROM lessons WHERE active=0 ORDER BY id").all() as Row[];
+    const park = db.prepare("UPDATE lessons SET ordinal=? WHERE id=?");
+    retired.forEach((row, i) => park.run(lessons.length + i + 1, Number(row.id)));
     db.exec("COMMIT");
   } catch (error) {
     db.exec("ROLLBACK");

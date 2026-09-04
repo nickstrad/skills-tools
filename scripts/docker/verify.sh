@@ -81,6 +81,11 @@ if [[ "${installed_sqlite_version}" != "${expected_sqlite_version}" ]]; then
     failures+=("sqlite3 ${expected_sqlite_version}")
 fi
 
+if [[ "$(sqlite3 :memory: "CREATE VIRTUAL TABLE probe USING fts5(body); INSERT INTO probe VALUES('offline'); SELECT count(*) FROM probe WHERE probe MATCH 'offline';" 2>/dev/null)" != 1 ]]; then
+    printf 'sqlite3      MISSING FTS5 (required by the SQLite application-toolkit lessons)\n'
+    failures+=("sqlite3 FTS5 CREATE/MATCH")
+fi
+
 echo
 
 if (( ${#failures[@]} > 0 )); then

@@ -151,7 +151,7 @@ tar --no-same-owner -xzf "${SQLITE_ARCHIVE}" \
 (
     cd "${SQLITE_BUILD_DIR}"
     CFLAGS="-O2 -DSQLITE_ENABLE_DBSTAT_VTAB -DSQLITE_ENABLE_DBPAGE_VTAB -DSQLITE_ENABLE_BYTECODE_VTAB -DSQLITE_ENABLE_EXPLAIN_COMMENTS" \
-        ./configure --prefix=/usr/local
+        ./configure --prefix=/usr/local --enable-fts5
     make -j"$(nproc)"
     $SUDO make install
 )
