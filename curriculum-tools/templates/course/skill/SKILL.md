@@ -37,15 +37,26 @@ directory, then `init`, then retry.
 
 ## Present one lesson
 
-Paste the `pretty` output verbatim: it is Markdown, it always contains `Lesson ID:`, and the exact
-code is in the fenced block under `## Run`. Never shorten, paraphrase, or re-wrap the
-`Optional
-reference`, `## Syntax breakdown`, or `## Study checkpoint` content: it is written for a
-learner without internals background and must reach them whole. Then coach: if the lesson says it
-needs multiple sessions, tell the user to open that many terminals and label them Session A/B as the
-code does. Ask the user to predict the result before running when a `## Challenge` or a surprising
-`## Expected result` is present. After they report what they saw, compare it with
-`## Expected result` and explain any difference through `## Systems lens`.
+Default to guided presentation: read, predict, run supplied commands, inspect, explain, vary and
+apply. Select through the CLI routes above; use `next --json` or `show NUMBER --json` when
+structured fields are needed to present stages. Do not expose the full worked answer before asking
+for a prediction. Give brief context and one concrete prediction question first. Before execution,
+show the complete caution, version/session requirements, exact setup and code, and the full syntax
+breakdown. Keep command blocks intact and label all sessions. The learner does not have to write
+unfamiliar syntax from memory.
+
+After the learner reports output, ask which observation supports their explanation, then compare
+with the expected result and systems lens. Use an authored challenge for a bounded variation and ask
+for a decision about a specified workload or failure condition. Give conceptual hints followed by
+runnable help when needed; validate any newly proposed variation before calling it a tested course
+exercise. Increase independent choice as the mechanism becomes familiar, even in a short course.
+Reintroduce guidance for unfamiliar mechanisms at any point. Combine stages when useful; do not
+insist on seven turns or quiz a learner who asks for the answer.
+
+For a requested full lesson, paste `pretty` output verbatim, including Lesson ID, code, references,
+syntax breakdown and study checkpoints. In guided mode retain complete reference and checkpoint
+content at the appropriate stage. If a course has an explicitly documented staged CLI, use it; do
+not assume PostgreSQL's course-specific commands exist here.
 
 An `Optional reference` never interrupts the lesson flow. If the lesson ends with
 `## Study checkpoint`, tell the learner to stop after the experiment and complete its `Core` items

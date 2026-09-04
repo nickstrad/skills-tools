@@ -18,6 +18,7 @@ otherwise rediscover.
 | [sqlite-lesson-gotchas.md](sqlite-lesson-gotchas.md) | `sqlite3` REPL quirks that break lessons: `.shell` requoting, page-size drift across modules, missing `sqlite_dbpage`. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
+| [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |
 
 ## Adding a finding
 

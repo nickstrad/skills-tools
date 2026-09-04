@@ -20,6 +20,48 @@ They know basic SQL and a shell but not the tool's internals, so every lesson mu
 moving parts (see "Writing the syntax breakdown"). Prefer experiments that expose invariants,
 orderings, failure modes, and trade-offs over tuning advice.
 
+## Project scope and learner ownership
+
+Choose a focused, standard or deep scope using
+[`docs/learning_path.md`](../../docs/learning_path.md#scale-the-project-grow-the-learners-ownership).
+There is no default requirement for 8–15 modules or 70–90 lessons. Plan from the tool's distinctive
+contribution and the engineering decisions the learner should be able to defend. Apply “deep once,
+contrast thereafter” across projects. Do not remove distinctive internals merely to make a course
+shorter, or add a topic tour to reach a target count.
+
+Every PLAN.md should identify:
+
+- The scope, assumed earlier knowledge and concrete final evidence.
+- Which experiments introduce mechanisms, which vary them and which combine them.
+- What the learner chooses independently at each synthesis point, and the hints available.
+- A recurring workload where helpful, explicit failure boundaries and measurement limits.
+
+Use **read → predict → run → inspect → explain → vary → apply** as a flexible teaching sequence.
+Supply complete core commands when a mechanism is new. Ask for a prediction before revealing its
+specific result, then provide the commands and their full explanation. Ask the learner to identify
+evidence and propose a causal explanation before revealing the worked answer. A variation changes
+one meaningful condition; an application question asks for a decision with a workload and tradeoff.
+Use the existing challenge field or an implemented course-local coaching view for these prompts; do
+not add unsupported lesson fields or assume every course has PostgreSQL's staged CLI.
+
+Increase responsibility for choosing experiments and defending conclusions as concepts become
+familiar. Do not require syntax recall, withhold needed safety instructions, or introduce several
+unknown mechanisms in an allegedly independent exercise. A learner can always request runnable
+hints, a worked solution or the full lesson. The sequence need not create seven messages or inflate
+the number of lessons.
+
+For a focused course, one final diagnosis and a short evidence-backed decision may be enough. A
+standard course can use several module syntheses and one integration experiment. A deep course can
+progress through multiple integrations and finish with a workload that must remain correct through
+failure, recovery and load. Repetition earns its place through new evidence or a new responsibility.
+
+Write incident prompts so a learner can investigate symptoms before seeing the cause. Keep the
+setup, solution and explanatory evidence accessible to the tutor and available on request. An
+expected-result section must distinguish measured facts, documented guarantees and inference. A
+printed “success” message is not proof of an external effect; exercise the actual commit, process or
+resource boundary on which the conclusion depends. Predictions, explanations and reading do not
+implicitly mark progress.
+
 ## The lesson contract
 
 See `src/types.ts` for the `Lesson` type. Field notes:

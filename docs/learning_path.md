@@ -13,8 +13,8 @@ The collection is aimed at understanding:
 - observability and performance engineering; and
 - agent and sandbox infrastructure in the spirit of E2B and Daytona.
 
-Most projects should contain roughly 30–100 lessons. Lessons should minimize
-application code and prefer commands, SQL, configuration, shell pipelines,
+Choose project size from its distinctive mechanisms and intended engineering decisions, using the
+scales below. Lessons should minimize application code and prefer commands, SQL, configuration, shell pipelines,
 inspection, benchmarking, process manipulation, failure experiments, and
 observation of files, processes, and network activity.
 
@@ -38,10 +38,45 @@ explain behavior
 understand the abstraction
 ```
 
-The goal is not to become an administrator for every tool or to memorize CLI
-flags. The goal is to develop a mental model of what each primitive provides,
+The goal is to develop a mental model of what each primitive provides,
 how it behaves under load, where its boundaries are, and how it composes with
 other primitives.
+
+## Scale the project; grow the learner's ownership
+
+Use three flexible planning scales. These are examples, not lesson quotas or a requirement to expand
+an existing project. The narrower the tool's unique contribution, the smaller the project can be.
+Specific project recommendations later in this file take precedence over these rough ranges.
+
+| Scale | Typical scope | Progression and final evidence |
+| --- | --- | --- |
+| Focused, often 8–18 lessons | One or two mechanisms or an operating boundary; for example a compact tracing or service-lifecycle study. | Guided setup and observation, controlled variations, then one independent diagnosis or measured decision using a familiar workload. |
+| Standard, often 20–45 lessons | Several related mechanisms; for example Docker or analytical execution in DuckDB. | Repeat the guided-to-independent progression within modules, include a few synthesis experiments, then one bounded integration exercise. |
+| Deep, often 50–100+ lessons | Foundational systems with multiple interacting subsystems; for example PostgreSQL or Linux. | Preserve internals depth, combine mechanisms at several checkpoints, and finish with a system or incident exercise covering correctness, performance and recovery. |
+
+Within each scale, move from **read → predict → run supplied code → inspect → explain → vary →
+apply**. A prediction can be a reasoned guess. Early experiments supply complete commands and
+definitions; later ones ask the learner to choose a measurement, adapt a familiar command, design a
+race, or defend a tradeoff. Keep runnable hints and a worked solution available. Increase ownership
+of the investigation, not dependence on memorized syntax.
+
+Scaffolding follows familiarity with the mechanism rather than lesson number. Introduce a new
+mechanism with guidance even late in a deep project. For known mechanisms, a small course can reach
+independent diagnosis quickly. Do not turn the seven actions into seven separate lessons or force
+every experiment to take seven conversational turns; combine stages when useful and respect a
+request for the full lesson.
+
+Before writing a project, state what the learner will eventually own: an invariant, workload,
+capacity claim, recovery procedure, or architecture decision. Work backwards to the experiments
+needed to justify it. Prefer a recurring workload for synthesis and small disposable examples for
+individual mechanisms. CLI and shell tools are enough; application scaffolding earns a place only
+when it exposes a boundary that the CLI cannot.
+
+The assistant can prepare controlled failure variants, inspect evidence, challenge a proposed
+explanation and supply graduated hints. Later incidents should present symptoms before disclosing
+the cause. Assess the learner's causal reasoning and evidence, with completion recorded only on
+their explicit request. Detailed authoring and presentation rules live in
+[`curriculum-tools/docs/AUTHORING.md`](../curriculum-tools/docs/AUTHORING.md).
 
 ## Depth and overlap rule
 

@@ -19,7 +19,10 @@ courses/<id>/progress.sqlite        learner progress, never touch
 ```
 
 Read `$TUTOR/docs/AUTHORING.md` before writing any lesson; it defines the lesson contract and the
-pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementation.
+pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementation. Read
+`$TUTOR/../docs/learning_path.md` for project scale and cross-project overlap. PostgreSQL is a deep
+reference, not the default size for every tool. Choose focused, standard or deep scope from
+distinctive mechanisms and the final engineering decision; preserve the user's requested scope.
 
 Also read the repository knowledge base before starting: `$TUTOR/../docs/knowledge/README.md` is an
 index of findings from earlier course work (tooling quirks, how to read the validation harness,
@@ -29,16 +32,18 @@ per-course lesson pitfalls, the subagent workflow). Open the files relevant to y
 
 1. **Scaffold** a new course (skip if it exists):
    `cd $TUTOR && deno task new-course <id> "<Name>" <tool> "<one-line description>" <minVersion>`
-2. **Plan the modules** with the user before writing lessons: list 8-15 modules in dependency order,
-   each named for the systems idea it makes concrete, with 4-10 experiments per module. A module is
-   not a topic tour; it is a sequence of experiments that build one mental model. Write the plan to
+2. **Plan the modules** before writing lessons, using the user's goal and any already approved
+   direction. Choose the number from the project scale rather than a fixed module/lesson quota. Each
+   module is a sequence of experiments that builds one mental model. Write the plan to
    `courses/<id>/PLAN.md` with one numbered entry per lesson: fixed slug, what the lesson causes and
-   observes, key commands, the expected outcome, and the systems lens. Fixed slugs let modules be
-   written in parallel and referenced as prerequisites before they exist. Then create one stub file
-   per module (`export const NAME: Module = { category, title,
-   lessons: [] }`) and register all
-   of them in `curriculum/mod.ts` in teaching order, so parallel authors only ever edit their own
-   file and the course always builds.
+   observes, key commands, the expected outcome, the systems lens and the learner's decision.
+   Specify final evidence, synthesis points and the progression from supplied experiments to
+   independent investigation with runnable hints. Fixed slugs let modules be written in parallel and
+   referenced as prerequisites before they exist. Then create one stub file per module
+   (`export const NAME: Module = { category, title,
+   lessons: [] }`) and register all of them in
+   `curriculum/mod.ts` in teaching order, so parallel authors only ever edit their own file and the
+   course always builds.
 3. **Write lessons** as `Draft` objects in `curriculum/NN-<module>.ts` using the `code` tag from
    `src/types.ts` (raw template, so backslash commands survive). Every lesson MUST cause a
    phenomenon and then observe it: setup, action, observation, expected result, systems lens.
@@ -52,15 +57,17 @@ per-course lesson pitfalls, the subagent workflow). Open the files relevant to y
    lesson describes, then run every lesson with `tools/validate.ts` (see `docs/VALIDATION.md`),
    which drives one real REPL process per session. Record the actual output and make
    `expectedResult` match it. Fix or drop anything that does not reproduce. To conserve the
-   orchestrating model's budget, delegate writing and validating each module to a subagent: give it
-   the PLAN.md section, the reference module, the harness docs, and its own scratch database
-   (`PGDATABASE=lab_<module>` overrides the harness env), and require a per-lesson report with the
-   real output lines that prove the phenomenon. Then verify: read the module, rerun two or three
-   lessons yourself (multi-session ones first), and run `deno task check`. Modules that restart,
-   crash, or replicate the lab must run serially, never alongside another author.
-7. **Initialize and smoke-test**: `bin/tutor <id> init`, `bin/tutor <id> modules`,
-   `bin/tutor <id> pretty 1`. Bump `course.json` `revision` when existing lessons change materially
-   so completed lessons become stale and are re-served.
+   orchestrating model's budget when delegation is authorized and useful, give each subagent a
+   bounded design with owned files, the PLAN.md section, reference module, harness docs and its own
+   scratch database (`PGDATABASE=lab_<module>` overrides the harness env), and require a per-lesson
+   report with the real output lines that prove the phenomenon. Then verify: read the module, rerun
+   two or three lessons yourself (multi-session ones first), and run `deno task check`. Modules that
+   restart, crash, or replicate the lab must run serially, never alongside another author.
+7. **Initialize and smoke-test in isolated progress**: use `--db PATH` with `init`, `modules` and
+   `pretty 1`. Preserve real learner progress. Increment changed lessons' explicit revisions; change
+   the course-wide default only when the entire course intentionally needs re-serving. Preserve
+   surviving slugs and map retirements/reordering without transferring completion to a different
+   task. Check progress migration on a copy when identities or order change.
 8. **Install the wrapper skill**: copy or symlink `courses/<id>/skill/<id>-tutor` into the user's
    skills directory (for example `~/.claude/skills/` or `~/.codex/skills/`) and report the path. The
    wrapper skill is generated from `templates/course/skill/`; keep its progress invariants intact.
@@ -93,6 +100,12 @@ per-course lesson pitfalls, the subagent workflow). Open the files relevant to y
 - `systemsLens`: the general principle (log-structured storage, snapshot isolation, quorum,
   backpressure, GC horizons, fencing, idempotency...) and where else it shows up.
 - `challenge` (optional): a prediction to make or a variation to run.
+- Coaching should follow read/predict/run/inspect/explain/vary/apply where useful. Give complete
+  commands for unfamiliar mechanisms, then increase ownership of measurement and interpretation.
+  Author specific prompts and graduated runnable hints; respect full-lesson requests. New concepts
+  still need guidance late in a course, and small courses still deserve an independent final task.
+  Use supported fields/interfaces; a PostgreSQL-specific coaching tool is not automatically present
+  in other courses. AUTHORING.md owns the full teaching contract.
 - `safetyLevel`, `runIn`, `sessions`, `estimatedMinutes`: honest.
 - `tags`: 2-5 labels from the course's vocabulary in `PLAN.md` (the canonical book's chapter names
   first, then systems concepts) so `tutor <id> pretty --topic "..."` can serve the next unfinished
