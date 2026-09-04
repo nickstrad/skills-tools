@@ -3,6 +3,48 @@
 Updated: 2026-09-04. Work is active. Delete this file in the final completion commit only after all
 implementation, primary writing/review, integration and validation have finished.
 
+## Latest checkpoint (read this before older detail below)
+
+- Integrated PRIMARY sequential run completed all 54 (exit0, no timeouts):
+  `/tmp/sqlite-course-evidence-7c0602f97be65576`. Tracing was permitted, so sync/automatic
+  checkpoint experiments actually ran. Agents are read-only auditing logs 01–27, 28–41, 42–54;
+  primary still must inspect evidence and run isolated final validation.
+- All agent file ownership has transferred to PRIMARY. Primary rewrote 03/05/07 explanations,
+  corrected four-way checkpoint comparison, added 4000-row unpaced measurements, bounded crash
+  readiness, explicit busy-COMMIT retry, deterministic two-session wait, atomic migration failure
+  gate, real bytecode capability probe, immutable-payload retry guard, exact-PID toolkit writer,
+  cache marker ordering/cleanup, and FTS external-content consistency plus assertions.
+- 01 primary prose complete; 02/04/06/10 primary final prose still in progress. Module04 order is
+  now errors-first; module06 quota-before-salvage; prerequisites corrected. Source revisions and
+  checkpoint ordinal references still need normalization. Generated artifact predates newest prose.
+- Knowledge bank now has primary-authored `sqlite-curriculum-design.md` and
+  `lesson-identity-refresh.md`, indexed. Extend existing gotchas/harness notes with final findings.
+- Real progress hashes still match both original baselines. Full test/migration/render checks and
+  docs finalization remain. Do not delete handoff until genuinely finished.
+
+- First completed chunk is committed/pushed as `67aa492`: plan, this handoff, stable lesson-ID
+  refresh and regression tests, explicit FTS5 build/probe. Do not redo it.
+- User additionally requires durable knowledge-bank updates and index entries for future agents.
+- Primary now owns 03/05/06/07/08/09/10 and shared offline protocol. Agents are doing bounded
+  read-only validation/audits; foundations ownership handoff requested. Do not accept generic
+  module-wide syntax prose as final writing.
+- Primary 09 now validated: WAL incident and ADR evidence
+  `/tmp/sqlite-local-review-5996430c5a966fae`; offline capstone actual writer exit137 and all
+  invariants `/tmp/sqlite-local-review-eff179e14bfdba0e`. Module08 was independently reviewed by
+  recovery_toolkit with no substantive protocol defects found.
+- Recovery agent validated 10 lessons, including salvage: 2700/3000 rows recovered, not 2900; source
+  preserved. Evidence `/tmp/recovery-damaged2.Bzfqqr/validate.log`,
+  `/tmp/recovery-evidence.H5UW9I/validate.log`, `/tmp/sqlite-evidence.4ndDyD/`.
+- Mechanisms report revealed invalid flattened multi-session validation. Agent is rerunning native
+  WAL lessons through real multi-session harness; primary must independently verify. Shell trace
+  cases need approved ptrace execution, not claimed passes after sandbox denial.
+- Known remaining primary corrections: automatic-checkpoint compares FULL/1 vs NORMAL/0 (confounded;
+  replace with four controlled combinations); writer benchmark prose is stale and must add
+  assertions/error classification; per-lesson syntax writing; bounded readiness in crash experiment;
+  accurate preserved-vs-working recovery copy prose; group commit vs batching.
+- Integrated draft currently builds 54. Generated artifact is provisional. Order/revisions, full
+  isolated+sequential validation, documentation and knowledge updates remain mandatory.
+
 ## User intent and accepted direction
 
 - Improve SQLite for systems/distributed-systems engineering after the PostgreSQL course; retain

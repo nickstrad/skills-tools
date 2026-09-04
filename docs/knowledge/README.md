@@ -16,6 +16,8 @@ otherwise rediscover.
 | [shell-lesson-gotchas.md](shell-lesson-gotchas.md) | Pitfalls in Bash lessons (Linux course): `String.raw` code fields, `set -e` leaks, relative `nice`, two-session coordination files, `sudo`/`as_root`, mounts in subshells. |
 | [command-inventory-extraction.md](command-inventory-extraction.md) | How to derive a course's real command inventory from `lessons.json`, including the wrapper and quoting cases a naive grep misses. |
 | [sqlite-lesson-gotchas.md](sqlite-lesson-gotchas.md) | `sqlite3` REPL quirks that break lessons: `.shell` requoting, page-size drift across modules, missing `sqlite_dbpage`. |
+| [sqlite-curriculum-design.md](sqlite-curriculum-design.md) | Design SQLite as a second systems course and avoid false evidence in retry, checkpoint, benchmark, offline-history and toolkit experiments. |
+| [lesson-identity-refresh.md](lesson-identity-refresh.md) | Preserve notes, completions and attempts when lessons move, retire or return; test refresh on copied progress. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |
