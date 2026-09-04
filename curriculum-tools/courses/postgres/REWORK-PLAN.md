@@ -70,7 +70,7 @@ evidence warrants smaller checkpoints. Do not substitute a partially validated c
 
 - `curriculum/*.ts` is authoritative; build `lessons.json`, never hand-edit it.
 - Freeze the first seven built objects and revisions. Keep course revision 2; explicitly use
-  revision 3 for materially changed existing lessons and revision 1 for new lessons.
+  revision 4 for materially changed existing lessons and revision 1 for new lessons.
 - Preserve surviving slugs. Retire only after coverage and prerequisite replacements are explicit;
   record old/new ordinal and slug mapping. No transferring a retired completion to a different task.
 - Keep the seven reading stops attached to appropriate surviving experiments and refresh ordinal

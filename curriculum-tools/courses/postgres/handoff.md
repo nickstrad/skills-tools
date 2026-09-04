@@ -1,6 +1,6 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Active: chunk 0, plan and contracts.**
+Updated 2026-09-04. **Active: chunk 1, three bounded implementations and private validation.**
 
 ## User authorization and intended result
 
@@ -25,19 +25,31 @@ another review or stop after planning: implementation and validation are authori
   integration on a copied progress database when that work lands.
 - Plan has chunks 0–7. Exact designs are authored by the primary before delegation, not left to
   agents.
-- No agents assigned yet; no validation cluster created yet; no lesson runtime validation yet.
+- Active Terra/high agents: `guided_cli` owns designs/01-guided-cli.md files; `storage` owns
+  designs/01-storage.md files; `visibility` owns designs/01-visibility-reclamation.md files.
+- Private PostgreSQL16.15 cluster: `/tmp/postgres-pivot-20260904/primary`, socket
+  `/tmp/postgres-pivot-20260904/socket`, port5540, role postgres. DBs: pivot_storage,
+  pivot_visibility, pivot_primary. Extensions installed. Setup script `/tmp/pg-pivot-lab.sh`.
+  Switching OS users required escalation; approved prefix `bash /tmp/pg-pivot-lab.sh`.
+- Original learner progress SHA256:
+  c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f.
+- No changed-lesson runtime validation yet; agents are implementing.
 - Completed-seven hashes: `validation/completed-baseline.json`; original 96 lesson artifact
   snapshot: `/tmp/postgres-pivot-original-lessons.json`.
 
 ## Next actions
 
-1. Record completed-seven built baseline and progress hashes without initializing learner progress.
-2. Write chunk-1 contracts: staged CLI; HOT/TOAST/cache; MVCC/reclamation consolidation.
-3. Commit/push chunk 0 scoped docs.
-4. Start Terra/high agents for the three bounded contracts; primary provisions isolated validation
-   and designs the next concurrency/protocol chunk while they implement.
-5. Review every returned diff, independently validate, update this file and evidence, then
-   commit/push.
+1. Primary designs/implements chunk-2 retry and durable-claim protocols while agents finish chunk1.
+2. Review returned owned files, build root PostgreSQL only, update cross-module prerequisites for
+   retired slugs and verify completed-seven hashes. Guide registry belongs to primary.
+3. Run staged CLI tests and independently rerun changed storage/horizon experiments, then full chunk
+   sequence. Agents save real evidence in validation/01-*.md and raw logs in /tmp.
+4. Refresh ordinal/checkpoint mapping, record evidence here, commit/push chunk1; dispatch next exact
+   designs. Follow REWORK-PLAN for remaining chunks2–7; no stopping after first chunk.
+5. User also explicitly requested durable knowledge-bank updates for future projects. Record
+   reusable findings in repository docs/knowledge and index; keep transient task state here.
+   Commit/push this handoff at meaningful updates; remove it in final cleanup after all work is
+   complete.
 
 ## Durable constraints
 
