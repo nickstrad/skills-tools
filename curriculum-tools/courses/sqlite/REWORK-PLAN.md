@@ -8,8 +8,8 @@ locking, WAL and recovery foundation; teach the responsibilities that move into 
 its database is embedded. Every lesson causes a phenomenon, observes it, and earns a design
 decision.
 
-Target: **54 lessons in ten modules**, through consolidation and focused additions. The existing
-PLAN.md describes the previous 48-lesson implementation; this document supersedes it for this pass.
+Target: **54 lessons in ten modules**, through consolidation and focused additions. This records the
+original implementation analysis; PLAN.md now describes the integrated course and its contracts.
 Module filenames stay stable; new `10-toolkit.ts` is registered BEFORE `09-capstone.ts`.
 
 ## Contracts for implementation
@@ -221,7 +221,13 @@ integration/docs and independent review. Agents use private copies and own only 
 
 1. Foundations: 01-lab-file.ts, 02-pages.ts, 04-concurrency.ts (19 lessons).
 2. Mechanisms/performance: 03-journals.ts, 05-wal.ts, 07-performance.ts (16 lessons).
-3. Recovery/toolkit/capstone: 06-recovery.ts, 10-toolkit.ts, 09-capstone.ts (13 lessons).
+3. Recovery/toolkit/capstone: initially 06-recovery.ts, 10-toolkit.ts, 09-capstone.ts (13 lessons).
+   Primary took back capstone ownership and wrote its final implementation directly.
+
+Primary subsequently rewrote the mechanism/performance explanations and substantially edited all
+other module narratives, corrected experiment designs, and independently reviewed actual logs. Agent
+ownership was explicitly returned before integration; final writing and acceptance were not
+delegated to an agent-generated aggregate.
 
 Return real per-lesson evidence and uncertainties; no commits, progress writes, engine changes,
 shared generated artifacts or other agents' files. Crash/corruption validation runs serially with

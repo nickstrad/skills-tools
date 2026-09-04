@@ -8,6 +8,7 @@ import { WAL } from "./05-wal.ts";
 import { RECOVERY } from "./06-recovery.ts";
 import { PERFORMANCE } from "./07-performance.ts";
 import { LOCAL_SYSTEMS } from "./08-local-systems.ts";
+import { TOOLKIT } from "./10-toolkit.ts";
 import { CAPSTONE } from "./09-capstone.ts";
 
 export const MODULES: Module[] = [
@@ -19,5 +20,6 @@ export const MODULES: Module[] = [
   RECOVERY,
   PERFORMANCE,
   LOCAL_SYSTEMS,
+  TOOLKIT,
   CAPSTONE,
 ];

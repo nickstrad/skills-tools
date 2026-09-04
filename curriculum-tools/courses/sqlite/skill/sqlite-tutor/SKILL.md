@@ -43,6 +43,12 @@ If a command reports the progress database is not initialized, run
 `lessons.json` is missing, run `deno task build sqlite` in the tool directory, then `init`, then
 retry.
 
+After a known course update, run `init` once before serving a lesson so the CLI refreshes content,
+revisions and display order. Refresh preserves identity by slug, including retired history; it does
+not mark any lesson complete. Resolve old lesson numbers through `search` rather than assuming an
+ordinal still names the same experiment. Authoring/tests must use an explicit copied `--db` path,
+never the learner's real progress file as a test fixture.
+
 ## Present one lesson
 
 Paste the `pretty` output verbatim: it is Markdown, it always contains `Lesson ID:`, and the exact
@@ -77,6 +83,12 @@ sqlite3 "$TUTOR_SQLITE_DB"
 "The wrapper" in lesson text is this opened `sqlite3`; `bin/sqlite-repl` is only the harness's
 launcher. Before a lesson's `Setup:`, have the user `.quit` every other `sqlite3` session on the lab
 (journal-mode switches fail with "database is locked"); multi-session lessons then reopen theirs.
+
+This is a second transactional-storage course after PostgreSQL. Coach the SQLite mechanism and
+application responsibility that differ; do not add another general SQL/transaction tutorial unless
+the learner needs it. For incidents, stop at the marked prediction/diagnosis point before revealing
+the remedy. For the final ADR, script success produces evidence, not a completed architecture
+decision. Required capability failures and unavailable tracing are not successful experiments.
 
 ## Progress invariants
 

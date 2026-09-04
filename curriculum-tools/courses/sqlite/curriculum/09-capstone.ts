@@ -1,300 +1,339 @@
 import { code, type Module } from "../../../src/types.ts";
+import { deliveryProtocol, offlineLab, shellExplanation } from "./offline-protocol.ts";
 
 export const CAPSTONE: Module = {
   category: "capstone",
-  title: "Incident and architecture capstone",
+  title: "Diagnose, compose, and decide",
   lessons: [
     {
       slug: "wal-growth-incident",
-      title: "Diagnose a WAL-growth incident",
+      title: "Explain a growing WAL before choosing a remedy",
+      revision: 3,
       difficulty: "advanced",
       tags: ["wal", "checkpoints", "incident", "backpressure"],
       prerequisites: ["checkpoint-starvation"],
       overview:
-        "Hold a reader snapshot while a writer produces a bounded burst, inspect checkpoint progress and sidecar files, and then release the snapshot. Reconstruct a short incident timeline from evidence before restoring checkpoint progress.",
-      syntaxBreakdown:
-        "PRAGMA journal_mode=WAL enables the write-ahead log. wal_checkpoint(PASSIVE) reports busy, log-frame, and checkpointed-frame counts. wal_checkpoint(TRUNCATE) asks SQLite to finish and truncate the WAL when readers permit it.",
-      setup: code`
-PRAGMA journal_mode=WAL;
+        "A local service still accepts writes, but its WAL keeps growing and a checkpoint does not reclaim it. Collect a timeline that distinguishes writer admission, committed visibility and checkpoint progress. At the marked pause, predict which transaction must end and what evidence would falsify your diagnosis before running the recovery steps.",
+      syntaxBreakdown: code`### In plain terms
+
+An incident diagnosis should explain all the observations, not just name a familiar setting.
+If writes commit while an old reader sees the same count, a blocked writer is not a sufficient
+explanation for disk growth. Run the evidence phase first and stop at the printed pause. Write down
+your hypothesis, the next measurement, and the smallest corrective action. The continuation tests it.
+
+### What you are learning
+
+- A growing WAL is a symptom with several possible causes. Committed row counts and checkpoint
+  frame counts separate incoming work from work that reclamation cannot yet finish.
+- An intervention should preserve data and address the resource actually being retained.
+- PostgreSQL's old snapshots and replication slots also retain history, but here the retaining
+  participant is a connection to a local file, without a server process catalog to inspect.
+
+### Piece by piece
+
+- **journal_mode=WAL / wal_autocheckpoint=0** (file mode and connection policy): Keep the observed
+  backlog under explicit control. Each writing connection disables its own automatic checkpoint.
+- **BEGIN / SELECT / COMMIT** (snapshot lifecycle): A's first read establishes its snapshot.
+  An idle connection alone would not reproduce the same retention; a live read transaction does.
+- **WITH RECURSIVE / hex(randomblob(700))** (bounded workload): Generate three batches of 200
+  rows with large payloads. The fixed number of rows bounds disk use; random contents avoid assuming
+  that logical payload size alone predicts storage behavior.
+- **.shell stat -c '%s'** (file measurement): Inspect bytes while the connections remain open.
+  Closing the last connection before measuring can change the WAL lifecycle you intend to observe.
+- **wal_checkpoint(PASSIVE)** (non-waiting checkpoint): Its three columns are busy status, log
+  frames and copied frames. A busy value of zero does not imply all frames were copied.
+- **wal_checkpoint(TRUNCATE)** (reclamation request): After the suspected reader ends, request
+  reuse and truncation. Compare both the tuple and file size, then verify the committed row count.
+`,
+      setup: code`PRAGMA journal_mode=WAL;
 PRAGMA wal_autocheckpoint=0;
 DROP TABLE IF EXISTS incident_events;
-CREATE TABLE incident_events(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
-DELETE FROM incident_events;
-`,
-      code: code`
--- Session A
+CREATE TABLE incident_events(id INTEGER PRIMARY KEY,payload TEXT NOT NULL);`,
+      code: code`-- Session A
 BEGIN;
-SELECT count(*) AS reader_snapshot FROM incident_events;
-.print timeline: reader opened
-.shell stat -c 'wal_bytes_before=%s' "$TUTOR_SQLITE_DB-wal" 2>/dev/null || true
+SELECT 'A_start',count(*) FROM incident_events;
 -- Session B
 PRAGMA wal_autocheckpoint=0;
 BEGIN;
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)
-INSERT INTO incident_events(payload) SELECT printf('burst-a-%04d-%s', x, hex(randomblob(700))) FROM n;
+WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
+INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
 COMMIT;
 BEGIN;
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)
-INSERT INTO incident_events(payload) SELECT printf('burst-b-%04d-%s', x, hex(randomblob(700))) FROM n;
+WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
+INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
 COMMIT;
 BEGIN;
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 200)
-INSERT INTO incident_events(payload) SELECT printf('burst-c-%04d-%s', x, hex(randomblob(700))) FROM n;
+WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
+INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
 COMMIT;
-.print timeline: writer committed 600 rows
-.shell stat -c 'wal_bytes_after_write=%s' "$TUTOR_SQLITE_DB-wal" 2>/dev/null || true
+SELECT 'B_committed',count(*) FROM incident_events;
+.shell stat -c 'wal_after_writes=%s' "$TUTOR_SQLITE_DB-wal"
 PRAGMA wal_checkpoint(PASSIVE);
-.print timeline: passive checkpoint attempted while reader remains open
-.shell stat -c 'wal_bytes_after_passive=%s' "$TUTOR_SQLITE_DB-wal" 2>/dev/null || true
 -- Session A
-SELECT count(*) AS still_old_snapshot FROM incident_events;
+SELECT 'A_now',count(*) FROM incident_events;
+.print PAUSE: record your diagnosis, predicted checkpoint result, and smallest remedy before continuing
+-- Session A
 COMMIT;
 -- Session B
 PRAGMA wal_checkpoint(TRUNCATE);
-.print timeline: reader released and truncate completed
-.shell stat -c 'wal_bytes_after_truncate=%s' "$TUTOR_SQLITE_DB-wal" 2>/dev/null || true
-SELECT count(*) AS current_rows FROM incident_events;
-`,
+.shell stat -c 'wal_after_remedy=%s' "$TUTOR_SQLITE_DB-wal"
+SELECT 'verified_rows',count(*) FROM incident_events;
+PRAGMA integrity_check;`,
       expectedResult:
-        "The labeled timeline reports wal_bytes_before, wal_bytes_after_write, wal_bytes_after_passive, and wal_bytes_after_truncate for TUTOR_SQLITE_DB-wal. Session A first sees 0 rows and continues to see 0 inside its read transaction. Session B commits three 200-row, large-payload transactions while A is open; wal_bytes_after_write and the passive checkpoint log-frame count are visibly larger than zero. The passive checkpoint output is a three-column tuple (busy, log frames, checkpointed frames); it normally reports 0 busy and 0 checkpointed frames because A pins the old snapshot. After A commits, TRUNCATE returns 0|0|0, the final WAL size is 0 or near-zero, and current_rows is 600. No rows are lost.",
+        "Before the pause, A_start and A_now are 0 while B_committed is 600; WAL bytes are positive and PASSIVE cannot copy all log frames. This rules out writer admission failure as the immediate cause. Ending A's read transaction allows TRUNCATE to report 0|0|0, wal_after_remedy=0, verified_rows=600 and integrity_check=ok. Frame counts depend on page size and earlier lab state.",
       systemsLens:
-        "A long-lived reader extends the WAL reclamation horizon. New writes succeed, but checkpoint progress stalls and disk usage becomes backpressure. The incident is an interaction between snapshot lifetime and checkpoint policy, not a distributed replication event.",
+        "Resource growth becomes an incident when production outruns reclamation. Diagnose the consumer or snapshot retaining the history before increasing a limit. The proof of recovery includes restored progress and intact committed state, not merely a smaller file.",
       challenge:
-        "Repeat with a reader that never ends and write until a filesystem budget is nearly reached. Define an alert based on reader age and WAL bytes, then release the reader and verify recovery.",
+        "Repeat with A ending its read transaction before the burst, then with a different connection holding the writer. Build a three-row diagnostic table: symptoms, distinguishing observation, and corrective action. Keep every burst bounded at 600 rows.",
       caution:
-        "The intentionally open read transaction blocks checkpoint reclamation. Keep the burst bounded and release Session A before leaving the lesson; never run an unbounded WAL-growth experiment on a valuable database.",
+        "Finish A's transaction before leaving. Never delete the WAL to reclaim space; it may contain committed state absent from the main file.",
       safetyLevel: "locking",
       runIn: "tool",
       sessions: 2,
-      minVersion: "3.53.4",
       estimatedMinutes: 30,
     },
     {
       slug: "offline-agent-capstone",
-      title: "Assemble and recover an offline agent",
+      title: "Recover an agent while preserving its local invariants",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["architecture", "outbox", "leases", "backup", "recovery"],
-      prerequisites: ["wal-growth-incident"],
+      tags: ["architecture", "outbox", "fencing", "backup", "recovery"],
+      prerequisites: ["restore-and-rejoin-history", "wal-growth-incident"],
       overview:
-        "Build a versioned application database that combines an outbox, idempotent inbox, fenced job lease, and oplog. Inject bounded process termination, duplicate transfer, a lost acknowledgement, a stale worker, and damage to a copy; then check recovery and convergence invariants.",
-      syntaxBreakdown:
-        "PRAGMA user_version stores an application schema generation. .backup makes an engine-coordinated copy. timeout bounds process termination. INSERT OR IGNORE and token-guarded UPDATE implement deduplication and fencing.",
-      code: code`
-set -eu
-db=$(printenv TUTOR_SQLITE_DB || true)
-if [ -z "$db" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi
-case "$db" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac
-lab_dir=$(dirname -- "$db")
-if [ "$lab_dir" = / ] || [ ! -d "$lab_dir" ] || [ ! -w "$lab_dir" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi
-if [ -L "$db" ] || { [ -e "$db" ] && [ ! -f "$db" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi
-case "$lab_dir" in *"'"*) echo 'database parent may not contain a single quote for SQL path safety' >&2; exit 2;; esac
-replica_b=$lab_dir/offline-agent-replica-b.db
-backup=$lab_dir/offline-agent.backup.sqlite
-damaged=$lab_dir/offline-agent.damaged.sqlite
-recovered=$lab_dir/offline-agent.recovered.sqlite
-rm -f "$db" "$db-journal" "$db-wal" "$db-shm" "$replica_b" "$replica_b-journal" "$replica_b-wal" "$replica_b-shm" "$backup" "$damaged" "$recovered"
-sqlite3 "$db" <<'SQL'
+        "Compose the course's local boundaries into one agent: state and intent, receiver effect and receipt, ownership and fenced completion, backup and verified restore. Inject an uncommitted process death, lost acknowledgement, duplicate delivery, stale completion and damaged restore candidate. Each success line is guarded by an assertion against the actual database state.",
+      syntaxBreakdown: code`### In plain terms
+
+Each earlier experiment isolated one failure. Here several independent guarantees must hold at
+once. Start by writing four invariants: a committed debit has intent, a repeated delivery has one
+receiver effect, an old worker cannot complete the new owner's job, and a restore contains both
+valid pages and the expected domain state. The script then challenges each invariant separately.
+
+### What you are learning
+
+- Composition preserves guarantees only when the relevant facts share the correct transaction.
+- A verified backup is a restore input; a damaged candidate must be rejected before it replaces state.
+- These copies share one host. Their successful recovery does not establish resilience to losing
+  that host, and an old restored participant still needs the rejoin policy from the previous module.
+
+### Piece by piece
+` + shellExplanation + code`
+- **mkfifo / exec 3<> / $! / trap** (owned-process control): Keep one writer's input open, capture
+  its PID and ensure it is reaped on error. A bounded DIRTY_READY poll chooses the uncommitted failure
+  point; no delay is used as proof that a transaction started.
+- **kill -KILL / wait / status 137** (process crash): End only that writer. Reopening must show
+  neither its uncommitted row nor a damaged database. This is not a power-loss durability test.
+- **user_version** (application format metadata): A restore must recover its schema generation as
+  well as rows. This test expects generation 1, whose schema the reader understands.
+- **token predicate / changes()** (fenced completion): An obsolete owner changes zero rows, while
+  the current generation can complete the resource. This only protects the effect stored in SQLite.
+- **.backup / cp / dd bs=1 seek=100 count=8 conv=notrunc** (snapshot and deliberate damage): Create
+  an engine snapshot, copy it, then zero eight bytes at the first B-tree page header in only that
+  candidate. conv=notrunc preserves the rest of the copy so the experiment tests corruption detection.
+- **grep / test / integrity_check / domain queries** (acceptance gates): A nonzero damaged check
+  must include a malformed-image error. The intact restore must pass structural, balance, intent,
+  job-result and schema checks. The summary is printed only after all gates succeed.
+`,
+      code: offlineLab + deliveryProtocol + code`
+sender=$lab/agent.db
+receiver=$lab/receiver.db
+init_receiver "$receiver"
+sqlite3 -bail "$sender" <<'SQL'
 PRAGMA journal_mode=WAL;
+PRAGMA synchronous=FULL;
 PRAGMA user_version=1;
-CREATE TABLE accounts(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-CREATE TABLE outbox(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE jobs(id INTEGER PRIMARY KEY, state TEXT NOT NULL, owner TEXT, token INTEGER NOT NULL, result TEXT);
-CREATE TABLE oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, seq INTEGER NOT NULL, payload TEXT NOT NULL, UNIQUE(device_id, seq));
-INSERT INTO accounts VALUES (1, 100);
-INSERT INTO jobs VALUES (1, 'claimed', 'agent-a', 1, NULL);
-BEGIN;
-UPDATE accounts SET balance = balance - 10 WHERE id = 1;
-INSERT INTO outbox VALUES ('op-1', 'debit=10', 0);
-INSERT INTO oplog VALUES ('device-a-1', 'device-a', 1, 'debit=10');
+CREATE TABLE account(id INTEGER PRIMARY KEY,balance INTEGER NOT NULL);
+CREATE TABLE outbox(op_id TEXT PRIMARY KEY NOT NULL,amount INTEGER NOT NULL,sent INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE jobs(id INTEGER PRIMARY KEY,owner TEXT,token INTEGER,result TEXT);
+INSERT INTO account VALUES(1,100);
+INSERT INTO jobs VALUES(1,'a',1,NULL);
+BEGIN IMMEDIATE;
+UPDATE account SET balance=balance-10;
+INSERT INTO outbox(op_id,amount) VALUES('a/g1:1',10);
 COMMIT;
 SQL
-sqlite3 "$replica_b" <<'SQL'
-PRAGMA user_version=1;
-CREATE TABLE accounts(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-CREATE TABLE inbox(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, applied INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, seq INTEGER NOT NULL, payload TEXT NOT NULL, UNIQUE(device_id, seq));
-INSERT INTO accounts VALUES (1, 100);
-SQL
-echo '--- process termination before commit ---'
+mkfifo "$lab/writer.fifo"
+exec 3<>"$lab/writer.fifo"
+sqlite3 -bail "$sender" <"$lab/writer.fifo" >"$lab/writer.log" 2>&1 &
+writer=$!
+trap 'kill -KILL "$writer" 2>/dev/null || true; wait "$writer" 2>/dev/null || true' EXIT HUP INT TERM
+printf '%s\n' 'BEGIN IMMEDIATE; INSERT INTO account VALUES(2,50);' '.print DIRTY_READY' >&3
+n=0
+until grep -q DIRTY_READY "$lab/writer.log"; do n=$((n+1)); test "$n" -lt 200; sleep 0.02; done
+kill -KILL "$writer"
 set +e
-(printf '%s\n' 'BEGIN; INSERT INTO accounts VALUES (2, 50);'; sleep 2; printf '%s\n' 'COMMIT;') 2>/dev/null | timeout 1 sqlite3 "$db" >/dev/null
+wait "$writer"
 crash_status=$?
 set -e
-sqlite3 "$db" 'PRAGMA integrity_check; SELECT count(*) AS account_rows_after_crash FROM accounts;'
-echo "terminated_process_exit=$crash_status"
-echo '--- duplicate transfer and lost acknowledgement ---'
-sqlite3 "$replica_b" <<'SQL'
-BEGIN;
-INSERT OR IGNORE INTO inbox(op_id, payload) VALUES ('op-1', 'debit=10');
-SELECT changes() AS first_receipt;
-COMMIT;
-SQL
-sqlite3 "$db" 'SELECT op_id, sent FROM outbox;'
-sqlite3 "$replica_b" <<'SQL'
-BEGIN;
-INSERT OR IGNORE INTO inbox(op_id, payload) VALUES ('op-1', 'debit=10');
-SELECT changes() AS duplicate_receipt;
-UPDATE accounts SET balance = balance - 10 WHERE id = 1 AND EXISTS (SELECT 1 FROM inbox WHERE op_id = 'op-1' AND applied = 0);
-UPDATE inbox SET applied = 1 WHERE op_id = 'op-1' AND applied = 0;
-COMMIT;
-SELECT count(*) AS logical_receipts, (SELECT balance FROM accounts WHERE id = 1) AS replica_b_balance FROM inbox;
-SQL
-sqlite3 "$db" <<'SQL'
-UPDATE outbox SET sent = 1 WHERE op_id = 'op-1' AND sent = 0;
-SELECT op_id, sent FROM outbox;
-SQL
-sqlite3 "$replica_b" <<'SQL'
-INSERT OR IGNORE INTO oplog VALUES ('device-a-1', 'device-a', 1, 'debit=10');
-SELECT count(*) AS replica_b_oplog_rows FROM oplog;
-SQL
-echo '--- replica convergence ---'
-replica_a_balance=$(sqlite3 "$db" 'SELECT balance FROM accounts WHERE id = 1;')
-replica_b_balance=$(sqlite3 "$replica_b" 'SELECT balance FROM accounts WHERE id = 1;')
-if [ "$replica_a_balance" = "$replica_b_balance" ]; then echo "replica_balances=$replica_a_balance/$replica_b_balance convergence=converged"; else echo "replica_balances=$replica_a_balance/$replica_b_balance convergence=diverged"; fi
-echo '--- stale fenced worker ---'
-sqlite3 "$db" <<'SQL'
-UPDATE jobs SET owner = 'agent-b', token = token + 1, state = 'claimed' WHERE id = 1;
-UPDATE jobs SET state = 'done', result = 'late-a' WHERE id = 1 AND owner = 'agent-a' AND token = 1;
-SELECT changes() AS stale_worker_rows;
-UPDATE jobs SET state = 'done', result = 'result-b' WHERE id = 1 AND owner = 'agent-b' AND token = 2;
-SELECT id, state, owner, token, result FROM jobs;
-SQL
-sqlite3 "$db" ".backup '$backup'"
-echo "source_integrity=$(sqlite3 "$db" 'PRAGMA integrity_check;')"
-echo "backup_integrity=$(sqlite3 "$backup" 'PRAGMA integrity_check;')"
-echo "backup_user_version=$(sqlite3 "$backup" 'PRAGMA user_version;')"
-echo "backup_balance=$(sqlite3 "$backup" 'SELECT balance FROM accounts WHERE id = 1;')"
-echo '--- damaged restore candidate: detect, reject, restore from the verified backup ---'
-cp "$backup" "$damaged"
-dd if=/dev/zero of="$damaged" bs=1 seek=100 count=8 conv=notrunc status=none
-set +e
-sqlite3 "$damaged" 'PRAGMA integrity_check;' >"$lab_dir/damaged-check.out" 2>&1
-damaged_status=$?
-set -e
-echo "damaged_integrity_exit=$damaged_status"
-head -n 2 "$lab_dir/damaged-check.out"
-if [ "$damaged_status" -ne 0 ]; then
-  echo 'restore_source=verified-backup (damaged candidate rejected before restore)'
-  sqlite3 "$backup" ".backup '$recovered'"
+trap - EXIT HUP INT TERM
+exec 3>&-
+test "$crash_status" = 137
+test "$(sqlite3 "$sender" 'SELECT count(*) FROM account;')" = 1
+test "$(sqlite3 "$sender" 'PRAGMA integrity_check;')" = ok
+echo 'crash_recovery=ok uncommitted_rows=0'
+sqlite3 "$sender" "SELECT 'INSERT INTO incoming VALUES(' || quote(op_id) || ',' || amount || ');' FROM outbox WHERE sent=0;" >"$lab/batch.sql"
+deliver "$receiver" "$lab/batch.sql"
+test "$(sqlite3 "$sender" 'SELECT sent FROM outbox;')" = 0
+deliver "$receiver" "$lab/batch.sql"
+sqlite3 -bail "$sender" 'UPDATE outbox SET sent=1;'
+test "$(sqlite3 "$receiver" 'SELECT balance FROM account;')" = 90
+test "$(sqlite3 "$receiver" 'SELECT count(*) FROM receipts;')" = 1
+echo 'duplicate_delivery=one_effect balance=90 receipts=1'
+sqlite3 -bail "$sender" "UPDATE jobs SET owner='b',token=2 WHERE id=1;"
+stale=$(sqlite3 -bail "$sender" "UPDATE jobs SET result='late-a' WHERE id=1 AND owner='a' AND token=1; SELECT changes();")
+test "$stale" = 0
+sqlite3 -bail "$sender" "UPDATE jobs SET result='current-b' WHERE id=1 AND owner='b' AND token=2;"
+sqlite3 "$sender" ".backup '$lab/verified.db'"
+test "$(sqlite3 "$lab/verified.db" 'PRAGMA integrity_check;')" = ok
+cp "$lab/verified.db" "$lab/damaged.db"
+dd if=/dev/zero of="$lab/damaged.db" bs=1 seek=100 count=8 conv=notrunc status=none
+if sqlite3 -bail "$lab/damaged.db" 'PRAGMA integrity_check;' >"$lab/damaged.log" 2>&1; then
+  echo 'unexpected: damaged candidate accepted' >&2; exit 1
 else
-  echo 'restore_source=candidate (unexpected: the damaged copy passed integrity_check)'
-  sqlite3 "$damaged" ".backup '$recovered'"
+  grep -q 'malformed' "$lab/damaged.log"
 fi
-echo "recovered_integrity=$(sqlite3 "$recovered" 'PRAGMA integrity_check;')"
-echo "recovered_tables=$(sqlite3 "$recovered" "SELECT count(*) FROM sqlite_master WHERE type = 'table';")"
-echo "recovered_balance=$(sqlite3 "$recovered" 'SELECT balance FROM accounts WHERE id = 1;')"
-echo "recovered_user_version=$(sqlite3 "$recovered" 'PRAGMA user_version;')"
-rm -f "$replica_b" "$replica_b-journal" "$replica_b-wal" "$replica_b-shm"
+sqlite3 "$lab/verified.db" ".backup '$lab/restored.db'"
+test "$(sqlite3 "$lab/restored.db" 'PRAGMA integrity_check;')" = ok
+test "$(sqlite3 "$lab/restored.db" 'PRAGMA user_version;')" = 1
+test "$(sqlite3 "$lab/restored.db" 'SELECT balance FROM account;')" = 90
+test "$(sqlite3 "$lab/restored.db" 'SELECT count(*) FROM outbox WHERE sent=1;')" = 1
+test "$(sqlite3 "$lab/restored.db" 'SELECT result FROM jobs;')" = current-b
+echo 'stale_completion=0 damaged_candidate=rejected restore_integrity=ok restore_invariants=ok'
 `,
       expectedResult:
-        "The bounded terminated process exits 124, but source integrity_check is ok and account_rows_after_crash is 1, so the uncommitted account row is absent. Replica B's first receipt is 1, duplicate_receipt is 0, logical_receipts is 1, and its balance becomes 90 exactly once; the sender outbox advances to sent = 1 after the lost acknowledgement is retried. Replica B receives one oplog row, and replica_balances=90/90 reports convergence=converged. The stale worker update changes 0 rows; agent-b token 2 completes the job. Source and engine-created backup integrity are both ok; backup_user_version=1 and backup_balance=90. The damaged candidate prints a nonzero damaged_integrity_exit with a malformed-image error, so the script prints restore_source=verified-backup and restores from the intact backup instead: recovered_integrity=ok, recovered_tables=4, recovered_balance=90, recovered_user_version=1. Salvaging bytes from the damaged copy is not attempted here; the recover-damaged-copy lesson shows what salvage can and cannot return, and the guarantee comes from the verified backup.",
+        "The owned writer exits 137; crash_recovery=ok and uncommitted_rows=0 are asserted. Deliveries report 1 then 0 new receipts, receiver balance is 90 and receipts=1. Stale completion changes zero rows. The damaged candidate is rejected with a malformed-image error, while the verified restore passes integrity, user_version=1, balance=90, one acknowledged intent and current-b job result. A 'Killed' shell diagnostic is expected.",
       systemsLens:
-        "Reliable local systems compose small invariants at transaction boundaries: intent with state, receipts with deduplication, ownership with fencing, and recovery with verified copies. A restore path must verify its candidate before trusting it; the integrity check is the gate that turns a damaged file into a rejected candidate instead of a restored corruption. SQLite supplies local atomicity and recovery machinery; delivery, failure domains, and convergence policy still belong to the application.",
+        "Reliable composition follows the boundaries of authority: each participant commits the facts it owns, replay crosses between participants, and recovery verifies both storage and meaning. A list of features is not a guarantee until failure experiments show their invariants survive together.",
       challenge:
-        "Add a schema migration that increments user_version, then rehearse restore into a clean directory and measure elapsed recovery time. Define which missing remote effects belong in the RPO statement.",
+        "Restore the sender from a backup taken before acknowledgement while keeping the receiver current. Predict the replay and check it. Then explain why restoring a backup from before sequence allocation additionally requires a generation/rejoin policy.",
       caution:
-        "This lesson deliberately terminates a disposable process and modifies only a copy of the backup. Set TUTOR_SQLITE_DB to a uniquely named lab path, preserve original evidence, and never run damage commands against a source database.",
+        "The script creates a unique directory, kills only its child and damages only a copy. Keep the intact backup and diagnostic files until you have explained every invariant.",
       safetyLevel: "dangerous",
       runIn: "shell",
-      sessions: 1,
-      minVersion: "3.53.4",
-      revision: 2,
       estimatedMinutes: 45,
     },
     {
       slug: "sqlite-architecture-decision",
-      title: "Write an evidence-backed SQLite architecture decision",
+      title: "Choose an architecture from measured requirements",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["architecture", "capacity", "durability", "rto", "observability"],
-      prerequisites: ["offline-agent-capstone"],
+      tags: ["architecture", "capacity", "durability", "rpo", "rto"],
+      prerequisites: ["offline-agent-capstone", "measure-the-writer-envelope"],
       overview:
-        "Measure a small capstone-shaped workload and turn the observations into an ADR/runbook. State concurrency, latency, durability mode, backup cadence, RPO, RTO, failure domain, invariant checks, and explicit exit criteria for moving beyond SQLite.",
-      syntaxBreakdown:
-        "EXPLAIN QUERY PLAN records an access mechanism. PRAGMA synchronous and journal_mode state durability settings. stat reports file bytes. A shell heredoc writes an auditable ADR beside the disposable database.",
-      code: code`
-set -eu
-db=$(printenv TUTOR_SQLITE_DB || true)
-if [ -z "$db" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi
-case "$db" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac
-lab_dir=$(dirname -- "$db")
-if [ "$lab_dir" = / ] || [ ! -d "$lab_dir" ] || [ ! -w "$lab_dir" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi
-if [ -L "$db" ] || { [ -e "$db" ] && [ ! -f "$db" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi
-case "$lab_dir" in *"'"*) echo 'database parent may not contain a single quote for SQL path safety' >&2; exit 2;; esac
-decision=$lab_dir/sqlite-architecture-adr.md
-test_db=$lab_dir/architecture-decision.sqlite
-backup=$lab_dir/architecture-decision.backup.sqlite
-restored=$lab_dir/architecture-decision.restored.sqlite
-rm -f "$test_db" "$test_db-wal" "$test_db-shm" "$test_db-journal" "$backup" "$restored" "$decision"
-sqlite3 "$test_db" <<'SQL'
+        "Your task is to choose storage for a one-host agent with two producers, a growing event history and a recoverable local queue. First define its latency, loss and recovery budgets; then use a controlled contention experiment, the writer-envelope measurements and a restore rehearsal to assess those budgets. The script collects evidence and creates an incomplete decision record; completing the lesson requires your reasoning, not just running it.",
+      syntaxBreakdown: code`### In plain terms
+
+Use this workload brief: two producers append events, a worker claims jobs, and readers inspect
+recent state. The local device can be offline; loss of its host is a separate failure to plan for.
+Before running, write your required append rate, p95 latency budget, tolerated loss of acknowledged
+local operations, backup loss window and recovery deadline. You choose the numerical requirements.
+The small test below measures one controlled lock hold and restore path. It does not certify sustained
+capacity; bring the persistent-worker samples from the capacity lesson into the decision too.
+
+### What you are learning
+
+- Requirements, observed results and inferred guarantees are separate parts of an architecture.
+- A busy timeout spends a latency budget; it does not create writer capacity. A long critical section
+  can violate that budget even when a small uncontended query is fast.
+- RPO includes backup age, publication lag and failure domain. RTO includes finding a usable copy,
+  restoring it and validating domain state, not merely timing a file copy.
+
+### Piece by piece
+` + shellExplanation + code`
+- **PRAGMA synchronous=FULL** (connection policy): Explicitly initialize the measured writer.
+  This is the experiment's setting, not a preselected final architecture; measure other accepted
+  policies separately and justify their persistence contracts.
+- **EXPLAIN QUERY PLAN / CREATE INDEX / ANALYZE** (access-path evidence): Capture the lookup
+  mechanism for a fixed tenant. The expected 50 matches check the dataset; the plan does not establish
+  the two-producer workload's latency or throughput.
+- **mkfifo / .print HELD / timeout via busy_timeout** (contention measurement): Hold a known writer
+  reservation until explicitly released, and time a second connection's bounded INSERT attempt.
+  Because that INSERT is its own transaction, a failed admission cannot fall through into COMMIT.
+- **date +%s%N / arithmetic / stat -c %s** (measurements): Record wall-clock elapsed nanoseconds,
+  convert to milliseconds, and label database bytes. Scheduling and observation overhead remain in
+  the measurement; the small controlled sample is not a p95 latency distribution.
+- **.backup / integrity_check / count(*)** (restore rehearsal): Take the backup before starting
+  the restore timer, then time restoration and structural/domain verification. The source-selection
+  and off-host retrieval delays are explicitly unmeasured here.
+- **ADR template** (learner artifact): Fill every requirement and cite an evidence file or source
+  for each claim. The script cannot verify your reasoning; it prints the document's location, never
+  a claim that an architecture has been approved.
+`,
+      code: offlineLab + code`
+db=$lab/workload.db
+sqlite3 -bail "$db" <<'SQL'
 PRAGMA journal_mode=WAL;
-PRAGMA synchronous=NORMAL;
-CREATE TABLE events(id INTEGER PRIMARY KEY, tenant TEXT NOT NULL, payload TEXT NOT NULL);
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 5000)
-INSERT INTO events SELECT x, 'tenant-' || (x % 100), 'event-' || x FROM n;
-CREATE INDEX events_tenant_idx ON events(tenant);
+PRAGMA synchronous=FULL;
+CREATE TABLE events(id INTEGER PRIMARY KEY,tenant INTEGER,payload TEXT);
+WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<5000)
+INSERT INTO events SELECT x,x%100,'event-'||x FROM n;
+CREATE INDEX by_tenant ON events(tenant);
 ANALYZE;
 SQL
-version=$(sqlite3 "$test_db" 'SELECT sqlite_version();')
-plan=$(sqlite3 "$test_db" "EXPLAIN QUERY PLAN SELECT payload FROM events WHERE tenant = 'tenant-7';")
-pages=$(sqlite3 "$test_db" 'PRAGMA page_count;')
-bytes=$(stat -c '%s' "$test_db")
-timer_output=$(sqlite3 "$test_db" <<'SQL' 2>&1
-.timer on
-SELECT count(*) FROM events WHERE tenant = 'tenant-7';
-.timer off
-SQL
-)
-restore_start=$(date +%s%N)
-sqlite3 "$test_db" ".backup '$backup'"
-sqlite3 "$backup" ".backup '$restored'"
-sqlite3 "$restored" "PRAGMA integrity_check; SELECT count(*) FROM events WHERE tenant = 'tenant-7';" >"$lab_dir/restore-check.out"
-restore_end=$(date +%s%N)
-restore_ms=$(( (restore_end - restore_start) / 1000000 ))
-echo '# SQLite architecture decision' >"$decision"
-echo '' >>"$decision"
-echo '## Observed evidence' >>"$decision"
-echo "- SQLite runtime version: $version" >>"$decision"
-echo "- Query plan: $plan" >>"$decision"
-echo "- Main-file bytes: $bytes" >>"$decision"
-echo "- Page count: $pages" >>"$decision"
-echo "- Timed lookup output: $timer_output" >>"$decision"
-echo "- Backup/restore check: $(cat "$lab_dir/restore-check.out")" >>"$decision"
-echo "- Measured backup/restore elapsed milliseconds: $restore_ms" >>"$decision"
-echo '' >>"$decision"
-echo '## Decision and boundaries' >>"$decision"
-echo '- Use SQLite for one-host embedded state with one writer and bounded reader concurrency.' >>"$decision"
-echo '- Keep WAL on a local filesystem; it is not distributed replication or consensus.' >>"$decision"
-echo '- Use NORMAL only when the documented synchronization contract and recovery objective accept its trade-off; otherwise measure FULL.' >>"$decision"
-echo '- Run engine integrity checks plus domain invariant queries after restore.' >>"$decision"
-echo '- Chosen backup cadence: every 15 minutes, with RPO <= 15 minutes as an explicit assumption to verify in a restore rehearsal.' >>"$decision"
-echo '- Chosen restore objective: RTO <= 5 minutes, measured from backup selection through integrity and domain checks.' >>"$decision"
-echo '- Failure domain: one host and its local filesystem; a host loss requires an independently stored backup.' >>"$decision"
-echo '- Invariant checks: integrity_check, foreign_key_check, account/outbox balance, receipt uniqueness, and lease-token monotonicity.' >>"$decision"
-echo '- Back up with .backup or VACUUM INTO, then restore-test on the 15-minute cadence to measure RPO/RTO.' >>"$decision"
-echo '' >>"$decision"
-echo '## Exit criteria' >>"$decision"
-echo '- Move beyond SQLite when measured writer contention violates the latency budget, the required failure domain spans hosts, or backup/restore cannot meet the RPO/RTO.' >>"$decision"
-echo '' >>"$decision"
-echo '## References' >>"$decision"
-echo '- Course observations above (plans, bytes, pages, timings).' >>"$decision"
-echo '- https://www.sqlite.org/wal.html' >>"$decision"
-echo '- https://www.sqlite.org/backup.html' >>"$decision"
-echo '- https://www.sqlite.org/atomiccommit.html' >>"$decision"
-cat "$decision"
+sqlite3 "$db" 'SELECT sqlite_version(); EXPLAIN QUERY PLAN SELECT payload FROM events WHERE tenant=7; SELECT count(*) FROM events WHERE tenant=7;' >"$lab/query-evidence.txt"
+grep -q 'by_tenant' "$lab/query-evidence.txt"
+grep -Fxq '50' "$lab/query-evidence.txt"
+mkfifo "$lab/holder.fifo"
+exec 3<>"$lab/holder.fifo"
+sqlite3 -bail "$db" <"$lab/holder.fifo" >"$lab/holder.log" 2>&1 &
+holder=$!
+trap 'kill "$holder" 2>/dev/null || true; wait "$holder" 2>/dev/null || true' EXIT HUP INT TERM
+printf '%s\n' 'PRAGMA synchronous=FULL; BEGIN IMMEDIATE;' '.print HELD' >&3
+n=0
+until grep -q HELD "$lab/holder.log"; do n=$((n+1)); test "$n" -lt 200; sleep 0.02; done
+start=$(date +%s%N)
+if sqlite3 -bail "$db" "PRAGMA synchronous=FULL; PRAGMA busy_timeout=100; INSERT INTO events(tenant,payload) VALUES(7,'contender');" >"$lab/contention.txt" 2>&1; then
+  echo 'unexpected: second writer admitted' >&2; exit 1
+else
+  grep -q 'database is locked' "$lab/contention.txt"
+fi
+end=$(date +%s%N)
+wait_ms=$(( (end-start)/1000000 ))
+printf '%s\n' 'ROLLBACK;' '.quit' >&3
+exec 3>&-
+wait "$holder"
+trap - EXIT HUP INT TERM
+sqlite3 -bail "$db" "PRAGMA synchronous=FULL; INSERT INTO events(tenant,payload) VALUES(7,'after-release');"
+test "$(sqlite3 "$db" 'SELECT count(*) FROM events;')" = 5001
+sqlite3 "$db" ".backup '$lab/backup.db'"
+start=$(date +%s%N)
+sqlite3 "$lab/backup.db" ".backup '$lab/restored.db'"
+test "$(sqlite3 "$lab/restored.db" 'PRAGMA integrity_check;')" = ok
+test "$(sqlite3 "$lab/restored.db" 'SELECT count(*) FROM events;')" = 5001
+end=$(date +%s%N)
+restore_ms=$(( (end-start)/1000000 ))
+{
+  echo "busy_wait_ms=$wait_ms configured_budget_ms=100"
+  echo "restore_and_checks_ms=$restore_ms restored_rows=5001"
+  stat -c 'source_main_bytes=%s' "$db"
+  echo 'unmeasured=off-host retrieval, backup age/publication lag, sustained load, full job workload'
+} >"$lab/operational-evidence.txt"
+cat "$lab/operational-evidence.txt"
+printf '%s\n' '# SQLite architecture decision' '' \
+ '## Workload and requirements' \
+ 'TODO: append rate, producers, reader lifetime, payload size, p95 latency budget.' \
+ 'TODO: tolerated acknowledged-write loss, backup RPO, complete recovery RTO, host-loss scope.' \
+ '## Evidence and limits' \
+ 'TODO: cite query-evidence.txt, operational-evidence.txt, and writer-envelope transaction samples.' \
+ 'TODO: distinguish measured results, documented contracts and untested assumptions.' \
+ '## Decision' \
+ 'TODO: choose ownership model, connection policy, transaction size and checkpoint placement.' \
+ 'TODO: specify independent backup destination, cadence, restore procedure and rejoin policy.' \
+ '## Acceptance and exit criteria' \
+ 'TODO: name measurable pass/fail conditions and a justified alternative if requirements fail.' \
+ >"$lab/architecture-adr.md"
+echo "complete_your_decision=$lab/architecture-adr.md"
 `,
       expectedResult:
-        "The script prints an ADR containing the measured query plan, main-file bytes, page count, and timer output, followed by explicit decisions and exit criteria. The plan uses events_tenant_idx, the row count is 50, and the file metrics are positive integers. Numbers and timings are host-specific; every operational claim in the ADR points either to observed evidence or to a SQLite primary reference.",
+        "query-evidence.txt contains the by_tenant plan and 50 initial matches. The second writer encounters a verified busy error near its 100 ms configured budget; after release, the append succeeds. Restore and domain checks recover 5001 rows. operational-evidence.txt records actual wait/restore times and explicitly unmeasured work. architecture-adr.md remains incomplete until you fill it with requirements, measurements, justified policies and exit criteria; script success is not lesson completion.",
       systemsLens:
-        "Architecture is a contract between workload requirements and measured guarantees. SQLite is a strong local state machine with a single-writer envelope; an ADR makes the failure domain, recovery objective, and trigger for a different system explicit before an incident forces the decision.",
+        "Architecture is the match between a workload's requirements and a component's measured and documented guarantees. SQLite can own local durable state while other components own transport or host-loss resilience. The decision should make those responsibilities explicit and identify the evidence that would change it.",
       challenge:
-        "Add a two-writer benchmark and a restore stopwatch to the ADR. Pick concrete latency, RPO, and RTO thresholds, then rerun measurements after changing synchronous and journal modes.",
+        "Evaluate two requirement sets against the same evidence: a single-device offline tool and a service requiring writes to survive immediate host loss. Explain which parts of your design can stay, which need another component, and what you must measure before making a production commitment.",
       caution:
-        "Do not copy host-specific timing into a universal claim. Keep the ADR with the workload, SQLite version, filesystem, and exact commands that produced its evidence.",
-      safetyLevel: "writes-data",
+        "All generated files remain in the unique evidence directory. Keep your completed ADR separately before rerunning experiments. Host-specific timings are observations; a small restore cannot establish a large deployment's RTO.",
+      safetyLevel: "locking",
       runIn: "shell",
-      sessions: 1,
-      minVersion: "3.53.4",
-      estimatedMinutes: 35,
+      estimatedMinutes: 40,
     },
   ],
 };

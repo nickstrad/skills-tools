@@ -1,519 +1,513 @@
 import { code, type Module } from "../../../src/types.ts";
+import {
+  deliveryProtocol,
+  mergeExplanation,
+  mergeProtocol,
+  offlineLab,
+  shellExplanation,
+} from "./offline-protocol.ts";
 
 export const LOCAL_SYSTEMS: Module = {
   category: "local-systems",
-  title: "Local systems and offline synchronization",
+  title: "Independent local histories and offline reconciliation",
   lessons: [
     {
-      slug: "transactional-outbox",
-      title: "Use SQLite's one-file commit boundary for an outbox",
+      slug: "local-oplog",
+      title: "Give an offline mutation an identity and a durable history",
+      revision: 3,
       difficulty: "intermediate",
-      tags: ["outbox", "atomicity", "transactions", "idempotency"],
+      tags: ["oplog", "outbox", "atomicity", "device-generation"],
       prerequisites: ["idempotent-retry-ledger"],
       overview:
-        "Use SQLite's one-file transaction to commit a domain update and the durable intent to deliver it, then roll back a second attempt. The evidence is a precise commit boundary: both tables change together inside this database file, while delivery to anything outside the file remains a later responsibility.",
-      syntaxBreakdown: `
-### In plain terms
+        "An offline writer cannot ask a central server for its next operation number. Give one device generation its own sequence, and commit the sequence advance, document edit, and delivery intent together. A rollback must undo all three: otherwise the next receiver sees either an unexplained gap or an operation describing a change that never happened.",
+      syntaxBreakdown: code`### In plain terms
 
-This experiment asks which parts of a local state change SQLite can make atomic. The account balance and its outbox row are committed together or rolled back together, so a worker that later reads the outbox can find durable intent for every committed debit. An outbox is a table of pending delivery intent; it does not make a network or other external action part of SQLite's transaction.
+PostgreSQL's outbox lesson established why state and delivery intent belong in one transaction.
+Here the application also owns an offline history. An origin such as device-a/g1 names one device
+generation; its sequence orders that origin's mutations without pretending to order other devices.
+The transaction below first succeeds and then aborts, so you can inspect exactly which facts survive.
 
 ### What you are learning
 
-- **One-file commit boundary**: A SQLite transaction commits changes to the tables in this database file as one state transition, or makes none of them durable.
-- **Stable operation identity**: A UNIQUE operation ID gives a retryable event an identity that can be checked again without inventing another event.
-- **Delivery boundary**: The published flag records local acknowledgement state; it does not prove that a separate delivery process or remote system performed the effect.
+- A durable operation identity is the pair of origin and sequence. Retransmission keeps that pair
+  and its payload unchanged; a new identity means a new operation.
+- Sequence allocation is application state. It must commit with the mutation and its log entry.
+- A generation separates a device's histories across destructive reset or restore. Later lessons
+  show why reopening an old file can make a formerly safe local counter unsafe to reuse.
 
 ### Piece by piece
 
-- **DROP TABLE IF EXISTS** (SQL schema command)
-  - What it is: A conditional table removal.
-  - What it does here: It makes the disposable accounts and outbox tables safe to recreate when the setup is rerun.
-  - What it gives us: A clean local database state; it does not affect any external system.
-- **CREATE TABLE** (SQL schema command)
-  - What it is: A table definition for rows SQLite stores in this file.
-  - What it does here: It creates domain state in **accounts** and delivery intent in **outbox**.
-  - What it gives us: Two tables whose rows can be inspected before and after each transaction.
-  - The **PRIMARY KEY** columns identify rows, and **UNIQUE operation_id** rejects a second outbox row with the same operation identity.
-  - **NOT NULL** and **DEFAULT 0** enforce required values and make a new event start as unpublished.
-- **BEGIN** (SQL transaction command)
-  - What it is: The start of a transaction, SQLite's unit of atomic local change.
-  - What it does here: It groups the balance update and outbox insert into one pending state transition.
-  - What it gives us: Until **COMMIT**, another connection cannot treat these writes as durable committed state.
-- **UPDATE accounts** (SQL data-change statement)
-  - What it is: A row mutation selected by a WHERE condition.
-  - What it does here: It subtracts the debit amount from account 1 inside the open transaction.
-  - What it gives us: The balance that must agree with the corresponding outbox payload after commit.
-- **INSERT INTO outbox** (SQL data-change statement)
-  - What it is: A new durable-intent row insertion.
-  - What it does here: It records operation **op-001** and its debit payload in the same transaction as the balance change.
-  - What it gives us: A row a later delivery worker can read; **published = 0** means this local row is still pending.
-- **COMMIT** (SQL transaction command)
-  - What it is: The successful end of a transaction.
-  - What it does here: It makes the account update and outbox insert one durable SQLite commit.
-  - What it gives us: The joined SELECT should show balance 85 alongside op-001.
-- **SELECT ... JOIN ... USING** (SQL observation query)
-  - What it is: A query that combines related rows through their shared **account_id** column.
-  - What it does here: It displays domain state and delivery intent together after the commit.
-  - What it gives us: One line of evidence that the committed balance and event belong to the same local transition.
-- **ROLLBACK** (SQL transaction command)
-  - What it is: An explicit cancellation of the current transaction.
-  - What it does here: It discards the op-002 debit and its outbox insert after they have been issued but before commit.
-  - What it gives us: The later **balance_after_rollback** and **durable_events** queries show which state crossed SQLite's commit boundary.
+- **device** (local metadata table): Stores an origin, next sequence, and logical clock. Unlike a
+  timestamp from the operating system, this clock is a version the application advances deliberately.
+- **PRIMARY KEY(origin,seq) / WITHOUT ROWID** (identity constraint and layout): Make one B-tree
+  keyed by the operation identity. Its uniqueness protects the ledger inside this database file.
+- **BEGIN IMMEDIATE** (transaction command): Reserves this file's writer before allocating an
+  identity. Another local connection cannot allocate the same counter value concurrently.
+- **UPDATE ... clock=clock+1 / INSERT SELECT** (state transition): Edit the note, copy the current
+  identity and payload into the log, then advance next_seq. The log's clock records the committed edit.
+- **COMMIT / ROLLBACK** (transaction boundaries): The second attempt reaches all three tables but
+  rolls back. Read the note, next_seq and log count afterward; checking only the note would miss a gap.
+- **printf** and **ORDER BY** (SQL formatting and ordering): Render the pair as a readable operation
+  ID and display sequence order explicitly. SQL's default row order is not the protocol's ordering.
 `,
-      setup: code`
-DROP TABLE IF EXISTS outbox;
-DROP TABLE IF EXISTS accounts;
-CREATE TABLE accounts(account_id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-CREATE TABLE outbox(event_id INTEGER PRIMARY KEY, operation_id TEXT NOT NULL UNIQUE, account_id INTEGER NOT NULL, event_type TEXT NOT NULL, payload TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0);
-INSERT INTO accounts VALUES (1, 100);
-`,
-      code: code`
-BEGIN;
-UPDATE accounts SET balance = balance - 15 WHERE account_id = 1;
-INSERT INTO outbox(operation_id, account_id, event_type, payload) VALUES ('op-001', 1, 'debit', 'amount=15');
+      setup: code`PRAGMA journal_mode=WAL;
+DROP TABLE IF EXISTS local_oplog;
+DROP TABLE IF EXISTS local_notes;
+DROP TABLE IF EXISTS device;
+CREATE TABLE device(origin TEXT PRIMARY KEY NOT NULL,next_seq INTEGER NOT NULL,clock INTEGER NOT NULL);
+INSERT INTO device VALUES('device-a/g1',1,0);
+CREATE TABLE local_notes(id INTEGER PRIMARY KEY,body TEXT NOT NULL);
+INSERT INTO local_notes VALUES(1,'draft');
+CREATE TABLE local_oplog(origin TEXT NOT NULL,seq INTEGER NOT NULL,clock INTEGER NOT NULL,
+ note_id INTEGER NOT NULL,body TEXT NOT NULL,acknowledged INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY(origin,seq)) WITHOUT ROWID;`,
+      code: code`BEGIN IMMEDIATE;
+UPDATE device SET clock=clock+1;
+UPDATE local_notes SET body='offline edit';
+INSERT INTO local_oplog(origin,seq,clock,note_id,body)
+ SELECT origin,next_seq,clock,id,body FROM device CROSS JOIN local_notes;
+UPDATE device SET next_seq=next_seq+1;
 COMMIT;
-SELECT a.account_id, a.balance, o.operation_id, o.event_type, o.published FROM accounts a JOIN outbox o USING (account_id);
-BEGIN;
-UPDATE accounts SET balance = balance - 20 WHERE account_id = 1;
-INSERT INTO outbox(operation_id, account_id, event_type, payload) VALUES ('op-002', 1, 'debit', 'amount=20');
+SELECT printf('%s:%d',origin,seq) AS operation_id,clock,body,acknowledged FROM local_oplog;
+BEGIN IMMEDIATE;
+UPDATE device SET clock=clock+1;
+UPDATE local_notes SET body='aborted edit';
+INSERT INTO local_oplog(origin,seq,clock,note_id,body)
+ SELECT origin,next_seq,clock,id,body FROM device CROSS JOIN local_notes;
+UPDATE device SET next_seq=next_seq+1;
 ROLLBACK;
-SELECT balance AS balance_after_rollback FROM accounts WHERE account_id = 1;
-SELECT count(*) AS durable_events FROM outbox;
-`,
+SELECT body AS committed_body,next_seq,clock,(SELECT count(*) FROM local_oplog) AS durable_ops
+ FROM local_notes CROSS JOIN device;`,
       expectedResult:
-        "The committed operation leaves balance 85 and one outbox row for op-001. The rollback variant leaves balance at 85 and durable_events at 1: neither the debit nor op-002 exists. The outbox is pending (published = 0) until a separate delivery process acknowledges it.",
+        "The committed operation is device-a/g1:1, clock 1, body offline edit, acknowledged 0. After the aborted attempt, committed_body is offline edit, next_seq is 2, clock is 1 and durable_ops is 1. Neither a sequence gap nor an intent for the aborted edit remains.",
       systemsLens:
-        "SQLite's distinctive contribution here is a one-file commit boundary: domain state and delivery intent cross it together, and the rollback evidence shows exactly what stays out. That boundary is strong for a local or offline process, but it ends at the database file; a later worker, network call, broker, or remote service must provide delivery, retry, and any downstream deduplication guarantee.",
+        "An embedded database can own the durable prefix of a disconnected device's history. SQLite makes local allocation and intent atomic; the application still defines identity, generation changes, delivery and merge policy. A local operation log is not SQLite's WAL and does not inherit a replication protocol from it.",
       challenge:
-        "Keep the same experiment but add a delivery-attempt timestamp and inspect only rows with published = 0. Which facts can SQLite commit atomically in this file, and what evidence would you need from the delivery service before claiming the external effect happened?",
-      caution:
-        "The outbox is not a distributed transaction or proof of remote delivery. It records durable intent; delivery, retry, and downstream deduplication remain separate responsibilities.",
+        "Move only the next_seq update outside the transaction and abort the edit. Predict the receiver's next missing sequence. Then explain which retained metadata a restored device would need before it could safely continue using device-a/g1.",
       safetyLevel: "writes-data",
       runIn: "tool",
-      sessions: 1,
-      minVersion: "3.53.4",
-      revision: 2,
       estimatedMinutes: 20,
     },
     {
       slug: "outbox-replay-after-crash",
-      title: "Replay across SQLite's acknowledgement gap",
+      title: "Kill the sender after the receiver commits",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["outbox", "deduplication", "retries", "crash-recovery"],
-      prerequisites: ["transactional-outbox"],
+      tags: ["outbox", "crash-recovery", "idempotency", "deduplication"],
+      prerequisites: ["local-oplog"],
       overview:
-        "Commit a worker claim, stop before its acknowledgement, and then replay the same durable row after the worker restarts. SQLite preserves the in-flight state and the receipt ledger in the local file, so the second attempt can be recognized; the acknowledgement gap still means an external effect may have happened before the process failed.",
-      syntaxBreakdown: `
-### In plain terms
+        "Commit an effect in a receiver's database, then actually terminate the sender before its acknowledgement can commit. On restart the sender must repeat an operation whose outcome it cannot infer from its own file. The receiver's transaction couples the debit and receipt, so repeated transport does not repeat the local debit.",
+      syntaxBreakdown: code`### In plain terms
 
-This experiment makes the worker's acknowledgement gap visible: a claim commits in SQLite, but the worker dies before recording that it finished. A restarted worker reads the same durable local state, records one receipt keyed by the operation ID, and then safely sees a duplicate as a no-op. The receipt ledger is local SQLite evidence of accepted intent; it cannot prove that a separate email service, API, or other external resource performed exactly one effect.
+The interesting failure occurs after success somewhere else. The receiver has accepted the debit,
+but the sender still sees pending work. We use two files and separate CLI processes so there is no
+accidental transaction joining those facts. A ready marker selects the failure point; SIGKILL ends
+only the owned sender process. This is a same-host model of independent commit boundaries, not a
+demonstration of a network partition or host-loss tolerance.
 
 ### What you are learning
 
-- **Durable state across restart**: A committed claim and its attempt count remain in the SQLite file after the worker process disappears.
-- **Acknowledgement gap**: Failure between an external effect and the local acknowledgement can cause a replay, so delivery is at least once unless the effect boundary deduplicates it.
-- **Receipt-ledger location**: The receipt row is stored in **delivery_receipts**, beside the replay state in this local database; its scope and durability are the scope and durability of that file.
+- Receiver effect and receipt commit together. Recording a receipt before an unprotected effect
+  would allow a crash to turn deduplication into lost work.
+- An acknowledgement gap creates uncertainty at the sender even when the receiver is correct.
+- Retries carry an immutable identity and payload; receiver-side validation is what makes replay safe.
 
 ### Piece by piece
-
-- **DROP TABLE IF EXISTS** (SQL schema command)
-  - What it is: A conditional table removal.
-  - What it does here: It clears both disposable tables so the replay starts with no prior receipt.
-  - What it gives us: A repeatable local failure-window experiment.
-- **CREATE TABLE** (SQL schema command)
-  - What it is: A definition for SQLite-managed durable rows.
-  - What it does here: **outbox_replay** stores the operation, payload, status, and attempts; **delivery_receipts** stores one accepted effect per operation ID.
-  - What it gives us: A place to observe the worker state and the receipt ledger separately.
-  - The **PRIMARY KEY** on operation_id makes an operation identity unique in each table, while **DEFAULT** values make new work pending with zero attempts.
-- **BEGIN IMMEDIATE** (SQL transaction command)
-  - What it is: A transaction start that requests SQLite's writer reservation immediately.
-  - What it does here: It makes the claim and later receipt/status updates short, serialized local state transitions.
-  - What it gives us: A committed claim that is visible as one SQLite state change before the simulated worker death.
-- **UPDATE ... RETURNING** (SQL data-change statement and result clause)
-  - What it is: An update with a guarded row change that also returns the changed columns.
-  - What it does here: It changes only a pending send to **in_flight**, increments attempts, and prints the claimed identity, status, and count.
-  - What it gives us: The concrete claim evidence: **send-001**, **in_flight**, and **attempts = 1**.
-- **COMMIT** (SQL transaction command)
-  - What it is: The point where the current transaction's changes become durable in SQLite.
-  - What it does here: It commits the claim before the worker-died observation, leaving no acknowledgement yet.
-  - What it gives us: A restart can recover the row because the claim crossed the local commit boundary.
-- **INSERT OR IGNORE** (SQL insert conflict policy)
-  - What it is: An insert that skips a row when a uniqueness constraint conflicts instead of failing the statement.
-  - What it does here: It inserts the receipt on the first replay and treats the same operation ID as a duplicate on the second replay.
-  - What it gives us: A controlled duplicate boundary rather than a second receipt row.
-- **SELECT changes()** (SQLite scalar function)
-  - What it is: A function reporting rows changed by the immediately preceding INSERT, UPDATE, or DELETE.
-  - What it does here: It distinguishes the first receipt insertion from the duplicate replay.
-  - What it gives us: **new_effect_on_first_replay = 1** and **new_effect_on_duplicate_replay = 0**.
-- **UPDATE outbox_replay ... SET status = 'done'** (SQL data-change statement)
-  - What it is: A status transition for the durable local work row.
-  - What it does here: It acknowledges completion in SQLite after the receipt insert succeeds.
-  - What it gives us: The final **status** and **attempts** query shows the recovered row as done after one retry attempt.
-- **SELECT count(*) AS logical_effects** (SQL observation query)
-  - What it is: A count over the receipt ledger.
-  - What it does here: It checks whether duplicate delivery produced another locally recorded effect.
-  - What it gives us: **logical_effects = 1**, even though the operation was replayed.
+` + shellExplanation + code`
+- **mkfifo**, **exec 3<>**, **>&3**, and **$!** (process coordination): The FIFO feeds a live sender
+  CLI. Descriptor 3 holds it open and $! captures that exact child's PID. The sender prints a marker
+  after delivery; the parent waits for that evidence before killing it. A counter bounds readiness.
+- **.shell sh ...**, **.print**, **kill -KILL**, **wait**, and **trap** (failure injection): The
+  sender invokes the lab receiver script and reports completion, but receives no acknowledgement SQL
+  before termination. wait collects its status. The trap reaps only the captured child if a check fails.
+- **COALESCE(sum(...),0)** and **NOT EXISTS** (effect gate): Subtract amounts only for identities
+  absent from receipts. A duplicate contributes zero. Inserting receipts and updating the balance
+  share one transaction; the guard rejects a changed amount under an existing ID.
+- **test** (shell assertion): Compare actual status, pending state, balance and receipt count.
+  A printed success marker is reached only after every invariant passes.
 `,
-      setup: code`
-DROP TABLE IF EXISTS delivery_receipts;
-DROP TABLE IF EXISTS outbox_replay;
-CREATE TABLE outbox_replay(operation_id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE delivery_receipts(operation_id TEXT PRIMARY KEY, effect TEXT NOT NULL);
-INSERT INTO outbox_replay VALUES ('send-001', 'email:welcome', 'pending', 0);
-`,
-      code: code`
-BEGIN IMMEDIATE;
-UPDATE outbox_replay SET status = 'in_flight', attempts = attempts + 1 WHERE operation_id = 'send-001' AND status = 'pending' RETURNING operation_id, status, attempts;
-COMMIT;
-SELECT 'worker_died_before_ack' AS event, status, attempts FROM outbox_replay WHERE operation_id = 'send-001';
-BEGIN IMMEDIATE;
-INSERT OR IGNORE INTO delivery_receipts(operation_id, effect) SELECT operation_id, payload FROM outbox_replay WHERE operation_id = 'send-001';
-SELECT changes() AS new_effect_on_first_replay;
-UPDATE outbox_replay SET status = 'done' WHERE operation_id = 'send-001';
-COMMIT;
-BEGIN;
-INSERT OR IGNORE INTO delivery_receipts(operation_id, effect) VALUES ('send-001', 'email:welcome');
-SELECT changes() AS new_effect_on_duplicate_replay;
-COMMIT;
-SELECT operation_id, status, attempts FROM outbox_replay;
-SELECT count(*) AS logical_effects FROM delivery_receipts;
+      code: offlineLab + deliveryProtocol + code`
+sender=$lab/sender.db
+receiver=$lab/receiver.db
+init_receiver "$receiver"
+sqlite3 -bail "$sender" "CREATE TABLE outbox(op_id TEXT PRIMARY KEY,amount INTEGER,sent INTEGER); INSERT INTO outbox VALUES('a/g1:1',10,0);"
+sqlite3 "$sender" "SELECT 'INSERT INTO incoming VALUES(' || quote(op_id) || ',' || amount || ');' FROM outbox WHERE sent=0;" >"$lab/batch.sql"
+# Materialize exactly the delivery SQL the worker must run before acknowledging.
+{
+  echo 'CREATE TEMP TABLE incoming(op_id TEXT PRIMARY KEY,amount INTEGER);'
+  cat "$lab/batch.sql"
+  echo 'BEGIN IMMEDIATE;'
+  echo 'UPDATE account SET balance=balance-(SELECT amount FROM incoming) WHERE NOT EXISTS(SELECT 1 FROM receipts r JOIN incoming i USING(op_id));'
+  echo 'INSERT INTO receipts SELECT * FROM incoming;'
+  echo 'COMMIT;'
+} >"$lab/first-delivery.sql"
+printf 'sqlite3 -bail "%s" < "%s"\n' "$receiver" "$lab/first-delivery.sql" >"$lab/receive.sh"
+mkfifo "$lab/sender.commands"
+exec 3<>"$lab/sender.commands"
+sqlite3 -bail "$sender" <"$lab/sender.commands" >"$lab/sender.log" 2>&1 &
+worker=$!
+trap 'kill -KILL "$worker" 2>/dev/null || true; wait "$worker" 2>/dev/null || true' EXIT HUP INT TERM
+printf '.shell sh "%s"\n.print RECEIVER_COMMITTED\n' "$lab/receive.sh" >&3
+attempt=0
+until grep -q RECEIVER_COMMITTED "$lab/sender.log"; do
+  attempt=$((attempt+1)); test "$attempt" -lt 200; sleep 0.02
+done
+test "$(sqlite3 "$receiver" 'SELECT balance FROM account;')" = 90
+kill -KILL "$worker"
+set +e
+wait "$worker"
+killed_status=$?
+set -e
+trap - EXIT HUP INT TERM
+exec 3>&-
+test "$killed_status" -eq 137
+test "$(sqlite3 "$sender" 'SELECT sent FROM outbox;')" = 0
+echo "sender_killed=$killed_status receiver_balance=90 sender_pending=1"
+deliver "$receiver" "$lab/batch.sql"
+sqlite3 -bail "$sender" "UPDATE outbox SET sent=1 WHERE op_id='a/g1:1';"
+test "$(sqlite3 "$receiver" 'SELECT balance FROM account;')" = 90
+test "$(sqlite3 "$receiver" 'SELECT count(*) FROM receipts;')" = 1
+test "$(sqlite3 "$sender" 'SELECT sent FROM outbox;')" = 1
+echo 'replay_balance=90 receipts=1 sender_acknowledged=1'
 `,
       expectedResult:
-        "The claim commits as status in_flight with attempts = 1, then the simulated worker death leaves it unacknowledged. The first replay inserts one receipt (new_effect_on_first_replay = 1) and marks the outbox done; the duplicate replay reports 0 new effects. The final logical_effects count is 1 even though delivery was attempted again.",
+        "The sender exits with SIGKILL status 137 after receiver_balance=90 while sender_pending=1. The retry prints new_receipts=0 (the CLI prints the value 0), and the checked final line is replay_balance=90 receipts=1 sender_acknowledged=1. Inspect sender.log and the two files in the printed evidence directory. A shell 'Killed' diagnostic is expected; other errors are not.",
       systemsLens:
-        "SQLite makes the worker's local state durable across restart and lets a receipt ledger enforce one local row per operation identity. The acknowledgement gap remains between that local commit and any external effect: replay is expected, and exactly-once-looking behavior requires the external effect boundary to honor the same identity or provide its own idempotency guarantee.",
+        "A local transaction resolves facts inside one participant. A protocol resolves uncertainty between participants. Stable request identity lets the receiver answer the same request again without repeating a committed local effect; it does not make an email or external API call atomic with this database.",
       challenge:
-        "Replay with a different payload and inspect the receipt ledger's existing row. What SQLite key and payload-validation rule would stop an operation ID from being reused for a different effect, and what must the external service verify before acknowledging delivery?",
+        "Move the receipt insert into a later transaction and place the kill between the debit and receipt. Predict the balance after replay. Identify the corresponding failure window if the protected effect were an HTTP request instead of the account row.",
       caution:
-        "The SQL simulation models the failure window; it does not kill a real process or prove remote side effects are transactional. Use stable operation identities and make downstream operations genuinely idempotent.",
-      safetyLevel: "writes-data",
-      runIn: "tool",
-      sessions: 1,
-      minVersion: "3.53.4",
-      revision: 2,
-      estimatedMinutes: 25,
+        "The script kills only its captured child and retains all files in a fresh evidence directory. Do not substitute a PID from another process. SIGKILL tests process recovery, not a power failure.",
+      safetyLevel: "dangerous",
+      runIn: "shell",
+      estimatedMinutes: 30,
     },
     {
       slug: "durable-job-claims",
-      title: "Claim durable jobs with short write transactions",
+      title: "Release the writer while a job runs, then fence a late completion",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["queues", "leases", "locking", "transactions"],
-      prerequisites: ["outbox-replay-after-crash"],
+      tags: ["queues", "leases", "fencing", "optimistic-concurrency", "locking"],
+      prerequisites: ["immediate-reserves-writer"],
       overview:
-        "Claim queued jobs with short BEGIN IMMEDIATE transactions and watch a second worker collide with the first. Worker A claims job 1 and holds the writer; worker B's admission attempt fails with a bounded busy timeout, still reads committed state, and only after A commits does B claim job 2.",
-      syntaxBreakdown:
-        "BEGIN IMMEDIATE reserves SQLite's single writer slot before the claim query, so contention surfaces at admission rather than mid-update. .timeout N is that session's busy budget in milliseconds and .timer on measures the wait actually spent. UPDATE ... RETURNING both changes and displays the selected job, and julianday provides a portable numeric deadline.",
-      setup: code`
-DROP TABLE IF EXISTS durable_jobs;
-CREATE TABLE durable_jobs(job_id INTEGER PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'queued', owner TEXT, attempt INTEGER NOT NULL DEFAULT 0, lease_until REAL);
-INSERT INTO durable_jobs(job_id, payload) VALUES (1, 'resize-image'), (2, 'send-report'), (3, 'refresh-cache');
-`,
-      code: code`
--- Session A
-.timeout 100
-BEGIN IMMEDIATE;
-WITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)
-UPDATE durable_jobs SET state = 'claimed', owner = 'worker-a', attempt = attempt + 1, lease_until = julianday('now') + 1.0 / 1440.0 WHERE job_id IN next_job RETURNING job_id, owner, attempt, state;
+        "Use the single writer briefly to assign a job, then release it before doing the work. A second worker can claim another job while the first is running. When a lease expires, a higher token allows takeover while the completion predicate prevents the old worker from overwriting the new result.",
+      syntaxBreakdown: code`### In plain terms
 
--- Session B
-.timeout 250
-.timer on
-BEGIN IMMEDIATE;
-.timer off
-SELECT 'B sees committed state', job_id, state, owner FROM durable_jobs ORDER BY job_id;
-
--- Session A
-COMMIT;
-
--- Session B
-BEGIN IMMEDIATE;
-WITH next_job AS (SELECT job_id FROM durable_jobs WHERE state = 'queued' ORDER BY job_id LIMIT 1)
-UPDATE durable_jobs SET state = 'claimed', owner = 'worker-b', attempt = attempt + 1, lease_until = julianday('now') + 1.0 / 1440.0 WHERE job_id IN next_job RETURNING job_id, owner, attempt, state;
-COMMIT;
-SELECT job_id, state, owner, attempt FROM durable_jobs ORDER BY job_id;
-`,
-      expectedResult:
-        "Session A's claim returns job 1 for worker-a with attempt 1 while its transaction stays open. Session B's first BEGIN IMMEDIATE returns database is locked after roughly 250 ms, as measured by the timer, because A holds the writer. B's read of committed state still shows job 1 as queued with a NULL owner. After A commits, B's BEGIN IMMEDIATE succeeds and its claim must pick job 2, since job 1 is no longer queued. The final rows are job 1 claimed by worker-a, job 2 claimed by worker-b, both with attempt = 1 and a non-NULL lease_until, and job 3 still queued. No job has two owners.",
-      systemsLens:
-        "A durable queue separates an ownership transition from the work it authorizes. BEGIN IMMEDIATE makes admission explicit, while the lease and attempt fields make recovery and observability possible after a worker disappears.",
-      challenge:
-        "Make A hold the claim longer than B's budget: add `.shell sleep 0.5` inside A's open transaction, before COMMIT, to stand in for slow work done while the writer slot is held. B's 250 ms admission attempt now fails against a holder that will not release in time. What latency budget should this queue publish, and does the slow work belong inside the claim transaction at all?",
-      caution:
-        "A lease is not fencing by itself: a worker that holds an old lease can still finish late unless every completion checks the ownership token. The next lesson adds that guard.",
-      safetyLevel: "locking",
-      runIn: "tool",
-      sessions: 2,
-      minVersion: "3.53.4",
-      revision: 2,
-      estimatedMinutes: 25,
-    },
-    {
-      slug: "lease-expiry-and-fencing",
-      title: "Use a SQLite conditional write as a resource-side fence",
-      difficulty: "advanced",
-      tags: ["leases", "fencing", "optimistic-concurrency", "retries"],
-      prerequisites: ["durable-job-claims"],
-      overview:
-        "Let worker B take over an expired row with a higher token, then submit worker A's late completion through SQLite's conditional UPDATE. The stale write changes zero rows because the resource-side row no longer carries A's token, showing exactly where SQLite can enforce fencing and where an external resource must enforce it again.",
-      syntaxBreakdown: `
-### In plain terms
-
-This experiment treats the **leased_jobs** row as the protected resource. A fencing token is a monotonically increasing number attached to the current owner; a completion is accepted only when its owner, token, and state still match the row in SQLite. The zero-row stale completion is a resource-side rejection inside SQLite, but an email provider, object store, or other external resource must perform an equivalent token check at its own boundary.
+PostgreSQL's SKIP LOCKED queue lets workers claim different rows concurrently. SQLite instead
+serializes the short ownership changes for this file. Holding its writer for the duration of a job
+would block unrelated claims too. The experiment separates claim, work and completion, then advances
+a logical test clock so takeover and a stale result happen in a deterministic order.
 
 ### What you are learning
 
-- **Conditional write**: An UPDATE whose WHERE clause includes the expected owner and token acts like a compare-and-swap against the current SQLite row.
-- **Resource-side fencing**: The resource that accepts a completion must reject an old token after takeover, even if the stale worker is still running.
-- **Boundary of SQLite fencing**: SQLite serializes and guards writes to this file only; it cannot automatically prevent a stale worker from affecting an external resource.
+- A lease permits recovery of abandoned work. Its deadline does not stop an old process from running.
+- A token identifies the current ownership generation; a conditional completion is a compare-and-swap.
+- The guarded row is the protected resource. An external effect would need its own identity/token check.
 
 ### Piece by piece
 
-- **DROP TABLE IF EXISTS** (SQL schema command)
-  - What it is: A conditional table removal.
-  - What it does here: It resets the disposable lease row so the takeover and stale-write sequence is repeatable.
-  - What it gives us: A known token and expiry from which to observe ownership changes.
-- **CREATE TABLE** (SQL schema command)
-  - What it is: A definition for the resource state SQLite protects.
-  - What it does here: It gives each job an owner, fencing **token**, expiry, state, and result.
-  - What it gives us: One row whose token and result can be inspected after every guarded write.
-  - **NOT NULL** keeps ownership evidence present, while **result** remains nullable until a completion is accepted.
-- **SELECT job_id, state, owner, token, lease_until** (SQL observation query)
-  - What it is: A query of the current resource-side ownership record.
-  - What it does here: It shows worker A's initial claim and token 1 before takeover.
-  - What it gives us: The baseline against which the higher token and new owner are compared.
-- **UPDATE ... WHERE lease_until <= 200** (SQL conditional data-change statement)
-  - What it is: An update whose predicate must prove that the existing lease has expired.
-  - What it does here: It lets worker B replace A, increments the token, and sets B's later expiry.
-  - What it gives us: **takeover_rows = 1**, with worker-b and token 2 in the following SELECT.
-- **SELECT changes()** (SQLite scalar function)
-  - What it is: A function reporting rows changed by the immediately preceding write.
-  - What it does here: It reports whether the takeover or either completion actually matched its guard.
-  - What it gives us: **stale_completion_rows = 0** proves A's old token was rejected; **current_completion_rows = 1** proves B's current token was accepted.
-- **UPDATE ... WHERE owner = 'worker-a' AND token = 1 AND state = 'claimed'** (SQL conditional data-change statement)
-  - What it is: A completion write guarded by all of A's old ownership evidence.
-  - What it does here: It attempts the late stale completion after B has taken over.
-  - What it gives us: Zero changed rows, so A cannot overwrite the resource-side result in SQLite.
-- **UPDATE ... WHERE owner = 'worker-b' AND token = 2 AND state = 'claimed'** (SQL conditional data-change statement)
-  - What it is: The same resource-side fence evaluated with the current owner's evidence.
-  - What it does here: It accepts B's completion and writes **result-b**.
-  - What it gives us: One changed row and a final result owned by worker-b with token 2.
-- **SELECT ... FROM leased_jobs** (SQL observation query)
-  - What it is: A final read of the protected resource row.
-  - What it does here: It displays the owner, token, state, and result after both completion attempts.
-  - What it gives us: The durable proof that the stale result was not written.
+- **.timeout 100** (connection busy budget): Bound B's initial attempt to reserve the writer at
+  100 ms. Read the busy error as failed admission, not proof that B owns any job.
+- **BEGIN IMMEDIATE / COMMIT** (claim boundary): Reserve the writer while selecting and updating a
+  job. The first COMMIT releases it before the simulated work interval.
+- **UPDATE ... WHERE id=(SELECT ... LIMIT 1) RETURNING** (claim): Pick one queued row, record owner,
+  increment token, and display the resulting ownership. ORDER BY makes the selection reproducible.
+- **lease_until<=200** (logical deadline): The test treats 200 as now and 100 as expired. It avoids
+  a timing race and says nothing about clock synchronization between real hosts.
+- **WHERE owner=... AND token=... AND state='claimed'** (completion fence): Recheck ownership at
+  the resource itself. A zero-row update is a stale result, not a successful completion.
+- **changes()** (last write count): Query it immediately after each guarded write. One means the
+  resource accepted the transition; zero means the expected owner/version no longer matched.
 `,
-      setup: code`
-DROP TABLE IF EXISTS leased_jobs;
-CREATE TABLE leased_jobs(job_id INTEGER PRIMARY KEY, state TEXT NOT NULL, owner TEXT, token INTEGER NOT NULL, lease_until INTEGER NOT NULL, result TEXT);
-INSERT INTO leased_jobs VALUES (1, 'claimed', 'worker-a', 1, 100, NULL);
-`,
-      code: code`
-SELECT job_id, state, owner, token, lease_until FROM leased_jobs;
-UPDATE leased_jobs SET state = 'claimed', owner = 'worker-b', token = token + 1, lease_until = 300 WHERE job_id = 1 AND lease_until <= 200;
-SELECT changes() AS takeover_rows;
-SELECT job_id, state, owner, token, lease_until FROM leased_jobs;
-UPDATE leased_jobs SET state = 'done', result = 'late-a' WHERE job_id = 1 AND owner = 'worker-a' AND token = 1 AND state = 'claimed';
-SELECT changes() AS stale_completion_rows;
-UPDATE leased_jobs SET state = 'done', result = 'result-b' WHERE job_id = 1 AND owner = 'worker-b' AND token = 2 AND state = 'claimed';
-SELECT changes() AS current_completion_rows;
-SELECT job_id, state, owner, token, result FROM leased_jobs;
-`,
-      expectedResult:
-        "Worker B's takeover changes one row and raises token to 2. Worker A's late completion changes zero rows (stale_completion_rows = 0), while B's guarded completion changes one row. The final result is result-b, owned by worker-b with token 2; the stale worker cannot overwrite it.",
-      systemsLens:
-        "The SQLite conditional UPDATE is a resource-side fence: the row itself rejects a completion carrying an obsolete token. That is sufficient when the protected effect is committed in SQLite, but serialization of this file does not fence an email, API, object store, or other external resource; that resource must verify the token at its own boundary before applying the effect.",
-      challenge:
-        "Move the result into a separate SQLite table with UNIQUE job_id and keep the token in the guarded write. Then model the same completion against an external resource: what token must that resource receive and check at its own boundary before accepting a stale worker's effect?",
-      caution:
-        "Wall-clock expiry can jump or be misconfigured. Production leases need a clock policy, bounded durations, and a fencing check at every side-effecting boundary.",
-      safetyLevel: "writes-data",
-      runIn: "tool",
-      sessions: 1,
-      minVersion: "3.53.4",
-      revision: 2,
-      estimatedMinutes: 20,
-    },
-    {
-      slug: "local-oplog",
-      title: "Record local mutations in an operation log",
-      difficulty: "advanced",
-      tags: ["oplog", "idempotency", "ordering", "atomicity"],
-      prerequisites: ["lease-expiry-and-fencing"],
-      overview:
-        "Apply a local document mutation and append its operation metadata in one transaction. The operation ID, device sequence, payload, and acknowledgement state provide durable intent while disconnected.",
-      syntaxBreakdown:
-        "A composite UNIQUE(device_id, device_seq) detects sequence reuse. A separate UNIQUE(op_id) detects duplicate identity. The transaction makes the state row and oplog row appear together or not at all.",
-      setup: code`
-DROP TABLE IF EXISTS local_oplog;
-DROP TABLE IF EXISTS local_notes;
-CREATE TABLE local_notes(note_id INTEGER PRIMARY KEY, body TEXT NOT NULL, version INTEGER NOT NULL);
-CREATE TABLE local_oplog(op_id TEXT PRIMARY KEY, device_id TEXT NOT NULL, device_seq INTEGER NOT NULL, note_id INTEGER NOT NULL, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0, UNIQUE(device_id, device_seq));
-INSERT INTO local_notes VALUES (1, 'draft', 0);
-`,
-      code: code`
-BEGIN;
-UPDATE local_notes SET body = 'offline edit 1', version = version + 1 WHERE note_id = 1;
-INSERT INTO local_oplog(op_id, device_id, device_seq, note_id, payload) VALUES ('dev-a-0001', 'device-a', 1, 1, 'body=offline edit 1');
+      setup: code`PRAGMA journal_mode=WAL;
+DROP TABLE IF EXISTS durable_jobs;
+CREATE TABLE durable_jobs(id INTEGER PRIMARY KEY,state TEXT NOT NULL,owner TEXT,
+ token INTEGER NOT NULL DEFAULT 0,lease_until INTEGER,result TEXT);
+INSERT INTO durable_jobs(id,state) VALUES(1,'queued'),(2,'queued');`,
+      code: code`-- Session A
+BEGIN IMMEDIATE;
+UPDATE durable_jobs SET state='claimed',owner='a',token=token+1,lease_until=100
+ WHERE id=(SELECT id FROM durable_jobs WHERE state='queued' ORDER BY id LIMIT 1)
+ RETURNING id,owner,token;
+-- Session B
+.timeout 100
+BEGIN IMMEDIATE;
+-- Session A
 COMMIT;
-SELECT n.note_id, n.body, n.version, o.op_id, o.device_id, o.device_seq, o.acknowledged FROM local_notes n JOIN local_oplog o ON o.note_id = n.note_id;
-BEGIN;
-UPDATE local_notes SET body = 'should-not-commit', version = version + 1 WHERE note_id = 1;
-INSERT INTO local_oplog(op_id, device_id, device_seq, note_id, payload) VALUES ('dev-a-0002', 'device-a', 2, 1, 'body=should-not-commit');
-ROLLBACK;
-SELECT body AS body_after_rollback, count(*) AS oplog_rows FROM local_notes CROSS JOIN local_oplog;
-`,
+.print A is doing slow work with no open write transaction
+-- Session B
+BEGIN IMMEDIATE;
+UPDATE durable_jobs SET state='claimed',owner='b',token=token+1,lease_until=300
+ WHERE id=(SELECT id FROM durable_jobs WHERE state='queued' ORDER BY id LIMIT 1)
+ RETURNING id,owner,token;
+COMMIT;
+UPDATE durable_jobs SET owner='b',token=token+1,lease_until=300
+ WHERE id=1 AND state='claimed' AND lease_until<=200;
+SELECT 'takeover',changes();
+-- Session A
+UPDATE durable_jobs SET state='done',result='late-a'
+ WHERE id=1 AND owner='a' AND token=1 AND state='claimed';
+SELECT 'stale_completion',changes();
+-- Session B
+UPDATE durable_jobs SET state='done',result='current-b'
+ WHERE id=1 AND owner='b' AND token=2 AND state='claimed';
+SELECT 'current_completion',changes();
+SELECT id,state,owner,token,result FROM durable_jobs ORDER BY id;`,
       expectedResult:
-        "The first commit shows body offline edit 1, version 1, and exactly one oplog entry with device-a sequence 1 and acknowledged = 0. The rollback leaves body offline edit 1 and oplog_rows = 1; the failed mutation has no durable intent record.",
+        "A claims 1|a|1. B's first BEGIN reports database is locked after its bounded wait. After A commits, B claims 2|b|1 while A's work is unfinished. Takeover reports 1, stale_completion 0, current_completion 1; job 1 ends done|b|2|current-b, and job 2 remains claimed by b with token 1.",
       systemsLens:
-        "An operation log is durable intent, not replication by itself. Atomic local state plus ordered identity lets a disconnected agent resume after a crash; transport, conflict policy, and compaction are separate protocols.",
+        "The throughput cost of a single writer depends on the duration of serialized state transitions, not the duration of the jobs they describe. Lease expiry restores liveness; a predicate checked by the protected resource preserves safety after takeover.",
       challenge:
-        "Add a CHECK requiring positive device_seq and query the next contiguous unacknowledged operation for a device. What state do you need to retain after compaction?",
-      caution:
-        "Device sequence numbers are only ordered within a device. Do not compare them as a global clock or use an oplog as proof that another replica has applied an operation.",
-      safetyLevel: "writes-data",
+        "Hold A's claim transaction open while it does its work. Predict what happens to B even though B wants a different job. Then omit the token predicate from completion and demonstrate the stale-write failure on a disposable row.",
+      safetyLevel: "locking",
       runIn: "tool",
-      sessions: 1,
-      minVersion: "3.53.4",
+      sessions: 2,
       estimatedMinutes: 25,
     },
     {
       slug: "duplicate-and-lost-ack",
-      title: "Survive duplicate transfer and a lost acknowledgement",
+      title: "Reject identity reuse while retrying an independent receiver",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["deduplication", "oplog", "outbox", "rpo"],
-      prerequisites: ["local-oplog"],
+      tags: ["deduplication", "idempotency", "outbox", "consistency"],
+      prerequisites: ["outbox-replay-after-crash"],
       overview:
-        "Attach two disposable SQLite files as sender and receiver. Commit a receiver receipt without advancing the sender, then retry the same operation; a unique receipt ledger makes the duplicate harmless before the sender eventually advances.",
-      syntaxBreakdown:
-        "ATTACH adds another database file to one connection. A transaction spanning attached databases coordinates the local file changes. INSERT OR IGNORE expresses duplicate delivery as a deliberate no-op.",
-      code: code`
-set -eu
-db=$(printenv TUTOR_SQLITE_DB || true)
-if [ -z "$db" ]; then echo 'TUTOR_SQLITE_DB must be nonempty' >&2; exit 2; fi
-case "$db" in /*.db) ;; *) echo 'TUTOR_SQLITE_DB must be an absolute .db path' >&2; exit 2;; esac
-parent=$(dirname -- "$db")
-if [ "$parent" = / ] || [ ! -d "$parent" ] || [ ! -w "$parent" ]; then echo 'database parent must be an existing writable non-root directory' >&2; exit 2; fi
-if [ -L "$db" ] || { [ -e "$db" ] && [ ! -f "$db" ]; }; then echo 'database path must not be a symlink or non-regular file' >&2; exit 2; fi
-case "$parent" in *"'"*) echo 'database parent may not contain a single quote for ATTACH safety' >&2; exit 2;; esac
-db_dir=$(dirname -- "$db")
-sender_db=$db_dir/sync-sender.sqlite
-receiver_db=$db_dir/sync-receiver.sqlite
-rm -f "$sender_db" "$receiver_db" "$sender_db-journal" "$receiver_db-journal" "$sender_db-wal" "$receiver_db-wal" "$sender_db-shm" "$receiver_db-shm"
-sqlite3 "$db" <<SQL
-ATTACH '$sender_db' AS sender;
-ATTACH '$receiver_db' AS receiver;
-.databases
-CREATE TABLE sender.pending_ops(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL, acknowledged INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE receiver.receipts(op_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
-INSERT INTO sender.pending_ops VALUES ('sync-001', 'set-color=blue', 0);
-BEGIN;
-INSERT OR IGNORE INTO receiver.receipts(op_id, payload) SELECT op_id, payload FROM sender.pending_ops WHERE op_id = 'sync-001';
-SELECT changes() AS first_delivery_rows;
-COMMIT;
-SELECT op_id, acknowledged FROM sender.pending_ops;
-BEGIN;
-INSERT OR IGNORE INTO receiver.receipts(op_id, payload) SELECT op_id, payload FROM sender.pending_ops WHERE op_id = 'sync-001';
-SELECT changes() AS retry_delivery_rows;
-UPDATE sender.pending_ops SET acknowledged = 1 WHERE op_id = 'sync-001' AND acknowledged = 0 AND EXISTS (SELECT 1 FROM receiver.receipts WHERE op_id = 'sync-001');
-SELECT changes() AS sender_advance_rows;
-COMMIT;
-SELECT count(*) AS receiver_effects FROM receiver.receipts;
-SELECT op_id, acknowledged FROM sender.pending_ops;
-SQL
-rm -f "$sender_db" "$receiver_db" "$sender_db-journal" "$receiver_db-journal" "$sender_db-wal" "$receiver_db-wal" "$sender_db-shm" "$receiver_db-shm"
+        "Replay a batch whose acknowledgement was lost, then submit a different debit under its existing identity. The receiver must distinguish a duplicate from conflicting intent. Its receipt is the durable accepted set; the sender's acknowledgement is updated only after the receiving transaction succeeds.",
+      syntaxBreakdown: code`### In plain terms
+
+A unique key alone cannot tell whether a repeated request means the same thing. The receiver below
+stores the original amount beside the identity and checks it before changing state. There is no
+global transaction and no ATTACH: one connection accepts a batch, and another later records that
+acknowledgement. With no ordering-dependent operations in this debit example, the receipt set is
+sufficient receive progress; the next lesson introduces contiguous cursors where order matters.
+
+### What you are learning
+
+- Retryable delivery needs identity, immutable content and a receiver-side atomic boundary.
+- A lost acknowledgement leaves pending work that is safe to resend; conflicting content is a
+  protocol error that must remain visible to the sender.
+- An expected rejection must have the expected error and unchanged state. Any nonzero exit is not
+  automatically proof that your validation rule worked.
+
+### Piece by piece
+` + shellExplanation + code`
+- **quote(op_id)** (SQLite function): Generate literal SQL for the small trusted fixture without
+  breaking an identity containing a quote. This laboratory transport is not a production RPC format.
+- **COALESCE(sum(...),0)** (new-effect calculation): Sum only identities missing from receipts.
+  A fully duplicate batch has no new rows, so its amount is zero instead of NULL.
+- **if deliver ...; then ...; else ...; fi**, **grep -q**, and **test** (rejection checks): Capture
+  the exact CHECK error, verify nonzero status, then reopen and compare the balance and receipt count.
+  The sender acknowledgement is deliberately absent on the rejection path.
+`,
+      code: offlineLab + deliveryProtocol + code`
+sender=$lab/sender.db
+receiver=$lab/receiver.db
+init_receiver "$receiver"
+sqlite3 -bail "$sender" "CREATE TABLE pending(op_id TEXT PRIMARY KEY,amount INTEGER,acked INTEGER); INSERT INTO pending VALUES('a/g1:1',10,0),('a/g1:2',5,0);"
+sqlite3 "$sender" "SELECT 'INSERT INTO incoming VALUES(' || quote(op_id) || ',' || amount || ');' FROM pending ORDER BY op_id;" >"$lab/batch.sql"
+deliver "$receiver" "$lab/batch.sql"
+test "$(sqlite3 "$sender" 'SELECT sum(acked) FROM pending;')" = 0
+echo 'ack_lost sender_acked=0'
+deliver "$receiver" "$lab/batch.sql"
+sqlite3 -bail "$sender" 'UPDATE pending SET acked=1;'
+echo "INSERT INTO incoming VALUES('a/g1:1',99);" >"$lab/conflict.sql"
+if deliver "$receiver" "$lab/conflict.sql" >"$lab/rejected.log" 2>&1; then
+  echo 'unexpected: conflicting identity accepted' >&2; exit 1
+else
+  grep -q 'CHECK constraint failed' "$lab/rejected.log"
+  echo 'identity_conflict_rejected=1'
+fi
+test "$(sqlite3 "$receiver" 'SELECT balance FROM account;')" = 85
+test "$(sqlite3 "$receiver" 'SELECT count(*) FROM receipts;')" = 2
+test "$(sqlite3 "$sender" 'SELECT sum(acked) FROM pending;')" = 2
+echo 'receiver_balance=85 receipts=2 sender_acked=2'
 `,
       expectedResult:
-        "ATTACH lists sender and receiver as separate files. The first delivery inserts one receipt and the sender remains acknowledged = 0, modeling a lost acknowledgement. The retry inserts zero new receipts, then advances the sender by one row. Final receiver_effects = 1 and sender acknowledged = 1: duplicate transfer did not duplicate the logical effect.",
+        "The first delivery prints 2 new receipts, and the duplicate prints 0 while the sender initially has zero acknowledged rows. A changed amount under a/g1:1 produces the checked CHECK constraint rejection. Final asserted state is receiver_balance=85 receipts=2 sender_acked=2; the rejected amount 99 never affects the account.",
       systemsLens:
-        "Messages and acknowledgements can each be lost, so a sender must retry and a receiver must deduplicate by stable identity. A receipt ledger is a local convergence aid, not a guarantee that an arbitrary remote side effect was reversible.",
+        "An idempotency ledger is a durable assertion about the meaning of a request, not just its existence. SQLite can enforce that assertion with the local effect. Cross-participant acknowledgement remains a separate state transition, so the protocol must survive repeating it.",
       challenge:
-        "Close and reopen the connection, then inspect both attached files. Add a payload hash and reject a reused op_id whose payload differs.",
-      caution:
-        "The attached sender and receiver filenames are derived as siblings of TUTOR_SQLITE_DB. Run the lesson in the disposable lab and remove only those uniquely named files when cleanup is appropriate; never attach a production database by accident.",
+        "Remove payload comparison and use only ON CONFLICT DO NOTHING. Which request would the sender believe was accepted after the changed-amount retry? Extend the receipt to retain a response that can be returned consistently on replay.",
       safetyLevel: "writes-data",
       runIn: "shell",
-      sessions: 1,
-      minVersion: "3.53.4",
-      estimatedMinutes: 30,
+      estimatedMinutes: 25,
     },
     {
       slug: "ordering-conflicts-and-tombstones",
-      title: "Make ordering, conflicts, and deletion explicit",
+      title: "Merge independent origins, then break deletion by forgetting history",
+      revision: 3,
       difficulty: "advanced",
-      tags: ["ordering", "conflict-resolution", "tombstones", "deduplication"],
+      tags: ["ordering", "conflict-resolution", "tombstones", "retention"],
       prerequisites: ["duplicate-and-lost-ack"],
       overview:
-        "Deliver operations out of order and resolve concurrent edits with one deterministic rule: the greatest (logical_time, device_id) wins, with a tombstone represented as a value that participates in the same ordering. A cursor prevents applying a gap and a tombstone prevents stale resurrection.",
-      syntaxBreakdown:
-        "The next_seq cursor is a contiguous application boundary. INSERT OR IGNORE handles duplicate operation delivery. The tuple comparison in the guarded UPDATE is a deterministic last-writer-wins rule; deleted = 1 is a tombstone, not physical absence.",
-      setup: code`
-DROP TABLE IF EXISTS sync_ops;
-DROP TABLE IF EXISTS sync_state;
-DROP TABLE IF EXISTS replica_delivery;
-DROP TABLE IF EXISTS replica_notes;
-CREATE TABLE sync_state(replica TEXT PRIMARY KEY, next_seq INTEGER NOT NULL DEFAULT 1);
-CREATE TABLE replica_delivery(replica TEXT NOT NULL, seq INTEGER NOT NULL, applied INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(replica, seq));
-CREATE TABLE replica_notes(replica TEXT NOT NULL, note_id INTEGER NOT NULL, body TEXT, deleted INTEGER NOT NULL, logical_time INTEGER NOT NULL, device_id TEXT NOT NULL, PRIMARY KEY(replica, note_id));
-CREATE TABLE sync_ops(seq INTEGER PRIMARY KEY, op_id TEXT NOT NULL UNIQUE, device_id TEXT NOT NULL, logical_time INTEGER NOT NULL, note_id INTEGER NOT NULL, body TEXT, deleted INTEGER NOT NULL DEFAULT 0);
-INSERT INTO sync_state VALUES ('replica-a', 1), ('replica-b', 1);
-INSERT INTO sync_ops(seq, op_id, device_id, logical_time, note_id, body, deleted) VALUES
-  (1, 'a-1', 'device-a', 1, 1, 'A at t1', 0),
-  (2, 'b-2', 'device-b', 2, 1, 'B at t2', 0),
-  (3, 'a-3-delete', 'device-a', 3, 1, NULL, 1),
-  (4, 'b-4-stale', 'device-b', 2, 1, 'late B', 0);
+        "Two replicas receive the same operations in different orders. Each origin has its own sequence; gaps delay only that origin, while a deterministic version rule resolves cross-origin edits. After convergence, deliberately discard a tombstone and deliver an old device's previously unseen edit to expose the history-retention assumption.",
+      syntaxBreakdown: code`### In plain terms
+
+Disconnected devices cannot allocate a shared global sequence without another protocol. We give
+each origin its own consecutive numbers and use a separate logical version to choose a document's
+winning value. Both replicas run the same apply_batch function; we vary delivery order, not the
+application logic. The final failure demonstrates why a deletion is retained as data.
+
+### What you are learning
+
+- Per-origin ordering and cross-origin conflict resolution answer different questions. A cursor
+  cannot resolve a concurrent edit, and a winning value cannot certify a complete receive prefix.
+- Equal logical clocks require a deterministic tie-breaker. This policy gives convergence but may
+  discard a user's edit; convergence is not a claim that the policy meets every application's needs.
+- Tombstone collection requires a known retention horizon or a full-resync rule for stale peers.
+  Receipt retention alone cannot reject an old operation that this replica has never received.
+
+### Piece by piece
+` + shellExplanation + mergeExplanation + code`
+- **printf / batch SQL files** (delivery schedule): Each file contains fixed incoming rows. Sequence
+  2 is delivered before 1 on one replica, and origins arrive in opposite orders on the other.
+- **diff -u** (convergence check): Compare explicitly sorted document rows. Empty diff means the
+  entire displayed state matches; equal row counts alone would not establish convergence.
+- **DELETE FROM notes WHERE deleted=1** (deliberately unsafe collection): Remove deletion metadata
+  before every possible old origin has been retired. The later c/g1 edit is new to the receipt ledger
+  but older than the removed tombstone. The unsafe copy resurrects it; the retained copy rejects it.
 `,
-      code: code`
-INSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 2), ('replica-b', 1), ('replica-b', 3);
-SELECT 'initial_gaps' AS observation, replica, next_seq, (SELECT group_concat(seq) FROM (SELECT seq FROM replica_delivery WHERE replica = sync_state.replica ORDER BY seq)) AS delivered FROM sync_state ORDER BY replica;
-UPDATE sync_state SET next_seq = next_seq + 1 WHERE replica = 'replica-a' AND EXISTS (SELECT 1 FROM replica_delivery WHERE replica = 'replica-a' AND seq = sync_state.next_seq);
-SELECT changes() AS advancement_with_gap;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 1 AND (SELECT next_seq FROM sync_state WHERE replica = 'replica-b') = 1;
-INSERT INTO replica_notes VALUES ('replica-b', 1, 'A at t1', 0, 1, 'device-a');
-UPDATE sync_state SET next_seq = 2 WHERE replica = 'replica-b';
-SELECT 'b_stops_at_missing_seq_2' AS observation, replica, next_seq, (SELECT applied FROM replica_delivery WHERE replica = 'replica-b' AND seq = 3) AS seq3_applied FROM sync_state WHERE replica = 'replica-b';
-INSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 1), ('replica-a', 3), ('replica-b', 2);
-INSERT INTO replica_notes VALUES ('replica-a', 1, 'A at t1', 0, 1, 'device-a');
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 1;
-UPDATE sync_state SET next_seq = 2 WHERE replica = 'replica-a';
-UPDATE replica_notes SET body = 'B at t2', deleted = 0, logical_time = 2, device_id = 'device-b' WHERE replica = 'replica-a' AND note_id = 1 AND 2 > logical_time;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 2;
-UPDATE sync_state SET next_seq = 3 WHERE replica = 'replica-a';
-UPDATE replica_notes SET body = NULL, deleted = 1, logical_time = 3, device_id = 'device-a' WHERE replica = 'replica-a' AND note_id = 1 AND 3 > logical_time;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 3;
-UPDATE sync_state SET next_seq = 4 WHERE replica = 'replica-a';
-UPDATE replica_notes SET body = 'B at t2', deleted = 0, logical_time = 2, device_id = 'device-b' WHERE replica = 'replica-b' AND note_id = 1 AND 2 > logical_time;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 2;
-UPDATE sync_state SET next_seq = 3 WHERE replica = 'replica-b';
-UPDATE replica_notes SET body = NULL, deleted = 1, logical_time = 3, device_id = 'device-a' WHERE replica = 'replica-b' AND note_id = 1 AND 3 > logical_time;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 3;
-UPDATE sync_state SET next_seq = 4 WHERE replica = 'replica-b';
-SELECT 'missing_ops_unblock' AS observation, replica, next_seq FROM sync_state ORDER BY replica;
-INSERT INTO replica_delivery(replica, seq) VALUES ('replica-a', 4), ('replica-b', 4);
-UPDATE replica_notes SET body = (SELECT body FROM sync_ops WHERE seq = 4), deleted = (SELECT deleted FROM sync_ops WHERE seq = 4), logical_time = (SELECT logical_time FROM sync_ops WHERE seq = 4), device_id = (SELECT device_id FROM sync_ops WHERE seq = 4) WHERE replica = 'replica-a' AND note_id = 1 AND ((SELECT logical_time FROM sync_ops WHERE seq = 4) > logical_time OR ((SELECT logical_time FROM sync_ops WHERE seq = 4) = logical_time AND (SELECT device_id FROM sync_ops WHERE seq = 4) > device_id));
-SELECT changes() AS replica_a_seq4_effect;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-a' AND seq = 4;
-UPDATE sync_state SET next_seq = 5 WHERE replica = 'replica-a' AND next_seq = 4;
-UPDATE replica_notes SET body = (SELECT body FROM sync_ops WHERE seq = 4), deleted = (SELECT deleted FROM sync_ops WHERE seq = 4), logical_time = (SELECT logical_time FROM sync_ops WHERE seq = 4), device_id = (SELECT device_id FROM sync_ops WHERE seq = 4) WHERE replica = 'replica-b' AND note_id = 1 AND ((SELECT logical_time FROM sync_ops WHERE seq = 4) > logical_time OR ((SELECT logical_time FROM sync_ops WHERE seq = 4) = logical_time AND (SELECT device_id FROM sync_ops WHERE seq = 4) > device_id));
-SELECT changes() AS replica_b_seq4_effect;
-UPDATE replica_delivery SET applied = 1 WHERE replica = 'replica-b' AND seq = 4;
-UPDATE sync_state SET next_seq = 5 WHERE replica = 'replica-b' AND next_seq = 4;
-INSERT OR IGNORE INTO replica_delivery(replica, seq) VALUES ('replica-a', 4);
-SELECT changes() AS duplicate_delivery_insert;
-SELECT a.body AS a_body, a.deleted AS a_deleted, b.body AS b_body, b.deleted AS b_deleted, CASE WHEN a.body IS b.body AND a.deleted = b.deleted AND a.logical_time = b.logical_time AND a.device_id = b.device_id THEN 'converged' ELSE 'diverged' END AS convergence FROM replica_notes a JOIN replica_notes b ON a.note_id = b.note_id WHERE a.replica = 'replica-a' AND b.replica = 'replica-b';
-SELECT replica, next_seq FROM sync_state ORDER BY replica;
+      code: offlineLab + mergeProtocol + code`
+a=$lab/a.db
+b=$lab/b.db
+init_replica "$a"
+init_replica "$b"
+echo "INSERT INTO incoming VALUES('a/g1',1,1,'note','A first',0);" >"$lab/a1.sql"
+echo "INSERT INTO incoming VALUES('a/g1',2,3,'note',NULL,1);" >"$lab/a2.sql"
+echo "INSERT INTO incoming VALUES('b/g1',1,1,'note','B tie winner',0);" >"$lab/b1.sql"
+apply_batch "$a" "$lab/a2.sql"
+test "$(sqlite3 "$a" 'SELECT last_seq FROM cursors;')" = 0
+test "$(sqlite3 "$a" 'SELECT count(*) FROM notes;')" = 0
+echo 'gap_held cursor_a=0 notes=0'
+apply_batch "$a" "$lab/b1.sql"
+apply_batch "$b" "$lab/a1.sql"
+apply_batch "$b" "$lab/b1.sql"
+test "$(sqlite3 "$b" 'SELECT body FROM notes;')" = 'B tie winner'
+echo 'equal_clock_winner=b/g1'
+apply_batch "$a" "$lab/a1.sql"
+apply_batch "$b" "$lab/a2.sql"
+apply_batch "$a" "$lab/a2.sql"
+sqlite3 "$a" 'SELECT * FROM notes ORDER BY doc;' >"$lab/a-state.txt"
+sqlite3 "$b" 'SELECT * FROM notes ORDER BY doc;' >"$lab/b-state.txt"
+diff -u "$lab/a-state.txt" "$lab/b-state.txt"
+test "$(sqlite3 "$a" 'SELECT deleted FROM notes;')" = 1
+test "$(sqlite3 "$a" "SELECT last_seq FROM cursors WHERE origin='a/g1';")" = 2
+echo 'converged=1 deleted=1 a_cursor=2'
+sqlite3 "$a" ".backup '$lab/unsafe.db'"
+sqlite3 -bail "$lab/unsafe.db" 'DELETE FROM notes WHERE deleted=1;'
+echo "INSERT INTO incoming VALUES('c/g1',1,1,'note','old unseen edit',0);" >"$lab/stale.sql"
+apply_batch "$a" "$lab/stale.sql"
+apply_batch "$lab/unsafe.db" "$lab/stale.sql"
+test "$(sqlite3 "$a" 'SELECT deleted FROM notes;')" = 1
+test "$(sqlite3 "$lab/unsafe.db" 'SELECT deleted FROM notes;')" = 0
+echo 'retained_tombstone_deleted=1 premature_gc_resurrected=1'
 `,
       expectedResult:
-        "initial_gaps shows both cursors at 1 while replica-a has only seq 2 and replica-b has seq 1 and 3. advancement_with_gap is 0, proving A cannot advance over missing seq 1. After B applies seq 1, b_stops_at_missing_seq_2 shows next_seq 2 and seq3_applied 0. Delivering the missing operations moves both cursors to 4 and applies the body updates followed by the logical_time 3 tombstone. Both guarded seq-4 stale updates report 0 effects because (2, device-b) loses to the tombstone (3, device-a), but both deliveries are marked applied and both cursors become 5. duplicate_delivery_insert is 0. The final joined row has NULL bodies, deleted = 1 on both replicas, matching clocks/device IDs, and convergence = converged.",
+        "A's seq-2-first delivery prints gap_held cursor_a=0 notes=0. The same-clock comparison selects b/g1. Missing a/g1:1 then releases A's buffered deletion; both sorted states match with deleted=1 and a_cursor=2, including after duplicate delivery. The final checked contrast is retained_tombstone_deleted=1 premature_gc_resurrected=1.",
       systemsLens:
-        "Synchronization needs explicit policies for ordering, conflict resolution, deletion retention, and compaction. A cursor prevents gaps from being mistaken for progress; a tombstone preserves deletion knowledge so an old update cannot resurrect state.",
+        "Convergence requires a deterministic state transition plus assumptions about the history still available. SQLite protects each replica's inbox, materialized state and receive cursor atomically; origin membership, logical clocks, garbage-collection horizons and conflict policy belong to the synchronization design.",
       challenge:
-        "Add a third replica with a deliberately delayed seq 3. Predict which cursor and note state it can expose at each step, then design a tombstone garbage-collection horizon that cannot admit a late resurrection.",
-      caution:
-        "Last-writer-wins is deterministic, not inherently semantically correct. Document clock assumptions and retain tombstones long enough that delayed operations cannot arrive after their deletion evidence is discarded.",
+        "Keep both conflicting values instead of selecting one. What additional application decision would be required? Then propose a membership/expiry rule under which tombstones can be removed, and explain how an expired device rejoins without replaying ancient edits.",
       safetyLevel: "writes-data",
-      runIn: "tool",
-      sessions: 1,
-      minVersion: "3.53.4",
+      runIn: "shell",
+      estimatedMinutes: 40,
+    },
+    {
+      slug: "restore-and-rejoin-history",
+      title: "Restore an old device file without reusing its history",
+      revision: 1,
+      difficulty: "advanced",
+      tags: ["backup", "device-generation", "oplog", "retention", "recovery"],
+      prerequisites: ["ordering-conflicts-and-tombstones"],
+      overview:
+        "Restore a device backup taken before its latest operations while a peer still remembers them. The restored sequence counter can now assign an old identity to new intent, which the peer must reject. Reconcile retained history and move future writes to a new generation before allowing the device to write again.",
+      syntaxBreakdown: code`### In plain terms
+
+A backup can be internally correct and still be older than the world around it. Restoring one
+device rewinds its counters, acknowledgements and knowledge of remote work. The other replica does
+not rewind. This experiment first causes identity reuse, then makes rejoin an explicit operation:
+recover retained history, advance the logical version and assign a fresh generation.
+
+### What you are learning
+
+- Database integrity and safe protocol identity are separate recovery requirements.
+- A new generation prevents sequence reuse but does not reconstruct missing state or decide an
+  edit's logical version. Those require reconciliation too.
+- This recovery succeeds because a peer retains the complete needed history. Without that history,
+  the protocol must define a trusted snapshot/full-resync path and retire the old origin.
+
+### Piece by piece
+` + shellExplanation + mergeExplanation + code`
+- **.backup** (engine snapshot command): Capture A at seq 1, then restore into a new file. The live
+  peer remains untouched. A backup's integrity does not tell you whether its sequence is still unused.
+- **device.next_seq / advance_local_sequence** (local allocation state and trigger): An accepted
+  local-origin inbox insert advances the counter in the same transaction as application. The old
+  backup still contains 2. The experiment tries that identity with different content and checks rejection.
+- **if apply_batch ... / CHECK error** (conflict test): Verify the exact reused-identity failure
+  and unchanged peer state. A transport failure would not establish the same result.
+- **.mode insert incoming** (lab history export): Serialize the peer's retained operations as
+  INSERT statements for the common apply procedure. All six protocol fields are exported in order.
+- **max(clock)+1 / new origin generation** (rejoin policy): After receiving retained history,
+  make future local versions newer than observed versions and allocate under a/g2. Generation creation
+  is a deliberate policy decision here; a real system needs a collision-resistant way to assign it.
+`,
+      code: offlineLab + mergeProtocol + code`
+a=$lab/a.db
+b=$lab/b.db
+init_replica "$a"
+init_replica "$b"
+sqlite3 -bail "$a" <<'SQL'
+CREATE TABLE device(origin TEXT PRIMARY KEY,next_seq INTEGER);
+INSERT INTO device VALUES('a/g1',1);
+CREATE TRIGGER advance_local_sequence AFTER INSERT ON inbox
+ WHEN NEW.origin=(SELECT origin FROM device)
+ BEGIN UPDATE device SET next_seq=max(next_seq,NEW.seq+1); END;
+SQL
+echo "INSERT INTO incoming VALUES('a/g1',1,1,'note','initial',0);" >"$lab/first.sql"
+apply_batch "$a" "$lab/first.sql"
+apply_batch "$b" "$lab/first.sql"
+sqlite3 "$a" ".backup '$lab/old-backup.db'"
+echo "INSERT INTO incoming VALUES('a/g1',2,2,'note','peer remembers',0);" >"$lab/later.sql"
+apply_batch "$a" "$lab/later.sql"
+apply_batch "$b" "$lab/later.sql"
+test "$(sqlite3 "$a" 'SELECT next_seq FROM device;')" = 3
+sqlite3 "$lab/old-backup.db" ".backup '$lab/restored.db'"
+restored=$lab/restored.db
+test "$(sqlite3 "$restored" 'PRAGMA integrity_check;')" = ok
+test "$(sqlite3 "$restored" 'SELECT next_seq FROM device;')" = 2
+echo "INSERT INTO incoming VALUES('a/g1',2,2,'note','different new intent',0);" >"$lab/reused.sql"
+if apply_batch "$b" "$lab/reused.sql" >"$lab/reused.log" 2>&1; then
+  echo 'unexpected: old identity accepted with new payload' >&2; exit 1
+else
+  grep -q 'CHECK constraint failed' "$lab/reused.log"
+  echo 'restored_integrity=ok reused_identity_rejected=1'
+fi
+sqlite3 "$b" <<'SQL' >"$lab/history.sql"
+.mode insert incoming
+SELECT origin,seq,clock,doc,body,deleted FROM inbox ORDER BY origin,seq;
+SQL
+apply_batch "$restored" "$lab/history.sql"
+sqlite3 -bail "$restored" "UPDATE device SET origin='a/g2',next_seq=1;"
+sqlite3 "$restored" "SELECT 'INSERT INTO incoming VALUES(' || quote(origin) || ',' || next_seq || ',' || (SELECT max(clock)+1 FROM inbox) || ',''note'',''after rejoin'',0);' FROM device;" >"$lab/rejoined.sql"
+apply_batch "$restored" "$lab/rejoined.sql"
+test "$(sqlite3 "$restored" 'SELECT next_seq FROM device;')" = 2
+apply_batch "$b" "$lab/rejoined.sql"
+apply_batch "$b" "$lab/rejoined.sql"
+sqlite3 "$restored" 'SELECT * FROM notes ORDER BY doc;' >"$lab/restored-state.txt"
+sqlite3 "$b" 'SELECT * FROM notes ORDER BY doc;' >"$lab/peer-state.txt"
+diff -u "$lab/restored-state.txt" "$lab/peer-state.txt"
+test "$(sqlite3 "$b" 'SELECT count(*) FROM inbox;')" = 3
+test "$(sqlite3 "$b" 'SELECT body FROM notes;')" = 'after rejoin'
+echo 'rejoined_origin=a/g2 clock=3 unique_ops=3 converged=1'
+`,
+      expectedResult:
+        "The restored file passes integrity_check but still proposes sequence 2. The peer rejects changed content under that old identity with CHECK constraint failed. After replaying retained history and adopting a/g2, both document states match at clock 3 with body after rejoin; repeating the new operation leaves unique_ops=3 and converged=1.",
+      systemsLens:
+        "Restoring a participant is a protocol event because the rest of the system retains observations the participant has forgotten. A generation fences the old identity space; reconciliation repairs its missing knowledge. Neither is supplied automatically by copying a valid SQLite file.",
+      challenge:
+        "Delete the peer's retained a/g1:2 history before rejoin. Can the restored device still prove a complete receive prefix? Specify which authoritative snapshot and origin-retirement rule your system would require before accepting new writes.",
+      safetyLevel: "writes-data",
+      runIn: "shell",
       estimatedMinutes: 35,
     },
   ],

@@ -128,13 +128,20 @@ Deno.test("init migrates a pre-checkpoint database without changing old lesson d
 Deno.test("re-seeding preserves progress and checkpoint metadata", async () => {
   const { dir, path } = await initTemp();
   try {
+    const db = new DatabaseSync(path);
+    const checkpoint = db.prepare(
+      "SELECT ordinal FROM lessons WHERE active=1 AND study_checkpoint<>'' ORDER BY ordinal LIMIT 1",
+    ).get() as { ordinal: number } | undefined;
+    db.close();
+    if (!checkpoint) throw new Error("test course must contain a study checkpoint");
+    const ordinal = String(checkpoint.ordinal);
     await run(
-      [COURSE, "done", "11", "--note", "completed the experiment", "--db", path],
+      [COURSE, "done", ordinal, "--note", "completed the experiment", "--db", path],
       capture().io,
     );
     await run([COURSE, "init", "--db", path], capture().io);
     const shown = capture();
-    await run([COURSE, "show", "11", "--json", "--db", path], shown.io);
+    await run([COURSE, "show", ordinal, "--json", "--db", path], shown.io);
     const lesson = JSON.parse(shown.stdout[0]);
     if (
       lesson.status !== "done" || lesson.notes !== "completed the experiment" ||

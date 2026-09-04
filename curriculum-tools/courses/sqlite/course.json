@@ -1,10 +1,10 @@
 {
   "id": "sqlite",
   "name": "SQLite Systems",
-  "description": "Embedded database internals: pager, journaling modes, locking, and WAL",
+  "description": "Embedded state: file and connection contracts, durability, writer capacity, recovery, and offline reconciliation",
   "tool": "sqlite3",
   "minVersion": "3.53.4",
-  "revision": 1,
+  "revision": 3,
   "repl": {
     "command": [
       "courses/sqlite/bin/sqlite-repl"
