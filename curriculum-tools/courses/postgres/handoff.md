@@ -1,7 +1,39 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Observability is accepted; chunks1–3 are complete. Continue sequentially with
-chunk4: durability and recovery. The overall course refactor remains unfinished.**
+Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL record/page-image lessons52/53
+are implemented and verified. Next: measured commit cost, then archive/crash/restore work.**
+
+## Active goal
+
+User authorized finishing all remaining items linearly. The goal is active; do not stop after a
+single accepted subsection or mark the entire task complete until chunks4–7 and the final audit are
+verified. Primary is implementing design04-durability-recovery.md, beginning with WAL records and
+full-page images, followed by measured commits and actual crash/restore work.
+
+At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
+untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
+checkpoint c9dca16 followed it. Learner progress can advance independently; use a fresh copy.
+
+## Latest implementation checkpoint
+
+Primary accepted wal-records.ts and wal-page-images.ts, replacing the first two objects in07-wal;
+guides07 and registry provide exact predictions/evidence/variations. Both cores and variations ran,
+then both exact CLI-rendered hints ran. Record core shows committed/aborted physical work and
+independent row outcomes; read-side hint scan emits23 FPI_FOR_HINT blocks. Image core5764/0/5768
+bytes; pglz555/0/569, same100 rows/three increments, protection retained. No SQL errors. Report:
+validation/04-wal-records-images.md. Design: designs/04-durability-recovery.md. Durable notes:
+docs/knowledge/postgres-wal-recovery-evidence.md.95-lesson build, first7/capacity unchanged,7
+reading stops, current copied progress preserved, all30 tests and full repo checks pass.
+
+Raw drivers/logs: /tmp/pg-wal-evidence.ts/.sh,
+/tmp/pg-wal-{records,page-images}-{core,variation}.log; /tmp/pg-wal-exact.ts/.sh and
+/tmp/pg-wal-exact-SLUG.log. Current progress hash at verification:
+395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6; do not assume it stays fixed. The
+next primary-owned subsection is commit-means-fsync: repeated bounded pgbench trials with fixed
+generator settings, per-client rows, synchronous_commit on/off,1/4 clients, exact committed
+counter/log agreement, latency percentiles and qualified cluster WAL-sync deltas. Preserve distinct
+raw storage-flush measurement only as bounded optional depth on an owned file. Never overwrite
+learner PG connection variables with hard-coded port5440 settings.
 
 ## Restart checkpoint
 
