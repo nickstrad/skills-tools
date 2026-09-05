@@ -2,7 +2,25 @@
 
 Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 WAL is accepted through current57, including
 archive failure, actual crash/replay and matched amplification. Replay-only lesson is consolidated;
-94 lessons remain. Next: checkpoint anatomy, recovery cost, WAL pressure, backup/restore and PITR.**
+94 lessons remain. Checkpoint anatomy is now accepted below. Next: recovery cost, WAL pressure,
+backup/restore and PITR.**
+
+## Checkpoint anatomy accepted, 2026-09-05
+
+Primary resumed and accepted current 58 checkpoint-anatomy at revision 4. The core and source
+variation run in newly owned PostgreSQL 16 clusters; exact copied-catalog hint2 also ran. Both
+one/two-round fixtures retain 223 resident heap buffers after cleaning them; 2,000/4,000 HOT
+updates, correct 2,000 receipts and amounts 2,000/4,000, checkpoint counter delta 246, new
+control/record position and actual page/file convergence. First failed trial exposed post-commit
+hint WAL; a separate marker commit fixes the flush observation boundary. Report
+validation/04-checkpoint-anatomy.md; raw /tmp/pg-checkpoint-{core,variation}.log and
+/tmp/pg-checkpoint-exact-checkpoint-anatomy.log. All owned clusters stopped.
+
+Thirty tests and full repository check pass. Scoped build changes only current 58; 94 lessons, seven
+reading stops, first seven/capacity and fresh copied IDs/history/progress preserved. Next is current
+59 redo-point-bounds-recovery: matched actual crash/replay and readiness costs, then WAL pressure,
+real backup/restore/missing-history/PITR. Chunks 4–7 remain active. Preserve unrelated storage
+source/guide/knowledge and root bin/. No learner catalog refresh.
 
 ## User-requested context reset
 
