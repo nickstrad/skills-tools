@@ -18,9 +18,10 @@ executions and checked outcome inventories. Current88 is accepted in
 cleanup is complete in [the cleanup record](validation/07-resource-cleanup.md). Current89 is
 accepted in [the corruption restore report](validation/07-corruption-incident.md). Current90 is
 accepted in [the freeze incident report](validation/07-freeze-incident.md). Current91 is accepted in
-[the request intervention report](validation/07-cancel-incident.md). Next: current92 and final
-workload integration, then the full whole-course audit and final evidence cleanup. The course has92
-active lessons and seven reading stops; the full pivot remains unfinished.
+[the request intervention report](validation/07-cancel-incident.md). Current92 is accepted in
+[the task-runner report](validation/07-task-runner-capstone.md). Next: final integration, the
+whole-course audit and final evidence cleanup. The course has92 active lessons and seven reading
+stops; the full pivot remains unfinished.
 
 ## Teaching contract
 

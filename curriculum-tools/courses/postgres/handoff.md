@@ -1,8 +1,42 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
-Cleanup is complete and chunks1–6 plus current88–91 are accepted. Current92 and the whole-course
-audit remain required. The catalog has92 active lessons. The full goal remains active.**
+Cleanup is complete and chunks1–6 plus current88–92 are accepted. The whole-course audit remain
+required. The catalog has92 active lessons. The full goal remains active.**
+
+## Current92 accepted: task-runner correctness, recovery and capacity
+
+Read validation/07-task-runner-capstone.md and its07-capstone-outcomes.json. task-runner-capstone.ts
+replaces the historical log-only reconstruction with complete accepted-request/claim/local-result
+reconciliation against an independently committed SQLite receipt/credit, actual admission and worker
+process losses, an owned PostgreSQL immediate-stop/recovery, real lease takeover/stale completion
+rejection, missed notification recovery and bounded receipt-read readiness.
+
+Core dm47etpt loses its worker after receiver commit; source variationzas0ux9a and exactb2z_objr
+move only that loss before the effect. Recovery IDs1–4 end exactly once with credit70; replay adds0
+or1 effects respectively. Unknown ID2 admission replays and changed payload rejects. Guarded stale
+completion rejects, direct worker UPDATE returns42501. Crash preserves full source/receiver state
+and system/timeline identity. Source grants/search path are independently checked.
+
+Each run executes two repetitions of16 arrivals at4/s/one-worker,80/s/one-worker
+and80/s/two-workers. Low rate always admits16; high rate admits7–8/rejects8–9 with backlog<=6.
+Additional workers do not consistently improve throughput and add receiver-lock waits. Complete run
+accepted/rejected-load/ credit values are core65/35/525441, variation65/35/525455 and
+exact66/34/533232. These differing load subsets are scheduling outcomes, not an effect of the
+earlier loss-boundary variation.
+
+/tmp/pg-capstone-audit.py independently reads actual SQLite, reconciles every history identity and
+commit, starts each stopped source for fresh read-only tables/privilege checks, then stops it. Full
+core/source/exact correspondence, thirty tests and full check pass. Scoped build changes only92
+among92. First7/history/progress/capacity/seven stops unchanged; current copy is
+/tmp/pg-observe-progress-7vuwt4yl/progress.sqlite through /tmp/pg-observe-progress-path.
+
+All three accepted roots were fully archived/reopened/hash-verified before executing actual cleanup;
+no raw fixture remains. /tmp/pg-capstone-compacted.jsonl adds14,923,052 compressed bytes under the
+existing final-audit evidence directory. Four prototypesa6jwlhbz/siafy6om/_69ibu9z/95bwjd3v retain
+only small forensic records; all their data was removed. All jobs are terminal, learner lab intact,
+about16GB free. Current92 is individually accepted; the full goal still needs whole-course
+integration/audit, final docs/readings/maps/wrapper and final resource cleanup before completion.
 
 ## Current91 accepted: request budget and intervention outcomes
 

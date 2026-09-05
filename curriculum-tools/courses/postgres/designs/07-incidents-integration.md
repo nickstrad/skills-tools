@@ -155,6 +155,34 @@ Use logs/waits as supporting evidence joined to the operation timeline. Require 
 defend one capacity/remediation choice and its correctness/recovery costs, with runnable hints and a
 worked reconciliation available. Distinguish client loss, database loss and shared-host limitations.
 
+The concrete92 workload uses PostgreSQL for immutable accepted requests, short durable claims and
+permission-guarded local completion. An independent SQLite receiver commits an immutable receipt and
+a credit mutation atomically with FULL durability. Its single-host/process boundary is explicit;
+this is not a claim of independent host availability or physical replica testing. Retry identity and
+payload are retained for the whole fixture. Worker roles cannot directly mutate guarded tables.
+
+Kill an actual admission process after its PostgreSQL commit and before its reply, recover that
+unknown outcome by stable identity, and reject a different payload. Kill an actual worker after
+receiver commit but before guarded source completion; vary only that loss boundary to before the
+receiver effect. Crash/restart only the owned PostgreSQL process and reconcile every accepted
+request. Wait for a real bounded lease deadline, reclaim in a new generation, reject the old
+completion, replay the receiver idempotently and drain every accepted request. Disconnect an actual
+LISTEN client before new committed work; reconnect/register, verify a notification barrier and scan
+durable pending state. Receipt reads use an explicit fresh-receiver identity/payload gate: bounded
+not-ready before delivery and a verified result after it, never unconditional freshness.
+
+The same supplied worker loop then runs matched fixed-count arrival schedules: low offered rate,
+high offered rate, and the same high rate with another worker. A small exact admission cap makes
+queue-full rejection a measured bounded outcome. Record every scheduled/admitted/rejected identity,
+producer lateness, acknowledgement/end-to-end latency, completed throughput, backlog, PostgreSQL
+wait/CPU/WAL and receiver contention/service observations; include drain time and harness overhead.
+Repeat the small comparison, preserve full operation histories and reconcile every accepted effect.
+The receiver intentionally serializes a fixed service interval inside its commit transaction, so
+additional source workers may increase waiting without increasing useful service capacity. The
+learner must defend admission/concurrency from these measurements, not a universal sizing claim.
+Logs and source system identifier/timeline/recovery positions support the causal account; no
+promotion or history-file artifact is fabricated when this tested crash does not create a branch.
+
 ## Acceptance and final audit
 
 Author curriculum/*.ts and specific guides/15-incidents.ts; register the guide. Build lessons.json

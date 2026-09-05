@@ -1,3 +1,4 @@
+import { CAPSTONE_VARIATION } from "../curriculum/task-runner-capstone.ts";
 import { CANCEL_VARIATION } from "../curriculum/cancel-incident.ts";
 import { FREEZE_VARIATION } from "../curriculum/freeze-incident.ts";
 import { CORRUPTION_VARIATION } from "../curriculum/corruption-incident.ts";
@@ -108,6 +109,31 @@ export const guides: Record<string, Guide> = {
       "Join the waiting request's blocking PIDs to the idle holder and actual row-lock owner. Compare the computation's measured CPU delta separately. Prefer a policy that meets the request budget while preserving its connection; then verify whether its earlier write shares the failed transaction. The later idle-cancel experiment asks whether a signal to an idle backend ends that transaction.",
       "Run this complete fresh autocommit variation. It surveys the symptom, supplies all evidence and applies cancellation to a new equivalent request. Compare the surviving note and next-command SQLSTATE with core; record the findings and run the final cleanup command.\n\n```bash\n" +
       CANCEL_VARIATION + "\n```",
+    ],
+  },
+  "postmortem-from-the-log": {
+    brief:
+      "A supplied task runner must account for accepted work through uncertain replies, process loss, recovery and overload. Your deliverable is a complete operation reconciliation and a measured admission/concurrency decision. Predict the commit boundaries before requesting run/full; the fixture and worked recovery are supplied, and no new application implementation is required.",
+    predict:
+      "State which records must agree for one accepted request. What could be durable after an admission process disappears without replying, or after a worker disappears between receiver commit and source completion? Predict which evidence distinguishes those cases and what increasing worker concurrency can change.",
+    inspect: [
+      "Use CAPSTONE from the completed run, or assign the printed absolute capstone.py path in a new shell. All inspection is offline; no worker waits running while you read.",
+      '```bash\npython3 "$CAPSTONE" inspect recovery\npython3 "$CAPSTONE" inspect history\npython3 "$CAPSTONE" inspect capacity\n```',
+      "Join history.jsonl, recovery.json, final-inventory.json and durable-final.json by request ID and claim generation. Account for the unknown admission, rejected payload, worker retry, stale completion, missing notifications and receiver readiness. Use crash-window.log plus the recorded system/timeline/LSN coordinates to support the causal account; do not infer a failover that was not run.",
+      "Compare both repetitions of low-rate/one-worker, high-rate/one-worker and high-rate/two-worker trials. Report sample counts, offered/admitted/rejected IDs, producer lateness, acknowledgement and end-to-end latency, drain time, throughput, backlog, PostgreSQL waits/CPU/WAL and receiver lock waits. Reconcile every accepted effect and prove rejected load identities are absent before defending a capacity policy.",
+      "Record demonstrated facts, documented mechanisms and untested failure domains separately. Then release the owned fixture:",
+      '```bash\npython3 "$CAPSTONE" cleanup\n```',
+    ].join("\n\n"),
+    explain:
+      "Explain every response/commit boundary using actual process, source and receiver evidence. Why do a lost reply, a lost worker and a missed wake-up require different observations? Defend the chosen freshness gate and show why the stale worker cannot complete local guarded work. Which measured bottleneck explains the concurrency comparison?",
+    vary:
+      "Use hint2 to change only worker loss from after receiver commit to before it. Predict the retry's new-effect count and final recovery state. The same capacity schedules run again; treat their timing/count differences as observations, not effects caused by the earlier loss boundary. Record and clean up the variation.",
+    apply:
+      "Choose an admission rate/cap and worker count for this measured service, then state the evidence needed before changing that choice in a deployed system. Include the cost of rejecting work, keeping accepted obligations recoverable and retaining identities. Which host/storage/network failures and fairness properties were not established by this local fixture?",
+    hints: [
+      "Start with the exact immutable request IDs and payloads. Link each to job ownership generations, committed receiver receipt/credit and guarded source result; distinguish application replies from diagnostic markers. For capacity, compare both repetitions and separate source backend waits from the receiver's serialized writer interval. More workers cannot remove a serial receiver constraint.",
+      "Run this complete variation with worker loss before receiver commit. It supplies recovery and capacity inventories after the full workload. Compare the changed retry effect with core, perform the complete reconciliation and use the final cleanup command after recording findings.\n\n```bash\n" +
+      CAPSTONE_VARIATION + "\n```",
     ],
   },
 };

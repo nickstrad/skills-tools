@@ -1,0 +1,257 @@
+[
+  {
+    "root": "/tmp/pg-owned-dm47etpt",
+    "trial": "core",
+    "boundary": "after",
+    "accepted": 65,
+    "rejected": 35,
+    "receiver_total": 525441,
+    "complete_actual_source_and_receiver_match": true,
+    "history_events": 330,
+    "measurements": [
+      {
+        "batch": "load-0",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.161656103185781,
+        "p95": 0.12968072199146263,
+        "max_lateness": 0.005450889992062002,
+        "max_receiver_lock_wait": 0.0015103929908946157,
+        "wal_per_completed": 1396.0
+      },
+      {
+        "batch": "load-1",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 10.383921280127419,
+        "p95": 0.5460766910109669,
+        "max_lateness": 0.005398658977355808,
+        "max_receiver_lock_wait": 0.0008608310017734766,
+        "wal_per_completed": 1145.142857142857
+      },
+      {
+        "batch": "load-2",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 10.036330843570141,
+        "p95": 0.5570432789972983,
+        "max_lateness": 0.007718401000602171,
+        "max_receiver_lock_wait": 0.13259652399574406,
+        "wal_per_completed": 1115.4285714285713
+      },
+      {
+        "batch": "load-3",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.158438782934707,
+        "p95": 0.11245630998746492,
+        "max_lateness": 0.003804776002652943,
+        "max_receiver_lock_wait": 0.001014135021250695,
+        "wal_per_completed": 1133.0
+      },
+      {
+        "batch": "load-4",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 11.424257423606246,
+        "p95": 0.49686072699842043,
+        "max_lateness": 0.0011708340025506914,
+        "max_receiver_lock_wait": 0.0007287260086741298,
+        "wal_per_completed": 1139.4285714285713
+      },
+      {
+        "batch": "load-5",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 8,
+        "rejected": 8,
+        "throughput": 11.975620869740865,
+        "p95": 0.47752428898820654,
+        "max_lateness": 0.0017747689853422344,
+        "max_receiver_lock_wait": 0.23034090001601726,
+        "wal_per_completed": 1244.0
+      }
+    ],
+    "stopped": true
+  },
+  {
+    "root": "/tmp/pg-owned-zas0ux9a",
+    "trial": "variation",
+    "boundary": "before",
+    "accepted": 65,
+    "rejected": 35,
+    "receiver_total": 525455,
+    "complete_actual_source_and_receiver_match": true,
+    "history_events": 329,
+    "measurements": [
+      {
+        "batch": "load-0",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.1450104496722115,
+        "p95": 0.12094451999291778,
+        "max_lateness": 0.002823679009452462,
+        "max_receiver_lock_wait": 0.0008173210080713034,
+        "wal_per_completed": 1396.0
+      },
+      {
+        "batch": "load-1",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 10.383643635740833,
+        "p95": 0.5459728790156078,
+        "max_lateness": 0.008786387013969943,
+        "max_receiver_lock_wait": 0.0009971139952540398,
+        "wal_per_completed": 1145.142857142857
+      },
+      {
+        "batch": "load-2",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 9.546504747854168,
+        "p95": 0.6924697549839038,
+        "max_lateness": 0.00274741297471337,
+        "max_receiver_lock_wait": 0.43140006499015726,
+        "wal_per_completed": 1115.4285714285713
+      },
+      {
+        "batch": "load-3",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.161114868190372,
+        "p95": 0.14980541399563663,
+        "max_lateness": 0.0018968140066135675,
+        "max_receiver_lock_wait": 0.0010874020226765424,
+        "wal_per_completed": 1133.0
+      },
+      {
+        "batch": "load-4",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 9.727593921378336,
+        "p95": 0.5915067379828542,
+        "max_lateness": 0.022576400981051847,
+        "max_receiver_lock_wait": 0.0008278169843833894,
+        "wal_per_completed": 1139.4285714285713
+      },
+      {
+        "batch": "load-5",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 8,
+        "rejected": 8,
+        "throughput": 9.484466792500212,
+        "p95": 0.814514778990997,
+        "max_lateness": 0.0231302680040244,
+        "max_receiver_lock_wait": 0.6327466919901781,
+        "wal_per_completed": 1244.0
+      }
+    ],
+    "stopped": true
+  },
+  {
+    "root": "/tmp/pg-owned-b2z_objr",
+    "trial": "exact",
+    "boundary": "before",
+    "accepted": 66,
+    "rejected": 34,
+    "receiver_total": 533232,
+    "complete_actual_source_and_receiver_match": true,
+    "history_events": 332,
+    "measurements": [
+      {
+        "batch": "load-0",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.153936734994778,
+        "p95": 0.5830338809755631,
+        "max_lateness": 0.030614744988270104,
+        "max_receiver_lock_wait": 0.0008669689996168017,
+        "wal_per_completed": 1396.0
+      },
+      {
+        "batch": "load-1",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 11.203091139231649,
+        "p95": 0.5094368669961113,
+        "max_lateness": 0.003032562992302701,
+        "max_receiver_lock_wait": 0.0007455819868482649,
+        "wal_per_completed": 1145.142857142857
+      },
+      {
+        "batch": "load-2",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 8,
+        "rejected": 8,
+        "throughput": 11.672952459178873,
+        "p95": 0.6323527000204194,
+        "max_lateness": 0.00815147499088198,
+        "max_receiver_lock_wait": 0.3310276429983787,
+        "wal_per_completed": 1125.0
+      },
+      {
+        "batch": "load-3",
+        "rate": 4,
+        "workers": 1,
+        "accepted": 16,
+        "rejected": 0,
+        "throughput": 4.167602944716496,
+        "p95": 0.10514377101208083,
+        "max_lateness": 0.0012073999969288707,
+        "max_receiver_lock_wait": 0.0009147409873548895,
+        "wal_per_completed": 1131.5
+      },
+      {
+        "batch": "load-4",
+        "rate": 80,
+        "workers": 1,
+        "accepted": 8,
+        "rejected": 8,
+        "throughput": 12.00415774208974,
+        "p95": 0.487383053987287,
+        "max_lateness": 0.005706724972696975,
+        "max_receiver_lock_wait": 0.0006712739996146411,
+        "wal_per_completed": 1154.0
+      },
+      {
+        "batch": "load-5",
+        "rate": 80,
+        "workers": 2,
+        "accepted": 7,
+        "rejected": 9,
+        "throughput": 11.865590885446794,
+        "p95": 0.4711558779818006,
+        "max_lateness": 0.008477927010972053,
+        "max_receiver_lock_wait": 0.2307828850171063,
+        "wal_per_completed": 1243.4285714285713
+      }
+    ],
+    "stopped": true
+  }
+]

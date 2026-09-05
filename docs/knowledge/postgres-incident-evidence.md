@@ -169,3 +169,67 @@ also removes its own temporary script/location files once it has the persistent 
 Full archive/file-hash agreement must precede raw database removal, and retained bulky images still
 have the final whole-course audit as their removal trigger. Stopping a process remains only one part
 of cleanup.
+
+## Task-runner integration and bounded overload (2026-09-05)
+
+The final capstone joins immutable PostgreSQL requests, committed short claims and guarded local
+completion with an independently committed SQLite receipt/credit. Actual admission-process loss
+after source commit leaves an unknown reply; stable identity replays that admission and changed
+payload is rejected. Actual worker loss after receiver commit leaves an unacknowledged source claim.
+A real lease deadline makes it eligible for generation2, which rejects generation1 completion.
+Receiver identity/payload agreement makes its retry add zero new effects. Moving only worker loss
+before receiver commit changes that retry to one new effect; recovery IDs1–4 still end with
+credit70.
+
+An immediate stop/restart of the owned PostgreSQL process preserves the full accepted inventory and
+has fresh interrupted/redo log evidence. It preserves system identity and timeline; this is a crash,
+not a promotion, so no history-file branch is fabricated. The independent receiver remains on the
+same host. Process recovery does not establish power-loss durability or independent host
+availability. SQLite is configured with DELETE journaling and synchronous=FULL; do not inflate that
+configuration name into an untested storage/power-failure guarantee.
+[SQLite synchronous settings](https://www.sqlite.org/pragma.html#pragma_synchronous).
+
+The listener is actually killed before work commits. Reconnect/committed LISTEN, a notification
+barrier and a fresh durable scan demonstrate recovery despite missed wake-ups. Receiver reads have a
+different explicit contract: fresh identity/payload receipt readiness, bounded not-ready before
+delivery and an exact stored result after it. This capstone composes the earlier mechanisms; it does
+not pretend to rerun physical replica-readiness or extend the local completion guard into a fence at
+an independent resource.
+[PostgreSQL16 LISTEN startup ordering](https://www.postgresql.org/docs/16/sql-listen.html).
+
+Capacity uses fixed16-request schedules, independently of worker completion, repeated twice for
+4/s/one-worker,80/s/one-worker and80/s/two-workers. Admission serializes its exact cap6 decision;
+structured queue-full rejection creates no accepted obligation. A deliberately fixed60ms service
+interval holds the receiver writer transaction. The experiment records producer lateness, complete
+admitted/rejected identities, acknowledgement/end-to-end latency, offering/drain time, throughput,
+backlog, PostgreSQL wait/CPU/WAL and receiver-lock wait. It includes driver/logging/filesystem
+costs. Do not compare a rate limited by client completion with independently scheduled demand as if
+they measured the same offered workload.
+
+All six low-rate trials across core/source variation/exact hint admitted16. Every high-rate trial
+rejected8–9 and kept backlog at most6. Adding a source worker did not consistently improve
+throughput and produced measured receiver acquisition waits around0.13–0.63s. Small samples and
+shared-host scheduling matter: even a low-rate exact-hint sample had a0.58s end-to-end tail. Report
+both repetitions and scheduler lateness, not a selected favorable timing. A defensible local choice
+is bounded admission and one worker until a measured change removes the serial service constraint;
+this is not a general PostgreSQL worker-count recommendation.
+
+For independent outcome audit, reopen the actual SQLite store read-only and compare every receipt,
+payload and cumulative credit result. Start only the identified stopped PostgreSQL fixture for a
+fresh read-only table/privilege check, then stop it normally. Join the operation history to every
+admission, claim generation, receiver commit and completion; distinguish a rejected changed payload
+for an existing ID from a queue-full identity that must be wholly absent. Full archive preservation
+and the supplied cleanup follow those checks, before the acceptance checkpoint.
+
+The driver exposed two reusable psql traps. A backslash marker can execute while SQL without a
+terminating semicolon is still buffered; normalize the statement terminator before its marker.
+PostgreSQL JSON aggregates can contain line breaks, so parse the complete response rather than a
+single line beginning with a brace. Also encode an empty claim with coalesce(...,'null'::jsonb),
+because SQL NULL itself prints as an empty psql field. The failed prototypes stopped their servers,
+retained small diagnostic records and reclaimed their databases before another accepted run.
+
+Install definer functions and restricted grants together. Revoke default PUBLIC execution, qualify
+protected tables and fix the search path; verify actual worker DML bypass rejection and API function
+privileges in the independent audit. Trusted crash/retry workers still need a precise interface;
+this does not prove correctness against a malicious worker inventing external acknowledgements.
+[PostgreSQL16 definer function security](https://www.postgresql.org/docs/16/sql-createfunction.html).
