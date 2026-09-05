@@ -4,6 +4,27 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Physical standby accepted, 2026-09-05
+
+Current69 build-a-streaming-standby is accepted at revision4. New owned-replication.ts layers on the
+unchanged owned-cluster helper; actual verified basebackup, dedicated role, physical slot,
+sender/receiver endpoints, source/copy identity/roles and post-backup receipt replay all pass.
+Standby write actually rejects25006 and preserves data. Source/exact variations SIGTERM the owned
+receiver, observe its replacement PID/fresh streaming log, and verify a later receipt. Cleanup stops
+standby, drops the inactive owned slot and stops source. All owned servers stopped.
+
+Report validation/05-standby.md; final core /tmp/pg-owned-8qmu8egk, variation
+/tmp/pg-owned-sqblgse6; raw /tmp/pg-standby-{core,variation}.log and
+/tmp/pg-standby-exact-build-a-streaming-standby.log. Thirty tests/full check pass; scoped build
+changes only this identity;93 lessons/seven stops, first seven/capacity and copied
+IDs/history/progress preserved. PITR655baa1 is pushed. No agents.
+
+Chunk5 contract is designs/05-replication-change-processing.md. Next: current70
+replication-lag-under-load, then move read-your-writes-on-a-replica from14-patterns into this
+physical sequence once its bounded same-history replay/domain gate passes. Keep all core/variation
+lifecycle runs serial. Preserve unrelated storage source/guide/knowledge and root bin/. Chunks5–7
+remain unfinished; never treat replication alone as authority/election/fencing.
+
 ## PITR and timeline consolidation accepted, 2026-09-05
 
 Primary accepted pitr-workload.ts and guide08. Actual backup plus archived original history supports
@@ -28,10 +49,10 @@ Next: design and implement chunk5 sequentially, starting build-a-streaming-stand
 Create owned source/standby topology and actual receive/replay/domain evidence; do not use
 learner5440 or depend on the old shared backup/PGLAB layout. Then bounded replay/read-your-writes,
 synchronous acknowledgement, conflict/feedback, slot retention, fenced promotion/rewind; logical
-snapshot/tail and conflict reconciliation follow. Existing read-your-writes-with-lsn in14 must
-move/consolidate only after physical readiness replacement passes. Preserve unrelated storage
-source/guide/knowledge and root bin/. No learner catalog refresh. Backup acceptance564dd7e is
-pushed.
+snapshot/tail and conflict reconciliation follow. Existing read-your-writes-on-a-replica
+in14-patterns must move/consolidate only after physical readiness replacement passes. Preserve
+unrelated storage source/guide/knowledge and root bin/. No learner catalog refresh. Backup
+acceptance564dd7e is pushed.
 
 ## Backup/restore accepted, 2026-09-05
 
