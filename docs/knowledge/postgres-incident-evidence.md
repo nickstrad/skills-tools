@@ -100,3 +100,30 @@ recovery. Its nonblocking file lock rejects overlapping phases. Its cleanup acti
 owned cluster stopped before removing only that fixture. For author acceptance, verify/compress the
 required image first, then execute this actual supplied cleanup command; this tests the lifecycle
 that learners receive and prevents another accumulation of raw experiment directories.
+
+## Completed scans versus freeze eligibility (2026-09-05)
+
+The new freeze incident keeps100 baseline tuples frozen, prepares a small effect in a different
+table, then commits100 newer ledger tuples. Three explicit FREEZE/DISABLE_PAGE_SKIPPING passes
+complete, including one after restart, but only the baseline identities are frozen. No other
+client backend or replication slot is present. The prepared XID matches the ledger's pinned
+relfrozenxid in this fresh fixture. The separate table's unresolved transaction horizon matters;
+repeating a completed scan or looking only for idle client sessions misses that dependency.
+
+Decode combined tuple flags through heap_tuple_infomask_flags rather than treating a raw xmin
+number as proof of freezing. HEAP_XMIN_FROZEN combines underlying flag bits. Join physical entries
+back to current ctid while the fixture owns all writers, and retain every identity's flag evidence.
+The visibility-map all-frozen bits and relation boundary are additional observations, not
+interchangeable counters. [PostgreSQL16 pageinspect](https://www.postgresql.org/docs/16/pageinspect.html).
+
+Resolution follows the independently committed coordinator decision, never a guessed rollback to
+improve a metric. ABORT leaves no effect; COMMIT leaves exactly(1,41). Both release the prepared
+entry, permit all200 tuples to freeze, advance the boundary and preserve the same complete ledger
+through restart. This is a distinct bounded diagnosis built from the prior freezing/2PC lessons;
+it does not burn150,000 XIDs, lower thresholds, start an anti-wraparound worker or model a deadline.
+
+Prepared transaction state has no ordinary live client PID to terminate after detachment, and it
+survives restart. pg_prepared_xacts and the known decision store supply complementary evidence:
+one identifies the outstanding participant, the other authorizes its result. The business effect
+must still be checked after the GID disappears.
+[PostgreSQL16 pg_prepared_xacts](https://www.postgresql.org/docs/16/view-pg-prepared-xacts.html).

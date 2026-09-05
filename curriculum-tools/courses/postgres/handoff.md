@@ -1,8 +1,32 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
-Cleanup is complete and chunks1–6 plus current88–89 are accepted. Current90–92 and the whole-course
+Cleanup is complete and chunks1–6 plus current88–90 are accepted. Current91–92 and the whole-course
 audit remain required. The catalog has92 active lessons. The full goal remains active.**
+
+## Current90 accepted: completed vacuum, unfinished freezing
+
+Read validation/07-freeze-incident.md. freeze-incident.ts replaces the repeated threshold tour with
+independent diagnosis: three completed passes leave100 of200 ledger tuples frozen while a detached
+prepared transaction pins the boundary. Core ABORT /tmp/pg-owned-4xn6ydpn, source COMMIT variation
+/tmp/pg-owned-xstqc84b and exact COMMIT hint /tmp/pg-owned-pv78gb02 all resolve the independently
+committed coordinator decision, freeze all200, advance observed boundary732 to734 and preserve the
+full200-row ledger/amount60,300 across restart. ABORT effect is absent; COMMIT effect exactly(1,41).
+No client/slot explains the pin; pg_prepared_xacts plus the durable decision supplies its evidence.
+No real exhaustion, XID burn, threshold manipulation or anti-wraparound worker is claimed.
+
+Independent /tmp/pg-freeze-audit.py and render-audit.ts pass; source/exact commands match. Core
+exercised all six inspections and a rejected guessed action. Thirty tests pass and full check log is
+/tmp/pg-freeze-check.log. Scoped build changes only90 among92, removes its snapshot, and copied
+progress/first7/capacity/7stops are preserved. Latest copy:
+/tmp/pg-observe-progress-cysf8pwa/progress.sqlite, via /tmp/pg-observe-progress-path.
+
+All three accepted fixtures were fully hash-verified in compressed archives before executing their
+actual cleanup command. No raw fixture remains; /tmp/pg-freeze-compacted.jsonl maps the additional
+about14MB under /root/pg-validation-evidence/20260905/. Probes4lxr59ti/6h4vnpuj retain only small
+forensic records; their data was removed. All drivers/cleanup jobs are terminal, learner state is
+unchanged and disk remains about16GB free. Next is91 runaway-query-and-cancel, then92 and the full
+integration/audit/final cleanup. No91 source change yet.
 
 ## Current89 accepted: corruption and restored operation boundary
 
@@ -120,9 +144,9 @@ remains395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6.
 
 ## Next actions
 
-1. Continue sequentially with90 wraparound-drill under design07, then91,92 and chunk7 integration.
-   Current88's full source/runtime/diff review, tests, full check, progress preservation and current
-   exact hint pass; its acceptance is included in this checkpoint.
+1. Continue sequentially with91 runaway-query-and-cancel under design07, then92 and chunk7
+   integration. Current88's full source/runtime/diff review, tests, full check, progress
+   preservation and current exact hint pass; its acceptance is included in this checkpoint.
 2. Finish the whole-course audit, including earlier idle insertion/replay and abort-only WAL-flush
    boundaries, PLAN/ordinals/retirements/readings/checkpoints/docs/wrapper and copied-progress
    invariants. Use the new archive mappings when historical evidence paths no longer exist.

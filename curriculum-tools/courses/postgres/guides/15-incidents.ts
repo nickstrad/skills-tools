@@ -1,3 +1,4 @@
+import { FREEZE_VARIATION } from "../curriculum/freeze-incident.ts";
 import { CORRUPTION_VARIATION } from "../curriculum/corruption-incident.ts";
 import { DISK_INCIDENT_VARIATION } from "../curriculum/disk-incident.ts";
 import type { Guide } from "./types.ts";
@@ -55,6 +56,31 @@ export const guides: Record<string, Guide> = {
       "Read the actual psql error and offline scan, then compare every accepted identity/payload with the backup inventory. Page checksums address physical integrity; backup age and retained history bound application recovery. Keep the damaged source unchanged while validating a separate restored copy.",
       "Run this fresh variation with the backup taken after the later commits. Inspect its actual symptom and inventory, execute restore, and compare the recovered boundary with the core. The final printed cleanup command releases this fixture after you record your evidence.\n\n```bash\n" +
       CORRUPTION_VARIATION + "\n```",
+    ],
+  },
+  "wraparound-drill": {
+    brief:
+      "Several vacuum passes completed, but part of a small ledger remains unfrozen and its frozen boundary has not advanced. Ask the tutor to run preparation and show symptom.json, or open run/full for the construction. Choose evidence that explains the plateau and a remedy that preserves application correctness. No server waits running between phases.",
+    predict:
+      "Which observations distinguish a worker that has not finished from tuples that are not yet eligible? Choose two initial measurements and state what a successful VACUUM command alone cannot prove.",
+    inspect: [
+      "Use FREEZE from preparation, or assign the printed absolute freeze.py path in a new shell. Each inspection starts and stops only that fixture. Saved and fresh observations are labeled separately.",
+      '```bash\npython3 "$FREEZE" inspect passes\npython3 "$FREEZE" inspect tuples\npython3 "$FREEZE" inspect horizons\npython3 "$FREEZE" inspect decision\npython3 "$FREEZE" inspect data\n```',
+      "The complete packet is available through inspect all. Record the unfrozen identities, the oldest dependency, and the evidence authorizing its resolution. Then execute the supplied decision-following remedy:",
+      '```bash\npython3 "$FREEZE" recover resolve\n```',
+      "Compare recovery.json, resolved-pass.log, ledger-before.json and ledger-final.json. Did physical freezing progress while preserving both the ledger and the required transaction outcome? Record your findings before releasing the fixture:",
+      '```bash\npython3 "$FREEZE" cleanup\n```',
+    ].join("\n\n"),
+    explain:
+      "Explain why repeated completed passes and restart did not release this horizon. Identify the decision's authority and reconcile the final tuple flags, relation boundary and visible business effect. Why would guessing a rollback to improve the metric be insufficient?",
+    vary:
+      "Use hint2 to change only the durable final decision to COMMIT. Predict the different visible effect and the unchanged freeze/ledger result. Inspect, resolve, verify and then clean up the variation.",
+    apply:
+      "A maintenance alert reports old unfrozen tuples but no idle clients. Give an evidence-driven investigation order and the outcome evidence required before releasing a durable transaction obligation. Which observations would you still need to estimate a real deadline, and which ones does this tiny fixture not measure?",
+    hints: [
+      "Compare completed scan logs and per-identity frozen flags before inspecting the horizon inventory. Look beyond live client sessions. The final durable decision authorizes the exact participant outcome; afterward verify both complete ledger equality and the expected separate effect.",
+      "Run this fresh variation with the opposite committed coordinator decision. It supplies the complete evidence and performs the same resolution/freeze checks. Record the changed business outcome, then use the final cleanup command.\n\n```bash\n" +
+      FREEZE_VARIATION + "\n```",
     ],
   },
 };

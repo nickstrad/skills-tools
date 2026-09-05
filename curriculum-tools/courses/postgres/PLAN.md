@@ -499,7 +499,7 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 ## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL
 
 Implementation follows [designs/07-incidents-integration.md](designs/07-incidents-integration.md).
-Entries3–5 below still describe legacy content awaiting that replacement contract.
+Entries4–5 below still describe legacy content awaiting that replacement contract.
 
 1. `abandoned-slot-fills-the-disk` (privileged, shell): prepare a randomly selected bounded
    disk-growth case, retaining incident-time samples while stopping the private server between
@@ -517,10 +517,12 @@ Entries3–5 below still describe legacy content awaiting that replacement contr
    the same later write, total915,712. Preserve the damaged source and original page bytes, verify
    clean restored checksums and unchanged backup hashes, and clean up after recording findings. No
    destructive salvage or production RTO claim.
-3. `wraparound-drill` (dangerous): use `vacuum_failsafe_age` and a synthetic approach: you cannot
-   burn 2 billion xids; instead demonstrate the warning path by setting `autovacuum_freeze_max_age`
-   low on a table and observing anti-wraparound autovacuum (`pg_stat_progress_vacuum`, log "to
-   prevent wraparound"). Honest about limits.
+3. `wraparound-drill` (privileged, shell): investigate a plateau after three completed freeze
+   passes. Match per-identity frozen flags and relation horizon to a detached prepared transaction,
+   despite no live client or slot. Follow its independently committed coordinator decision; verify
+   all200 tuples become frozen, relfrozenxid advances and the complete ledger remains
+   200rows/amount60,300. ABORT core has no effect row; COMMIT variation retains exactly(1,41).
+   Verify restart persistence and clean up. No XID burn, threshold tour or production deadline.
 4. `runaway-query-and-cancel`: `pg_cancel_backend` vs `pg_terminate_backend`, what the client sees,
    `pg_stat_activity` after.
 5. `postmortem-from-the-log`: given the lab's log, reconstruct the timeline of the crash in module

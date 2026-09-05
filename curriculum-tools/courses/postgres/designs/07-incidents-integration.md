@@ -98,6 +98,16 @@ using the earlier freezing lesson's knowledge. Do not approach real transaction-
 falsify control/catalog state to simulate a production deadline. Measured tuple/horizon progress and
 the effect of the selected remedy must support the explanation.
 
+The retained90 identity now uses a prepared-transaction horizon rather than repeated threshold
+burning. One hundred baseline tuples are frozen before a participant prepares a small business
+effect; one hundred later committed ledger rows then remain unfrozen through repeated completed
+passes and restart. A separately committed SQLite coordinator decision supplies the legitimate ABORT
+core or COMMIT variation outcome. Resolution must follow that exact decision, release the horizon,
+freeze all200 tuples and preserve the complete ledger; the visible participant effect must match the
+chosen decision after another restart. Add the accepted2PC lesson as a prerequisite. The default
+packet gives only the observed plateau. No active client need remain between phases, and no real
+exhaustion, threshold manipulation or forced anti-wraparound worker is claimed.
+
 ## Current91 runaway-query-and-cancel
 
 Present a request deadline symptom and a real active query/wait inventory. Require correlation by
