@@ -325,10 +325,13 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    Variation performs a separately bounded pinned-primary fallback while replay remains paused. No
    failover authority service is implied; system/timeline checks alone are insufficient for that
    contract.
-4. `synchronous-replication-blocks-commit` (privileged, 2 sessions). `synchronous_standby_names` =
-   the standby, `synchronous_commit=remote_apply`; commit latency rises; stop the standby -> commit
-   on A hangs `(blocks ...)` until `synchronous_standby_names` reset or standby back. Lens: quorum
-   writes, availability vs durability.
+4. `synchronous-replication-blocks-commit` (accepted, shell, privileged). Actual local/on commits
+   during paused replay; remote_apply waits despite received/flushed COMMIT. Match active XID to
+   locally durable WAL while a fresh primary snapshot still excludes that row. Stop the required
+   standby; local completes and on waits. Cancel its acknowledgement, classify WARNING plus COMMIT
+   and reconcile exact receipts. Variation reconnects instead; all five receipts finally replay.
+   Observer sessions use local policy, writers SET LOCAL; no election/fencing or latency benchmark
+   claim follows from these same-host acknowledgement observations.
 5. `hot-standby-query-conflict` (2 sessions). Long query on standby, vacuum on primary removes rows
    it needs -> `ERROR: canceling statement due to conflict with recovery` (after
    `max_standby_streaming_delay` 30 s; lower it for the lab). `pg_stat_database_conflicts`. Lens:

@@ -110,3 +110,47 @@ concurrent writer changes or receipt deletion, so its exact expected payload is 
 References: PostgreSQL16 [recovery control and position functions](https://www.postgresql.org/docs/16/functions-admin.html)
 and [statement snapshots](https://www.postgresql.org/docs/16/transaction-iso.html). Runtime values
 above are from the executed local experiment.
+
+## Synchronous acknowledgement, local durability and visibility (2026-09-05)
+
+### What happened
+
+An actual owned standby is selected by FIRST1 and sync_state=sync. During verified paused replay,
+local and on commits complete. The remote_apply transaction waits in IPC/SyncRep even after its
+COMMIT record reaches standby durable receive. The driver matches the waiting backend_xid against
+pg_walinspect's Transaction/COMMIT record and checks its end_lsn below primary flush. An independent
+primary query still excludes the waiting receipt. Resuming replay yields normal acknowledgement
+and fresh primary/standby agreement.
+
+After actual standby shutdown, a local commit completes while an on commit waits with no sender.
+Again its matching COMMIT record is locally flushed, but its row is invisible to the independent
+primary snapshot. pg_cancel_backend cancels the acknowledgement wait: psql prints COMMIT, exits0
+and emits WARNING/01000 stating that local commit occurred without ensuring replication. A fresh
+primary query now sees the receipt while standby is still stopped. Reconnection later replays all
+five exact receipts. The variation reconnects instead of canceling; the normal acknowledgement has
+no warning. Core/source/exact CLI paths are in validation/05-sync-acknowledgement.md.
+
+### Why it matters
+
+The old lesson's inserted timestamp did not establish commit durability. A durable COMMIT record
+and primary visibility are separate boundaries: synchronous waiting precedes final transaction
+cleanup, so another primary snapshot can still exclude the row. Treating that temporary absence
+as rollback evidence could induce an unsafe retry. Canceling this wait cannot reverse local commit,
+and exit0/COMMIT alone does not establish the originally requested remote guarantee when a warning
+says otherwise. This particular run receives a local-commit warning; lost-response uncertainty is
+an application consequence to reason about, not a failure boundary claimed as executed here.
+
+### How to apply
+
+Observe SyncRep for the specific owned client and match its XID to the actual WAL record. Preserve
+source flush, independent domain visibility, receiver/replay positions and complete client output.
+Reconcile the stable request receipt after the wait completes. Give observer/cleanup connections
+explicit local acknowledgement and writers SET LOCAL policy; this avoids cleanup depending on the
+missing receiver. The synchronous name stays configured while offline so reconnection fulfills the
+same original requirement. Client durations include startup, diagnostics and deliberate waits;
+these single observations are not a production latency or failure-domain benchmark.
+
+References: PostgreSQL16 [commit policies](https://www.postgresql.org/docs/16/runtime-config-wal.html#GUC-SYNCHRONOUS-COMMIT),
+[synchronous replication](https://www.postgresql.org/docs/16/warm-standby.html#SYNCHRONOUS-REPLICATION)
+and [REL_16_STABLE cancellation handling](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/replication/syncrep.c).
+The local durability/visibility separation and warning handling above were also executed directly.

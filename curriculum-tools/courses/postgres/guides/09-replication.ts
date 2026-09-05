@@ -1,9 +1,29 @@
 import { STANDBY_VARIATION } from "../curriculum/standby-workload.ts";
 import { REPLAY_LAG_VARIATION } from "../curriculum/replay-lag.ts";
 import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts";
+import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgement.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "synchronous-replication-blocks-commit": {
+    brief:
+      "Observe the chosen remote acknowledgement stage, then reconcile a canceled or reconnected commit from its exact WAL record and receipts.",
+    predict:
+      "With replay paused but reception active, which of local/on/remote_apply can return? When a client waits in SyncRep, does an absent primary row prove that canceling it will roll back?",
+    inspect:
+      "Match each waiting PID/XID to an actual flushed COMMIT record, independent primary rows and standby receive/replay state. Inspect the cancellation warning even when psql prints COMMIT and exits0; reconcile all five receipt values after the wait.",
+    explain:
+      "Why can a transaction be locally durable but still invisible to another primary snapshot? Why do paused replay and a disconnected receiver block different policies, and why does canceling a wait weaken its requested acknowledgement guarantee?",
+    vary:
+      "Resolve only the disconnected ID5 wait by reconnecting the standby instead of canceling it. Compare client warning, acknowledgement and complete receipt outcomes.",
+    apply:
+      "Choose commit policy for critical orders and rebuildable telemetry when the required standby may be unavailable. State the accepted failure risk, the retry/reconciliation rule after uncertain acknowledgement and the separate writer-authority requirement.",
+    hints: [
+      "SyncRep identifies the wait; matching XID plus COMMIT end_lsn below primary flush identifies durable work. Visibility and client acknowledgement happen later. A cancellation warning with COMMIT is not a rollback signal.",
+      "Run this complete reconnection variation in a shell.\n\n```bash\n" +
+      SYNC_ACKNOWLEDGEMENT_VARIATION + "\n```",
+    ],
+  },
   "read-your-writes-on-a-replica": {
     brief:
       "Commit a profile and receipt, then enforce a same-history replay boundary, deadline and fresh application snapshot.",

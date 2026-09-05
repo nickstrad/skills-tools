@@ -4,6 +4,33 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Synchronous acknowledgement accepted, 2026-09-05
+
+Current72 synchronous-replication-blocks-commit is revision4. Fresh owned source/standby and
+per-transaction policies prove local/on complete during paused replay, while remote_apply waits in
+actual IPC/SyncRep despite durable receipt. Active XID matches the locally flushed COMMIT record; a
+fresh primary query still excludes that waiting row. Resume gives normal apply acknowledgement and
+visible receipts. After actual standby shutdown, local completes and on waits without sender. Core
+cancels the wait, requires WARNING/01000 plus COMMIT/exit0 and reconciles all primary receipts while
+standby remains stopped. Variation reconnects instead, giving normal acknowledgement without
+warning. Final replay/full values agree for five receipts; every client/server stops and slot drops.
+
+Core/source/exact hint2 pass. Report validation/05-sync-acknowledgement.md; raw
+/tmp/pg-sync-acknowledgement-{core,variation}.log and
+/tmp/pg-sync-acknowledgement-exact-synchronous-replication-blocks-commit.log. Final roots
+/tmp/pg-owned-4iu81ar9, /tmp/pg-owned-4mqp7h1h and /tmp/pg-owned-81v9f4kh retain stopped evidence.
+Thirty tests/full check pass. Scoped builder /tmp/pg-sync-acknowledgement-scoped-build.py proves
+only current72 changes;93 lessons/seven stops, first seven/capacity and copied IDs/history/progress
+preserved. Prior readiness728e164 is pushed. No learner catalog/cluster writes or agents.
+
+Next: current73 hot-standby-query-conflict. Use the unchanged owned-replication helper; cause an
+actual snapshot recovery conflict/cancellation, then feedback on with observed primary backend_xmin,
+retained old versions and surviving reader. Release reader/feedback, vacuum and verify reclamation
+plus complete application agreement. Use bounded delays and real state gates; do not infer pinned
+cleanup from configuration alone. Then retention/fenced failover/rewind/failback, logical
+processing, chunks6–7 and final audit per design05. Full goal remains active. Preserve unrelated
+storage source/guide/knowledge and root bin/; keep all owned topology lifecycles serial.
+
 ## Physical read-your-writes accepted, 2026-09-05
 
 Stable read-your-writes-on-a-replica is now current71 in module09, revision4. It replaces the old
