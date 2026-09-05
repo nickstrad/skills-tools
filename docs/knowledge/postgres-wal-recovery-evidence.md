@@ -38,3 +38,26 @@ incorrect application retry, durability and capacity decisions.
   physical fsync per transaction from the durable-commit contract. Write-ahead ordering requires WAL
   to reach durable storage before the corresponding data-page write; committing need not flush every
   changed heap page. See [write-ahead logging](https://www.postgresql.org/docs/16/wal-intro.html).
+
+## Commit workload measurements,2026-09-05
+
+Compare fixed useful work when changing application batch size. The accepted commit experiment
+keeps400 increments per trial: batch1 has400 transactions, batch5 has80. Report useful operations
+per second alongside transaction latency, and state that the smaller sample weakens tail estimates.
+Use independent per-client rows when a single hot-row lock is not the intended variable. Keep the
+pgbench thread count and protocol fixed, repeat in reverse order, and retain raw transaction logs,
+settings, summaries and WAL counter snapshots. Read pgbench's failed-transaction count explicitly
+rather than labeling every successfully parsed latency as proof of a successful transaction. See
+[pgbench](https://www.postgresql.org/docs/16/pgbench.html).
+
+Check actual wal_sync_method before interpreting wal_sync: methods that synchronize as part of
+writing may not use the separate sync calls represented by that counter. Cluster-wide deltas can
+include other backends or publication lag. The accepted runs show group-sharing evidence under
+fdatasync, but require no universal sync/transaction ratio. Current visible rows after an async
+commit are not a crash-survival test.
+
+Keep pg_test_fsync on a newly owned file, bound each sample and the overall process, and retain its
+full output. Its parent filesystem must match the WAL filesystem for a useful comparison; the
+operating system's default temporary directory might be a different mount. A file-probe result is
+not the database transaction path. See
+[pg_test_fsync](https://www.postgresql.org/docs/16/pgtestfsync.html).

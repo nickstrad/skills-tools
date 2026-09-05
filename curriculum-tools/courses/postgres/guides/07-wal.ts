@@ -1,8 +1,28 @@
 import { WAL_RECORDS_VARIATION } from "../curriculum/wal-records.ts";
 import { WAL_PAGE_IMAGES_VARIATION } from "../curriculum/wal-page-images.ts";
+import { COMMIT_WORKLOAD_VARIATION } from "../curriculum/commit-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "commit-means-fsync": {
+    brief:
+      "Compare waiting for a durability boundary with grouping useful work. Acknowledgement policy, transaction size and client concurrency are separate design choices.",
+    predict:
+      "With 400 independent counter increments, what might change when commit waiting is disabled or clients increase from one to four? Which outcome must remain fixed before any throughput comparison is meaningful?",
+    inspect:
+      "Validate every client counter and transaction-log count first. Compare both rounds' throughput, transaction p99 and WAL-write/sync deltas, using the recorded sync method and reset epochs.",
+    explain:
+      "Why can synchronous transactions share a flush? Why can an asynchronously committed row be visible while its crash durability remains unproven? What makes cluster WAL counters an imperfect denominator for this workload?",
+    vary:
+      "Group five increments into each transaction while keeping 400 total increments per trial and the same policy/client matrix. Compare useful increments per second and transaction latency, noting that only 80 latency samples remain per trial.",
+    apply:
+      "Choose a commit policy and batch size for reconstructible telemetry versus a job-completion receipt promised to a caller. Defend the acknowledgement contract, atomicity boundary and measurements you would require before deployment.",
+    hints: [
+      "Batch size changes transaction count, not the 400 useful increments. Compare increments_per_s; do not mistake fewer commits or fewer samples for less completed work or a stronger p99 estimate.",
+      "Run this complete batch-five variation from a shell with the same lab PG connection variables.\n\n```bash\n" +
+      COMMIT_WORKLOAD_VARIATION + "\n```",
+    ],
+  },
   "every-change-is-a-wal-record": {
     brief:
       "A physical log records work that recovery may need, including work from transactions that never commit. Use transaction identity and visible rows to distinguish those responsibilities.",

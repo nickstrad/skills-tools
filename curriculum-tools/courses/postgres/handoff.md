@@ -1,7 +1,7 @@
 # PostgreSQL pivot handoff
 
-Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL record/page-image lessons52/53
-are implemented and verified. Next: measured commit cost, then archive/crash/restore work.**
+Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL records, page images and measured
+commit cost (current52–54) are verified. Next: owned archive failure and crash/recovery.**
 
 ## Active goal
 
@@ -13,6 +13,32 @@ full-page images, followed by measured commits and actual crash/restore work.
 At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
 untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
 checkpoint c9dca16 followed it. Learner progress can advance independently; use a fresh copy.
+
+## Commit-cost checkpoint
+
+Primary accepted commit-workload.ts, its replacement in07-wal and exact guide07. Core and batch5
+variation have eight trials each; final exact CLI hint adds eight more. All24 final trials preserve
+400 increments and correct per-client shares with zero pgbench-reported failures (9600 increments).
+A Terra/high agent only reviewed the finished driver; primary added its failed-count precision
+suggestion, reran and reviewed every result. Optional owned-file pg_test_fsync probe ran too. Report
+validation/04-commit-cost.md; core/raw dirs /tmp/pg-commit-cost-jfgandx7 and dmy8zbbt; exact hint
+elg81_oi. Drivers /tmp/pg-commit-evidence.ts/.sh and /tmp/pg-commit-exact.ts/.sh. All30 tests/full
+repo checks pass;95 lessons/seven stops, first7/capacity unchanged, current copied history
+preserved.54e9ff3 is the pushed prior records/images subsection.
+
+Concurrent storage work now modifies curriculum/02-storage.ts, guides/02-storage.ts and repository
+docs/knowledge/postgres-experiment-evidence.md. Leave those edits unstaged. Published 54e9ff3's
+artifact already includes concurrent TOAST revision5 while its source edit is not yet committed;
+building only HEAD source would revert it. /tmp/pg-commit-scoped-build.py copies the matching
+current storage source into its isolated snapshot and asserts the newly generated artifact differs
+only at commit-means-fsync. It does not hand-edit JSON. Final integration must recheck the storage
+owner's source/artifact reconciliation and not mistake it for our acceptance.
+
+Next: implement archive failure/repair and crash recovery from design04, using unique owned
+clusters/directories with bounded start/stop/readiness and retained evidence. Integrate physical
+record inspection and domain assertions into the crash exercise before retiring duplicate
+wal-replay-is-deterministic. Then matched write amplification and checkpoint/restore/PITR work. No
+port5440 crashes, no learner progress writes, no other agent authoring assignments.
 
 ## Latest implementation checkpoint
 
