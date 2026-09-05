@@ -253,3 +253,37 @@ explains checkpoint/redo and write-ahead ordering;
 [pageinspect](https://www.postgresql.org/docs/16/pageinspect.html) documents raw pages and headers;
 [pg_buffercache](https://www.postgresql.org/docs/16/pgbuffercache.html) documents cache observations.
 The measured values above come from validation/04-checkpoint-anatomy.md's live runs.
+
+## Matched recovery range and readiness (2026-09-05)
+
+### What happened
+
+Fresh matched receipt fixtures with/without a post-bulk checkpoint ran in reversed
+pair order. Both commit an identical tail so the recent case still requires actual
+redo. The offline pg_waldump range is captured before startup can recycle it, then
+its final record start is compared with the fresh log's redo-done address. An initial
+failure exposed observer-generated hint WAL after the saved upper bound. Moving all
+buffer instrumentation before the common tail commit closes and flushes the interval.
+SQL/log LSNs and pg_waldump use different leading-zero formats, so compare numerically.
+
+### Why it matters
+
+Redo done names a record start; its difference from an exclusive end address does
+not establish loss of the last transaction. An invalid-record-length or recycled-page
+address diagnostic at the end of valid WAL can accompany successful crash recovery.
+Classify it using the actual decoded flushed boundary, fresh completion and independent
+row outcomes, rather than treating every alarming-looking log line as a failure.
+
+Client-ready time includes pg_ctl polling, process startup, recovery and its checkpoint,
+plus a new SQL connection. Domain verification adds application-specific checks. A
+rounded redo duration of zero can coexist with actual replay. More log work need not
+produce a fixed elapsed-time ratio in a tiny cached local test.
+
+### How to apply
+
+Use equal datasets/settings/heap layouts and reverse pair order. Record actual retained
+records, not only an LSN gap; require a common tail to avoid a no-redo recent-checkpoint
+case. Capture the complete observation workload before the final commit/flush boundary.
+Use fresh log offsets, stopped control state, exact replay boundaries, complete visible
+values and separate readiness clocks. See validation/04-recovery-cost.md for all twelve
+source/core/exact-hint trials; this does not establish cold-storage or production RTO.

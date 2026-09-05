@@ -5,6 +5,21 @@ archive failure, actual crash/replay and matched amplification. Replay-only less
 94 lessons remain. Checkpoint anatomy is now accepted below. Next: recovery cost, WAL pressure,
 backup/restore and PITR.**
 
+## Recovery cost accepted, 2026-09-05
+
+Current 59 redo-point-bounds-recovery is accepted at revision 4. Four fresh owned clusters per
+core/source/exact-hint run compare identical receipts and reversed checkpoint-pair order. All twelve
+actual crashes preserve 20,001/40,001 receipts and correct individual values/totals. Old redo ranges
+contain the bulk; recent ranges do not; both contain the common committed tail. Stopped control,
+offline last record, fresh replay log and separate readiness/domain timings all match. Report
+validation/04-recovery-cost.md and /tmp/pg-recovery-cost-{core,variation}.log; exact output
+/tmp/pg-recovery-cost-exact-redo-point-bounds-recovery.log. All private clusters stopped.
+
+Thirty tests/full check pass; scoped build changes only current 59 and fresh copied progress,
+IDs/history, first seven/capacity, 94 lessons/seven stops remain intact. Checkpoint anatomy is
+pushed as b2e90f5. Next is current 60 max-wal-size-forces-checkpoints, then actual backup/restore,
+missing-WAL failure and PITR. The entire remaining refactor remains active.
+
 ## Checkpoint anatomy accepted, 2026-09-05
 
 Primary resumed and accepted current 58 checkpoint-anatomy at revision 4. The core and source
