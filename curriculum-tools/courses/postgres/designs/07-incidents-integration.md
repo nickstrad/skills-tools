@@ -118,6 +118,26 @@ The learner chooses the least disruptive action that meets the supplied request 
 what rolled back, what remains committed, and whether a lock/session still exists. The variation
 changes one transaction boundary. Never cancel arbitrary host backends.
 
+The concrete91 fixture separates a short live survey from a fresh policy trial. Survey observes an
+actually incomplete response after2s, captures exact PID/application identities, waits/blocking
+PIDs, row locks, full committed data and Linux backend CPU deltas, then explicitly terminates its
+owned actors and stops. Inspection is offline. Application creates new actors and validates the
+chosen cancel-request or terminate-request policy within2s from dispatch to client response; it
+never acts on the historical survey PIDs. Survey cleanup and later comparisons are explicitly
+outside that policy's measured outcome. This avoids leaving an incident running while the learner
+reads.
+
+The request first inserts note2, then waits on an idle holder's tentative balance update. Core puts
+both request statements in one explicit transaction; the source variation changes only that boundary
+to autocommit. An independent computational client has tentative note3. Verify57014, core25P02 then
+rollback/same PID, or autocommit00000 and preserved prior note2; termination must produce57P01 and
+backend absence. The holder/computation must remain untouched by the request intervention. Later
+bounded comparisons prove idle cancellation leaves the holder's row lock, computational cancellation
+preserves its session after rollback, and holder termination rolls back999 and releases the lock.
+Reconcile complete notes/payloads and balance100; record client exit codes, server stop and actual
+cleanup. A null wait is not CPU proof; use /proc CPU tick deltas. Timeouts bound the fixture but are
+not a repeated timeout demonstration or a claim of production capacity.
+
 ## Current92 postmortem-from-the-log
 
 Finish with a supplied bounded task-runner workload integrating accepted identities, claims,

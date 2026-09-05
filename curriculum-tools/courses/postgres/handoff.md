@@ -1,8 +1,35 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
-Cleanup is complete and chunks1–6 plus current88–90 are accepted. Current91–92 and the whole-course
+Cleanup is complete and chunks1–6 plus current88–91 are accepted. Current92 and the whole-course
 audit remain required. The catalog has92 active lessons. The full goal remains active.**
+
+## Current91 accepted: request budget and intervention outcomes
+
+Read validation/07-cancel-incident.md. cancel-incident.ts replaces the legacy runaway walkthrough
+with a real2s missed-response survey, selectable offline evidence and an equivalent fresh policy
+trial. Source core7fdrbqh1, variationr9xzwcwg and exactbrjd_6c8 cancel in0.269/0.201/0.171s;
+explicit terminatione5l4j8ld and autocommit termination9u59t5ai finish in0.177/0.169s. Every PID is
+correlated with its unique application before signalling. Core57014/25P02 then rollback loses note2;
+autocommit57014/00000 preserves it. Termination57P01 removes the request backend and preserves the
+same committed-data boundary. Independent holder/computation remain untouched by that intervention.
+Later idle cancellation leaves the row lock; computational cancellation preserves its connection;
+holder termination releases the lock/rolls back999. Final balance100, note1 plus only
+committednote2.
+
+Survey observes an actually incomplete request after2.08–2.12s and1.85–1.98s compute CPU ticks. It
+terminates its actors and stops before inspection; apply creates new identities and is explicitly a
+fresh trial. No old survey PID is targeted. /tmp/pg-cancel-audit.py and render-audit.ts pass, all
+server errors/psql exits are classified, none forced. Thirty tests/full check pass. Scoped build
+changes only91; first7/history/progress/capacity/seven stops are unchanged. Latest progress copy:
+/tmp/pg-observe-progress-t7bgbky6/progress.sqlite, pointer /tmp/pg-observe-progress-path.
+
+All five accepted roots were fully archived/reopened/hash-verified, stopped/originals rechecked,
+then removed using actual source cleanup. Map /tmp/pg-cancel-compacted.jsonl adds24,382,136 bytes
+under /root/pg-validation-evidence/20260905/ for the final audit. Prototypesvifxmo39/gw3zhlis retain
+only small forensic records; raw data removed. All drivers are terminal; only the learner server
+remains running, with about16GB free. Next92, full integration/audit, then final resource cleanup.
+No92 source change yet. Never declare the full goal complete at this individual acceptance boundary.
 
 ## Current90 accepted: completed vacuum, unfinished freezing
 

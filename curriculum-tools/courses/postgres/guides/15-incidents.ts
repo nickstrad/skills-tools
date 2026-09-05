@@ -1,3 +1,4 @@
+import { CANCEL_VARIATION } from "../curriculum/cancel-incident.ts";
 import { FREEZE_VARIATION } from "../curriculum/freeze-incident.ts";
 import { CORRUPTION_VARIATION } from "../curriculum/corruption-incident.ts";
 import { DISK_INCIDENT_VARIATION } from "../curriculum/disk-incident.ts";
@@ -81,6 +82,32 @@ export const guides: Record<string, Guide> = {
       "Compare completed scan logs and per-identity frozen flags before inspecting the horizon inventory. Look beyond live client sessions. The final durable decision authorizes the exact participant outcome; afterward verify both complete ledger equality and the expected separate effect.",
       "Run this fresh variation with the opposite committed coordinator decision. It supplies the complete evidence and performs the same resolution/freeze checks. Record the changed business outcome, then use the final cleanup command.\n\n```bash\n" +
       FREEZE_VARIATION + "\n```",
+    ],
+  },
+  "runaway-query-and-cancel": {
+    brief:
+      "A request is still incomplete at its two-second response budget. Ask the tutor to run the short survey and show only its symptom, or use run/full for construction. Select evidence, identify the relevant sessions and choose the least disruptive policy. The survey stops before inspection; applying a policy creates a fresh equivalent request with newly registered identities.",
+    predict:
+      "Choose two measurements that distinguish a waiting request from executing work and an idle transaction. State which connection and committed-data outcomes your first intervention should preserve.",
+    inspect: [
+      "Use CANCEL from the survey, or assign the printed absolute cancel.py path in a new shell. These commands inspect saved observations without starting any server. Saved PIDs belong to the finished survey and must not be signalled.",
+      '```bash\npython3 "$CANCEL" inspect activity\npython3 "$CANCEL" inspect deadline\npython3 "$CANCEL" inspect data\npython3 "$CANCEL" inspect lifecycle\n```',
+      "inspect all supplies the complete packet. Record the dependency, the evidence distinguishing it from independent work, and the expected transaction aftermath. Choose one policy for a fresh equivalent trial; these are alternatives, not sequential commands:",
+      '```bash\npython3 "$CANCEL" apply cancel-request\n```',
+      '```bash\npython3 "$CANCEL" apply terminate-request\n```',
+      "Compare request-outcome.json and outcome.json with the client logs. The chosen request intervention has its own measured budget; the later idle-cancel, compute-cancel and holder-termination comparisons are separate. Which exact prior writes survive, which connection survives, and what proves the final lock is gone? Record the findings, then release the fixture:",
+      '```bash\npython3 "$CANCEL" cleanup\n```',
+    ].join("\n\n"),
+    explain:
+      "Defend your policy from the observed dependency and request budget. Distinguish signal acknowledgement, client SQLSTATE, transaction usability, backend presence and committed data. Why did cancellation have a different result for the idle holder, and why is a null wait event alone insufficient evidence of CPU work?",
+    vary:
+      "Use hint2 to change only the request's earlier write from the same explicit transaction to autocommit. Predict its next-command result and the complete final notes set. The other actors, cancellation policy and budget stay unchanged. Verify the variation and clean it up too.",
+    apply:
+      "For an on-call request with earlier writes and a tight response budget, specify the identity checks, cancellation scope and follow-up evidence you require. When would disconnecting a session meet a different objective? Account for already committed work without promising that termination can undo it.",
+    hints: [
+      "Join the waiting request's blocking PIDs to the idle holder and actual row-lock owner. Compare the computation's measured CPU delta separately. Prefer a policy that meets the request budget while preserving its connection; then verify whether its earlier write shares the failed transaction. The later idle-cancel experiment asks whether a signal to an idle backend ends that transaction.",
+      "Run this complete fresh autocommit variation. It surveys the symptom, supplies all evidence and applies cancellation to a new equivalent request. Compare the surviving note and next-command SQLSTATE with core; record the findings and run the final cleanup command.\n\n```bash\n" +
+      CANCEL_VARIATION + "\n```",
     ],
   },
 };
