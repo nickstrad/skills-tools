@@ -10,6 +10,7 @@ import { guides as logical } from "./10-logical.ts";
 import { guides as planner } from "./11-planner.ts";
 import { guides as indexes } from "./12-indexes.ts";
 import { guides as observability } from "./13-observability.ts";
+import { guides as patterns } from "./14-patterns.ts";
 import type { Guide } from "./types.ts";
 
 export const GUIDES: Record<string, Guide> = {
@@ -25,4 +26,5 @@ export const GUIDES: Record<string, Guide> = {
   ...planner,
   ...indexes,
   ...observability,
+  ...patterns,
 };

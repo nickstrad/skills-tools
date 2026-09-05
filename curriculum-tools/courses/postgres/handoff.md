@@ -1,8 +1,54 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–5 are accepted through current82 logical retention/resnapshot. There
-are92 active lessons. Next: chunk6 durable protocols, starting current83 transactional-outbox, then
-chunk7 incidents and the final whole-course audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–5 and current83 transactional outbox are accepted. There are92 active
+lessons. Next: current84 idempotency-keys, the rest of chunk6, chunk7 incidents and the final
+whole-course audit. The full active goal is not complete.**
+
+## Independent outbox delivery accepted, 2026-09-05
+
+Current83 transactional-outbox is revision4. A killed uncommitted application loses both order99 and
+its outbox event; committed orders1/3 have matching immutable payloads for amounts7/11. Two actual
+overlapping claim transactions use SKIP LOCKED to claim different events2/3. pgrowlocks shows one
+row lock before A's COMMIT and zero afterward, with both durable generation1 claims. Killing B's
+uncommitted receiver client rolls back receipt and credit. A separate Python relay really commits
+event2's receiver receipt/credit7, then core kills it before source acknowledgement. Source remains
+claimed/unsent while receiver7 survives. No printed PUBLISH surrogate remains.
+
+Controlled expiry represents elapsed time. Core recovers both messages at generation2; stale
+acknowledgements affect0, event2 replay adds0 and event3 adds11. Variation moves only the relay kill
+past its actual source sent-marker commit; event2 remains sent/generation1 and only3 is recovered at
+generation2. Mismatched amount999 under event2's identity fails22023. Full order/outbox/receipt
+payloads and total18 agree and survive both normal server restarts; failed99 remains absent and
+fresh claims find no work. Claim generations protect source completion, while receipt/effect
+atomicity protects independent receiver credit. Direct writers could bypass protocol ordering.
+
+Final core /tmp/pg-owned-pr892aee, source variation /tmp/pg-owned-sm9qi_x5 and exact hint2
+/tmp/pg-owned-3xhfkdc5 are stopped, with no slots, no source errors and only the expected receiver
+payload-mismatch error. Drivers /tmp/pg-outbox-delivery-{validate,exact}.ts; logs
+/tmp/pg-outbox-delivery-{core,variation}.log and
+/tmp/pg-outbox-delivery-exact-transactional-outbox.log. Report validation/06-outbox-delivery.md; new
+indexed findings docs/knowledge/postgres-durable-protocol-evidence.md. Thirty tests/full check pass.
+Scoped builder /tmp/pg-outbox-delivery-scoped-build.py changes only83 among92 lessons. Copy
+/tmp/pg-observe-progress-6q168_z9/progress.sqlite preserves IDs/history/progress, original first
+seven/capacity/seven stops and learner hash. New guides/14-patterns.ts is registered. Prior design
+ff22e92 and current82 8eb1034 are pushed.
+
+Next: current84 idempotency-keys per designs/06-durable-protocols.md and prior review. Exercise the
+actual combined insert-or-select Read Committed race, atomic identity/payload/effect/result,
+concurrent request outcomes, fresh-statement recovery, unknown-response replay and retention limits.
+Reuse reasoning from request-protocol.ts without changing its accepted embedded code. Then85
+durable2PC coordinator decision recovery,86 enforced resource fencing and87 missed-notification
+reconciliation, followed by incidents and final audit. No agents, learner writes or port5440
+operations. Preserve unrelated storage source/guide/knowledge and root bin/.
+
+Disk about257MB. Verified cold archival via /tmp/pg-outbox-archive-evidence.py is complete for
+accepted conflict _z7_bt4a/w80452ub/r5f69hzt and accepted resnapshot joc4yatu/6eu11w08/ft13c_3t
+source/subscriber data directories. Logs/JSON, exact cold hash/control manifests and compressed
+images remain at every root. Only original data folders were removed after stopped-state and
+archive/original path/hash rechecks; this is not a tested restore. Current83's final source/receiver
+roots above remain intact. Before more pairs, provision space only through explicitly identified,
+verified-stopped owned evidence preservation. Full audit still includes earlier idle
+insertion/replay and abort-only WAL flush boundaries.
 
 ## Logical slot loss/resnapshot and chunk5 integration accepted, 2026-09-05
 

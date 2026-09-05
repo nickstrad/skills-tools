@@ -11,9 +11,10 @@ in historical designs. See [handoff.md](handoff.md) for the current checkpoint a
 Progress checkpoint, 2026-09-05: chunks1–5 are accepted. Durability/recovery concludes with
 [actual PITR and timeline consolidation](validation/04-pitr.md); replication/change processing is
 recorded in [chunk5 integration](validation/05-integration.md), including all14 current core/hint
-artifacts and individual real-tool reports. Next: chunk6 durable protocols at current83
-transactional-outbox, then chunk7 incidents and the final whole-course audit. The current course
-has92 active lessons and seven stops; the full pivot remains unfinished.
+artifacts and individual real-tool reports. Chunk6 starts with accepted
+[independent outbox delivery](validation/06-outbox-delivery.md) at current83. Next: current84
+idempotency and the remaining durable protocols, then chunk7 incidents and the final whole-course
+audit. The current course has92 active lessons and seven stops; the full pivot remains unfinished.
 
 ## Teaching contract
 

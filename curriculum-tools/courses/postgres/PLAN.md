@@ -454,8 +454,13 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 
 ## 14 patterns (file: 14-patterns.ts, export PATTERNS, category "distributed-patterns")
 
-1. `transactional-outbox`: write + outbox row in one txn; a relay reads outbox with
-   `for update skip locked`, marks sent; crash between = duplicate delivery; show dedupe key.
+1. `transactional-outbox` (privileged, shell). Source business/event atomicity with an actual killed
+   uncommitted application; independent receiver receipt plus balance commit. Competing SKIP LOCKED
+   claims commit briefly and leave no row locks during delivery. Kill a receiver client before
+   commit and a real Python relay after receiver commit/before source acknowledgement. Controlled
+   expiry permits new generations; stale acknowledgements fail, replay adds no duplicate credit, and
+   full order/outbox/receipt payloads plus total18 survive normal restarts. Variation moves relay
+   loss after the sent-marker commit, leaving only the other abandoned claim to recover.
 2. `idempotency-keys`: `insert ... on conflict do nothing returning` as exactly-once effect.
 3. `two-phase-commit`: `prepare transaction 'gid'`, `pg_prepared_xacts`, survives a crash (mixed,
    dangerous), holds locks and xmin until `commit prepared`; orphaned prepared xact stalls vacuum
