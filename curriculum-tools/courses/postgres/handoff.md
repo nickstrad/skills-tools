@@ -1,7 +1,24 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Planner section reviewed, corrected and validated by primary; index review
-next.**
+Updated 2026-09-05. **Paused at user request for a fresh context. Planner, indexes, capacity and
+bounded migration are accepted and pushed. Resume with the five remaining observability lessons.**
+
+## Restart checkpoint
+
+The user requested a clean stopping point and a committed/pushed handoff before clearing context. No
+observability edits have started beyond the accepted capacity lesson. There is no partially
+implemented section to recover. Latest implementation commit is `673f332`, confirmed on origin/main.
+The only unrelated working-tree entry at this checkpoint was untracked root `bin/`; leave it alone.
+
+Estimated remaining effort is roughly **50%**, not a lesson-count calculation. Chunks1–2 are
+accepted; chunk3 has four accepted sections but five observability lessons remain. Chunks4–7 still
+need implementation and validation, including the hardest recovery and distributed-protocol work.
+Continue sequential primary implementation; do not restart parallel authoring.
+
+For a small-context restart, read this file, REWORK-PLAN and design03, then only the active
+observability source/guide and relevant durable findings. Accepted section reports are indexed
+below; do not re-review obsolete agent worktrees or repeat completed experiments without a concrete
+reason.
 
 ## User authorization and intended result
 
@@ -62,7 +79,8 @@ another review or stop after planning: implementation and validation are authori
   /tmp/pg-capacity-9bhs5l9e. Extracted scripts/logs /tmp/pg-capacity-core-20260905.* and
   /tmp/pg-capacity-variation-20260905.*.
 - Observability now follows checkpoints and precedes replication; backward prerequisites pass. Only
-  its capacity lesson is rewritten so far. Remaining13 lessons still need primary review.
+  its capacity lesson is rewritten so far. The other five lessons in module13 still need primary
+  review.
 - Primary added migration-workload.ts after concurrent index creation, plus its exact retention
   guide in guides12.95-lesson build, current map refreshed, seven reading stops, first7 unchanged.
   Core direct run: 55P03/22P02/23514 were the only errors; B saw999 committed backfill rows while1
@@ -86,16 +104,47 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Commit/push accepted bounded migration and handoff; capacity commit e811115 is already pushed.
-2. Finish remaining observability source13 and authored guides13: wait-state/sample interpretation,
-   cluster-wide pg_stat_io deltas and PostgreSQL/OS I/O distinction, idle-transaction deadlines and
-   cleanup, index usage versus correctness, bounded log correlation. The new capacity helper and its
-   validated guide are accepted; preserve them. Then accept chunk3 after section integration.
-3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
+1. Resume directly with remaining observability source13 and authored guides13: wait-state/sample
+   interpretation, cluster-wide pg_stat_io deltas and PostgreSQL/OS I/O distinction,
+   idle-transaction deadlines and cleanup, index usage versus correctness, bounded log correlation.
+   The new capacity helper and its validated guide are accepted; preserve them. Then accept chunk3
+   after section integration.
+2. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
    durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
-4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
+3. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
    checks per chunk. Record durable findings, commit/push handoff updates, and delete this file only
    after every authorized chunk is complete. Do not stop after the concurrency checkpoint.
+
+## Next section: review leads, not implemented decisions
+
+Read `curriculum/13-observability.ts` and `guides/13-observability.ts`. Keep the accepted CAPACITY
+helper/guide. Remaining slugs are wait-events-tell-you-where-time-goes, pg-stat-io-by-backend-type,
+idle-in-transaction-kills-you, table-and-index-usage-counters and read-the-server-log. Consult the
+original project review and design02 before deciding whether to merge anything: basic wait
+inspection already appears in concurrency lessons. Keep each remaining experiment distinct and
+useful; no retirement decision has been made for these five.
+
+- Waits: old prose wrongly treats NULL wait events as proof of CPU execution and sample shares as a
+  latency breakdown. Scope observation to owned clients; use bounded readiness checks and read
+  state, wait, blocker and transaction age together. Refresh cached statistics during polling.
+- I/O: distinguish PostgreSQL reads from device I/O; pg_stat_io is cluster-wide and has
+  nonapplicable NULL fields. Use deltas without global resets, explicit publication/snapshot
+  boundaries, restore changed settings, and do not claim CHECKPOINT evicts shared buffers.
+- Idle transactions: exercise an owned client deadline and verify rollback/reconnection. Distinguish
+  statement cancellation from session termination; avoid an unverified sleep-only timeout demo.
+- Index counters: zero scans alone cannot justify dropping a correctness constraint. Use bounded,
+  scoped workloads and check statistic publication plus constraint metadata.
+- Logs: capture file/offset before an owned event, read a bounded appended range, correlate PID or
+  application identity, account for collector lag/rotation and classify expected errors. Do not read
+  the entire file merely to take its tail or imply server logging proves a business outcome.
+
+Author an explicit bounded design, then source and specific coaching (predict/inspect/explain/vary/
+apply with an exact runnable hint). Execute both supplied core and exact variation against the
+private PostgreSQL lab. SQL harness skips shell lessons and does not establish that every SQL error
+is expected: inspect logs. Run dependent experiments serially even if a tool returns a session ID.
+Build from curriculum-tools with /root/.deno/bin/deno, refresh lesson-map via the scratch helper if
+ordering/identities change, verify first7 and copied progress, record acceptance/durable findings,
+then commit/push explicit paths and this handoff. Delete handoff only after the entire refactor.
 
 ## Durable constraints
 
@@ -123,8 +172,9 @@ separate databases; coordinate global operations serially.
   evidence, copied-progress preservation and durable experiment findings.
 
 - `d0ce060` pushed: accepted concurrent clients, request-outcome recovery, 94-lesson build and
-  chunk3 design. Latest user-facing estimate is roughly 30% complete / 70% remaining by effort, not
-  a lesson count. Hard recovery, replication, durable protocols and final integration remain.
+  chunk3 design. The earlier estimate at that checkpoint was roughly30% complete; the current
+  estimate is recorded at the top of this handoff. Hard recovery, replication, durable protocols and
+  final integration remain.
 
 - `644138f` pushed: concurrency delivery and performance-review checkpoint.
 - Latest workflow change: sequential primary implementation, bounded agent verification only.
@@ -145,5 +195,6 @@ separate databases; coordinate global operations serially.
 
 - `e811115` pushed: bounded capacity driver, verified core/exact variation, scoped evidence and
   observability ordering before replication.95 lessons now include bounded migration as well.
-- Bounded migration acceptance2026-09-05: source/core/retention variation reviewed and exercised;
-  commit/push then continue sequentially with the five remaining observability lessons.
+- `673f332` pushed: bounded migration and exact retention variation accepted,95-lesson build, 30
+  tests passing, first7 unchanged and copied progress/IDs/history preserved. Continue with the five
+  remaining observability lessons after the requested context reset.
