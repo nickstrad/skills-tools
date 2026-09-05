@@ -1,8 +1,8 @@
 # PostgreSQL lesson identity map
 
-Updated2026-09-05 after planner/index integration and ordering. Original means the96-lesson course
-before the pivot. Current numbers reflect the generated course; stable slugs identify lessons across
-later changes. Retirement does not transfer completion. Original lessons1–7 remain identical.
+Updated2026-09-05 after planner/index/capacity integration and ordering. Original means the96-lesson
+course before the pivot. Current numbers reflect the generated course; stable slugs identify lessons
+across later changes. Retirement does not transfer completion. Original lessons1–7 remain identical.
 
 | Original | Current | Stable slug                                     | Disposition                                                                            |
 | -------: | ------: | ----------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -57,20 +57,20 @@ later changes. Retirement does not transfer completion. Original lessons1–7 re
 |       49 |      61 | `base-backup`                                   | Retained                                                                               |
 |       50 |      62 | `point-in-time-recovery`                        | Retained                                                                               |
 |       51 |      63 | `timeline-history`                              | Retained                                                                               |
-|       52 |      64 | `build-a-streaming-standby`                     | Retained                                                                               |
-|       53 |      65 | `replication-lag-under-load`                    | Retained                                                                               |
-|       54 |      66 | `synchronous-replication-blocks-commit`         | Retained                                                                               |
-|       55 |      67 | `hot-standby-query-conflict`                    | Retained                                                                               |
-|       56 |      68 | `replication-slot-retains-wal`                  | Retained                                                                               |
-|       57 |      69 | `promote-the-standby`                           | Retained                                                                               |
-|       58 |      70 | `rewind-the-old-primary`                        | Retained                                                                               |
-|       59 |      71 | `cascading-and-failback`                        | Retained                                                                               |
-|       60 |      72 | `decode-the-log`                                | Retained                                                                               |
-|       61 |      73 | `slot-position-and-acknowledgement`             | Retained                                                                               |
-|       62 |      74 | `publication-and-subscription`                  | Retained                                                                               |
-|       63 |      75 | `initial-sync-vs-streaming`                     | Retained                                                                               |
-|       64 |      76 | `conflicts-stop-the-apply-worker`               | Retained                                                                               |
-|       65 |      77 | `slot-lag-and-disk`                             | Retained                                                                               |
+|       52 |      70 | `build-a-streaming-standby`                     | Retained                                                                               |
+|       53 |      71 | `replication-lag-under-load`                    | Retained                                                                               |
+|       54 |      72 | `synchronous-replication-blocks-commit`         | Retained                                                                               |
+|       55 |      73 | `hot-standby-query-conflict`                    | Retained                                                                               |
+|       56 |      74 | `replication-slot-retains-wal`                  | Retained                                                                               |
+|       57 |      75 | `promote-the-standby`                           | Retained                                                                               |
+|       58 |      76 | `rewind-the-old-primary`                        | Retained                                                                               |
+|       59 |      77 | `cascading-and-failback`                        | Retained                                                                               |
+|       60 |      78 | `decode-the-log`                                | Retained                                                                               |
+|       61 |      79 | `slot-position-and-acknowledgement`             | Retained                                                                               |
+|       62 |      80 | `publication-and-subscription`                  | Retained                                                                               |
+|       63 |      81 | `initial-sync-vs-streaming`                     | Retained                                                                               |
+|       64 |      82 | `conflicts-stop-the-apply-worker`               | Retained                                                                               |
+|       65 |      83 | `slot-lag-and-disk`                             | Retained                                                                               |
 |       66 |      38 | `explain-analyze-buffers`                       | Retained                                                                               |
 |       67 |      39 | `statistics-drive-plans`                        | Retained                                                                               |
 |       68 |      40 | `index-scan-vs-seq-scan-crossover`              | Retained                                                                               |
@@ -84,12 +84,12 @@ later changes. Retirement does not transfer completion. Original lessons1–7 re
 |       76 |      47 | `partial-and-covering-indexes`                  | Retained                                                                               |
 |       77 |      48 | `index-bloat-from-churn`                        | Retained                                                                               |
 |       78 |      49 | `unique-index-enforcement-under-concurrency`    | Retained                                                                               |
-|       79 |      78 | `wait-events-tell-you-where-time-goes`          | Retained                                                                               |
-|       80 |      79 | `pg-stat-io-by-backend-type`                    | Retained                                                                               |
-|       81 |      80 | `connection-saturation`                         | Retained                                                                               |
-|       82 |      81 | `idle-in-transaction-kills-you`                 | Retained                                                                               |
-|       83 |      82 | `table-and-index-usage-counters`                | Retained                                                                               |
-|       84 |      83 | `read-the-server-log`                           | Retained                                                                               |
+|       79 |      64 | `wait-events-tell-you-where-time-goes`          | Retained                                                                               |
+|       80 |      65 | `pg-stat-io-by-backend-type`                    | Retained                                                                               |
+|       81 |      66 | `connection-saturation`                         | Revised to bounded measured concurrency/latency workload                               |
+|       82 |      67 | `idle-in-transaction-kills-you`                 | Retained                                                                               |
+|       83 |      68 | `table-and-index-usage-counters`                | Retained                                                                               |
+|       84 |      69 | `read-the-server-log`                           | Retained                                                                               |
 |       85 |      84 | `transactional-outbox`                          | Retained                                                                               |
 |       86 |      85 | `idempotency-keys`                              | Retained                                                                               |
 |       87 |      86 | `two-phase-commit`                              | Retained                                                                               |

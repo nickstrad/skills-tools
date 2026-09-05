@@ -78,3 +78,26 @@ completed counts. Keep changes private until primary requests transfer.
 Use pivot_visibility for SQL correctness, coordinate benchmarks with planner agent. Keep root files
 untouched until transfer. Return built/typecheck evidence and real core/variation output. Primary
 will audit benchmark methodology, arrange final ordering and implement capacity/migration synthesis.
+
+## Primary capacity implementation, 2026-09-05
+
+Replace the old connection-saturation cluster-exhaustion/restart exercise with a bounded measured
+workload, preserving its slug at revision4. This is primary-owned sequential implementation.
+
+- Supplied shell/Python driver uses psql and pgbench against explicit lab PG connection variables.
+  It creates one uniquely named schema and an evidence directory; cleanup drops only that schema.
+- One transaction increments a shared counter and holds its row lock for5ms before committing.
+  Run1,2,4,8 closed-loop clients for400 total transactions per trial, two rounds in reverse order.
+  Keep the pgbench thread count fixed at1; do not vary generator threads with client count. The
+  fixture isolates a serialized service point, not general PostgreSQL maximum capacity.
+- Retain per-transaction pgbench logs, summary output and scoped wait samples. Parse the log's
+  latency microseconds; report empirical median/p95/p99, pgbench throughput and failures per trial.
+  Assert400 log successes, zero failures and exactly400 durable counter increments per run.
+- Bound each run to30 seconds, terminate only its owned pgbench process on failure and clean up the
+  generated schema. No global settings, restarts, connection-slot exhaustion or global resets.
+- Distinguish concurrency from hard admission capacity, measured service time from scheduling waits,
+  and closed-loop latency from an external fixed arrival rate. Small tail samples and an observer
+  sharing the machine limit inference; no universal throughput or production pool-size advice.
+- Variation changes only lock-hold time to1ms and reruns the same matrix. Provide exact invocation
+  and explain all supporting commands. Execute both extracted core and variation, inspect counters,
+  log failures and wait evidence, then integrate and commit/push with handoff and durable findings.

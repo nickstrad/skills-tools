@@ -54,8 +54,17 @@ another review or stop after planning: implementation and validation are authori
 - Planner and indexes now follow locking, before WAL/replication.94 lessons,7 reading stops, four
   retired slugs; current lesson-map regenerated. Original first7 built objects and real progress
   unchanged; copied refresh preserves IDs/history/progress.30 existing integration tests pass.
-- Primary owns all remaining source, coaching, capacity/migration and failure/protocol work. Next
-  section is capacity, then bounded migration and observability; agents are verification-only.
+- Primary implemented capacity-workload.ts, replacing the old connection-saturation object in13.
+  Authored guides13's capacity entry and registered it. Core5ms and exact1ms hint both executed
+  eight 400-transaction trials with zero failures and exact committed-counter/log agreement. Fixed
+  driver threads at1 after finding the initial min(2,clients) changed another variable.
+  Validation/03-capacity.md records measurements and limits. Raw dirs /tmp/pg-capacity-ebeu3oeq and
+  /tmp/pg-capacity-9bhs5l9e. Extracted scripts/logs /tmp/pg-capacity-core-20260905.* and
+  /tmp/pg-capacity-variation-20260905.*.
+- Observability now follows checkpoints and precedes replication; backward prerequisites pass. Only
+  its capacity lesson is rewritten so far. Remaining13 lessons still need primary review.
+- Primary owns all remaining source/coaching/failure work. Next is bounded migration, then remaining
+  observability. Agents remain verification-only; no new authoring assignments.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -70,10 +79,11 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Commit/push the accepted index section and handoff; planner commit ba91880 is already pushed.
-2. Implement a bounded measured capacity experiment replacing connection-saturation, then bounded
-   migration synthesis and observability fixes. Use design03 and REWORK-PLAN. Planner/index ordering
-   is now earlier; observability remains after checkpoints due to real prerequisites.
+1. Commit/push the accepted capacity section and handoff. Index commit05070cc is already pushed.
+2. Implement bounded migration synthesis next, then remaining observability fixes. Use design03 and
+   REWORK-PLAN. Proposed migration: brief-lock schema/compatibility bridge, bounded backfill batches
+   that commit separately, skipped locked rows do not mean completion, validated constraint and
+   explicit cutover/cleanup boundaries. Write the concrete design before coding it.
 3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
    durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
 4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
@@ -120,3 +130,8 @@ separate databases; coordinate global operations serially.
 - `ba91880` pushed: primary planner acceptance, seven specific guides and durable measurement notes.
 - Index acceptance2026-09-05 follows sequentially. Next primary-owned hard work is bounded capacity
   measurement; do not restart parallel lesson authoring or re-review obsolete private drafts.
+
+- `05070cc` pushed: primary index acceptance, six exact guides, matched HOT trials, RR pagination
+  and planner/index ordering before WAL/replication.
+- Capacity acceptance2026-09-05: zero errors in6,400 benchmark transactions across core/variation,
+  scoped evidence retained, owned schemas cleaned,94-lesson build and copied progress checks pass.

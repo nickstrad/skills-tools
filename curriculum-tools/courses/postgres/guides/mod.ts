@@ -5,6 +5,7 @@ import { guides as isolation } from "./05-isolation.ts";
 import { guides as locking } from "./06-locking.ts";
 import { guides as planner } from "./11-planner.ts";
 import { guides as indexes } from "./12-indexes.ts";
+import { guides as observability } from "./13-observability.ts";
 import type { Guide } from "./types.ts";
 
 export const GUIDES: Record<string, Guide> = {
@@ -15,4 +16,5 @@ export const GUIDES: Record<string, Guide> = {
   ...locking,
   ...planner,
   ...indexes,
+  ...observability,
 };

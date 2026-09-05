@@ -113,3 +113,18 @@ distinct. See [PostgreSQL16 statistics](https://www.postgresql.org/docs/16/monit
 The repeatable-read pagination variation requires separate persistent sessions and a cursor acquired
 before the other session inserts. Inspect both pages inside the transaction and a fresh read after
 commit; merely writing out this schedule is not validation of the supplied hint.
+
+## Bounded capacity measurements, 2026-09-05
+
+When sweeping active clients, keep driver threads fixed too: min(2,clients) silently changes a
+second variable between one and two clients. Retain individual pgbench transaction logs and compare
+successful records with a committed business counter. Reject failed/mismatched trials before ranking
+performance. pgbench16's third ordinary log field is latency in microseconds; its tps summary
+excludes initial connection time. See
+[PostgreSQL16 pgbench](https://www.postgresql.org/docs/16/pgbench.html).
+
+Closed-loop clients submit the next request only after a response, so overload reduces their offered
+rate. Their empirical tail latency does not include an independent application arrival queue. A
+single-row serialized fixture reveals waiting and a throughput plateau, not maximum PostgreSQL
+capacity. Reverse the run order, record local settings, scope the observer and state sample limits;
+400 latency records make p99 the396th ordered observation, not a stable service-level guarantee.
