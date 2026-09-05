@@ -14,10 +14,10 @@ recorded in [chunk5 integration](validation/05-integration.md), including all14 
 artifacts and individual real-tool reports. Chunk6 has accepted
 [independent outbox delivery](validation/06-outbox-delivery.md) at current83 and
 [idempotency race/recovery/retention](validation/06-idempotency.md) at current84, followed by
-[durable 2PC decision recovery](validation/06-two-phase-commit.md) at current85. Next: current86
-resource fencing and the remaining durable protocols, then chunk7 incidents and the final
-whole-course audit. The current course has92 active lessons and seven stops; the full pivot remains
-unfinished.
+[durable 2PC decision recovery](validation/06-two-phase-commit.md) at current85 and
+[enforced resource fencing](validation/06-resource-fencing.md) at current86. Next: current87 durable
+notification reconciliation and chunk6 integration, then chunk7 incidents and the final whole-course
+audit. The current course has92 active lessons and seven stops; the full pivot remains unfinished.
 
 ## Teaching contract
 

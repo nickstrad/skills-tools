@@ -1,8 +1,68 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–5 and current83–85 outbox/idempotency/2PC are accepted. There are92
-active lessons. Next: current86 resource fencing, the rest of chunk6, chunk7 incidents and the final
-whole-course audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–5 and current83–86 outbox/idempotency/2PC/fencing are accepted. There
+are92 active lessons. Next: current87 notification reconciliation, chunk6 integration, chunk7
+incidents and the final whole-course audit. The full active goal is not complete.**
+
+## Restricted resource fencing and commit-order acceptance, 2026-09-05
+
+Current86 fencing-tokens-with-a-monotonic-counter is revision4 in resource-fencing.ts. Real
+worker_a/worker_b logins have no direct resource/issued/history DML or owner-role membership; two
+non-login-owned SECURITY DEFINER functions use qualified tables, pg_catalog/pg_temp search paths,
+required arguments and explicit null errors. The authority atomically issues login-bound tokens; the
+resource can read issuance but is denied SELECT on current claims. This is a controlled handoff in
+one private PostgreSQL cluster, not a distributed election or production login test.
+
+A receives1 and writes revision1. B's takeover commits claimB/2 but leaves resource epoch1, so A's
+old token really commits A-after-takeover/revision2. B then holds its new resource fence
+uncommitted; A's old-token write actually waits on B's XID. Core B COMMIT persists
+B-first/epoch2/revision3 and A's waiter fails55000, leaving no A-racing effect. Variation changes
+only B's fence decision to ROLLBACK; A then commits A-racing/epoch1/revision3. A fresh B transaction
+must commit B-first/epoch2/revision4 before A becomes fenced. Full history retains the extra
+admitted old write.
+
+Eighteen explicit rejection tests preserve all claims/issued/state/history rows: stale/missing/null
+and unissued/wrong-worker tokens; value-only and epoch-changing direct UPDATE; DELETE/TRUNCATE;
+history/issuance forgery; protected-schema creation; owner-role assumption and login impersonation;
+stale takeover expectation; temporary-table shadowing; and post-restart old-token/direct-write
+attempts. Error classes are55000/42883/22023/42501/40001 as appropriate. B's valid token2 writes
+B-final. Core has four history rows, variation five; both finish resourceB-final/epoch2/writerB,
+claimB/2, exactly two issued identities and complete state preserved through normal restart. Fencing
+permits multiple same-epoch writes; it is not idempotency. The issuer assumes authorized takeover
+requests; the counter itself does not establish takeover policy or lease expiry.
+
+Core /tmp/pg-owned-cvdhovcz, source variation /tmp/pg-owned-k5rwaaq0, exact hint2
+/tmp/pg-owned-6tkr6u8y. Drivers /tmp/pg-resource-fencing-{validate,exact}.ts and independent audit
+/tmp/pg-resource-fencing-audit.py retain source/rendered commands, raw worker/error logs and full
+JSON. All three servers independently report status3/no PID. Core has19 expected server errors (18
+tests plus the failed waiter); variation/exact18 each, with no FATAL/PANIC. Complete messages match
+client errors after only SQL cursor-position suffix normalization. Core persistent clients exit0/3;
+variations0/0. Built core matches executed code modulo final-newline trim; exact rendered hint
+matches source variation. Report validation/06-resource-fencing.md and indexed durable-protocol
+knowledge contain the findings.
+
+Scoped /tmp/pg-resource-fencing-build-zyxe0f80 changes only current86 among92 generated lessons.
+Copied /tmp/pg-observe-progress-ekvdxdi6/progress.sqlite preserves IDs/history/progress, original
+first-seven objects/completions, capacity/seven stops and learner SHA256
+395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty tests and full check pass
+in /tmp/pg-resource-fencing-{tests,check}.log. Current85 07a243e is pushed.
+
+Next: current87 listen-notify-as-a-bus per designs/06-durable-protocols.md. Implement committed
+LISTEN then durable scan, actual listener loss/missed notifications, source work+NOTIFY atomicity,
+rollback, reconnect/reconcile and verified complete business results despite missed/coalesced
+wake-ups. Notifications are hints, not the authoritative work inventory. Then finish chunk6
+integration across83–87, chunk7 symptom-first incidents and final whole-course audit. No current87
+code has been authored. Final audit also retains earlier idle insertion/replay and abort-only
+WAL-flush boundary checks from the existing handoff/rework scope.
+
+Disk about80MB after the three86 clusters. /tmp/pg-fencing-archive-evidence.py preserved only
+accepted84 roots8070t6ty/flhszqqr/0yptn0r5 data folders: stopped/status3/clean control verified,
+reopened archive/original complete path/hash checks matched, and stopped state/original hashes were
+rechecked before removing originals. Compressed images, cold manifests and all logs/JSON remain.
+This is not a tested restore. Current85 pairs aky4t1rw/41p4bhj6/b8q_7tgt still retain data and
+participant-b; current86 roots still retain data. Preserve explicitly identified stopped owned
+images before more runs; no arbitrary tmp cleanup. No agents, learner writes or port5440 operations;
+preserve unrelated storage source/guide/knowledge and root bin/.
 
 ## Prepared participants and durable coordinator recovery accepted, 2026-09-05
 

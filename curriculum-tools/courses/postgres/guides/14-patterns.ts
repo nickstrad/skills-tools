@@ -1,9 +1,30 @@
+import { FENCING_VARIATION } from "../curriculum/resource-fencing.ts";
 import { TWOPC_VARIATION } from "../curriculum/two-phase-protocol.ts";
 import { IDEMPOTENCY_VARIATION } from "../curriculum/idempotency-protocol.ts";
 import { OUTBOX_VARIATION } from "../curriculum/outbox-delivery.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "fencing-tokens-with-a-monotonic-counter": {
+    brief:
+      "Enforce token-bearing writes through restricted worker roles, then race an old token against a new resource fence to locate the actual rejection boundary.",
+    predict:
+      "Does issuing token2 to B immediately stop A's token1 at the resource? If B's resource update is still uncommitted when A writes, how will B's COMMIT versus ROLLBACK change A's outcome?",
+    inspect:
+      "Compare claim/issued rows with resource epoch and complete history. Identify the real worker identities, denied direct privileges, B's held XID, A's actual blocker and every unchanged inventory after a rejected call.",
+    explain:
+      "Why can token1 succeed after takeover but before the resource commits2? Why does a value-only UPDATE bypass the old trigger design, and how do required arguments, token ownership and restricted definer functions close that path?",
+    vary:
+      "Change only B's first resource-fence transaction from COMMIT to ROLLBACK. Predict A's waiting write, the extra committed history row and the later B commit needed to make token1 fail.",
+    apply:
+      "Specify takeover authority, worker credentials, the protected resource interface and epoch lifetime for a paused worker that resumes after takeover. Explain the guarantees lost with direct DML and the separate idempotency needed for repeated writes at one valid epoch.",
+    hints: [
+      "The issuer's current epoch and the resource's committed epoch are different records. A conditional resource UPDATE waits and rechecks after the competing transaction resolves. Every application write must pass the guarded function; definer ownership must not grant workers direct table or owner-role access.",
+      "Run this complete resource-fence-rollback variation in a shell.\n\n```bash\n" +
+      FENCING_VARIATION + "\n```",
+    ],
+  },
+
   "two-phase-commit": {
     brief:
       "Inspect detached participant promises, crash recovery and cleanup costs, then recover actual coordinator loss from a separately committed decision and complete outcome receipts.",

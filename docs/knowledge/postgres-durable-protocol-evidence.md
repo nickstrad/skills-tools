@@ -214,3 +214,68 @@ counts. Put cleanup victims in a separate table, disable automatic cleanup only 
 fixture, and compare verbose vacuum with direct physical counts before/after resolution. Final
 checks should include empty prepared lists, no detached/waiting locks, a formerly blocked operation
 that now acquires its row, and complete business outcome reconciliation.
+
+## A new claim fences an old worker only after resource acceptance commits (2026-09-05)
+
+### What happened
+
+Current86 binds issued epochs to actual restricted worker logins and routes writes through a
+non-login-owned resource function. A's issued token1 still commits a write after the authority
+hands token2 to B, because the resource remains at epoch1. B then executes a token2 resource write
+inside BEGIN; an independent reader still sees the previous state. A's old-token write actually
+waits on B's XID. B COMMIT makes that waiter recheck the conditional UPDATE and fail55000. If B
+instead rolls back, the waiting A write commits at epoch1; B must make a fresh committed resource
+write before A is fenced. Full history retains that additional accepted A write in the variation.
+
+### Why it matters
+
+Issuer ownership, attempted resource update and durable resource acceptance are different
+boundaries. A comparison with the issuer's current holder would teach a different mechanism and
+hide the window before an independent resource learns the new epoch. A conditional UPDATE at Read
+Committed waits and reevaluates the target after a competing commit; rollback leaves the previous
+eligible version. See [Read Committed](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED).
+Fencing permits several writes at the same valid epoch and is not request deduplication.
+
+### How to apply
+
+Inspect issuer and resource records separately. Gate a competing decision on an actual wait with
+the right blocking PID, then compare commit and rollback. Treat a function return inside BEGIN as
+uncommitted evidence. Keep every accepted write in history, including old-token work that completed
+before the new fence. State issuer authorization and deployment limits: this fixture has a
+controlled handoff and colocated privilege domains, not an election, expiry detector or network
+partition.
+
+## A required token needs an interface that application writers cannot bypass (2026-09-05)
+
+### What happened
+
+The former trigger rejected a lower NEW.epoch but tolerated value-only writes preserving OLD.epoch.
+The replacement denies workers direct UPDATE/DELETE/TRUNCATE and grants only specific definer
+interfaces. Actual worker calls with omitted/null tokens fail42883/22023; unissued and other-worker
+tokens fail42501. Direct mutations, history/issuance forgery, protected-schema creation, owner-role
+assumption and session impersonation all fail under the worker login. Temporary state/issued tables
+do not redirect the qualified function, and all rejected attempts preserve complete data.
+
+### Why it matters
+
+A guarded example executed as superuser does not establish that ordinary callers must obey it.
+SECURITY DEFINER changes execution privileges, while session_user retains the login used to bind
+an issued token. No default argument supplies a token; non-STRICT behavior lets explicit NULL reach
+a deliberate error. Qualified tables, trusted search_path and revoked PUBLIC execution keep the
+interface narrow. Primary references: [CREATE FUNCTION](https://www.postgresql.org/docs/16/sql-createfunction.html)
+and [identity/privilege functions](https://www.postgresql.org/docs/16/functions-info.html).
+
+### How to apply
+
+Use actual restricted connections and independently record identity, ownership and effective
+privileges. Install grants with the functions in one transaction; use non-login owners and no
+worker owner-role membership. Deny current holders direct writes too: a valid token grants interface
+access, not permission to bypass the resource check. Test missing, null, stale, forged and wrong-owner
+tokens, and compare full inventories after every rejection. Explicitly bound the authority model:
+trusted takeover requests and private trust authentication do not prove adversarial issuer policy,
+OS isolation or production authentication.
+
+When comparing server and verbose client errors, PostgreSQL may append "at character N" to the
+server's ERROR line while placing that cursor information separately in client output. Normalize
+only that positional suffix, then compare the complete message multiset and expected SQLSTATE
+records; do not accept a generic error count as proof all permission tests ran correctly.

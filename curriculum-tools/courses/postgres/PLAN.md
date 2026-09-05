@@ -480,8 +480,14 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    partial finalization.
 4. `optimistic-concurrency-with-version-columns`: `update ... where version = :v` returning 0 rows
    as the conflict signal, vs `for update`.
-5. `fencing-tokens-with-a-monotonic-counter`: a `lease` table + `epoch` column; a stale holder's
-   write is rejected by a `check` in an update `where epoch = :mine`.
+5. `fencing-tokens-with-a-monotonic-counter` (privileged, shell). Actual restricted worker logins
+   receive issued epochs and write through non-login-owned SECURITY DEFINER interfaces. Compare
+   claim takeover with resource acceptance: A's old token still works before B's new resource fence
+   commits. Race A against B's held update; B COMMIT fences A, while the rollback variation admits A
+   before a fresh B fence. Require explicit tokens, reject forged/other-worker tokens, and verify
+   direct writes, history/issuance forgery, schema creation, role escalation and temporary-table
+   redirection fail. Reconcile full accepted history through restart. The issuer counter represents
+   an authorized handoff, not lease expiry or election; same-epoch writes still need idempotency.
 6. `listen-notify-as-a-bus`: `listen`/`notify` across 2 sessions; delivery is at commit; not durable
    (disconnect misses). Lens: pub/sub inside the database; where it breaks.
 
