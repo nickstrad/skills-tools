@@ -61,3 +61,40 @@ full output. Its parent filesystem must match the WAL filesystem for a useful co
 operating system's default temporary directory might be a different mount. A file-probe result is
 not the database transaction path. See
 [pg_test_fsync](https://www.postgresql.org/docs/16/pgtestfsync.html).
+
+## Archive failure and repair (2026-09-05)
+
+Accepted supplied archive-workload.ts creates a new private cluster using owned-cluster.ts,
+including all helper code in each shell rendering. It clears inherited PG variables, uses a unique
+/tmp socket with TCP disabled, retains evidence and stops only its own server. Root uses the
+postgres OS owner; non-root uses the invoking account. Server binaries come from PGBIN or pg_config
+--bindir. One-MB initdb segments keep this failure bounded; the8MB max_wal_size remains a soft
+target.
+
+The archive gate returns exit1 before copying. Twelve selected segments remain present with ready
+markers after CHECKPOINT:13,631,488 actual WAL bytes exceed8,388,608. Repair removes the gate,
+produces a wake segment and polls actual files/counters; all12 archived SHA-256 hashes match the
+pre-repair sources, all target ready markers disappear, and a further checkpoint makes all12 old
+names disappear. This proves eligibility for removal/recycling, not which filesystem operation was
+used. Directory bytes settle at8MB; receipt totals are13/130. Core failure count1 persists after
+repair and archived_count reaches13.
+
+Twenty-segment source and exact CLI variations each retain22,020,096 bytes and end with21 receipts,
+amount210, archived_count21 and matching20 target hashes. Retry counts vary (1–2 here). Never infer
+that last_archived_wal proves an entire required range exists: verify selected inputs. Do not erase
+failure counters to make a repaired system appear healthy. Initial sandbox chown was denied; actual
+runs used authorized escalation and succeeded on PostgreSQL16.15.
+
+This local archive script is deliberately a teaching boundary: temporary copy plus rename, no
+storage durability protocol or off-host destination. Do not call it a tested backup/restore. The
+next lessons must actually restore and exercise missing inputs. Archive commands are launched by
+PostgreSQL; only driver initdb/pg_ctl/psql and polling phases have explicit time limits here.
+
+Official references: PostgreSQL16
+[continuous archiving](https://www.postgresql.org/docs/16/continuous-archiving.html) defines the
+archive command's success/retry contract and retention consequence;
+[WAL settings](https://www.postgresql.org/docs/16/runtime-config-wal.html) describes max_wal_size as
+soft;
+[archiver statistics](https://www.postgresql.org/docs/16/monitoring-stats.html#PG-STAT-ARCHIVER-VIEW)
+defines success/failure counters. Book Chapter10 covers segments/recycling, not archive_command or
+pg_stat_archiver; keep that reading boundary explicit.

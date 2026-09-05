@@ -1,9 +1,29 @@
+import { ARCHIVE_WORKLOAD_VARIATION } from "../curriculum/archive-workload.ts";
 import { WAL_RECORDS_VARIATION } from "../curriculum/wal-records.ts";
 import { WAL_PAGE_IMAGES_VARIATION } from "../curriculum/wal-page-images.ts";
 import { COMMIT_WORKLOAD_VARIATION } from "../curriculum/commit-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "wal-files-and-recycling": {
+    brief:
+      "Investigate the dependency between an archive consumer, retained WAL and a producer's disk budget using an owned failure and repair.",
+    predict:
+      "With a failed archive command, twelve sealed 1MB segments and an 8MB WAL target, what can a checkpoint reclaim? Which evidence would distinguish archive failure from an idle producer?",
+    inspect:
+      "Match failed_count, all twelve .ready markers, retained bytes and missing archive copies. After repair check each archived hash, the wake segment, old target-name disappearance through removal or recycling and the receipt totals.",
+    explain:
+      "Why can retained WAL exceed max_wal_size? Why is last_archived_wal alone insufficient proof that every required file arrived, and why does failed_count remain after repair?",
+    vary:
+      "Extend only the bounded outage workload from twelve to twenty sealed segments. Predict retained bytes and the final receipt count, then run the fresh-cluster variation.",
+    apply:
+      "An archive destination is unavailable and free disk is falling. Choose your next action using producer byte rate, retained history, repair time and the recovery guarantee you must preserve. What would prove the archive is usable after repair?",
+    hints: [
+      "Count required files and verify their bytes. A local archive copy does not prove independent host durability or a successful restore; the following recovery lessons cross those boundaries.",
+      "Run this complete twenty-segment variation in a shell; it allocates and stops its own cluster.\n\n```bash\n" +
+      ARCHIVE_WORKLOAD_VARIATION + "\n```",
+    ],
+  },
   "commit-means-fsync": {
     brief:
       "Compare waiting for a durability boundary with grouping useful work. Acknowledgement policy, transaction size and client concurrency are separate design choices.",

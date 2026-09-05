@@ -1,7 +1,7 @@
 # PostgreSQL pivot handoff
 
 Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL records, page images and measured
-commit cost (current52–54) are verified. Next: owned archive failure and crash/recovery.**
+commit cost and archive failure/repair (current52–55) are verified. Next: owned crash/recovery.**
 
 ## Active goal
 
@@ -13,6 +13,19 @@ full-page images, followed by measured commits and actual crash/restore work.
 At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
 untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
 checkpoint c9dca16 followed it. Learner progress can advance independently; use a fresh copy.
+
+## Archive checkpoint
+
+Primary accepted archive-workload.ts, reusable owned-cluster.ts, module07 replacement and guide07.
+Core12 segments retained13MB despite8MB target; source20 and exact CLI20 variations retained21MB.
+Every selected archived hash matched after repair, ready markers disappeared, old names became
+reclaimable after checkpoint; final receipts13/130 or21/210. Private servers stopped; no learner
+cluster changes. Report validation/04-archive.md; raw /tmp/pg-archive-{core,variation}.log and
+/tmp/pg-archive-exact-wal-files-and-recycling.log. One Terra/high read-only reviewer found no
+blocking issues; primary adopted precise wording and verified all runtime outputs. Thirty tests and
+full repo check pass; scoped build changes only current55, first7/capacity and copied history
+preserved. 6c181bd is the pushed prior commit-cost subsection. Next: actual crash plus WAL decoding
+and row assertions, then retire duplicate replay lesson only after replacement coverage passes.
 
 ## Commit-cost checkpoint
 
@@ -34,11 +47,11 @@ current storage source into its isolated snapshot and asserts the newly generate
 only at commit-means-fsync. It does not hand-edit JSON. Final integration must recheck the storage
 owner's source/artifact reconciliation and not mistake it for our acceptance.
 
-Next: implement archive failure/repair and crash recovery from design04, using unique owned
-clusters/directories with bounded start/stop/readiness and retained evidence. Integrate physical
-record inspection and domain assertions into the crash exercise before retiring duplicate
-wal-replay-is-deterministic. Then matched write amplification and checkpoint/restore/PITR work. No
-port5440 crashes, no learner progress writes, no other agent authoring assignments.
+Next: implement crash recovery from design04, using unique owned clusters/directories with bounded
+start/stop/readiness and retained evidence. Integrate physical record inspection and domain
+assertions into the crash exercise before retiring duplicate wal-replay-is-deterministic. Then
+matched write amplification and checkpoint/restore/PITR work. No port5440 crashes, no learner
+progress writes, no other agent authoring assignments.
 
 ## Latest implementation checkpoint
 
