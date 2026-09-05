@@ -6,9 +6,29 @@ import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts"
 import { SLOT_RETENTION_VARIATION } from "../curriculum/slot-retention.ts";
 import { FAILOVER_VARIATION } from "../curriculum/failover-workload.ts";
 import { REWIND_VARIATION } from "../curriculum/rewind-workload.ts";
+import { FAILBACK_VARIATION } from "../curriculum/failback-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "cascading-and-failback": {
+    brief:
+      "Execute both directions of a controlled writer transfer, verify all acknowledgements after restart, and optionally prove a third replication hop.",
+    predict:
+      "What must be true before returning writes to the original address? If its candidate is paused while receipt2 acknowledges on the replacement, should failback proceed? Which timeline survives the final restart?",
+    inspect:
+      "Follow each closed-admission marker, complete receipt set, rejected old login, stopped endpoint and promotion history. Verify stale-candidate refusal, final timeline3 after restart and exact IDs0,1,2,3 with no slots or probe99.",
+    explain:
+      "Why is failback another authority transfer? Why does closing admission precede the final readiness marker, and why can a familiar endpoint or streaming status not authorize promotion?",
+    vary:
+      "Add an optional third standby fed by the returning middle node. Prove receipt2 crosses both hops with the middle still in recovery, then stop the leaf and release its slot before the same controlled return.",
+    apply:
+      "A service plans to return to a repaired preferred host. Define the admission, history, receipt, exclusion and restart evidence required; choose the response when catch-up misses the deadline. Explain which external authority and restart controls this local driver does not provide.",
+    hints: [
+      "Treat the two handovers symmetrically: closed writer set, known-history readiness, old writer exclusion, then new authority. A cascade slot belongs to its immediate upstream; transport does not confer write permission.",
+      "Run this complete optional-cascade variation in a shell.\n\n```bash\n" + FAILBACK_VARIATION +
+      "\n```",
+    ],
+  },
   "rewind-the-old-primary": {
     brief:
       "Preserve divergent acknowledgements, choose history explicitly, execute pg_rewind and verify read-only rejoin plus new streaming.",

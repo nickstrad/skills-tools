@@ -354,3 +354,52 @@ target before removing its source slot during cleanup, accounting for the swappe
 claim that rewind merges business outcomes or guarantees a particular speedup.
 
 Reference: PostgreSQL16 [pg_rewind](https://www.postgresql.org/docs/16/app-pgrewind.html).
+
+## Failback is a second controlled transfer; cascade slots are local (2026-09-05)
+
+### What happened
+
+The fresh owned topology completes original → replacement → original writer transfers. Each closes
+admission, revokes new source app logins and checks zero existing sessions, then creates a real WAL
+marker and requires same-history replay plus every acknowledged receipt. It detaches the consumed
+receiver and drops its source slot while the source is still reachable. Source shutdown and a direct
+failed endpoint probe precede promotion. This does not depend on delivery of a later shutdown record:
+all application writers were already closed before the verified marker.
+
+The original endpoint is rebuilt using a complete verified backup from the promoted replacement;
+its old stopped directory remains separately preserved. Pausing that candidate before receipt2
+leaves rows0,1 while the replacement holds0,1,2. The same replay-and-inventory predicate used by the
+transfer refuses it; actual recovery remains active. Resume permits catch-up and the controlled
+return. Clearing owned auto.conf overrides and restarting the returned primary proves timeline3,
+original socket, no standby.signal, empty receiver settings and zero slots. Receipt3 acknowledges
+after restart, and all four receipts survive with their exact notes.
+
+The optional variation takes a verified basebackup from the recovering middle node, then proves a
+post-backup receipt crosses replacement → middle → leaf. The middle remains in recovery while its
+sender serves owned_cascade; the replacement has only its owned_failback sender. Receiver endpoints,
+received timeline2 and complete0,1,2 inventories establish the actual path. The leaf's physical slot
+belongs to the middle, so stop the leaf and drop that slot on the middle before return. No leaf
+continuation through the later promotion is claimed. Source/exact CLI report:
+validation/05-failback-workload.md.
+
+### Why it matters
+
+A preferred host is still a candidate until its acknowledged data and writer exclusion obligations
+are proved. A full rebuild is a valid way to prepare it, distinct from reusing divergent physical
+files without repair. A standby's sender role does not make it a primary: forwarding and replay are
+separate capabilities. Cascading is asynchronous and does not extend synchronous commit policy to
+the leaf. Slot retention and cleanup follow the immediate upstream relationship.
+
+### How to apply
+
+Use one explicit handover contract in both directions, with a bounded readiness predicate and fresh
+domain queries. Save the closed-writer boundary before promotion; do not infer that stopping a source
+necessarily transported all needed application history. Verify final configuration through a real
+restart, not only a settings-file edit. Keep cascade depth optional but actually run its extra hop
+before teaching the result. Bound local writer ownership and restart assumptions; an in-memory epoch
+plus local process control does not implement external election, durable authority or fencing against
+arbitrary privileged restarts.
+
+References: PostgreSQL16 [cascading replication](https://www.postgresql.org/docs/16/warm-standby.html#CASCADING-REPLICATION),
+[base backups from a standby](https://www.postgresql.org/docs/16/app-pgbasebackup.html) and
+[failover](https://www.postgresql.org/docs/16/warm-standby-failover.html).

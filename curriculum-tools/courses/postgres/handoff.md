@@ -1,8 +1,44 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline consolidation are
-verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
+Updated 2026-09-05. **Chunks1–4 and chunk5 physical replication through current77 are accepted.
+There are93 active lessons. Next: current78 logical decoding and the rest of change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
+
+## Controlled failback and optional cascade accepted, 2026-09-05
+
+Current77 cascading-and-failback is revision4. A fresh owned round trip uses one handover contract
+in both directions: close admission, NOLOGIN/zero app sessions/direct rejected login, same-history
+marker and complete receipt readiness, detach/release consumed slot, stop source and reject actual
+endpoint access before promotion. The original endpoint is rebuilt with a verified full backup while
+its old stopped directory remains preserved. Actual paused candidate has IDs0,1 while source
+has0,1,2; the shared readiness predicate refuses it, then resumes into catch-up and return. Original
+endpoint becomes timeline3, clears owned overrides, survives actual restart and acknowledges
+receipt3. Final IDs0,1,2,3 and notes equal all four acknowledgements; old epochs reject with no DB
+attempts. No learner-cluster reset or inherited topology is used.
+
+Hint2 adds a verified third node fed by the recovering middle node. A later receipt crosses both
+hops; receiver/sender endpoints and all three inventories prove the path. Stop leaf and drop its
+slot on the middle before failback. Cleanup is mandatory in both scripts. In-memory epochs are not
+external durable authority, and local exclusion assumes no uncontrolled writer/supervisor.
+
+Core/source/exact hint2 pass. Report validation/05-failback-workload.md; final roots
+/tmp/pg-owned-te_w81me, /tmp/pg-owned-ffbmemhv and /tmp/pg-owned-in2478ql are stopped with all owned
+slots removed. Raw /tmp/pg-failback-workload-{core,variation}.log and
+/tmp/pg-failback-workload-exact-cascading-and-failback.log. Thirty tests/full check pass. Scoped
+builder /tmp/pg-failback-workload-scoped-build.py changes only current77;93 lessons/seven stops,
+first seven/capacity and copied IDs/history/progress remain intact. Copy:
+/tmp/pg-observe-progress-9sptk_w9/progress.sqlite; learner hash unchanged. Prior rewind637a41f is
+pushed. Preserve unrelated storage source/guide/knowledge and root bin/. No agents or learner
+writes.
+
+Next: current78 decode-the-log in module10. Follow design05: actual committed/aborted transactions,
+commit-order/plugin output and schema/DDL omissions, then independently committed receiver effects
+with acknowledgement loss/replay/deduplication, actual snapshot-plus-tail bootstrap under bounded
+writes, conflict/reconciliation and tested resnapshot. Physical replication is now accepted through
+current77; chunk5 logical work, chunks6–7 and final audit remain unfinished. Check disk before new
+fixtures (about1GB remains; retained owned evidence can be compressed after verified shutdown if
+necessary, without removing shared or learner files). Final audit includes current73 idle insertion
+boundary findings. Continue sequential primary implementation and commit/push accepted subsections.
 
 ## Rewind and chosen-history rejoin accepted, 2026-09-05
 

@@ -358,8 +358,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    divergence/common checkpoint and rewrites files. Repair copied recovery/socket/slot settings,
    rejoin read-only, verify25006 on target writes and a later streamed receipt. Variation increases
    discarded old acknowledgements from one to three; all remain accounted for in preserved evidence.
-9. `cascading-and-failback` (optional, shell). Swap roles back so the lab returns to the original
-   layout (primary 5440). Must leave the lab as module 01 built it, standby stopped and removed.
+9. `cascading-and-failback` (accepted, dangerous, shell). Controlled round trip on fresh owned
+   nodes. Close admission, verify known-history replay and every receipt, exclude outgoing writer
+   before each promotion. Rebuild original endpoint from a verified backup, refuse it while stale,
+   then return and prove timeline3/full receipts after restart with zero slots. Optional hint2 adds
+   a verified third hop with the middle still in recovery; stop leaf/release its slot before return.
+   Cleanup is required in both scripts; no learner-cluster reset or inherited live topology.
 
 ## 10 logical (file: 10-logical.ts, export LOGICAL, category "logical-replication")
 
