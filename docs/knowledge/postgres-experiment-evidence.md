@@ -88,3 +88,28 @@ percentiles. Resets and entry eviction can invalidate subtraction: the course ch
 dealloc, while stating that targeted resets still require coordination. Prior planning totals can
 survive after tracking is disabled. See
 [PostgreSQL16 pg_stat_statements](https://www.postgresql.org/docs/16/pgstatstatements.html).
+
+## Index comparisons and observation snapshots, 2026-09-05
+
+Match index build history as well as data: a primary key maintained during insertion is not the same
+physical history as a secondary index bulk-built afterwards. Integer versus text also changes type
+and collation, so describe it as a representation comparison. Index leaf inspection must exclude
+high keys and internal downlinks before matching a heap tuple pointer. Tree height is not a direct
+measurement of device reads per lookup.
+
+INCLUDE prevents B-tree deduplication, so a covering index's size increase can exceed the extra
+payload bytes alone. Demonstrate write eligibility on matched tables with spare space. Inside the
+update transaction, pg_stat_xact_user_tables directly distinguishes HOT eligibility without waiting
+for cumulative counters: a changed included payload prevents HOT, whereas changing an unindexed note
+can allow HOT on both tables. See
+[PostgreSQL16 CREATE INDEX](https://www.postgresql.org/docs/16/sql-createindex.html).
+
+A bounded readiness loop can still be wrong if each iteration rereads cached statistics. In the
+concurrent-build trial, the progress phase changed while a DO block retained its earlier
+observation. Clearing the statistics snapshot each iteration made the actual phase visible. Keep
+transaction-local counters, cumulative counter publication and cached observation snapshots
+distinct. See [PostgreSQL16 statistics](https://www.postgresql.org/docs/16/monitoring-stats.html).
+
+The repeatable-read pagination variation requires separate persistent sessions and a cursor acquired
+before the other session inserts. Inspect both pages inside the transaction and a fresh read after
+commit; merely writing out this schedule is not validation of the supplied hint.

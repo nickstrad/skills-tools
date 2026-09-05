@@ -42,15 +42,20 @@ another review or stop after planning: implementation and validation are authori
   and retention check. Hint fixes include fixed inner-lookup shape for Memoize comparison (5,000
   cached vs100,000 uncached probes). All30 tests pass, first7 objects unchanged, copied
   progress/IDs/history preserved,7 reading stops.
-- /tmp/pg-pivot-visibility-work contains the corresponding12-indexes source, guide and report. Six
-  cores passed. Hint validation found and fixed nonexistent ix_jobs to ix_orders. Immediate update
-  counters were0/0, so HOT evidence is still unproven; primary must repair the observation boundary
-  and execute it. The separate two-session RR pagination hint was NOT executed. Check every other
-  hint against its report too; do not infer acceptance from a completed agent task. Retires
-  index-only-scan-needs-visibility-map; update current mapping at integration.
+- Primary accepted index source12, six authored guides, registry and module reorder. Root source is
+  authoritative; old /tmp/pg-pivot-visibility-work is historical, not a pending assignment. See
+  validation/03-indexes.md primary acceptance2026-09-05. All six cores and exact hints ran; exactly
+  two deliberate uniqueness errors in each set, no other errors/timeouts. Cached progress snapshots
+  required pg_stat_clear_snapshot inside the CIC polling block; final sequence rerun passed. Matched
+  HOT trial: amount updates100HOT/plain vs0HOT/covered; unindexed-note hint100HOT/both. RR
+  pagination hint now executed:6/6 inside RR, fresh OFFSET5 after commit, fixture row removed. Logs:
+  /tmp/pg-index-primary-20260905.log, /tmp/pg-index-cic-final-20260905.log and
+  /tmp/pg-index-hints-20260905.log. Driver: /tmp/pg-index-hints.ts.
+- Planner and indexes now follow locking, before WAL/replication.94 lessons,7 reading stops, four
+  retired slugs; current lesson-map regenerated. Original first7 built objects and real progress
+  unchanged; copied refresh preserves IDs/history/progress.30 existing integration tests pass.
 - Primary owns all remaining source, coaching, capacity/migration and failure/protocol work. Next
-  section is indexes, then capacity/migration/observability. Optional agent work is fixed-scope
-  verification only; no new lesson authoring assignments.
+  section is capacity, then bounded migration and observability; agents are verification-only.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -65,12 +70,10 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Commit/push the accepted planner section and this handoff. Then start index review; do not repeat
-   planner discovery or copy its obsolete private draft over the accepted root source.
-2. Primary reviews indexes next, repairs counter observation, executes RR pagination and resolves
-   other evidence gaps. Then implement capacity and bounded migration synthesis sequentially.
-   Arrange final performance ordering before replication while respecting true WAL/recovery
-   prerequisites; do not create forward references.
+1. Commit/push the accepted index section and handoff; planner commit ba91880 is already pushed.
+2. Implement a bounded measured capacity experiment replacing connection-saturation, then bounded
+   migration synthesis and observability fixes. Use design03 and REWORK-PLAN. Planner/index ordering
+   is now earlier; observability remains after checkpoints due to real prerequisites.
 3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
    durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
 4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
@@ -113,3 +116,7 @@ separate databases; coordinate global operations serially.
 - `3bf2541` pushed: sequential primary implementation policy and superseding design/handoff notes.
 - Planner acceptance2026-09-05 is a section of chunk3; chunk3 remains incomplete. Continue directly
   to index primary review after the scoped planner commit/push.
+
+- `ba91880` pushed: primary planner acceptance, seven specific guides and durable measurement notes.
+- Index acceptance2026-09-05 follows sequentially. Next primary-owned hard work is bounded capacity
+  measurement; do not restart parallel lesson authoring or re-review obsolete private drafts.
