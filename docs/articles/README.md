@@ -32,6 +32,8 @@ and default tools; article notes supply motivation and optional experiment ideas
 | [Cursor: Git at any scale](cursor-git-at-any-scale.md) | Vicent Martí, Cursor, 2026-08-18 | Object storage, PostgreSQL WAL and recovery, optimistic concurrency, replica freshness, Git internals |
 | [KCNA reference](kcna-reference.md) | Linux Foundation, reviewed 2026-09-04 | Kubernetes/Docker entry point; avoid repeating fundamentals Nick already knows |
 | [On building scalable control planes](scalable-control-planes.md) | Zak van der Merwe, All Things Distributed, 2026-08-04 | PostgreSQL/SQLite control-store boundaries, Kubernetes, etcd, worker integration, Firecracker |
+| [ZippyDB: a general purpose key-value store](zippydb-key-value-store.md) | Sarang Masti, Meta Engineering, 2021-08-06 | Read consistency levels, replica freshness, write acknowledgment, OCC and conditional writes, failover fencing, etcd/Valkey roadmap topics |
+| [ZGateway: putting a proxy in front of ZippyDB](zgateway-zippydb-proxy.md) | Rittik Banik and Yunhao Cao, Meta Engineering, 2026-09-03 | Connection cost and pooling, capacity and admission control, cache invalidation from logical decoding, batching, proxy overhead, safe rollout |
 
 ## How agents should use these notes
 
