@@ -1,8 +1,47 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Chunks1–4 and chunk5 physical replication through current77 are accepted.
-There are93 active lessons. Next: current78 logical decoding and the rest of change processing, then
-chunks6–7 and the final audit. The full active goal is not complete.**
+There are93 active lessons. Next: current79 logical acknowledgement and the rest of change
+processing, then chunks6–7 and the final audit. The full active goal is not complete.**
+
+## Logical decoding accepted, 2026-09-05
+
+Current78 decode-the-log is revision4. Fresh owned wal_level=logical cluster with explicit
+include-xids=1, skip-empty-xacts=0, stream-changes=0. Committed physical heap/index/COMMIT records
+match one six-event logical envelope; aborted INSERT/ABORT has no logical event or visible row. DDL
+yields an empty envelope while a later row includes the new extra column. FULL variation adds old
+UPDATE/DELETE fields to the same workload/results. Crucially, a newer commit is actually consumed
+while the older backend remains idle in transaction. The later-delivered older row has an earlier
+LSN but a later COMMIT LSN; do not substitute arbitrary row positions for transaction completion.
+The old blanket claim that a long transaction blocks every later delivery is removed.
+
+The first abort-only physical inspection failed because the interval had no verified flush gate.
+Accepted code checkpoints after captured record-end markers and asserts flush>=end before
+pg_walinspect; no physical absence claim depends on unverified availability. Durable findings:
+docs/knowledge/postgres-logical-evidence.md (new index entry), also covering plugin-mode, schema and
+identity boundaries. Final core XID order737 then736; variation738 then737. Exact final rows are
+IDs1,701,800,801 with correct notes/values/extra, absent2/700.
+
+Core/source/exact hint2 pass. Report validation/05-logical-decoding.md. Final roots
+/tmp/pg-owned-fujhcb1t, /tmp/pg-owned-m69mnmnr and /tmp/pg-owned-00fy24ya are stopped, with no owned
+logical slot. Raw /tmp/pg-logical-decoding-{core,variation}.log and
+/tmp/pg-logical-decoding-exact-decode-the-log.log. Thirty tests/full check pass. Scoped builder
+/tmp/pg-logical-decoding-scoped-build.py changes only current78 among93 lessons; first seven,
+capacity and seven stops remain intact. Copied catalog
+/tmp/pg-observe-progress-6bd71yv6/progress.sqlite preserves IDs/progress/attempts; learner hash
+unchanged. Prior failbackdb40b5e is pushed. Preserve unrelated storage source/guide/knowledge and
+root bin/. No agents or learner writes.
+
+Next: current79 slot-position-and-acknowledgement. Retain actual peek/get/offset boundaries, but
+implement an independently committed receiver effect, response/process loss before and after
+acknowledgement, replay and deduplication from durable receipts. A slot offset is not proof of
+receiver commit, and source crash can cause offset replay; verify exact protocol boundaries rather
+than merely printing a delivery claim. Use a fresh owned source and isolated receiver state, not
+port5440 or learner progress. New module10 guide is registered in guides/mod.ts. Then actual
+snapshot/tail bootstrap, conflict reconciliation/resnapshot, chunks6–7 and final audit per design05.
+Full goal remains active. About940MB free after these fixtures; check before new clusters and
+compress only verified-stopped owned evidence if necessary. Final audit includes current73 idle
+insertion/replay boundary findings and this lesson's insertion/flush distinction.
 
 ## Controlled failback and optional cascade accepted, 2026-09-05
 

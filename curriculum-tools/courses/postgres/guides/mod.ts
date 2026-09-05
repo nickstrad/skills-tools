@@ -6,6 +6,7 @@ import { guides as locking } from "./06-locking.ts";
 import { guides as wal } from "./07-wal.ts";
 import { guides as checkpoints } from "./08-checkpoints.ts";
 import { guides as replication } from "./09-replication.ts";
+import { guides as logical } from "./10-logical.ts";
 import { guides as planner } from "./11-planner.ts";
 import { guides as indexes } from "./12-indexes.ts";
 import { guides as observability } from "./13-observability.ts";
@@ -20,6 +21,7 @@ export const GUIDES: Record<string, Guide> = {
   ...wal,
   ...checkpoints,
   ...replication,
+  ...logical,
   ...planner,
   ...indexes,
   ...observability,

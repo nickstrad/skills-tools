@@ -23,6 +23,7 @@ otherwise rediscover.
 | [postgres-observability-evidence.md](postgres-observability-evidence.md) | Wait samples, I/O scope/publication, nullable psql variables, timeout outcomes, index responsibilities and bounded log correlation. |
 | [postgres-wal-recovery-evidence.md](postgres-wal-recovery-evidence.md) | WAL interval attribution, transaction outcomes, page-image representation and actual recovery evidence. |
 | [postgres-replication-evidence.md](postgres-replication-evidence.md) | Owned physical topology, receiver lifecycle, replay/domain readiness and the boundary between transport and authority. |
+| [postgres-logical-evidence.md](postgres-logical-evidence.md) | Physical/logical transaction evidence, commit versus row-position ordering, abort flush gates and plugin/schema/identity limits. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |

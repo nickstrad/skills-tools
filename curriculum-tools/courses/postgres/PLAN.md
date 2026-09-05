@@ -367,9 +367,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 
 ## 10 logical (file: 10-logical.ts, export LOGICAL, category "logical-replication")
 
-1. `decode-the-log` (writes-data). `pg_create_logical_replication_slot('lab_slot','test_decoding')`,
-   do an insert/update/delete in a txn, `pg_logical_slot_get_changes` shows BEGIN/table ops/COMMIT.
-   Lens: CDC = reading the log with a schema; ordering = commit order.
+1. `decode-the-log` (accepted, privileged, shell). Fresh logical-WAL cluster: match
+   committed/aborted XIDs to actual physical heap/transaction records and test_decoding events.
+   Repeated peek/get, DDL empty envelope and later new-column row, then deliver a newer commit while
+   an older writer stays open. Compare commit order with XID and individual row LSN order.
+   FULL-identity variation adds old UPDATE/DELETE fields with the same final table. Explicit plugin
+   mode and flush gates bound the claims; no receiver-effect acknowledgement is implied.
 2. `slot-position-and-acknowledgement` (writes-data). `peek` vs `get`; `confirmed_flush_lsn`
    advances only on get; consumer semantics at-least-once. Lens: consumer offsets.
 3. `publication-and-subscription` (privileged). Second database `lab_sub` in the same cluster,
