@@ -5,22 +5,27 @@ finding its coaching materially better than the lessons around it. This document
 measured, what must change, and how to keep it from regressing. It is an audit and a plan; no
 renderer or guide file was changed in producing it.
 
-The learner's stated goal: walk the pgcoach flow with every needed context in the current pass,
-know which terminals to open before running anything, never meet a step that depends on something a
-later step introduces, and move between steps without remembering the stage vocabulary.
+The learner's stated goal: walk the pgcoach flow with every needed context in the current pass, know
+which terminals to open before running anything, never meet a step that depends on something a later
+step introduces, and move between steps without remembering the stage vocabulary.
 
 ## Ownership and sequencing
 
-`tools/coach.ts`, `tools/coach_test.ts` and `bin/pgcoach` are the guided-CLI owner's files per
-[01-guided-cli.md](01-guided-cli.md). The guide registry and final integration belong to the
-primary. At this document's writing the in-flight refactor still holds uncommitted changes in
-`PLAN.md`, `REWORK-PLAN.md`, `lesson-map.md`, `curriculum/02-storage.ts`, `guides/02-storage.ts`,
-`skill/postgres-tutor/SKILL.md` and `validation/09-*`.
+The systems engineering refactor, final audit and resource cleanup were committed and pushed as
+`e44cae6`. See [the final integration report](../validation/09-final-integration.md) and
+[cleanup record](../validation/09-final-cleanup.md); the temporary handoff is retired. Lesson 9's
+source, guide and knowledge changes are included in this stopping point, so the earlier collision
+with in-progress integration is resolved.
 
-Therefore: **implement workstream 1 first.** It touches only coach-owned files and no guide, so it
-cannot collide with the audit and integration work in progress. **Workstream 2 edits guide modules
-and must wait** for that handoff to close, or take single module files by explicit agreement. Do not
-begin a guide rewrite while `guides/02-storage.ts` is modified in another agent's tree.
+`tools/coach.ts`, `tools/coach_test.ts` and `bin/pgcoach` remain the renderer workstream's scope per
+[01-guided-cli.md](01-guided-cli.md). **Implement workstream 1 first**, then revise guide modules
+against that navigation/context contract in workstream 2. Check the working tree and current
+ownership before editing; any new concurrent changes require coordination.
+
+**Stopping-point status:** this document preserves the coaching audit and proposed implementation
+contract. Neither workstream is implemented by this commit checkpoint. The learner decisions below
+remain open; committing this plan does not settle them or expand the current task into
+implementation.
 
 Preserve the untouched original lessons 1–7, surviving slugs, learner progress and the seven reading
 stops. Author checks use a copied catalog; they never refresh the learner database.
@@ -35,9 +40,10 @@ lessons 1–7, which 01-guided-cli.md excludes deliberately; they fall back to t
 are no orphan guides. pgcoach was intended for every lesson except those, and it reaches every one
 of them.
 
-**Catalog divergence.** The learner's live database reports 95 active lessons; the built catalog has
-92 and the README describes 92. The learner needs an explicit `pgtutor init` once the refactor
-lands. This is already noted in the handoff and is not caused by anything here.
+**Catalog divergence at audit time.** The learner's live database reported 95 active lessons; the
+built catalog has 92. The completed refactor preserved the learner database. Refresh through
+`bin/tutor postgres init` from the repository root only when the learner authorizes it; author
+checks continue using `--db` with a disposable copy. See the course README for that distinction.
 
 **Navigation is effectively absent.** The renderer emits a next command in exactly one place: the
 `start` stage's closing line. Searching all 85 guides for a `pgcoach <stage>` pointer in any of
@@ -53,18 +59,18 @@ The `start` stage's next command also prints the hardcoded absolute path in `too
 **Guide substance falls off a cliff between lessons 11 and 37.** Total characters across the six
 coached prompt fields, by module:
 
-| Module | Lessons | Median | Thinnest |
-| --- | --- | --- | --- |
-| locking | 30–37 | 448 | 358 (#31) |
-| mvcc | 11–17 | 506 | 439 (#13) |
-| vacuum | 18–20 | 514 | 468 (#19) |
-| isolation | 21–29 | 583 | 497 (#25) |
-| query-planning | 38–44 | 808 | 789 (#40) |
-| indexes | 45–51 | 821 | 750 (#49) |
-| observability, checkpointing, wal | 52–68 | 1,010–1,130 | |
-| replication, logical, patterns | 69–87 | 1,151–1,326 | |
-| reliability | 88–92 | 2,607 | 2,230 (#90) |
-| **storage (lesson 9)** | 9 | **4,592** | |
+| Module                            | Lessons | Median      | Thinnest    |
+| --------------------------------- | ------- | ----------- | ----------- |
+| locking                           | 30–37   | 448         | 358 (#31)   |
+| mvcc                              | 11–17   | 506         | 439 (#13)   |
+| vacuum                            | 18–20   | 514         | 468 (#19)   |
+| isolation                         | 21–29   | 583         | 497 (#25)   |
+| query-planning                    | 38–44   | 808         | 789 (#40)   |
+| indexes                           | 45–51   | 821         | 750 (#49)   |
+| observability, checkpointing, wal | 52–68   | 1,010–1,130 |             |
+| replication, logical, patterns    | 69–87   | 1,151–1,326 |             |
+| reliability                       | 88–92   | 2,607       | 2,230 (#90) |
+| **storage (lesson 9)**            | 9       | **4,592**   |             |
 
 Lessons scoring under 700 characters form two contiguous runs: **11–28 and 30–37, 26 lessons.**
 Lesson 9 is the richest guide in the course, roughly twelve times the thinnest. Per-field medians
@@ -100,8 +106,8 @@ magnitude larger than the question it answers.
 
 **No authoring contract exists for guides.** `../../docs/AUTHORING.md` refers to coaching in a
 single incidental line and the `curriculum-author` skill in two. Nothing defines guide field
-content, substance floors, self-containment or navigation. That absence, not any individual
-author's choice, is why quality varies twelvefold.
+content, substance floors, self-containment or navigation. That absence, not any individual author's
+choice, is why quality varies twelvefold.
 
 ## Pace, for the learner's planning
 
@@ -164,14 +170,14 @@ leak `expectedResult` or `systemsLens` into a pre-reveal stage.
 
 8. **Write the contract before writing guides.** A course-local `guides/README.md`, referenced from
    `../../docs/AUTHORING.md`, stating for each field its purpose, a substance floor, and these
-   rules: a stage may not depend on anything a later stage introduces; a stage may not refer to
-   "the above" or "the previous step" without restating what it means; a guide for a multi-session
-   lesson must name which session each observation comes from; a hint may not dwarf its prompt
-   beyond a stated multiple. Lesson 9 is the reference implementation for all of it.
+   rules: a stage may not depend on anything a later stage introduces; a stage may not refer to "the
+   above" or "the previous step" without restating what it means; a guide for a multi-session lesson
+   must name which session each observation comes from; a hint may not dwarf its prompt beyond a
+   stated multiple. Lesson 9 is the reference implementation for all of it.
 9. **Add `tools/guide_lint.ts` to the build** so this cannot silently regress. Proposed initial
-   checks, thresholds to be calibrated against the existing rich guides rather than asserted:
-   a prompt field below the floor; forward-reference phrases; a multi-session lesson whose guide
-   never names a session; prompt-to-hint ratio beyond the stated multiple. Treat the first run as
+   checks, thresholds to be calibrated against the existing rich guides rather than asserted: a
+   prompt field below the floor; forward-reference phrases; a multi-session lesson whose guide never
+   names a session; prompt-to-hint ratio beyond the stated multiple. Treat the first run as
    calibration — it will flag the 26 known lessons, and the thresholds are right only if it does not
    flag the reliability and replication guides.
 10. **Backfill in module batches**, thinnest and most session-heavy first: `06-locking` (8 lessons,
