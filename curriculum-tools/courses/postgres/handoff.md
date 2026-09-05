@@ -1,8 +1,54 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Chunks1–4 and chunk5 physical replication through current77 are accepted.
-There are93 active lessons. Next: current79 logical acknowledgement and the rest of change
-processing, then chunks6–7 and the final audit. The full active goal is not complete.**
+There are93 active lessons. Next: current80 publication/bootstrap and the rest of change processing,
+then chunks6–7 and the final audit. The full active goal is not complete.**
+
+## Independent slot acknowledgement and receiver effects accepted, 2026-09-05
+
+Current79 slot-position-and-acknowledgement is revision4. Separate owned PostgreSQL source and
+receiver with distinct system IDs. Unsafe get-before-effect plus killed uncommitted client leaves
+source IDs1,2 without receiver effects; separately inventoried, not reconciled. Safe receipt
+identity and credit commit atomically. Kill clients before receiver COMMIT, after that COMMIT before
+source acknowledgement, and after source acknowledgement. Replays add0 effects; mismatched
+event10/delta999 fails22000. Five-change request returns12 events for one ten-event transaction. Ack
+only its COMMIT at0/861B60, leaving later20,21 pending; final safe IDs10–21/total186 survive
+receiver restart.
+
+Variation checkpoints before source acknowledgement, then actually crashes source before new slot
+state is persisted. Receiver remains live with total145; recovered source confirmation rolls back
+from0/861B60 to0/8615D0 and the first batch really replays. Deduplication leaves145 before final
+20,21 add41. Durable findings in docs/knowledge/postgres-logical-evidence.md correct absolute
+irreversible-offset/at-most-once claims and explain independent effect/acknowledgement boundaries.
+These are controlled client-process failures, not network packet-loss injection or independent host
+failure domains. Fixed immutable event namespace/schema, single consumer and retained receipts are
+explicit assumptions.
+
+Core/source/exact hint2 pass. Report validation/05-slot-delivery.md. Final roots
+/tmp/pg-owned-v5vw00j2, /tmp/pg-owned-3h5uxxie and /tmp/pg-owned-zgz334f0 are stopped, with no
+remaining source/receiver slots. Raw /tmp/pg-slot-delivery-{core,variation}.log and
+/tmp/pg-slot-delivery-exact-slot-position-and-acknowledgement.log. Thirty tests/full check pass.
+Scoped builder /tmp/pg-slot-delivery-scoped-build.py changes only current79;93 lessons/seven stops,
+first seven/capacity and copied IDs/history/progress preserved. Copy:
+/tmp/pg-observe-progress-8uuhdb9n/progress.sqlite; learner hash unchanged. Prior decoding58b6af2 is
+pushed. Preserve unrelated storage source/guide/knowledge and root bin/. No agents or learner
+writes.
+
+Next: current80 publication-and-subscription and current81 initial-sync-vs-streaming. Follow
+design05 with actual bootstrap while bounded INSERT/UPDATE/DELETE continue, known snapshot/tail
+boundary, identity/schema prerequisites, apply readiness and complete source/subscriber contents.
+Consolidate only after replacement coverage is measured, with explicit prerequisite/ordinal/reading
+maps and copied progress checks; current course still has93 lessons. Then real conflict
+reconciliation, logical retention/resnapshot, chunks6–7 and the whole-course audit. Full goal
+remains active.
+
+Disk is down to about600MB. Before larger bootstrap fixtures, archive only verified-stopped owned
+evidence if capacity is insufficient, preserving logs/metadata and verifying any compressed file
+image before removing its original. Current79 early prototype pairs /tmp/pg-owned-xfwzyf3w and
+/tmp/pg-owned-lavw2ihm are stopped and superseded by the final runs above; their source/receiver
+images are candidates for verified archival. Do not remove learner/shared files or assume arbitrary
+/tmp/pg-owned-* belongs to this turn. Final audit still includes idle insertion/replay boundaries
+and explicit flush availability for abort-only WAL inspection.
 
 ## Logical decoding accepted, 2026-09-05
 

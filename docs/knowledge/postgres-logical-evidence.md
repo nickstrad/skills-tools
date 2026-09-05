@@ -94,3 +94,89 @@ References: PostgreSQL16 [test_decoding](https://www.postgresql.org/docs/16/test
 [output plugins](https://www.postgresql.org/docs/16/logicaldecoding-output-plugin.html) and
 [pg_walinspect](https://www.postgresql.org/docs/16/pgwalinspect.html). Numeric results above are
 executed local evidence, not promised values for another run.
+
+## Source acknowledgement and receiver effect commit independently (2026-09-05)
+
+### What happened
+
+Current79 initializes separate source and receiver PostgreSQL processes with
+different system identifiers and private data/socket paths. The unsafe trial
+consumes source IDs1,2 with get, then kills a receiver psql client while its
+attempted receipts and balance update remain uncommitted. The backend
+disappears, independent receiver queries show no effect and total0, and the
+source's next read is empty while its rows remain. These missing effects are
+preserved as failure evidence, not silently included in the later safe
+protocol's success.
+
+The safe receiver function inserts an immutable origin/event-ID receipt and
+credits its delta in the same transaction. A duplicate inserts nothing and
+changes no balance; a duplicate identity with a different payload raises22000.
+The source's ten-event transaction returns12 envelope rows despite a five-change
+request. Repeated peeks leave confirmation unchanged. Killing its first receiver
+attempt before COMMIT rolls back all receipts and credits; the whole source
+batch remains available. Killing a later client after receiver COMMIT but before
+source acknowledgement leaves ten receipts and total145. Fresh source replay
+followed by receiver retry applies0 new effects and preserves145.
+
+A later source transaction contains20,21. Acknowledgement advances only through
+the first complete transaction's COMMIT LSN, leaving20,21 pending even after the
+source acknowledgement client is killed. Final safe delivery matches all
+IDs10–21 and total186 on both sides, including after an actual receiver restart.
+All owned clients/servers stop and source slots drop. Report:
+validation/05-slot-delivery.md.
+
+### Why it matters
+
+A source offset does not encode receiver success. Receipt and effect must share
+a receiver commit; a receipt written independently could survive without its
+intended effect. A row position, or the newest source WAL position, is not a
+safe replacement for the completed transaction actually applied. The receipt
+identity must remain immutable, and deduplication state must cover the possible
+replay horizon. This fixture has one consumer and one narrow INSERT schema, not
+an arbitrary CDC protocol.
+
+### How to apply
+
+Inject failure at actual client/database boundaries and read each server
+independently afterward. The harness's psql markers schedule the kills; backend
+state, receipts, totals and source cursor queries prove outcomes. Describe this
+as controlled client-process loss, without implying a network packet-loss
+mechanism was exercised. Keep deliberately lost effects separately inventoried.
+A single-host pair establishes independent transactions and processes, not
+independent host failure or a distributed atomic commit.
+
+## Checkpointed slot state can replay already-acknowledged work (2026-09-05)
+
+### What happened
+
+The source checkpoints before the first safe acknowledgement. Slot confirmation
+is0/8615D0; the worker advances it to the first transaction's COMMIT at0/861B60.
+The harness verifies that state, kills the acknowledging client and confirms
+only the later batch remains. In the variation, an immediate source stop happens
+before another checkpoint persists the advanced position. The independent
+receiver stays live with ten receipts and total145. Source restart preserves its
+system identity but restores confirmation0/8615D0 and actually replays the
+already-acknowledged first batch. Applying those events again creates0 receipts
+and no extra credit; acknowledging the same COMMIT again preserves the later
+batch, which then finishes total186.
+
+### Why it matters
+
+The previous absolute claims that get is irreversible or guarantees at-most-once
+delivery were too strong. Immediate rereads can be empty while crash recovery
+can still replay acknowledged changes. Checkpoint persistence, source delivery
+and receiver commit are distinct boundaries. Deduplication must not be discarded
+merely because acknowledgement was observed. This trial deliberately controls
+the checkpoint window; it does not predict that every source crash will move a
+slot backward.
+
+### How to apply
+
+Save the pre-acknowledgement slot state, control the checkpoint interval and
+actually compare recovered positions before claiming replay. Keep the receiver
+independently queryable through source failure. Require replayed payloads to
+equal the original complete batch and verify zero duplicate credit before
+advancing again. See PostgreSQL16
+[slot administration functions](https://www.postgresql.org/docs/16/functions-admin.html#FUNCTIONS-REPLICATION)
+and
+[logical decoding concepts](https://www.postgresql.org/docs/16/logicaldecoding-explanation.html).

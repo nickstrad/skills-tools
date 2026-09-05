@@ -373,8 +373,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    an older writer stays open. Compare commit order with XID and individual row LSN order.
    FULL-identity variation adds old UPDATE/DELETE fields with the same final table. Explicit plugin
    mode and flush gates bound the claims; no receiver-effect acknowledgement is implied.
-2. `slot-position-and-acknowledgement` (writes-data). `peek` vs `get`; `confirmed_flush_lsn`
-   advances only on get; consumer semantics at-least-once. Lens: consumer offsets.
+2. `slot-position-and-acknowledgement` (accepted, dangerous, shell). Independent owned
+   source/receiver: consume-first failure, then atomic receipt plus credit and acknowledgement
+   through a complete decoded transaction. Kill consumers before receiver commit, after commit and
+   after source ack; replay deduplicates and later work stays pending. Variation crashes source
+   before slot checkpoint, proving acknowledged-offset replay with receiver state intact. Final safe
+   IDs10–21/total186 survive receiver restart; unsafe missing effects remain separately classified.
 3. `publication-and-subscription` (privileged). Second database `lab_sub` in the same cluster,
    `create publication`, `create subscription ... connection 'host=/tmp port=5440 dbname=lab'`
    (needs `create_slot`; same-cluster subscriptions need `copy_data` caveat: use
