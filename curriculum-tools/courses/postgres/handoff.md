@@ -5,6 +5,23 @@ archive failure, actual crash/replay and matched amplification. Replay-only less
 94 lessons remain. Checkpoint anatomy is now accepted below. Next: recovery cost, WAL pressure,
 backup/restore and PITR.**
 
+## WAL-pressure checkpoints accepted, 2026-09-05
+
+Current 60 max-wal-size-forces-checkpoints is accepted at revision 4. Core/source/exact-hint
+comparisons each use two fresh owned clusters, equal receipt values and8MB/128MB targets. Core 32
+batches: one versus zero WAL checkpoints; source64 batches: three versus zero. Actual settings,
+sourcefiles, fixed epochs, fresh reason/completion logs, sampled9MB soft-target peak and final
+receipt assertions pass. Each override is removed,128MB file source verified and server stopped.
+Report validation/04-wal-pressure.md and /tmp/pg-wal-pressure-{core,variation}.log; exact
+/tmp/pg-wal-pressure-exact-max-wal-size-forces-checkpoints.log.
+
+Thirty tests/full check pass. Scoped artifact changes only current60;94 lessons/seven stops, first
+seven/capacity and copied IDs/history/progress remain intact. Core book excerpts preserved; study
+rationale no longer uses obsolete ordinals. Checkpoint anatomy b2e90f5 and matched recovery 0570466
+are pushed. Next is current61 base-backup: create/verify/independently restore, assert complete
+domain state, and require actual bounded missing-WAL recovery failure. Then current62 PITR and only
+afterward consolidate timeline-history. Chunks4–7 remain active; no learner writes.
+
 ## Recovery cost accepted, 2026-09-05
 
 Current 59 redo-point-bounds-recovery is accepted at revision 4. Four fresh owned clusters per

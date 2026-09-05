@@ -287,3 +287,30 @@ case. Capture the complete observation workload before the final commit/flush bo
 Use fresh log offsets, stopped control state, exact replay boundaries, complete visible
 values and separate readiness clocks. See validation/04-recovery-cost.md for all twelve
 source/core/exact-hint trials; this does not establish cold-storage or production RTO.
+
+## Isolating WAL-driven checkpoints (2026-09-05)
+
+### What happened
+
+Fresh 8MB/128MB targets received identical 32- and 64-batch receipt workloads. With
+1MB segments, the small budget produced one/three requested checkpoints and matching
+fresh WAL-reason starts; the large budget produced none. The small-budget sampled peak
+was 9MB. Actual setting/unit/sourcefile/pending_restart checks bracket the experiment,
+and finally restores the original 128MB file source before stopping each cluster.
+
+### Why it matters
+
+Requested counters include manual causes, so a delta needs log-reason context. Reload
+acknowledgement is not proof of an active value. Segment allocation and producer LSN
+distance measure different things; neither proves foreground latency. A frequent-checkpoint
+warning does not establish a storage bottleneck or actual throttling. Archive/slot retention
+must be excluded or separately measured before attributing disk growth to checkpoint policy.
+
+### How to apply
+
+Use bounded fixed batches, compare complete receipt values and retain per-batch samples.
+Poll settings and published counters with deadlines; use fresh log offsets and fixed
+stats-reset epochs. Remove only the owned override, verify the restored source as well
+as value, and stop in nested finally even if restoration fails. Accelerated checkpoint
+pacing is an explicit lab condition, never an implied production recommendation. See
+validation/04-wal-pressure.md for source and exact rendered-hint evidence.

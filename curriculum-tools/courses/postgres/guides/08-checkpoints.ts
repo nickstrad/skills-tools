@@ -1,8 +1,28 @@
 import { CHECKPOINT_VARIATION } from "../curriculum/checkpoint-workload.ts";
 import { RECOVERY_COST_VARIATION } from "../curriculum/recovery-cost.ts";
+import { WAL_PRESSURE_VARIATION } from "../curriculum/wal-pressure.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "max-wal-size-forces-checkpoints": {
+    brief:
+      "Cause WAL-driven checkpoints with a bounded producer and verify actual settings, fresh reason logs and equivalent receipts.",
+    predict:
+      "For the same32,000 receipts at8MB and128MB targets, which checkpoint counters and log reasons should change? Does a frequent-checkpoint warning prove that client requests stalled?",
+    inspect:
+      "Verify active budget/source, equal receipt values, unchanged stats epoch and timed count. Match requested deltas to fresh WAL-reason starts/completions; compare sampled segment bytes separately from produced WAL distance.",
+    explain:
+      "Why does requested-checkpoint count need a log reason? Why do archive/slot retention and a soft WAL target answer different disk questions? What proves the setting was restored?",
+    vary:
+      "Double the batch count to64 at both budgets, holding rows per transaction and payload fixed. Compare generated distance, checkpoint deltas and retained file samples.",
+    apply:
+      "A service reports frequent checkpoints and falling free disk. Choose the next observations that distinguish increased production, checkpoint scheduling and a stalled archive or slot; identify which latency evidence remains missing.",
+    hints: [
+      "A reload request returning true is not the active value. A WAL-reason log is not a latency sample, and a requested counter alone also includes manual checkpoints.",
+      "Run this complete64-batch variation in a shell.\n\n```bash\n" + WAL_PRESSURE_VARIATION +
+      "\n```",
+    ],
+  },
   "redo-point-bounds-recovery": {
     brief:
       "Compare actual replay and query readiness across equal receipt datasets with different checkpoint positions.",
