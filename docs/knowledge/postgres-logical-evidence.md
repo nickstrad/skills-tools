@@ -318,3 +318,95 @@ require fresh post-repair work. Use actual schema failure and retained-transacti
 a migration repair, not just an ALTER TABLE success message. See validation/05-logical-conflicts.md
 and PostgreSQL16's
 [logical replication restrictions](https://www.postgresql.org/docs/16/logical-replication-restrictions.html).
+
+## A recreated slot name does not restore its deleted decoding position (2026-09-05)
+
+### What happened
+
+Current82 pauses an independent logical subscriber. Published UPDATE/DELETE/INSERT plus four bounded
+unpublished churn batches leave restart/confirmation fixed, an unconfirmed WAL interval above3MB and
+the required segment still present after CHECKPOINT. Segment count stays8 in the final runs; interval
+growth does not require immediate file-count growth. Resuming the original slot replays all changes,
+a fresh91 receipt applies and confirmation advances through its COMMIT end.
+
+A second paused interval updates1, deletes2 and inserts600. A source1000 row also commits and is then
+deleted in a separate transaction; its independently visible intermediate image is retained. Dropping
+the still-needed source slot removes its catalog state while the subscriber retains the name and
+origin. Actual streaming startup then fails because the slot is absent. Recreating owned_retention
+returns a new position beyond every gap commit; the old origin remains unchanged. All three old
+COMMIT records are still physically inspectable. Yet the restarted stream applies new900 while full
+comparison still finds stale1, extra2 and missing600.
+
+### Why it matters
+
+The slot name, consumer origin and physical availability of WAL are different facts. A new logical
+slot does not recover its predecessor's decoding context merely by reusing its name or seeing older
+files. Conversely, pausing a consumer with its original viable slot intact can preserve pending
+changes. This experiment uses explicit slot removal; it does not duplicate the earlier physical
+retention lesson's invalidation workload.
+
+### How to apply
+
+Save slot restart, confirmation, catalog horizon and independent data before lifecycle changes.
+Measure actual acknowledgement and post-resume effects. If a slot is discarded, declare the gap and
+verify the replacement's starting point. Do not treat a newly flowing stream or still-present WAL
+files as proof that prior work arrived. See validation/05-logical-resnapshot.md and
+[logical decoding concepts](https://www.postgresql.org/docs/16/logicaldecoding-explanation.html).
+
+## Missing-slot startup can leave apply error counters at zero (2026-09-05)
+
+### What happened
+
+The missing-slot attempt logs08P01 on the subscriber and a corresponding source slot-does-not-exist
+error. The worker exits. Despite disable_on_error=true, subenabled remains true and both
+apply_error_count/sync_error_count remain0 at that observed boundary. The driver explicitly disables
+and waits for no workers before recreating the slot. All three final runs assert these states and
+retain the new log region; this is separate from the actual data-apply errors exercised in current81.
+
+### Why it matters
+
+Connection/startup failure is not the same path as applying a received transaction. Zero apply/sync
+counters and a configured disable-on-error policy do not establish a healthy stream or guarantee
+that every failure disables it automatically.
+
+### How to apply
+
+Combine logs, enabled state, live workers and actual post-commit data probes. Classify the error before
+choosing a repair. When a controlled test expects a connection failure, explicitly stop its retry
+lifecycle and preserve the failure evidence rather than waiting for a data-apply counter to change.
+
+## Publication refresh is not resnapshot, and resnapshot is not event-history recovery (2026-09-05)
+
+### What happened
+
+The variation executes REFRESH PUBLICATION(copy_data=true) on the existing subscription after its
+slot is recreated. The already-ready table's relation state remains unchanged. Receipt901 applies,
+but the same three differences1/2/600 remain. The control omits only REFRESH and observes the same
+result. PostgreSQL's documented refresh behavior copies newly registered tables, not every table
+already known to the subscription.
+
+Actual recovery pauses all driver-owned source writes and apply, preserves the stale target in a
+separate table, drops the old subscription/origin and replacement slot, empties the target and starts
+a new subscription with a new owned_resnapshot slot. Generation2 audit INSERT images equal the
+saved source snapshot. A later902 receipt passes the new origin's COMMIT-end gate. All15 final rows
+and payloads agree; stale1, extra2 and missing600 remain independently reviewable in the old evidence.
+
+Neither consumer generation has an audit event for1000. Today's source and target both omit it, while
+the driver still retains its committed insert/delete and actual intermediate source image. The
+successful table rebuild has not reconstructed that historical event.
+
+### Why it matters
+
+Appending a copy to stale data can preserve missed deletions or cause conflicts. Refreshing existing
+membership is also not a replacement procedure. A bounded current-state rebuild can be correct while
+an audit or billing consumer remains missing past effects; those requirements cannot be inferred
+from a final row count or an advancing origin.
+
+### How to apply
+
+Choose the recovery obligation first: current projection, historical transitions or business effects.
+For the first, establish source authority and a stable comparison/copy boundary, preserve disputed
+state, actually replace/rebuild and verify subsequent work. For historical delivery, identify the
+additional retained history or reconciliation needed; a snapshot alone is insufficient. This fixture
+pauses its sole source writer during rebuild and does not claim concurrent multi-writer repair.
+See [ALTER SUBSCRIPTION](https://www.postgresql.org/docs/16/sql-altersubscription.html).

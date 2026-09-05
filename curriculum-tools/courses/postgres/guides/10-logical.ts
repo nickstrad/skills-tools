@@ -2,9 +2,29 @@ import { LOGICAL_DECODING_VARIATION } from "../curriculum/logical-decoding.ts";
 import { SLOT_DELIVERY_VARIATION } from "../curriculum/slot-delivery.ts";
 import { LOGICAL_BOOTSTRAP_VARIATION } from "../curriculum/logical-bootstrap.ts";
 import { LOGICAL_CONFLICTS_VARIATION } from "../curriculum/logical-conflicts.ts";
+import { LOGICAL_RESNAPSHOT_VARIATION } from "../curriculum/logical-resnapshot.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "slot-lag-and-disk": {
+    brief:
+      "Distinguish retained-slot replay, a same-name replacement cursor and actual resnapshot, including the limit on recovering historical events.",
+    predict:
+      "Which pending changes survive a consumer pause, and which arrive after the source slot is dropped and recreated? Can a later snapshot reveal a row inserted and deleted during the missing interval?",
+    inspect:
+      "Compare source slot restart/confirmation with subscriber origin and complete row differences. Require actual missing-slot failure, later900/901 receipts alongside discrepancies1/2/600, and a fresh copied snapshot plus902 before claiming current-state recovery.",
+    explain:
+      "Why do physical WAL availability, a remembered slot name, zero apply errors and an advancing origin each fail to prove recovery? Which evidence distinguishes table-state reconciliation from historical-event delivery?",
+    vary:
+      "Before resnapshot, add REFRESH PUBLICATION with copy_data=true to the existing subscription. Predict whether its ready table is recopied; use the same901 receipt and full differences to check.",
+    apply:
+      "A search projection and a billing/audit consumer both lose their slot. Decide which may recover from this snapshot, what further history or reconciliation the other needs, and what admission gates each requires.",
+    hints: [
+      "Refresh copies newly registered tables, not every existing subscription table. Slot recreation starts a new stream. Preserve stale and historical evidence, then verify both a real new copy and post-copy work; a transient deleted event will not appear in today's snapshot.",
+      "Run this complete refresh-before-resnapshot variation in a shell.\n\n```bash\n" +
+      LOGICAL_RESNAPSHOT_VARIATION + "\n```",
+    ],
+  },
   "conflicts-stop-the-apply-worker": {
     brief:
       "Diagnose actual uniqueness/schema failures, recover queued source commits, and reconcile every effect omitted by a whole-transaction skip.",

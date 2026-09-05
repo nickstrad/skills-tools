@@ -1,8 +1,63 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–4 and chunk5 through current81 logical conflict recovery are accepted.
-There are92 active lessons. Next: current82 logical retention/resnapshot, then chunks6–7 and the
-final audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–5 are accepted through current82 logical retention/resnapshot. There
+are92 active lessons. Next: chunk6 durable protocols, starting current83 transactional-outbox, then
+chunk7 incidents and the final whole-course audit. The full active goal is not complete.**
+
+## Logical slot loss/resnapshot and chunk5 integration accepted, 2026-09-05
+
+Current82 slot-lag-and-disk is revision4. Independent source/subscriber: a retained inactive slot
+preserves pending published work plus a bounded unpublished WAL interval above3MB; resume proves
+complete application and acknowledgement. New gap updates1/deletes2/inserts600 and commits then
+deletes transient1000. Dropping the slot loses its source catalog state while subscriber origin/name
+remain. A real missing-slot startup logs08P01, yet subenabled stays true and apply/sync counters0;
+explicit disable bounds retry. Same-name creation starts beyond every gap COMMIT even though the old
+physical COMMIT records remain inspectable. New900/901 stream while exactly1/2/600 disagree.
+Variation REFRESH(copy_data=true) leaves the already-registered table and discrepancies unchanged.
+
+Actual resnapshot pauses driver-owned source writes/apply, preserves stale target rows, drops the
+old subscription/origin/slot, empties the target and creates a new subscription/slot. Generation2
+COPY audit images equal the saved authoritative source snapshot; new902 and all15 final payloads
+agree. Neither generation contains1000's historical event. State projection repair does not
+reconstruct every past effect; its committed insert/delete and intermediate source image remain
+separate evidence. Durable findings appended to docs/knowledge/postgres-logical-evidence.md. Report
+validation/05-logical-resnapshot.md.
+
+Final core /tmp/pg-owned-joc4yatu, source variation /tmp/pg-owned-6eu11w08 and exact hint2
+/tmp/pg-owned-ft13c_3t are stopped, with no slots and exactly the expected missing-slot error on
+each endpoint. Drivers /tmp/pg-logical-resnapshot-{validate,exact}.ts; source logs
+/tmp/pg-logical-resnapshot-{core,variation}.log; exact
+/tmp/pg-logical-resnapshot-exact-slot-lag-and-disk.log. Thirty tests/full check pass. Scoped builder
+/tmp/pg-logical-resnapshot-scoped-build.py changes only82 among92 lessons. Copy
+/tmp/pg-observe-progress-myyahqxw/progress.sqlite preserves IDs/history/progress, original first
+seven/capacity/seven stops and learner hash. Prior current81 ceef683 is pushed.
+
+Chunk5 integration report validation/05-integration.md maps all14 accepted experiments69–82.
+/tmp/pg-chunk5-artifact-audit.py matched every current core and freshly rendered hint2 to its
+executed source/cached hint, then checked42 retained logs for success/no traceback. Full script/log
+SHA256 manifest is validation/05-evidence-manifest.json. This correspondence audit did not rerun all
+old experiments; individual reports contain their actual outcome/expected-error review. Whole-course
+final audit remains required, including idle insertion/replay and abort-only WAL flush boundaries.
+
+Continue sequentially with chunk6/current83 transactional-outbox, then84 idempotency-keys, 85
+two-phase-commit,86 fencing-tokens-with-a-monotonic-counter and87 listen-notify-as-a-bus. Read
+REWORK-PLAN's durable-protocol contract, current14-patterns.ts, existing protocol helpers and prior
+review before planning/replacing each experiment. Require independently committed receiver effects,
+actual loss/replay and atomic identities, enforced stale-writer rejection, durable2PC decision
+recovery and missed-notification reconciliation. Then current88–92 symptom-first incidents/final
+integration. No agents, learner writes or port5440 operations. Preserve unrelated storage
+source/guide/knowledge and root bin/.
+
+Disk about140MB after final fixtures. Verified cold archival is complete for failed conflict
+vl7_sfvp and accepted bootstrap dfn4izle/pl36xp5k/a3sf8esa via
+/tmp/pg-resnapshot-archive-evidence.py. Initial resnapshot prototypes5gtb672y/2hdcl4ee were
+similarly archived via /tmp/pg-resnapshot-archive-prototypes.py after final instrumentation was
+added. Each root retains raw logs/JSON, cold-archives.json, exact file-hash/control manifests and
+cold.tar.gz; only original data/subscriber directories were removed after stopped-state and
+archive/original path/hash rechecks. Accepted bootstrap raw data now reside in those archives. This
+is not a tested restore. Final resnapshot roots above and final conflict roots remain intact. Before
+more large fixtures, explicitly inventory and cold-archive verified-stopped owned evidence; do not
+remove arbitrary /tmp trees or shared/learner files.
 
 ## Logical conflict repair and explicit skip reconciliation accepted, 2026-09-05
 

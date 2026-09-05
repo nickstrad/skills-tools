@@ -395,9 +395,16 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    reconciles under stopped apply and paused source writes. Source-only ADD COLUMN causes actual
    55000; compatible target DDL recovers queued work. Both paths require all ten final payloads,
    fresh post-repair receipts and cleanup; counters remain cumulative rather than proving agreement.
-5. `slot-lag-and-disk` (privileged). Drop the subscriber's ability to apply (disable the
-   subscription), write on the publisher, `pg_replication_slots` restart_lsn stays, `pg_wal` grows;
-   re-enable. Cleanup: drop subscription, slots, lab_sub.
+5. `slot-lag-and-disk` (privileged, shell). Pause a real independent subscriber, retain bounded
+   published changes plus unpublished WAL churn, then verify backlog replay and acknowledgement.
+   Drop the inactive slot with new work pending; actual missing-slot startup fails while apply/sync
+   counters remain zero. Recreating the name starts beyond the gap: new receipts arrive while
+   IDs1/2/600 remain stale/extra/missing. Variation REFRESH(copy_data=true) does not recopy the
+   existing table. Preserve stale rows, empty the owned target and create a fresh subscription under
+   paused source writes; audit the actual copied snapshot and verify post-copy receipt902 with all
+   15 final payloads. An inserted-then-deleted gap event remains missing from consumer history, so
+   current-state recovery is not historical delivery. Drop every owned subscription/slot and stop
+   both servers; full physical retention/invalidation mechanics remain in the earlier experiment.
 
 ## 11 planner (file: 11-planner.ts, export PLANNER, category "query-planning")
 

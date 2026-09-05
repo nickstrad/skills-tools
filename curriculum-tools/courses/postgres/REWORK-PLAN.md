@@ -8,14 +8,12 @@ parallel lesson authoring has stopped. This supersedes the earlier Terra impleme
 in historical designs. See [handoff.md](handoff.md) for the current checkpoint and
 [designs/](designs/) for exact contracts.
 
-Progress checkpoint, 2026-09-05: chunks1–4 are accepted. Durability/recovery acceptance is recorded
-in the individual validation/04-*.md reports, concluding with
-[actual PITR and timeline consolidation](validation/04-pitr.md). Chunk5 is accepted through physical
-replication, logical decoding/delivery and
-[bootstrap consolidation](validation/05-logical-bootstrap.md), followed by
-[logical conflict recovery](validation/05-logical-conflicts.md). Logical retention/resnapshot,
-chunks6–7 and the final course audit remain unfinished. The current course has92 active lessons and
-seven stops.
+Progress checkpoint, 2026-09-05: chunks1–5 are accepted. Durability/recovery concludes with
+[actual PITR and timeline consolidation](validation/04-pitr.md); replication/change processing is
+recorded in [chunk5 integration](validation/05-integration.md), including all14 current core/hint
+artifacts and individual real-tool reports. Next: chunk6 durable protocols at current83
+transactional-outbox, then chunk7 incidents and the final whole-course audit. The current course
+has92 active lessons and seven stops; the full pivot remains unfinished.
 
 ## Teaching contract
 
