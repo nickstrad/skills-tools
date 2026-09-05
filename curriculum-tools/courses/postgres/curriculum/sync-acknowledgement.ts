@@ -77,13 +77,13 @@ try:
     sql('select pg_reload_conf()')
     wait_for('standby selected synchronously',lambda: len(sender())==1 and sender()[0]['sync_state']=='sync')
     assert sql('show synchronous_standby_names')=='FIRST 1 (owned_standby)'
-    wait_replay(sql('select pg_current_wal_insert_lsn()'))
+    wait_replay(sql("select pg_create_restore_point('sync_baseline')"))
     replica_sql('select pg_wal_replay_pause()')
     wait_for('actual paused replay',lambda: replica_sql('select pg_get_wal_replay_pause_state()')=='paused')
     paused=replica_sql('select pg_last_wal_replay_lsn()')
     local_result=finished(launch(1,'local','paused local'))
     flush_result=finished(launch(2,'on','paused remote flush'))
-    bound=sql('select pg_current_wal_insert_lsn()')
+    bound=sql("select pg_create_restore_point('sync_flush_observation')")
     wait_for('durable standby receive',lambda: len(receiver())==1 and lsn(receiver()[0]['flushed_lsn'])>=lsn(bound))
     assert rows(replica_sql)==[] and replica_sql('select pg_last_wal_replay_lsn()')==paused
     assert len(rows(sql))==2
@@ -121,7 +121,7 @@ try:
     wait_for('synchronous standby reconnected',lambda: len(sender())==1 and sender()[0]['sync_state']=='sync')
     if reconnect_instead_of_cancel:
         emit('reconnected_acknowledgement',finished(blocked))
-    final_bound=sql('select pg_current_wal_insert_lsn()')
+    final_bound=sql("select pg_create_restore_point('sync_final_receipts')")
     wait_replay(final_bound)
     expected=[dict(id=x['id'],policy=x['policy'],note=x['note']) for x in clients]
     assert rows(sql)==rows(replica_sql)==expected
@@ -254,8 +254,11 @@ the outcome after the wait ends.
   primary receipts while the standby is still stopped. Cancellation has relaxed the requested
   remote-acknowledgement promise; the local result does not prove the standby has the write.
 - The variation changes only ID5's resolution: restart the same standby instead of canceling.
-  Its normal COMMIT acknowledgement has no warning. **wait_replay** then polls the final
-  **pg_last_wal_replay_lsn** bound before comparing all five source/copy receipts; flush
+  Its normal COMMIT acknowledgement has no warning. **pg_create_restore_point** supplies an
+  actual record-end marker for idle bootstrap, flush observation and final catch-up; a bare idle
+  insertion position can be ahead of the last replayable record. These local observer markers do
+  not change the writers' acknowledgement policies or replace the exact COMMIT-record evidence.
+  **wait_replay** polls the final **pg_last_wal_replay_lsn** bound before comparing receipts; flush
   acknowledgement alone would not justify that final standby read.
 - Finally cancels any remaining owned writer before stopping the topology. Bounded **wait/kill**
   cleans up the owned client if needed, then standby stops, **pg_replication_slots.active** becomes

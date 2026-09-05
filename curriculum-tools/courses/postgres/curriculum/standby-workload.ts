@@ -28,7 +28,7 @@ try:
     expected=[dict(id=0,amount=1,note='in backup')]
     assert rows(replica_sql)==expected
     sql("insert into stream_receipts values(1,10,'streamed after backup')")
-    committed_bound=sql('select pg_current_wal_insert_lsn()')
+    committed_bound=sql("select pg_create_restore_point('stream_receipt_committed')")
     wait_replay(committed_bound)
     expected.append(dict(id=1,amount=10,note='streamed after backup'))
     assert rows(sql)==rows(replica_sql)==expected
@@ -52,7 +52,7 @@ try:
         import signal
         os.kill(original_pid,signal.SIGTERM)
         sql("insert into stream_receipts values(2,20,'after receiver restart')")
-        new_bound=sql('select pg_current_wal_insert_lsn()')
+        new_bound=sql("select pg_create_restore_point('stream_reconnected_receipt')")
         wait_for('a replacement streaming receiver',lambda:
             len(receiver())==1 and receiver()[0]['pid']!=original_pid and receiver()[0]['status']=='streaming')
         wait_replay(new_bound)
@@ -146,8 +146,9 @@ boundary and the complete expected result. Being in recovery also restricts the 
   sent/write/flush/replay positions and backend_xmin. **pg_stat_wal_receiver** reports receiver PID,
   streaming status, source socket/port, slot, received timeline and written/flushed positions.
   Fresh connections and bounded polling require one streaming row at each end.
-- **pg_current_wal_insert_lsn** is sampled after receipt COMMIT. It is an upper bound containing
-  that commit, not an exact per-request charge. **pg_last_wal_replay_lsn >= bound** gates the
+- **pg_create_restore_point** writes a named marker after receipt COMMIT and returns a real
+  record end. An idle insertion position can be ahead of the last replayable record; this marker
+  gives the gate concrete work to reach. It is not an exact per-request WAL charge. **pg_last_wal_replay_lsn >= bound** gates the
   subsequent fresh standby query within this fixed source history; complete rows still must match.
 - The separate standby INSERT uses **VERBOSITY=verbose** so the driver can require SQLSTATE
   **25006** plus the read-only transaction error. Both servers are reread afterward to prove

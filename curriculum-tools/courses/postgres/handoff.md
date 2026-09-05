@@ -1,8 +1,26 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
-Cleanup is complete and chunks1–6 plus current88–92 are accepted. The whole-course audit remain
+Cleanup is complete and chunks1–6 plus current88–92 are accepted. The whole-course audit remains
 required. The catalog has92 active lessons. The full goal remains active.**
+
+## Final boundary audit accepted; integration still pending
+
+Read validation/08-replay-boundaries.md and08-boundary-outcomes.json. A real idle probe observed
+insertion0/A00028 while replay stayed0/A00000; a named marker0/A00090 was reached. Four helpers
+(standby, replay-lag, replica-readiness, sync-acknowledgement) now use real marker ends for receive/
+replay gates. All12 core/source/exact-hint runs pass; complete outcomes, actual marker/log/error
+classes, source/rendered correspondence, thirty tests, full check and copied progress pass. Original
+historical logs/manifests are retained;08 records the superseding four command sets.
+
+Current78 abort-only WAL needed no new source change: all3 archived physical INSERT/ABORT/no COMMIT,
+empty decoding and absent700 inventories were checked; current code matches executed core and
+checkpoints/verifies flush>=marker before physical inspection. Read small archive members rather
+than starting old images. All13 new replay/probe fixtures were fully archived/reopened/hash-verified
+and raw trees removed; map /tmp/pg-replay-boundary-compacted.jsonl. All jobs terminal, only learner
+server live. Next: full-course source/evidence/requirements audit,
+PLAN/identity/readings/checkpoints/ docs/wrapper integration and final evidence retirement, then
+completion. No overall completion yet.
 
 ## Current92 accepted: task-runner correctness, recovery and capacity
 

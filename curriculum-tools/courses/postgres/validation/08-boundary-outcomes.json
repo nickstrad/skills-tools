@@ -1,0 +1,298 @@
+{
+  "replay": [
+    {
+      "root": "/tmp/pg-owned-iayrvzym",
+      "slug": "build-a-streaming-standby",
+      "mode": "core",
+      "markers": {
+        "stream_receipt_committed": "0/A00200"
+      },
+      "classified_issues": [
+        "ERROR:  cannot execute INSERT in a read-only transaction",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-standby-core.log",
+      "log_sha256": "fbb2e922bd3d057968b0516f2625ee7a60c6e63102429f6a02d8d8540f59c2a0",
+      "core_sha256": "3cf05055505647454f8b50091f10ea4050a0bd05b274fa14491757433740388b",
+      "hint_sha256": "126a2954c75b71b5499cdbd19bb9ce38e72dd3b03190439c0e50c3daabb023f4",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-mt7qrg5i",
+      "slug": "build-a-streaming-standby",
+      "mode": "variation",
+      "markers": {
+        "stream_receipt_committed": "0/A00200",
+        "stream_reconnected_receipt": "0/A00328"
+      },
+      "classified_issues": [
+        "ERROR:  cannot execute INSERT in a read-only transaction",
+        "FATAL:  terminating walreceiver process due to administrator command",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-standby-variation.log",
+      "log_sha256": "a2591a0839c29737644a1c886a72969ba1f517c2a4cdf2bc76142e528a31f08c",
+      "core_sha256": "3cf05055505647454f8b50091f10ea4050a0bd05b274fa14491757433740388b",
+      "hint_sha256": "126a2954c75b71b5499cdbd19bb9ce38e72dd3b03190439c0e50c3daabb023f4",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-a6veywpu",
+      "slug": "build-a-streaming-standby",
+      "mode": "exact",
+      "markers": {
+        "stream_receipt_committed": "0/A00200",
+        "stream_reconnected_receipt": "0/A00328"
+      },
+      "classified_issues": [
+        "ERROR:  cannot execute INSERT in a read-only transaction",
+        "FATAL:  terminating walreceiver process due to administrator command",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-exact-build-a-streaming-standby.log",
+      "log_sha256": "680b48eabab7b3e63640aaf010fcb1fd60592e4bc60bb595a042211385665ea2",
+      "core_sha256": "3cf05055505647454f8b50091f10ea4050a0bd05b274fa14491757433740388b",
+      "hint_sha256": "126a2954c75b71b5499cdbd19bb9ce38e72dd3b03190439c0e50c3daabb023f4",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-4emjgl47",
+      "slug": "replication-lag-under-load",
+      "mode": "core",
+      "markers": {
+        "replay_baseline": "0/A00090",
+        "replay_receipts_committed": "0/AA7AA0"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-replay-lag-core.log",
+      "log_sha256": "d5e005510b776212f956cd4744d70d9cde03ad23f037340e15576e9e7a46723e",
+      "core_sha256": "7e3a99bdc91bc4473904d83bf6b701b357b09626f1f8696e7c1ebfba198d5ec0",
+      "hint_sha256": "77c48cd2454be3a6bd5738d4d502bba90fe6ced51719beec35b25a55a7a3d102",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-o2t_rp0l",
+      "slug": "replication-lag-under-load",
+      "mode": "variation",
+      "markers": {
+        "replay_baseline": "0/A00090",
+        "replay_receipts_committed": "0/B4D250"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-replay-lag-variation.log",
+      "log_sha256": "63055c83a685a59e8a289da25c22f0189fa801e5fa5ed9ee94d2d9cbcdfab388",
+      "core_sha256": "7e3a99bdc91bc4473904d83bf6b701b357b09626f1f8696e7c1ebfba198d5ec0",
+      "hint_sha256": "77c48cd2454be3a6bd5738d4d502bba90fe6ced51719beec35b25a55a7a3d102",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-qjxr6j3r",
+      "slug": "replication-lag-under-load",
+      "mode": "exact",
+      "markers": {
+        "replay_baseline": "0/A00090",
+        "replay_receipts_committed": "0/B4D250"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-exact-replication-lag-under-load.log",
+      "log_sha256": "7743cafeb8a0a8454fefae7f4f67bc0217be5bd7261e7f03baac2013d066745d",
+      "core_sha256": "7e3a99bdc91bc4473904d83bf6b701b357b09626f1f8696e7c1ebfba198d5ec0",
+      "hint_sha256": "77c48cd2454be3a6bd5738d4d502bba90fe6ced51719beec35b25a55a7a3d102",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-d79sb91t",
+      "slug": "read-your-writes-on-a-replica",
+      "mode": "core",
+      "markers": {
+        "readiness_baseline": "0/A00090",
+        "readiness_receipt_committed": "0/A07B78"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-replica-readiness-core.log",
+      "log_sha256": "605427c83a7139e5ac7adcc1e9a2670bc3c3d448eeb332dffd0f4179a29f40f3",
+      "core_sha256": "00beafcdf895adecbb6f1b65841f5786af43f34f43ac4e203b42e3ecce192818",
+      "hint_sha256": "21c239b9a41a3495702a9e30c2361eead50da70830cbf61f04083821525db555",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-2ejoanm9",
+      "slug": "read-your-writes-on-a-replica",
+      "mode": "variation",
+      "markers": {
+        "readiness_baseline": "0/A00090",
+        "readiness_receipt_committed": "0/A07B78"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-replica-readiness-variation.log",
+      "log_sha256": "e3dda871a4618d450295fe22f59606e39cbaf6cda9bd216cd0e63056c6ce19ec",
+      "core_sha256": "00beafcdf895adecbb6f1b65841f5786af43f34f43ac4e203b42e3ecce192818",
+      "hint_sha256": "21c239b9a41a3495702a9e30c2361eead50da70830cbf61f04083821525db555",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-5fziy41u",
+      "slug": "read-your-writes-on-a-replica",
+      "mode": "exact",
+      "markers": {
+        "readiness_baseline": "0/A00090",
+        "readiness_receipt_committed": "0/A07B78"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-exact-read-your-writes-on-a-replica.log",
+      "log_sha256": "685a0fb5118e269f0be2a47eca0969c1a5c699b6b72248dc6283bee8d0de43eb",
+      "core_sha256": "00beafcdf895adecbb6f1b65841f5786af43f34f43ac4e203b42e3ecce192818",
+      "hint_sha256": "21c239b9a41a3495702a9e30c2361eead50da70830cbf61f04083821525db555",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-p8mas4m5",
+      "slug": "synchronous-replication-blocks-commit",
+      "mode": "core",
+      "markers": {
+        "sync_baseline": "0/A01FE8",
+        "sync_flush_observation": "0/A08858",
+        "sync_final_receipts": "0/A11468"
+      },
+      "classified_issues": [
+        "WARNING:  canceling wait for synchronous replication due to user request",
+        "FATAL:  terminating walreceiver process due to administrator command",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-sync-acknowledgement-core.log",
+      "log_sha256": "1008ec1b840f0864a7f212966c41995d1227cf87e00bd86e8c41868fffba2194",
+      "core_sha256": "a135c9bd3363d02970853ba6fc1c9c3567fe9f569b13a98b8f0d62a3c7e932fe",
+      "hint_sha256": "c3624c529229b671daaa6ae2f223a9aeb188c08fc6232865a4c910f57420f2f0",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-mfeckh4c",
+      "slug": "synchronous-replication-blocks-commit",
+      "mode": "variation",
+      "markers": {
+        "sync_baseline": "0/A01FE8",
+        "sync_flush_observation": "0/A08858",
+        "sync_final_receipts": "0/A11468"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-sync-acknowledgement-variation.log",
+      "log_sha256": "c04e407f0ab1ef98f8b2c38b71652e84c604089db791c6130edbfd3b72793047",
+      "core_sha256": "a135c9bd3363d02970853ba6fc1c9c3567fe9f569b13a98b8f0d62a3c7e932fe",
+      "hint_sha256": "c3624c529229b671daaa6ae2f223a9aeb188c08fc6232865a4c910f57420f2f0",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-ixircj2x",
+      "slug": "synchronous-replication-blocks-commit",
+      "mode": "exact",
+      "markers": {
+        "sync_baseline": "0/A01FE8",
+        "sync_flush_observation": "0/A08858",
+        "sync_final_receipts": "0/A11468"
+      },
+      "classified_issues": [
+        "FATAL:  terminating walreceiver process due to administrator command",
+        "FATAL:  terminating walreceiver process due to administrator command"
+      ],
+      "log": "/tmp/pg-replay-boundary-exact-synchronous-replication-blocks-commit.log",
+      "log_sha256": "04f6314302f3a32d0a69e5017de90257b449444936be684077eda9339da63f26",
+      "core_sha256": "a135c9bd3363d02970853ba6fc1c9c3567fe9f569b13a98b8f0d62a3c7e932fe",
+      "hint_sha256": "c3624c529229b671daaa6ae2f223a9aeb188c08fc6232865a4c910f57420f2f0",
+      "stopped": true
+    },
+    {
+      "root": "/tmp/pg-owned-yf6qs2l7",
+      "probe": {
+        "insertion": "0/A00028",
+        "samples": [
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          },
+          {
+            "replay": "0/A00000",
+            "reached": "f"
+          }
+        ],
+        "observed_seconds": 0.6714131069893483,
+        "marker": "0/A00090",
+        "after": "0/A00090",
+        "rows": 1
+      },
+      "stopped": true
+    }
+  ],
+  "aborted_wal": [
+    {
+      "path": "/tmp/pg-owned-fujhcb1t/aborted_physical_only.json",
+      "sha256": "86f66db98fb276c8db61b9c6f6f5609c67270657c0bc46d4a883455988e41599",
+      "xid": "733",
+      "record_types": [
+        "INSERT",
+        "INSERT_LEAF",
+        "ABORT"
+      ],
+      "logical": [],
+      "visible_700": false
+    },
+    {
+      "path": "/tmp/pg-owned-m69mnmnr/aborted_physical_only.json",
+      "sha256": "22784af92be396ff59d4e283e796750fab2a5a92381c722e0c4c6354ef06876f",
+      "xid": "734",
+      "record_types": [
+        "INSERT",
+        "INSERT_LEAF",
+        "ABORT"
+      ],
+      "logical": [],
+      "visible_700": false
+    },
+    {
+      "path": "/tmp/pg-owned-00fy24ya/aborted_physical_only.json",
+      "sha256": "ffadabb976c340c51bdc84b8d2a2fe81565ada2dcf17bcae3ba1ca348b69e785",
+      "xid": "734",
+      "record_types": [
+        "INSERT",
+        "INSERT_LEAF",
+        "ABORT"
+      ],
+      "logical": [],
+      "visible_700": false
+    }
+  ]
+}

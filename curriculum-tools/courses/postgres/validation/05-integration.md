@@ -31,6 +31,10 @@ Current course is92 lessons/seven stops.
 
 ## Current artifact correspondence
 
+Final-audit addendum: [08-replay-boundaries.md](08-replay-boundaries.md) supersedes the four
+current69–72 command hashes with newly executed marker-based gates. Other entries retain their
+historical correspondence. This report records its original acceptance boundary.
+
 /tmp/pg-chunk5-artifact-audit.py compared all14 current built core scripts with their retained
 executed core.sh files. It freshly rendered every hint2 against copied progress and compared its
 bash fence with both the source variation.sh and previously executed rendered hint. All match. It

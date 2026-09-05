@@ -84,14 +84,14 @@ try:
     assert copy_identity['system']==identity['system'] and copy_identity['recovery'] is True
     assert identity['timeline']==copy_identity['timeline']==1
     pinned=dict(system=identity['system'],timeline=1,topology_epoch='owned-fixed-writer-1')
-    wait_replay(sql('select pg_current_wal_insert_lsn()'))
+    wait_replay(sql("select pg_create_restore_point('readiness_baseline')"))
     replica_sql('select pg_wal_replay_pause()')
     wait_for('actual paused replay',lambda: replica_sql('select pg_get_wal_replay_pause_state()')=='paused')
     paused_lsn=replica_sql('select pg_last_wal_replay_lsn()')
     # Commit the domain effect and the independently keyed receipt atomically, THEN mint a bound.
     sql("begin; update profiles set version=2,display_name='after' where id=1; "
         "insert into read_receipts values('request-42',1,2,'after'); commit")
-    token=dict(pinned,bound=sql('select pg_current_wal_insert_lsn()'),request_key='request-42')
+    token=dict(pinned,bound=sql("select pg_create_restore_point('readiness_receipt_committed')"),request_key='request-42')
     assert lsn(token['bound'])>lsn(paused_lsn)
     wait_for('durably received token',lambda: len(receiver())==1 and
         lsn(receiver()[0]['flushed_lsn'])>=lsn(token['bound']))
@@ -211,9 +211,10 @@ must use a snapshot taken afterward. A deadline makes delayed replay an explicit
   each gate poll. A missing receiver or changed identity fails closed. These checks cannot elect
   a writer or prove authority after failover; divergent descendants share a system identifier.
 - **pg_wal_replay_pause** requests suspension; **pg_get_wal_replay_pause_state='paused'** must
-  actually hold first. **pg_current_wal_insert_lsn** runs in a separate call after COMMIT. This
-  bound may include unrelated later WAL; it is sufficient within this history, not an exact
-  transaction address. **pg_stat_wal_receiver.flushed_lsn** reaches it while replay remains fixed.
+  actually hold first. **pg_create_restore_point** writes a named marker in a separate call after
+  COMMIT and returns a real WAL record end. It also supplies the idle bootstrap gate. A next-insertion
+  position may be ahead of the last replayable record; an explicit marker avoids waiting on that
+  idle gap. This bound follows the transaction within the pinned history, not its exact commit address. **pg_stat_wal_receiver.flushed_lsn** reaches it while replay remains fixed.
 - **read_with_token** compares system, timeline and topology epoch before converting or comparing
   LSNs. Python **lsn** converts hexadecimal high/low halves to a byte position. Three synthetic
   wrong-identity tokens keep the correct numeric bound and must produce zero comparisons and

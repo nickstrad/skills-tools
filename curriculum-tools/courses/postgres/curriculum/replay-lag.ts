@@ -27,7 +27,7 @@ try:
     sql('create table replay_receipts(id int primary key,amount int not null check(amount>0),pad text not null)')
     sql("insert into replay_receipts values(0,1,repeat('r',200))")
     clone_standby()
-    baseline_bound=sql('select pg_current_wal_insert_lsn()')
+    baseline_bound=sql("select pg_create_restore_point('replay_baseline')")
     wait_replay(baseline_bound)
     before=outcome(replica_sql)
     assert before==dict(rows=1,distinct_ids=1,first=0,last=0,amount=1,all_correct=True)
@@ -35,7 +35,7 @@ try:
     wait_for('actual paused replay',lambda: replica_sql('select pg_get_wal_replay_pause_state()')=='paused')
     paused_at=positions()
     sql("insert into replay_receipts select g,g,repeat('r',200) from generate_series(1,"+str(requested_rows)+") g")
-    bound=sql('select pg_current_wal_insert_lsn()')
+    bound=sql("select pg_create_restore_point('replay_receipts_committed')")
     assert lsn(bound)>lsn(paused_at['replay_lsn'])
     # Observe durable receive separately from replay, then wait for sender-side feedback too.
     wait_for('standby flushed receive through committed bound',lambda:
@@ -132,8 +132,10 @@ recent transport acknowledgement cannot substitute for it.
   manifest verifies before socket/name settings change. **standby.signal**, **primary_conninfo**
   and **primary_slot_name** configure recovery and the retained-WAL consumer. **archive_mode=off**,
   **hot_standby=on**, **wal_receiver_status_interval=1s** and retry100ms configure the copy.
-- **pg_current_wal_insert_lsn** is sampled after COMMIT. Its position contains the completed
-  receipt transaction within this fixed history; it is not an exact per-request record address.
+- **pg_create_restore_point** writes a named WAL marker and returns its record end, both for
+  the idle baseline and after receipt COMMIT. Replay can reach that actual record within this
+  fixed history; an idle next-insertion position need not be an existing record end. The marker
+  follows the transaction and is not its exact per-request record address.
   **wait_replay** polls **pg_last_wal_replay_lsn >= bound** before the initial and final row queries.
 - **pg_wal_replay_pause** requests a pause. **pg_get_wal_replay_pause_state='paused'** must actually
   hold before writing the workload; a requested-but-not-yet-paused state is insufficient. A saved
