@@ -145,3 +145,72 @@ reject expired-result requests, and state how callers reconcile retained history
 writers can violate this controlled protocol; enforced role boundaries are a separate experiment.
 Classify process-loss evidence from committed data, and distinguish normal restart from power-loss
 recovery. Source/core/exact-hint records live in validation/06-idempotency.md.
+
+## Recover a prepared promise from a decision, not from its disappearance (2026-09-05)
+
+### What happened
+
+Current85 uses independently initialized PostgreSQL participants and a separate SQLite decision
+file. The coordinator durably registers operation, payload and participants, prepares debit/credit
+with full local outcome receipts, then commits its SQLite COMMIT decision before finalization.
+Killing the actual coordinator after A commits leaves an independently visible COMMIT, A75 with
+receipt, and B100 with an unresolved prepared GID. A new process verifies A's receipt and commits
+B's prepared credit, reaching75/125 without another debit.
+
+The variation instead kills the coordinator while its SQLite write transaction locally says COMMIT
+but an independent reader still sees null. That tentative decision disappears. Recovery commits
+ABORT before either rollback, independently observed while both promises remain prepared, then
+rolls back both participants and records explicit zero-delta outcomes. Repeated recovery before
+and after normal participant restarts leaves full data unchanged.
+
+### Why it matters
+
+Prepared state records the participant's ability to honor a future outcome; it is not the global
+outcome. A missing GID can mean several things, so it cannot establish a commit. A complete retained
+receipt ties identity/payload and actual effect to the outcome. The temporary independent75/100
+reads also show that consistent final decisions do not create simultaneous physical visibility or a
+shared snapshot across databases. Primary references:
+[PREPARE TRANSACTION](https://www.postgresql.org/docs/16/sql-prepare-transaction.html) and
+[SQLite synchronous modes](https://www.sqlite.org/pragma.html#pragma_synchronous).
+
+### How to apply
+
+Commit a registered participant set and an irrevocable decision in explicitly configured durable
+storage. Separate a locally written decision from its commit using independent reads. Kill the
+actual process at an observed boundary, then pause recovery after its durable decision and before
+participant resolution to verify ordering. Require full matching outcomes when prepared state is
+already gone; do not reapply the business operation. For ABORT, separately recorded receipts can be
+recreated after rollback under the retained decision and controlled-writer assumption. Explain the
+single-coordinator authority: this known-dead process takeover is not election or partition fencing.
+SQLite DELETE/FULL and PostgreSQL synchronous commits are explicit settings; process-loss evidence
+is not a host power-loss test.
+
+## Prepared ownership survives without a backend and retains cleanup horizons (2026-09-05)
+
+### What happened
+
+The two participant psql sessions exit after PREPARE; no client owns the pending work. A real
+competing writer waits on the prepared XID: pg_locks pairs its ungranted ShareLock with a granted
+ExclusiveLock whose PID is null, and pg_blocking_pids reports0. It fails55P03 on the configured
+bounded timeout. Participant A's actual immediate-stop crash preserves GID/XID/prepared time, and
+the same wait recurs after WAL recovery. A committed deletion of250 later junk rows remains dead
+but not yet removable before and after that crash. Resolving the prepared operation permits the
+next VACUUM to remove250, confirmed by pgstattuple's dead count falling250 to0.
+
+### Why it matters
+
+A prepared transaction's locks and visibility horizon are detached from the client lifetime.
+Killing or reconnecting the coordinator does not release them. A blocker represented by0 is not a
+missing observation; its transaction ID and null-PID lock record identify prepared ownership. The
+measured effect is retained reclamation, not a blanket claim that vacuum has stopped cluster-wide.
+See [pg_locks](https://www.postgresql.org/docs/16/view-pg-locks.html) and the prepared-transaction
+reference above.
+
+### How to apply
+
+Join a real wait to the exact prepared XID, preserve raw lock-timeout diagnostics and verify failed
+probes leave data unchanged. Compare prepared identity across actual crash recovery, not just row
+counts. Put cleanup victims in a separate table, disable automatic cleanup only in the private
+fixture, and compare verbose vacuum with direct physical counts before/after resolution. Final
+checks should include empty prepared lists, no detached/waiting locks, a formerly blocked operation
+that now acquires its row, and complete business outcome reconciliation.

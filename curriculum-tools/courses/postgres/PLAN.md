@@ -469,9 +469,15 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    Receipt deletion deliberately repeats a debit on an isolated account; in-place retirement retains
    the identity guard and refuses reexecution. Reconcile all balances, payloads and history through
    normal restart. Variation changes only the first winner from COMMIT to ROLLBACK.
-3. `two-phase-commit`: `prepare transaction 'gid'`, `pg_prepared_xacts`, survives a crash (mixed,
-   dangerous), holds locks and xmin until `commit prepared`; orphaned prepared xact stalls vacuum
-   (link to mvcc lesson 5).
+3. `two-phase-commit` (dangerous, shell). Independently prepare debit/credit participants with
+   stable GIDs, full outcome receipts and a registered operation. Observe actual blocked
+   writers/null-PID locks,250 retained dead tuples and prepared-state recovery after a participant
+   crash. A separate Python coordinator commits its SQLite FULL decision before finalization; kill
+   it after A commits but before B, then recover B from COMMIT and verify both receipts/total200.
+   Variation kills the coordinator before its decision commit; recovery first records ABORT, rolls
+   back both participants and records zero-delta outcomes. Release locks/cleanup retention and prove
+   repeated recovery is unchanged before and after normal restarts. Independent reads can see
+   partial finalization.
 4. `optimistic-concurrency-with-version-columns`: `update ... where version = :v` returning 0 rows
    as the conflict signal, vs `for update`.
 5. `fencing-tokens-with-a-monotonic-counter`: a `lease` table + `epoch` column; a stale holder's

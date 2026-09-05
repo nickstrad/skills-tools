@@ -13,9 +13,11 @@ Progress checkpoint, 2026-09-05: chunks1–5 are accepted. Durability/recovery c
 recorded in [chunk5 integration](validation/05-integration.md), including all14 current core/hint
 artifacts and individual real-tool reports. Chunk6 has accepted
 [independent outbox delivery](validation/06-outbox-delivery.md) at current83 and
-[idempotency race/recovery/retention](validation/06-idempotency.md) at current84. Next: current85
-2PC and the remaining durable protocols, then chunk7 incidents and the final whole-course audit. The
-current course has92 active lessons and seven stops; the full pivot remains unfinished.
+[idempotency race/recovery/retention](validation/06-idempotency.md) at current84, followed by
+[durable 2PC decision recovery](validation/06-two-phase-commit.md) at current85. Next: current86
+resource fencing and the remaining durable protocols, then chunk7 incidents and the final
+whole-course audit. The current course has92 active lessons and seven stops; the full pivot remains
+unfinished.
 
 ## Teaching contract
 

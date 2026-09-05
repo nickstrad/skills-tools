@@ -1,8 +1,29 @@
+import { TWOPC_VARIATION } from "../curriculum/two-phase-protocol.ts";
 import { IDEMPOTENCY_VARIATION } from "../curriculum/idempotency-protocol.ts";
 import { OUTBOX_VARIATION } from "../curriculum/outbox-delivery.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "two-phase-commit": {
+    brief:
+      "Inspect detached participant promises, crash recovery and cleanup costs, then recover actual coordinator loss from a separately committed decision and complete outcome receipts.",
+    predict:
+      "What survives participant A's crash before a decision? After the coordinator dies, which durable record authorizes resolving B, and how does losing the coordinator before its decision commit change that authority?",
+    inspect:
+      "Join each prepared GID/XID to its null-PID lock and actual blocked writer. Compare SQLite's independently visible decision with account/outcome rows, retained250 dead tuples, partial finalization and the full final total200.",
+    explain:
+      "Why is a prepared promise different from a committed coordinator decision? Why can independent reads see75/100 during finalization, and why must missing prepared state be checked against a complete outcome receipt?",
+    vary:
+      "Move only coordinator loss to before its SQLite decision commit. Its local transaction sees COMMIT; predict what an independent reader sees and what must be durably recorded before either participant is rolled back.",
+    apply:
+      "Specify the stable operation/payload/participant registry, decision durability and recovery authority needed to resolve an orphaned transfer. Use blocked writers, cleanup retention and partial visibility to explain the protocol's costs and its limits during a partition.",
+    hints: [
+      "A prepared participant keeps the ability to obey a later decision. The coordinator must commit that decision before finalizing anyone. With the original coordinator known dead, this fixture records ABORT for a registered operation with no durable decision; an existing COMMIT can only be completed and verified.",
+      "Run this complete loss-before-decision-commit variation in a shell.\n\n```bash\n" +
+      TWOPC_VARIATION + "\n```",
+    ],
+  },
+
   "idempotency-keys": {
     brief:
       "Race duplicate requests, recover actual caller loss, and compare deleted receipts with retained identity guards using independently audited debits and saved answers.",

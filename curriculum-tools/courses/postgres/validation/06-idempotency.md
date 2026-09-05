@@ -76,10 +76,12 @@ cluster or port5440 is used. Normal restart is not a host power-loss test.
 /tmp/pg-idempotency-protocol-exact-idempotency-keys.log; root /tmp/pg-owned-0yptn0r5. It reproduces
 the winner-rollback variation, proper concurrent replay, both actual process losses,
 payload/business errors, deliberate duplicate debit, retained-guard refusal and complete
-post-restart inventory. The built core and source variation agree exactly with the executed scripts;
-the rendered fence matches the variation. All three servers independently report pg_ctl status3/no
-PID. Each log has exactly five expected SQL errors: two payload mismatches, one insufficient balance
-and two retired identity refusals; no unexpected FATAL/PANIC or remaining owned caller is present.
+post-restart inventory. The built core matches its executed script modulo the builder's
+final-newline trim; the rendered fence exactly matches the executed source variation. The retained
+/tmp/pg-idempotency-protocol-audit.py verifies these comparisons. All three servers independently
+report pg_ctl status3/no PID. Each log has exactly five expected SQL errors: two payload mismatches,
+one insufficient balance and two retired identity refusals; no unexpected FATAL/PANIC or remaining
+owned caller is present.
 
 /tmp/pg-idempotency-protocol-scoped-build.py builds from authoritative source in isolated
 /tmp/pg-idempotency-protocol-build-cwvoh7ct and changes only current84 among92 generated lessons.

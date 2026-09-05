@@ -1,8 +1,73 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–5 and current83–84 outbox/idempotency are accepted. There are92 active
-lessons. Next: current85 two-phase-commit, the rest of chunk6, chunk7 incidents and the final
+Updated 2026-09-05. **Chunks1–5 and current83–85 outbox/idempotency/2PC are accepted. There are92
+active lessons. Next: current86 resource fencing, the rest of chunk6, chunk7 incidents and the final
 whole-course audit. The full active goal is not complete.**
+
+## Prepared participants and durable coordinator recovery accepted, 2026-09-05
+
+Current85 two-phase-commit is revision4 in two-phase-protocol.ts. Two independent PostgreSQL16
+participants prepare debit/credit25 under registered stable GIDs transfer-1:A/B. Their complete
+outcomes remain invisible at balances100/100 while separate SQLite DELETE/FULL stores operation,
+payload and participants with null decision. Actual probes join a Lock/transactionid wait to the
+prepared XID, null-PID ExclusiveLock and waiter ShareLock; pg_blocking_pids contains0. A's actual
+immediate-stop crash preserves prepared identity and invisible effects; its log proves WAL/prepared
+recovery. Before and after crash,250 later-deleted junk rows remain unreclaimable, verified with
+verbose vacuum and pgstattuple.
+
+Core's actual Python coordinator commits SQLite COMMIT before finalizing A, then pauses before B.
+Independent state is A75/COMMIT receipt/no prepared GID and B100/no receipt/prepared GID. SIGKILL
+kills that coordinator with exit-9, preserving decision/state; B still blocks a writer. A new
+recovery process pauses after reading the durable decision, then verifies A's complete receipt and
+commits B's prepared credit. Final75/125 totals200. Independent reads really see75/100 during
+partial finalization; no shared cross-database snapshot is claimed.
+
+Variation moves only the coordinator-loss boundary to before its SQLite decision commit. Its local
+open transaction reads COMMIT, but independent readers see null; coordinator SIGKILL loses that
+uncommitted decision while both participants stay prepared at100/100. Recovery commits ABORT and
+pauses so the parent can independently prove the decision precedes resolution. It rolls back both
+GIDs and records full zero-delta ABORT outcomes, leaving100/100. Missing GIDs alone never prove a
+commit. The known-dead coordinator, registered participant set, retained decisions/outcomes and
+controlled writers define this recovery policy; it is not election, consensus or partition fencing.
+
+Both outcomes release all prepared/waiting locks; fresh updates acquire both accounts, and vacuum
+removes250 dead rows. Immediate repeat recovery and another fresh recovery after normal restarts
+preserve complete state. All four coordinator processes exit-9/0/0/0; all three probe exits1 contain
+only expected55P03. SQLite integrity is ok, all six final servers independently report status3/no
+PID, and logs contain exactly two A lock-timeout errors plus one B error per run with no
+FATAL/PANIC.
+
+Core /tmp/pg-owned-aky4t1rw, source variation /tmp/pg-owned-41p4bhj6, exact hint2
+/tmp/pg-owned-b8q_7tgt. Drivers /tmp/pg-two-phase-protocol-{validate,exact}.ts and independent audit
+/tmp/pg-two-phase-protocol-audit.py; corresponding logs preserve actual commands, complete JSON,
+coordinator program/spec, SQLite decision file and raw participant/probe/vacuum evidence. Built core
+matches executed source modulo final-newline trim; rendered hint exactly matches source variation.
+Report validation/06-two-phase-commit.md and indexed durable-protocol knowledge contain the
+findings. The previous idempotency report also now explicitly names its already-verified newline
+trim; no accepted84 commands or built content changed.
+
+Scoped /tmp/pg-two-phase-protocol-build-vrg_on7a changes only current85 among92 generated lessons.
+Copied /tmp/pg-observe-progress-_a5pygou/progress.sqlite preserves IDs/history/progress, original
+first-seven objects and completions, capacity/seven stops and learner SHA256
+395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty tests and full check pass
+in /tmp/pg-two-phase-protocol-{tests,check}.log. Current84 4271568 is pushed.
+
+Next: current86 fencing-tokens-with-a-monotonic-counter per designs/06-durable-protocols.md. Make an
+actual protected-resource interface require an explicit non-null token and enforce epochs under a
+restricted application role. Test stale/omitted/null-token calls and direct-DML bypass attempts;
+qualify SECURITY DEFINER references and grants. Separate claim takeover from the resource accepting
+a newer epoch, proving precisely when the old worker becomes fenced. Then87 durable LISTEN/NOTIFY
+reconciliation, chunk7 incidents and final whole-course audit. No current86 code has been authored.
+
+Disk about113MB after the three85 pairs. /tmp/pg-twopc-archive-evidence.py completed
+stopped/control/ archive/original hash-verified cold preservation of accepted83 roots
+pr892aee/sm9qi_x5/3xhfkdc5, data/receiver folders. Compressed images, hash/control manifests,
+cold-archives.json and all raw logs/JSON remain; only verified originals were removed. This is not a
+tested restore. Current84 roots8070t6ty/flhszqqr/0yptn0r5 still have data directories and current85
+roots still have both data and participant-b. Before more pairs, preserve only explicitly identified
+stopped owned evidence through the same verified process; no arbitrary tmp cleanup. No agents,
+learner writes or port5440 operations. Preserve unrelated storage source/guide/knowledge and root
+bin/.
 
 ## Idempotency race, client loss and retention accepted, 2026-09-05
 
