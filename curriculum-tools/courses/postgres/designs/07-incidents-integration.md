@@ -74,6 +74,20 @@ only on another copy and measures which known data disappears. Preserve the evid
 distinguish structural readability from complete application history. The variation changes one
 backup/recovery boundary and proves its effect on recovered operations.
 
+The concrete bounded implementation uses a complete cold filesystem backup of a cleanly stopped
+owned cluster, independently verified by full file hashes and an offline checksum scan. The core
+backs up500 immutable operations before ten later commits; the variation moves that same backup
+after the ten commits. With no later WAL supplied, restoration must explicitly report the core's
+missing accepted IDs501–510. Both paths then commit new identity511 and verify every payload and the
+derived amount. This revisits the recovery decision without repeating the earlier PITR protocol.
+
+Preparation preserves the page header and changes exactly one known payload byte offline, saves both
+page images and the full-file before/after hashes, and captures an actual heap-read/checksum
+failure. inspect reads saved evidence; recover restore copies only the verified backup into a
+separate destination. No salvage path is retained in this required exercise. Cleanup verifies all
+owned clusters stopped and removes the fixture only after findings are recorded; estimated peak
+storage is100MB. Author acceptance preserves only evidence needed for the remaining course audit.
+
 ## Current90 wraparound-drill
 
 Retain the stable identity as independent diagnosis if a distinct causal experiment can be made;

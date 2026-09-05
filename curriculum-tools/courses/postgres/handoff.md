@@ -1,8 +1,36 @@
 # PostgreSQL pivot handoff
 
 Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
-Cleanup is complete and chunks1–6 plus current88 are accepted. Current89–92 and the whole-course
+Cleanup is complete and chunks1–6 plus current88–89 are accepted. Current90–92 and the whole-course
 audit remain required. The catalog has92 active lessons. The full goal remains active.**
+
+## Current89 accepted: corruption and restored operation boundary
+
+Current89 is implemented in corruption-incident.ts with a specific guide in guides/15-incidents.ts;
+its source object replaces the legacy salvage walkthrough. Read
+validation/07-corruption-incident.md. Core /tmp/pg-owned-qd84u6li restores500 backup rows,
+explicitly loses accepted IDs501–510, then commits511 for501 rows/amount880,327. Source variation
+/tmp/pg-owned-704ucg1b and exact rendered hint /tmp/pg-owned-aj_4dn12 move the backup boundary after
+those ten commits, restoring510 with no loss and ending511/915,712. Each has actual XX001 heap-read
+failure, exactly one bad checksum, full983-file backup agreement, one-byte damage with preserved
+header, full domain reconciliation, clean restored checksums and unchanged damaged-source/backup
+bytes.
+
+Independent audit /tmp/pg-corruption-audit.py and render audit /tmp/pg-corruption-render-audit.ts
+passed. Core exercised all six inspection selectors and a rejected salvage action. Thirty tests
+pass; full check log /tmp/pg-corruption-check.log. Scoped builder /tmp/pg-corruption-build.py
+changed only89 among92 and automatically removed its snapshot. Current progress copy is now
+/tmp/pg-observe-progress-jbx6d_t4/progress.sqlite; /tmp/pg-observe-progress-path points there.
+First7/history/progress/7stops pass; real learner SHA remains unchanged.
+
+Resource lifecycle completed before acceptance: /tmp/pg-corruption-preserve.py archived and fully
+verified all three accepted roots, then executed the source controller's cleanup action. No raw
+fixture remains. Additional mapping: /tmp/pg-corruption-compacted.jsonl; archives under
+/root/pg-validation-evidence/20260905/ add about49MB pending final audit. Prototype b77raydq retains
+only small forensic records; its data was also removed. Free disk remains about16GB. All drivers and
+cleanup commands are terminal; no private validation server remains. Next is90 wraparound-drill
+under design07, then91/92, integration/full audit and final evidence cleanup. No90 source change
+yet.
 
 ## Top-level resource cleanup requirement
 
@@ -68,7 +96,8 @@ Read `designs/07-incidents-integration.md` for the full88–92/final-audit contr
 `validation/07-disk-incident.md` for current88's complete runtime acceptance evidence. Current
 source is disk-incident.ts plus the first entry of15-incidents.ts and authored
 `guides/15-incidents.ts` registered in guides/mod.ts. PLAN.md's other four incident entries remain
-explicitly legacy. No current89 implementation has begun.
+explicitly legacy. Current89 is now accepted as recorded above; this section is current88 historical
+evidence.
 
 All three causes ran with all seven inspections, an explicitly rejected irrelevant action, and the
 correct remedy. Source discard/reseed variation, direct production recovery without inspection
@@ -91,9 +120,9 @@ remains395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6.
 
 ## Next actions
 
-1. Continue sequentially with89 corrupt-a-page-and-detect-it under design07, then90,91,92 and chunk7
-   integration. Current88's full source/runtime/diff review, tests, full check, progress
-   preservation and current exact hint pass; its acceptance is included in this checkpoint.
+1. Continue sequentially with90 wraparound-drill under design07, then91,92 and chunk7 integration.
+   Current88's full source/runtime/diff review, tests, full check, progress preservation and current
+   exact hint pass; its acceptance is included in this checkpoint.
 2. Finish the whole-course audit, including earlier idle insertion/replay and abort-only WAL-flush
    boundaries, PLAN/ordinals/retirements/readings/checkpoints/docs/wrapper and copied-progress
    invariants. Use the new archive mappings when historical evidence paths no longer exist.

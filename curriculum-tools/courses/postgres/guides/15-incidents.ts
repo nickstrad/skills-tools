@@ -1,3 +1,4 @@
+import { CORRUPTION_VARIATION } from "../curriculum/corruption-incident.ts";
 import { DISK_INCIDENT_VARIATION } from "../curriculum/disk-incident.ts";
 import type { Guide } from "./types.ts";
 
@@ -28,6 +29,32 @@ export const guides: Record<string, Guide> = {
       "Inspect the workload interval first, then compare slot restart/acknowledgement movement, current archive backlog/failure deltas and complete receiver progress. Check whether old needed filenames survive completed checkpoints. The remedy must restore the supplied receiver's complete state as well as resource progress; slowing writes alone cannot fill a receiver history gap.",
       "Run this complete variation in a shell. It deliberately chooses a fresh retained-consumer case, captures the evidence, then releases its cursor and performs the supplied snapshot reconstruction. Compare the actual empty new tail and missing identities with later verified delivery.\n\n```bash\n" +
       DISK_INCIDENT_VARIATION + "\n```",
+    ],
+  },
+  "corrupt-a-page-and-detect-it": {
+    brief:
+      "An application read that previously succeeded now fails. Ask the tutor to run preparation and show symptom.json, or use run/full for the complete construction. Investigate the error, available recovery point and accepted work before choosing recovery. Preparation stops its private server and does not restore the data.",
+    predict:
+      "Choose two evidence sources that can distinguish physical readability from application completeness. What inventory would let you say exactly which accepted operations a particular backup can recover?",
+    inspect: [
+      "Use CORRUPTION from preparation; in a new shell assign the printed absolute corruption.py path. The following read saved evidence with the private servers stopped. Choose your first measurements; inspect all and the full construction remain available.",
+      '```bash\npython3 "$CORRUPTION" inspect read\npython3 "$CORRUPTION" inspect checksums\npython3 "$CORRUPTION" inspect backup\npython3 "$CORRUPTION" inspect operations\npython3 "$CORRUPTION" inspect damage\n```',
+      "Record the failure scope, the backup boundary, and the exact accepted identities you predict will be missing. Then choose the supplied restore into a separate destination:",
+      '```bash\npython3 "$CORRUPTION" recover restore\n```',
+      "Compare restored-operations.json, lost-accepted-operations.json and restored-final-operations.json. Account for all accepted identities and the later operation, and verify recovery.json plus the checksum logs. A clean startup is not the end of this investigation.",
+      "After recording the evidence you need, reclaim the owned fixture:",
+      '```bash\npython3 "$CORRUPTION" cleanup\n```',
+    ].join("\n\n"),
+    explain:
+      "Which observations identify the unreadable page, and which establish the recovered application boundary? Explain the missing accepted work without treating the saved inventory as an implicit replay log. What remained unchanged while the separate destination was restored?",
+    vary:
+      "Use hint2 to move the same cold backup after the ten later commits. Predict the exact missing-ID set and final amount before running it. The damage, restore method and later write remain the same. Record the result and clean up this second fixture too.",
+    apply:
+      "A service has a checksum failure and a known-good backup older than some acknowledged requests. State the recovery point you can prove, the accepted operations needing reconciliation, and the extra retained history required for a stronger promise. Which evidence must survive until that decision is checked, and which large files can then be removed?",
+    hints: [
+      "Read the actual psql error and offline scan, then compare every accepted identity/payload with the backup inventory. Page checksums address physical integrity; backup age and retained history bound application recovery. Keep the damaged source unchanged while validating a separate restored copy.",
+      "Run this fresh variation with the backup taken after the later commits. Inspect its actual symptom and inventory, execute restore, and compare the recovered boundary with the core. The final printed cleanup command releases this fixture after you record your evidence.\n\n```bash\n" +
+      CORRUPTION_VARIATION + "\n```",
     ],
   },
 };

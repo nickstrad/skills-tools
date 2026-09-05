@@ -67,3 +67,36 @@ When preserving evidence for space, verify the owned cluster is stopped, hash ev
 reopen the cold archive and compare complete path/hash inventories. Recheck stopped state and the
 original inventory before removing original data directories. Preserve logs, JSON and independent
 receiver/decision stores; cold preservation is not evidence of a successful restore.
+
+## Corruption and recovery-point evidence (2026-09-05)
+
+The replacement corruption incident preserves a structurally valid page header and flips exactly
+one known payload byte while its server is stopped. An actual heap-reading aggregate returns
+SQLSTATEXX001 with page verification failure; an offline pg_checksums scan independently reports
+one bad checksum. Reconstructing the full relation from the retained original page produces the
+pre-damage SHA256, verifying the scope beyond a printed one-byte claim. Do not teach that every
+invalid-page error requires checksums: structural damage can be detected without them too.
+
+A cold filesystem backup must copy the complete cleanly stopped cluster, including WAL and
+transaction status. A table-file copy is not equivalent. The fixture records full file hashes,
+checks the stopped backup, restores into another owned directory, then compares every domain row.
+File agreement and clean page checks alone cannot establish application completeness.
+[PostgreSQL16 filesystem backups](https://www.postgresql.org/docs/16/backup-file.html),
+[pg_checksums](https://www.postgresql.org/docs/16/app-pgchecksums.html).
+
+The core backs up500 operations before ten later commits; the variation moves the same backup
+boundary after those commits. Without later WAL replay, the core explicitly reports missing
+accepted IDs501–510, while the variation restores all510. Both then commit new ID511 and verify
+complete payloads and derived amounts. Using511 avoids silently reusing an accepted identity absent
+from the restored core. Saved accepted inventory is diagnosis evidence, not an implicit replay log.
+
+Preserve the damaged source file and original backup unchanged while verifying the new destination.
+The fixture's copy timer measures verified copying separately from startup/full inventory checks;
+neither is production RTO or diagnosis time. Actual paths, checksum values and affected row IDs
+within the selected page are observations, not portable constants.
+
+The staged controller keeps all servers stopped between preparation, inspection and explicit
+recovery. Its nonblocking file lock rejects overlapping phases. Its cleanup action checks every
+owned cluster stopped before removing only that fixture. For author acceptance, verify/compress the
+required image first, then execute this actual supplied cleanup command; this tests the lifecycle
+that learners receive and prevents another accumulation of raw experiment directories.

@@ -499,7 +499,7 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 ## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL
 
 Implementation follows [designs/07-incidents-integration.md](designs/07-incidents-integration.md).
-Entries2–5 below still describe legacy content awaiting that replacement contract.
+Entries3–5 below still describe legacy content awaiting that replacement contract.
 
 1. `abandoned-slot-fills-the-disk` (privileged, shell): prepare a randomly selected bounded
    disk-growth case, retaining incident-time samples while stopping the private server between
@@ -509,9 +509,14 @@ Entries2–5 below still describe legacy content awaiting that replacement contr
    reclamation. Variation releases the slot first, proves the empty new tail and12,000-row receiver
    gap, then reconstructs from the complete immutable ledger and proves later delivery. No real disk
    exhaustion, allocated-file byte rate or snapshot reconstruction of deleted history is claimed.
-2. `corrupt-a-page-and-detect-it` (dangerous, shell): `dd` zeros/garbage into a block of a lab
-   table's file (server stopped), start, select -> `ERROR: invalid page in block` (checksums);
-   `pg_checksums --check`; recover with `pg_surgery` or `zero_damaged_pages` and from backup.
+2. `corrupt-a-page-and-detect-it` (dangerous, shell): investigate an actual heap-read/checksum
+   failure, compare a complete cold backup with all510 accepted operations, and restore into a
+   separate private destination. The core's500-row backup cannot recover accepted IDs501–510; report
+   their full records, then verify every recovered payload plus a new operation511 and total880,327.
+   The variation moves only the backup boundary after those ten commits and recovers all510 before
+   the same later write, total915,712. Preserve the damaged source and original page bytes, verify
+   clean restored checksums and unchanged backup hashes, and clean up after recording findings. No
+   destructive salvage or production RTO claim.
 3. `wraparound-drill` (dangerous): use `vacuum_failsafe_age` and a synthetic approach: you cannot
    burn 2 billion xids; instead demonstrate the warning path by setting `autovacuum_freeze_max_age`
    low on a table and observing anti-wraparound autovacuum (`pg_stat_progress_vacuum`, log "to

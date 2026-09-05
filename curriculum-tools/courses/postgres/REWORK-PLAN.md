@@ -15,9 +15,10 @@ recorded in [chunk5 integration](validation/05-integration.md), and durable prot
 source variation and exact-hint evidence; the current scripts/fresh hints match all15 retained
 executions and checked outcome inventories. Current88 is accepted in
 [the disk-growth incident report](validation/07-disk-incident.md). The user-requested resource
-cleanup is complete in [the cleanup record](validation/07-resource-cleanup.md). Next: current89–92
-and final workload integration, then the full whole-course audit and final evidence cleanup. The
-course has92 active lessons and seven reading stops; the full pivot remains unfinished.
+cleanup is complete in [the cleanup record](validation/07-resource-cleanup.md). Current89 is
+accepted in [the corruption restore report](validation/07-corruption-incident.md). Next:
+current90–92 and final workload integration, then the full whole-course audit and final evidence
+cleanup. The course has92 active lessons and seven reading stops; the full pivot remains unfinished.
 
 ## Teaching contract
 
