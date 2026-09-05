@@ -64,3 +64,27 @@ victim session; terminating a session after it already unlocked proves nothing a
 For optimistic edits, a fresh version token alone does not preserve another user's intent. A blind
 replacement can pass the new token check and still discard their content. Teach conflict detection
 and the explicit merge/reject policy together, with a final assertion that accepted edits survive.
+
+## Planner measurement boundaries, 2026-09-05
+
+EXPLAIN node rows/time are per-loop averages, whereas buffer accesses accumulate and parent buffers
+include child work. Repeated accesses are not distinct pages, and shared reads can come from the OS
+cache. Rollback removes transactional row changes but does not undo the resource use of an EXPLAIN
+ANALYZE write. Keep measured values separate from sample-dependent estimates and platform
+assumptions. See [PostgreSQL16 EXPLAIN](https://www.postgresql.org/docs/16/using-explain.html).
+
+When testing Memoize, disabling it can reverse the join order. A valid query alone therefore may not
+isolate cached customer probes. Inspect the actual inner relation and loop counts in both runs. The
+PostgreSQL variation uses an explained LATERAL/OFFSET0 barrier to retain the inner lookup and then
+varies only Memoize; that fixture choice is not production tuning advice.
+
+Hash operations apply hash_mem_multiplier to work_mem; neither is a whole-process memory cap.
+Account for overlapping operations and workers before generalizing a single-query improvement. See
+[PostgreSQL16 memory settings](https://www.postgresql.org/docs/16/runtime-config-resource.html).
+
+For pg_stat_statements intervals, keep role, database and top-level status fixed. Another session
+using that scope can contribute. Calls/time deltas do not make lifetime min/mean/max into interval
+percentiles. Resets and entry eviction can invalidate subtraction: the course checks stats_reset and
+dealloc, while stating that targeted resets still require coordination. Prior planning totals can
+survive after tracking is disabled. See
+[PostgreSQL16 pg_stat_statements](https://www.postgresql.org/docs/16/pgstatstatements.html).

@@ -1,7 +1,7 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-04. **Sequential primary implementation adopted; chunk2 pushed; chunk3 drafts await
-primary review.**
+Updated 2026-09-05. **Planner section reviewed, corrected and validated by primary; index review
+next.**
 
 ## User authorization and intended result
 
@@ -33,14 +33,15 @@ another review or stop after planning: implementation and validation are authori
 - Unknown response is explicitly an output-withholding fixture, not a network-disconnect test.
   Receipts/payload/result and debit commit together. Real independent external effect/receiver
   commits and replication-history loss are still later protocol work.
-- Planner/index private drafts follow designs/03-workload-performance.md. Primary now owns them.
-  Preserve the drafts and their reports; do not replace root source until reviewed and corrected.
-- /tmp/pg-pivot-planner-work contains curriculum/11-planner.ts, guides/11-planner.ts and
-  validation/03-planner.md under courses/postgres/. All seven cores and their full sequence passed.
-  Storage then executed all seven exact hint2 commands, fixing psql meta-command line breaks and
-  adding explicit resets. Scripts/logs: /tmp/pg-pivot-planner-hints/ and
-  /tmp/pg-pivot-planner-hint-*.log. Statistics hint used the core's pl_tenant fixture in addition to
-  setup; primary must check that the learner-facing instructions make this dependency clear.
+- Primary accepted planner source11, authored specific guides11, registered them and built94
+  lessons. Every core and exact hint executed. See validation/03-planner.md, primary
+  acceptance2026-09-05. Root source is now authoritative; the old /tmp/pg-pivot-planner-work is
+  historical only. Logs: /tmp/pg-planner-primary-20260905.log and
+  /tmp/pg-planner-exact-20260905/*.log. Core fixes: restored settings, explicit hash multiplier,
+  tenant fixture in setup, accurate model/ buffer/rollback claims, top-level scoped aggregate deltas
+  and retention check. Hint fixes include fixed inner-lookup shape for Memoize comparison (5,000
+  cached vs100,000 uncached probes). All30 tests pass, first7 objects unchanged, copied
+  progress/IDs/history preserved,7 reading stops.
 - /tmp/pg-pivot-visibility-work contains the corresponding12-indexes source, guide and report. Six
   cores passed. Hint validation found and fixed nonexistent ix_jobs to ix_orders. Immediate update
   counters were0/0, so HOT evidence is still unproven; primary must repair the observation boundary
@@ -48,8 +49,8 @@ another review or stop after planning: implementation and validation are authori
   hint against its report too; do not infer acceptance from a completed agent task. Retires
   index-only-scan-needs-visibility-map; update current mapping at integration.
 - Primary owns all remaining source, coaching, capacity/migration and failure/protocol work. Next
-  section is planner review/integration, then indexes, then capacity/migration/observability.
-  Optional agent work is fixed-scope verification only; no new lesson authoring assignments.
+  section is indexes, then capacity/migration/observability. Optional agent work is fixed-scope
+  verification only; no new lesson authoring assignments.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -64,8 +65,8 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Primary reviews the complete planner source and guides, checks the exact-hint report and fixture
-   prerequisites, reruns representative experiments, then integrates that section. Chunk2 is pushed.
+1. Commit/push the accepted planner section and this handoff. Then start index review; do not repeat
+   planner discovery or copy its obsolete private draft over the accepted root source.
 2. Primary reviews indexes next, repairs counter observation, executes RR pagination and resolves
    other evidence gaps. Then implement capacity and bounded migration synthesis sequentially.
    Arrange final performance ordering before replication while respecting true WAL/recovery
@@ -108,3 +109,7 @@ separate databases; coordinate global operations serially.
 - `644138f` pushed: concurrency delivery and performance-review checkpoint.
 - Latest workflow change: sequential primary implementation, bounded agent verification only.
   Updated REWORK-PLAN, design03 and durable progressive-course-design notes with this handoff.
+
+- `3bf2541` pushed: sequential primary implementation policy and superseding design/handoff notes.
+- Planner acceptance2026-09-05 is a section of chunk3; chunk3 remains incomplete. Continue directly
+  to index primary review after the scoped planner commit/push.
