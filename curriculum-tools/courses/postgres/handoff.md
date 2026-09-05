@@ -1,9 +1,35 @@
 # PostgreSQL pivot handoff
 
-Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 WAL is accepted through current57, including
-archive failure, actual crash/replay and matched amplification. Replay-only lesson is consolidated;
-94 lessons remain. Checkpoint anatomy is now accepted below. Next: recovery cost, WAL pressure,
-backup/restore and PITR.**
+Updated 2026-09-05. **Chunks 1–3 are accepted. Chunk 4 is accepted through current 61: WAL,
+checkpoint anatomy, matched recovery cost, WAL pressure and actual backup/restore with
+missing-history failure/repair. Next: current 62 PITR, then timeline consolidation and chunks 5–7.**
+
+## Backup/restore accepted, 2026-09-05
+
+Current 61 base-backup is accepted at revision 4. Core/source/exact-hint runs create real streamed
+backups, verify their manifests/WAL, stop the changed source and independently restore 2,000 jobs
+and receipts with all values/relationships/constraint probes correct. Removing the required start
+segment from a separate copy produces an actual bounded required-checkpoint startup failure.
+Source/exact variations retrieve that byte-verified segment through a private archive and recover
+the same data. Read-only readiness is not completion; an explicit pg_is_in_recovery=false poll now
+precedes write probes. Pristine backups verify again. All owned servers stopped.
+
+Report validation/04-backup-restore.md; final core /tmp/pg-backup-core.log and
+/tmp/pg-owned-3bvqeum4; source variation /tmp/pg-backup-variation.log and /tmp/pg-owned-z8l8itbu;
+exact /tmp/pg-backup-exact-base-backup.log. Drivers /tmp/pg-backup-validate.ts,
+/tmp/pg-backup-exact.ts; scoped builder /tmp/pg-backup-scoped-build.py. Thirty tests/full check
+pass; scoped artifact changes only current 61, with94 lessons/seven stops, first seven/capacity and
+fresh copied IDs/history/progress preserved. No learner catalog refresh or lab writes.
+
+This resume sequentially accepted checkpoint anatomy b2e90f5, matched recovery0570466 and WAL
+pressure f0f9a30, all pushed. Preserve unrelated storage source/guide/knowledge and root bin/. No
+agents were spawned; primary owns implementation and all validation. Next: implement current62
+point-in-time-recovery from design04 using an actual backup, named target before destructive commit,
+archived required history, full domain assertions and actual branch/history evidence. Run
+later-target variation too; only then retire current63 timeline-history and update
+prerequisites/maps/progress-copy checks for93 active lessons. Preserve both branch histories for
+inspection and never compare bare LSNs from divergent histories as authority tokens. Chunks4–7
+remain active, not complete.
 
 ## WAL-pressure checkpoints accepted, 2026-09-05
 
@@ -54,7 +80,7 @@ reading stops, first seven/capacity and fresh copied IDs/history/progress preser
 real backup/restore/missing-history/PITR. Chunks 4–7 remain active. Preserve unrelated storage
 source/guide/knowledge and root bin/. No learner catalog refresh.
 
-## User-requested context reset
+## Previous user-requested context reset (historical)
 
 The user chose this verified stopping point on2026-09-05. Resume from current58 checkpoint-anatomy
 in08-checkpoints.ts using designs/04-durability-recovery.md. Do not redo the accepted WAL module or

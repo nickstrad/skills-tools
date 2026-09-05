@@ -1,9 +1,29 @@
 import { CHECKPOINT_VARIATION } from "../curriculum/checkpoint-workload.ts";
 import { RECOVERY_COST_VARIATION } from "../curriculum/recovery-cost.ts";
 import { WAL_PRESSURE_VARIATION } from "../curriculum/wal-pressure.ts";
+import { BACKUP_VARIATION } from "../curriculum/backup-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "base-backup": {
+    brief:
+      "Prove an actual backup restores correct jobs/receipts with its source offline, then remove required WAL from a separate input.",
+    predict:
+      "After a post-backup source update and shutdown, which amounts should the independent restore show? Can unchanged heap files make a backup usable when its required starting WAL is missing?",
+    inspect:
+      "Check the pristine manifest/WAL range, source shutdown, copy data_directory, all job/receipt values and actual rejected constraint probes. Distinguish verifier failure from the missing-copy's classified startup failure.",
+    explain:
+      "Why are both manifest verification and actual restore needed? Why must backup_label stay in the failed input? Which evidence proves the restored answers did not come from the updated source?",
+    vary:
+      "After the same missing-history failure, serve the verified required segment through a private restore command and recover that copy with the source still stopped.",
+    apply:
+      "A team reports successful nightly backups. Specify the retained-history, independent restore, domain/constraint and storage-failure evidence needed before promising recovery from a lost source host.",
+    hints: [
+      "Preserve the pristine backup and recovery metadata. The repair changes available WAL history, not row values or the target state; require an actual archive retrieval and completed recovery.",
+      "Run this complete missing-history repair variation in a shell.\n\n```bash\n" +
+      BACKUP_VARIATION + "\n```",
+    ],
+  },
   "max-wal-size-forces-checkpoints": {
     brief:
       "Cause WAL-driven checkpoints with a bounded producer and verify actual settings, fresh reason logs and equivalent receipts.",

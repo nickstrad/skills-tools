@@ -314,3 +314,42 @@ stats-reset epochs. Remove only the owned override, verify the restored source a
 as value, and stop in nested finally even if restoration fails. Accelerated checkpoint
 pacing is an explicit lab condition, never an implied production recommendation. See
 validation/04-wal-pressure.md for source and exact rendered-hint evidence.
+
+## Actual backup restore and missing history (2026-09-05)
+
+### What happened
+
+A streamed physical backup restores independently after its source is changed and stopped.
+All job/receipt values and actual uniqueness, foreign-key and positive-amount enforcement
+pass. Removing the starting WAL segment from another copy causes both manifest WAL parsing
+failure and a classified startup fatal for the required checkpoint. A private archive then
+supplies the byte-identical segment, allowing the same copy to recover with source offline.
+The pristine backup is never started or edited and verifies again afterward.
+
+### Why it matters
+
+pg_verifybackup should run before restore-specific configuration edits; otherwise unrelated
+manifest mismatches can prevent the WAL check. If the required segment is the only WAL file,
+the verifier reports "could not find any WAL file" instead of naming it. Require that specific
+classification and inspect the missing input, rather than accepting an arbitrary verifier error.
+Keep backup_label intact. Its checkpoint/start metadata does not include the backup end LSN;
+the manifest WAL-Ranges records that boundary.
+
+pg_ctl -w can return when archive recovery starts accepting read-only queries. A successful
+SQL connection is therefore insufficient readiness for constraint/write probes. Poll
+pg_is_in_recovery=false with a deadline before declaring this restored application usable.
+If repair uses files copied by root, transfer archive-file ownership too; retaining a 0600
+root-owned WAL file would make the server's restore command unable to read it.
+
+### How to apply
+
+Use distinct owned data/socket paths, explicitly stop the source and verify each answering
+data_directory. Preserve a verified pristine backup and mutate only copies. Combine file/WAL
+verification, fresh actual recovery logs, every domain value, relationship counts and real
+rejected constraints. Require a bounded specific missing-WAL startup failure, then prove repair
+retrieves history and recovers the same state. Local same-disk copies still do not test host loss.
+
+Primary references: [pg_basebackup](https://www.postgresql.org/docs/16/app-pgbasebackup.html),
+[pg_verifybackup](https://www.postgresql.org/docs/16/app-pgverifybackup.html) and
+[archive recovery](https://www.postgresql.org/docs/16/continuous-archiving.html).
+Actual source/core/exact-hint evidence is in validation/04-backup-restore.md.
