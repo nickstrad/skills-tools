@@ -1,8 +1,28 @@
 import { LOGICAL_DECODING_VARIATION } from "../curriculum/logical-decoding.ts";
 import { SLOT_DELIVERY_VARIATION } from "../curriculum/slot-delivery.ts";
+import { LOGICAL_BOOTSTRAP_VARIATION } from "../curriculum/logical-bootstrap.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "publication-and-subscription": {
+    brief:
+      "Verify actual copied snapshots and concurrent change tails for initial subscription and refreshed-table bootstrap, including continued work on an existing table.",
+    predict:
+      "Which old values and deleted seed rows should the COPY audit contain after writes commit during its pause? Does adding a table to the publication automatically register it on an existing subscriber?",
+    inspect:
+      "Match the blocked COPY worker XID to its100 seed row images, then account for every later UPDATE/DELETE/INSERT in separate transactions. Require relation readiness, exact source/subscriber contents and a post-ready receipt behind the apply-origin boundary.",
+    explain:
+      "Why can transport progress, a non-null srsublsn or equal row counts each be insufficient? How does the audit distinguish copied state from the change tail, and why can an older table stream while a newly refreshed table is not ready?",
+    vary:
+      "Double overlap from two to four committed write batches during each COPY pause. Predict the unchanged100-row snapshot,48 tail events and final values/membership despite unchanged final row counts.",
+    apply:
+      "A service adds a table to a live logical replica. Define schema/identity, membership, copy/tail, per-table readiness and post-ready effect checks before serving that data; explain why unrelated ready tables need not imply the new table is usable.",
+    hints: [
+      "A copied snapshot and a source cursor must be coordinated, but their diagnostic fields are not interchangeable. Use the actual blocked worker, original row images, later committed changes and full results; refresh is separate from publication membership.",
+      "Run this complete four-batch variation in a shell.\n\n```bash\n" +
+      LOGICAL_BOOTSTRAP_VARIATION + "\n```",
+    ],
+  },
   "slot-position-and-acknowledgement": {
     brief:
       "Exercise independent source acknowledgement and receiver commit, then recover from actual process losses using atomic receipts and effects.",

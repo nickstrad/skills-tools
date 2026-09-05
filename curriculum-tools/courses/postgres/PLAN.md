@@ -379,20 +379,20 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    after source ack; replay deduplicates and later work stays pending. Variation crashes source
    before slot checkpoint, proving acknowledged-offset replay with receiver state intact. Final safe
    IDs10–21/total186 survive receiver restart; unsafe missing effects remain separately classified.
-3. `publication-and-subscription` (privileged). Second database `lab_sub` in the same cluster,
-   `create publication`, `create subscription ... connection 'host=/tmp port=5440 dbname=lab'`
-   (needs `create_slot`; same-cluster subscriptions need `copy_data` caveat: use
-   `WITH (create_slot = false)` after creating the slot manually to avoid the known same-cluster
-   hang). Insert on lab; row appears in lab_sub; `pg_stat_subscription`.
-4. `initial-sync-vs-streaming` (writes-data). Add a table with existing rows to the publication,
-   `alter subscription refresh publication`, watch `pg_subscription_rel.srsubstate` go i -> d -> s
-   -> r. Lens: snapshot + tail = backfill + stream.
-5. `conflicts-stop-the-apply-worker` (writes-data). Insert a conflicting PK on the subscriber, then
+3. `publication-and-subscription` (privileged, shell). Combines initial subscription and new-table
+   refresh with actual snapshot/tail evidence. Private replica row trigger holds COPY after a seed
+   tuple arrives; concurrent source INSERT/UPDATE/DELETE batches commit. Audit exactly100 old seed
+   images under the blocked worker XID and all later row changes under separate transaction IDs.
+   Verify ready states, apply-origin COMMIT boundaries, full contents and post-ready receipts.
+   Existing items continue streaming while refreshed ledger is still copying. Four-batch variation
+   doubles overlap without changing final row counts; verify values/membership rather than counts.
+   Former `initial-sync-vs-streaming` is consolidated here after both executed handoffs pass.
+4. `conflicts-stop-the-apply-worker` (writes-data). Insert a conflicting PK on the subscriber, then
    on the publisher -> apply worker errors (`duplicate key`) in the log and
    `pg_stat_subscription_stats.apply_error_count`; fix by deleting the row; optionally
    `pg_replication_origin_advance` to skip. Lens: logical replicas diverge silently unless you
    watch; conflict handling is your job.
-6. `slot-lag-and-disk` (privileged). Drop the subscriber's ability to apply (disable the
+5. `slot-lag-and-disk` (privileged). Drop the subscriber's ability to apply (disable the
    subscription), write on the publisher, `pg_replication_slots` restart_lsn stays, `pg_wal` grows;
    re-enable. Cleanup: drop subscription, slots, lab_sub.
 

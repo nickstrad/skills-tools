@@ -180,3 +180,72 @@ advancing again. See PostgreSQL16
 [slot administration functions](https://www.postgresql.org/docs/16/functions-admin.html#FUNCTIONS-REPLICATION)
 and
 [logical decoding concepts](https://www.postgresql.org/docs/16/logicaldecoding-explanation.html).
+
+## Audit the actual COPY snapshot separately from its change tail (2026-09-05)
+
+### What happened
+
+Current80 now consolidates publication-and-subscription and initial-sync-vs-streaming. A subscriber
+replica row trigger pauses the actual COPY worker after receiving its first seed row. The observed
+worker waits on the held advisory lock, owns a local transaction ID, and its relation is in state d.
+Independent reads see no copied rows or audit entries yet. While held, the source commits two
+batches, each containing ten updates, one delete and one insert. After release, the audit contains
+exactly100 original seed images under the blocked worker's XID and24 later changes in two different
+transactions. The four-batch variation instead records48 changes in four transactions. Full payloads
+and membership agree, including copied old versions of updated/deleted seed rows.
+
+The experiment then adds a second publication table. Publisher membership alone leaves it absent
+from pg_subscription_rel; REFRESH registers it and starts a separate copy. While that copy is held,
+a new receipt still applies to the already-ready first table. Both copies pass their own snapshot,
+tail, readiness and post-ready receipt checks. Final inventories contain102 item rows and101 ledger
+rows, with every value/note compared. No shared snapshot across both table bootstraps is claimed.
+
+### Why it matters
+
+Matching final counts can hide missing updates or balanced omissions/duplicates. The local audit
+separates actual copied row versions from later changes, while the observed worker XID ties the
+copied image to the original blocked transaction. A later retry could choose a different snapshot;
+never silently accept a retried copy as proof about the first attempt. Publisher membership,
+subscriber relation registration and readiness are separate events.
+
+### How to apply
+
+Use a deterministic gate inside real copy work and assert its live wait before creating overlap.
+Retain source COMMIT records, full before/after images and complete independent table answers.
+Require a new post-ready receipt behind the actual apply-origin COMMIT boundary. The replica trigger
+is instrumentation and changes timing/write cost; no throughput or production-trigger advice follows.
+See validation/05-logical-bootstrap.md and PostgreSQL16's
+[logical replication architecture](https://www.postgresql.org/docs/16/logical-replication-architecture.html).
+
+## Worker environment and synchronization fields need direct evidence (2026-09-05)
+
+### What happened
+
+The first bootstrap prototype used an unqualified INSERT into bootstrap_audit inside its trigger.
+The actual worker failed with relation-does-not-exist even though an interactive connection could
+read the table. Schema-qualifying public.bootstrap_audit fixed it. The final trigger records
+current_setting('search_path'); both COPY and later apply returned the empty string in all three
+accepted runs. Final subscription apply/sync error counters are zero. The failed prototype and its
+retries are retained separately at /tmp/pg-owned-s9kmqv0v.
+
+Each held COPY had its own generated pgoutput synchronization slot, separate from the main slot.
+The sampled sync slot was temporary=false and active=false despite the live blocked COPY worker.
+It disappeared after synchronization. The relation's srsublsn was NULL during d and non-null in r.
+The main replication origin then reached the captured source COMMIT end for a newly streamed receipt.
+
+### Why it matters
+
+An interactive search_path is not evidence about the worker's execution environment. Short-lived
+synchronization slots are not necessarily temporary slots or continuously active consumers. Nor is
+srsublsn a universal snapshot LSN: PostgreSQL documents it as state-change synchronization
+coordination in s/r. Transport received_lsn, origin remote_lsn and per-table readiness describe
+different boundaries; none replaces full data checks.
+
+### How to apply
+
+Qualify trigger references used by logical workers and capture the setting when diagnosing failures.
+Record slot lifetime and flags separately. Gate on observed d/r states without requiring every brief
+intermediate state to be sampled. Use the relevant origin's remote_lsn plus fresh domain queries for
+post-ready work, while retaining per-table readiness during multi-table bootstrap. References:
+[pg_subscription_rel](https://www.postgresql.org/docs/16/catalog-pg-subscription-rel.html) and
+[pg_replication_origin_status](https://www.postgresql.org/docs/16/view-pg-replication-origin-status.html).

@@ -1,8 +1,55 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–4 and chunk5 physical replication through current77 are accepted.
-There are93 active lessons. Next: current80 publication/bootstrap and the rest of change processing,
-then chunks6–7 and the final audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–4 and chunk5 through current80 logical bootstrap are accepted. There
+are92 active lessons. Next: current81 logical conflicts, then current82 retention/resnapshot,
+chunks6–7 and the final audit. The full active goal is not complete.**
+
+## Audited logical bootstrap and refresh accepted, 2026-09-05
+
+Current80 publication-and-subscription is revision4 and consolidates oldcurrent81
+initial-sync-vs-streaming after measured replacement coverage. Two independently initialized source
+and subscriber servers execute initial subscription and later new-table REFRESH. An enabled replica
+row trigger gates the actual COPY worker after its first seed row; observed advisory wait/XID and
+state d precede source writes. Audits prove100 original copied row images under that XID, followed
+by24 core or48 variation INSERT/UPDATE/DELETE events in separate transactions. New post-ready
+receipts pass captured source COMMIT end/origin gates and full independent table comparisons. During
+new-table copy, the already-ready table continues applying its own receipt. Final102/101 inventories
+match all payloads, both relations ready and zero apply/sync errors.
+
+The initial prototype failed because an unqualified bootstrap_audit name did not resolve inside the
+worker. Accepted trigger uses public.bootstrap_audit and records empty search_path. Failed copy
+retries remain separate evidence. Held table-sync slots were non-temporary and inactive; srsublsn is
+state coordination, not a universal snapshot position. Durable findings appended to
+docs/knowledge/postgres-logical-evidence.md. Report validation/05-logical-bootstrap.md.
+
+Final core /tmp/pg-owned-dfn4izle, source variation /tmp/pg-owned-pl36xp5k and exact hint2
+/tmp/pg-owned-a3sf8esa pass and are stopped, with no slots or unexpected server errors.
+Drivers/logs: /tmp/pg-logical-bootstrap-validate.ts, /tmp/pg-logical-bootstrap-{core,variation}.log,
+/tmp/pg-logical-bootstrap-exact.ts and
+/tmp/pg-logical-bootstrap-exact-publication-and-subscription.log. Thirty tests/full check pass.
+Scoped builder /tmp/pg-logical-bootstrap-scoped-build.py and copied migration
+/tmp/pg-bootstrap-progress.py prove92 active lessons, unchanged original first seven/capacity/seven
+stops and preserved IDs/progress/attempts. Copy: /tmp/pg-observe-progress-khy15knm/progress.sqlite;
+learner hash unchanged. Retired initial-sync-vs-streaming is inactive; conflict prerequisite now
+points to publication-and-subscription. Lesson/reading maps record the consolidation without
+completion transfer. Prior current79 commit6d99409 is pushed.
+
+Continue sequentially with current81 conflicts-stop-the-apply-worker: actual uniqueness/schema
+failures, stopped apply and accumulated changes, explicit repair/reconciliation and full source/sink
+agreement per designs/05-replication-change-processing.md. Then current82 slot-lag-and-disk, with
+real acknowledgement/retention loss and tested resnapshot, followed by durable protocols, incidents
+and final audit. No agents, learner progress writes or port5440 operations. Preserve unrelated
+storage source/guide/knowledge and root bin/.
+
+Disk is about312MB after final bootstrap fixtures; check before more pairs. Verified archival of
+current79 prototype pairs xfwzyf3w and lavw2ihm is complete: each root retains hash-checked cold
+archives/manifests/control output and raw logs/JSON. Only original data/receiver folders were
+removed following stopped-state and full path/hash rechecks. Script
+/tmp/pg-bootstrap-archive-prototypes.py; report documents limits. Current80 superseded corrected
+prototype pairs f6dv1lv1 and aq8062et are potential next archive candidates after independently
+verifying stopped state; preserve final roots above and the failed s9kmqv0v diagnostic evidence. Do
+not remove arbitrary /tmp/pg-owned-* trees. Final audit still includes idle insertion/replay
+boundaries and abort-only WAL flush availability.
 
 ## Independent slot acknowledgement and receiver effects accepted, 2026-09-05
 

@@ -73,7 +73,7 @@ sections of the same chapter both are listed inside one parenthesis.
 | 59 | cascading-and-failback                        | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".                                                                                                                                                    |
 | 60 | decode-the-log                                | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".                                                                                                                                                          |
 | 61 | slot-position-and-acknowledgement             | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".                                                                                                                                                          |
-| 62 | publication-and-subscription                  | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".                                                                                                                                                          |
+| 62 | publication-and-subscription                  | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 "Snapshots" and Chapter 11 "WAL Modes".                                                                                                                                                          |
 | 63 | initial-sync-vs-streaming                     | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 "Snapshots".                                                                                                                                                           |
 | 64 | conflicts-stop-the-apply-worker               | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".                                                                                                                                                          |
 | 65 | slot-lag-and-disk                             | PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".                                                                                                                                                    |
@@ -209,3 +209,14 @@ Its stable identity and outside-book citation remain; the replacement executes a
 standby gate, post-COMMIT bound, known-history rejection, timeout, fresh receipt snapshot and
 explicit primary-fallback variation. No logical received position substitutes for physical apply.
 The original research table stays numbered1–96; use lesson-map.md for current93-lesson order.
+
+## Executed logical bootstrap consolidation (2026-09-05)
+
+Original63 initial-sync-vs-streaming is consolidated into original62 publication-and-subscription,
+current80. The replacement audits actual copied snapshots and concurrent INSERT/UPDATE/DELETE tails
+for both subscription creation and a later publication refresh; the earlier table continues to
+stream while the new table copies. Both topics remain outside the book. The surviving citation
+combines Chapter4 "Snapshots" and Chapter11 "WAL Modes" as closest background, without claiming book
+coverage of the synchronization protocol or its diagnostic catalogs. The original96-row index remains;
+use lesson-map.md for current92-lesson order and seven reading stops. Retired completion is not
+transferred, and the conflict lesson now depends on the surviving bootstrap identity.
