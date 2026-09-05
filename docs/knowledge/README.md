@@ -10,6 +10,7 @@ otherwise rediscover.
 
 | File | What it covers |
 | --- | --- |
+| [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |
 | [repo-tooling.md](repo-tooling.md) | Deno location, scoped `fmt`/`lint`/`check` commands, formatter effects on Markdown, Docker test rig, and how to build a non-root test user. |
 | [validation-harness.md](validation-harness.md) | How `tools/validate.ts` drives a course, why "completed" is not "passed", how to isolate parallel runs, and how to read evidence. |
 | [subagent-workflow.md](subagent-workflow.md) | Directed delegation, owned files, evidence-based acceptance and primary writing/review across the Opus and Luna/high course passes. |
@@ -25,6 +26,7 @@ otherwise rediscover.
 | [postgres-replication-evidence.md](postgres-replication-evidence.md) | Owned physical topology, receiver lifecycle, replay/domain readiness and the boundary between transport and authority. |
 | [postgres-logical-evidence.md](postgres-logical-evidence.md) | Physical/logical evidence, plugin/schema limits, atomic receiver receipts and source acknowledgement replay after crashes. |
 | [postgres-durable-protocol-evidence.md](postgres-durable-protocol-evidence.md) | Outbox/idempotency, prepared decisions, resource fencing and durable notification reconciliation across actual process loss. |
+| [postgres-incident-evidence.md](postgres-incident-evidence.md)                 | Staged symptom-first diagnosis, inspection-induced WAL, bounded receiver acknowledgement and verified recovery obligations.                                                |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |

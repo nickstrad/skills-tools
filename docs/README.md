@@ -3,6 +3,16 @@
 Read this file before searching the repository or re-analyzing a bundled
 reference.
 
+## First operational task: VM resources and cleanup
+
+Read `/root/disk-usage-report.md` when available, then follow
+[`knowledge/vm-resource-cleanup.md`](knowledge/vm-resource-cleanup.md).
+Revalidate disk usage, memory and live processes before allocating or deleting
+resources. Stop and clean owned labs throughout a task, budget temporary copies
+and archives, and perform final cleanup before declaring the goal complete. Keep
+the learner's `/labs/pglab` and progress intact so the next lesson can start.
+The September 2026 report is a historical inventory, not a deletion allowlist.
+
 ## Learning roadmap
 
 [`learner-profile.md`](learner-profile.md) records Nick's stated experience and preferences.

@@ -2,6 +2,14 @@
 
 ## The pedagogy
 
+Before creating validation infrastructure, follow the repository's
+[`VM resource and cleanup guidance`](../../docs/knowledge/vm-resource-cleanup.md). Budget the peak
+footprint of primary/replica/restore copies, WAL, logs and preserved evidence. Stop owned processes
+in failure cleanup, remove disposable state after acceptance, and record any evidence retained for a
+pending audit with an explicit removal point. Check free space at validation checkpoints and clean
+up again before declaring the whole task complete. Never remove learner lab state or progress as
+validation cleanup.
+
 The goal of every course is to make a systems idea concrete by _causing_ it and _observing_ it, not
 by reading about it. A lesson is an experiment:
 

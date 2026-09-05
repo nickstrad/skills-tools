@@ -498,8 +498,17 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 
 ## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL
 
-1. `abandoned-slot-fills-the-disk`: create slot, never consume, generate WAL, watch pg_wal grow
-   against `max_slot_wal_keep_size`; recover by dropping the slot; log lines.
+Implementation follows [designs/07-incidents-integration.md](designs/07-incidents-integration.md).
+Entries2–5 below still describe legacy content awaiting that replacement contract.
+
+1. `abandoned-slot-fills-the-disk` (privileged, shell): prepare a randomly selected bounded
+   disk-growth case, retaining incident-time samples while stopping the private server between
+   stages. The learner selects workload/WAL/slot/archiver/data/log evidence and an explicit remedy.
+   Resume a retained consumer, verify repaired archive file hashes, or measure reduced write demand;
+   validate complete receiver payloads/balance, a later delivery, duplicate stability and old WAL
+   reclamation. Variation releases the slot first, proves the empty new tail and12,000-row receiver
+   gap, then reconstructs from the complete immutable ledger and proves later delivery. No real disk
+   exhaustion, allocated-file byte rate or snapshot reconstruction of deleted history is claimed.
 2. `corrupt-a-page-and-detect-it` (dangerous, shell): `dd` zeros/garbage into a block of a lab
    table's file (server stopped), start, select -> `ERROR: invalid page in block` (checksums);
    `pg_checksums --check`; recover with `pg_surgery` or `zero_damaged_pages` and from backup.

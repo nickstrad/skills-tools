@@ -1,23 +1,43 @@
 # PostgreSQL lab cluster
 
-The disposable cluster the PostgreSQL Systems course validates against. Last updated 2026-09-03.
+Keep the learner lab distinct from disposable validation infrastructure. Updated 2026-09-05.
 
 ## What happened
 
-The 96-lesson course was validated lesson by lesson on a cluster created by module 01: port 5440,
-database `lab`, data under `$PGLAB=/var/lib/postgresql/pglab`. Every lesson was run by an Opus
-subagent per module and spot-checked (2 to 3 lessons per module) by the primary agent before the
-module was marked done.
+The original course validation used `/var/lib/postgresql/pglab`. That old tree accumulated about 6.1
+GB of primary/backup/archive files and was removed on 2026-09-05 after checking its stopped state,
+distinguishing the live learner path, and recording a complete file inventory. Historical validation
+reports naming that path are not instructions to recreate or retain it.
 
-`archive_mode` is on in that cluster, so its WAL archive directory grows without bound while the
-lab exists.
+The learner's current PostgreSQL 16.15 lab is `/labs/pglab/primary`, port 5440, Unix socket `/tmp`,
+role `postgres`, database `lab`. At cleanup verification it was running and contained the learner's
+storage experiment tables and installed course extensions. Lesson 9 creates its own `st_toast`
+table; no old author-validation database or archive is needed to begin it.
+
+The agent's `/tmp/postgres-pivot-20260904` validation cluster on port 5540 had no client sessions
+and was stopped during cleanup. Its retained evidence and the per-experiment `pg-owned-*` images
+were compacted for the outstanding whole-course audit. Consult the current handoff and
+`/root/pg-cleanup-20260905/compacted.jsonl` for actual archive locations before using an old scratch
+path. No permanently running author cluster is required.
 
 ## Why it matters
 
-A validation cluster that fills the disk fails unrelated lessons in confusing ways.
+A stopped cluster still consumes disk. Archives, replicas, base backups and restore destinations can
+exceed primary data size many times over. In this incident disk was effectively full despite healthy
+memory and inode availability. Similar `pglab` names concealed two different trees.
 
 ## How to apply
 
-When disk is tight, prune the archive with `pg_archivecleanup` older than the start segment of
-`backup1` (the base backup the backup lessons create). Recreate the lab from module 01 rather than
-repairing it. Start follow-up work from the `curriculum-author` skill and `courses/postgres/PLAN.md`.
+Follow [VM resources and cleanup](vm-resource-cleanup.md) before starting validation and at every
+checkpoint. Recheck `data_directory`, port, actual processes, active clients and path ownership.
+Protect `/labs/pglab` and learner progress; use uniquely owned temporary clusters for authoring. Do
+not restart or remove the learner lab as housekeeping.
+
+Do not prune an archive by the current WAL filename. Retention depends on every backup/recovery
+point and consumer that still needs history. `pg_archivecleanup` is appropriate only with a verified
+oldest-needed segment and understood consumers; its documentation cautions against using a
+single-standby cleanup rule for shared or long-term backup archives.
+[PostgreSQL 16 pg_archivecleanup](https://www.postgresql.org/docs/16/pgarchivecleanup.html). When an
+entire disposable validation lab has no remaining obligation, stop it and remove that owned lab,
+retaining only evidence required by a specific pending audit. Clean up again after the audit before
+marking the overall course goal finished.

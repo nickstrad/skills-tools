@@ -1,8 +1,110 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–6 are accepted through current87. There are92 active lessons. Next:
-chunk7's symptom-first incidents/current88–92 and final workload integration, then the full
-whole-course audit. The full active goal is not complete.**
+Updated 2026-09-05. **Top priority is the user-requested VM cleanup and learner lesson-9 readiness.
+Cleanup is complete and chunks1–6 plus current88 are accepted. Current89–92 and the whole-course
+audit remain required. The catalog has92 active lessons. The full goal remains active.**
+
+## Top-level resource cleanup requirement
+
+The user explicitly requested reading/verifying `/root/disk-usage-report.md`, cleaning up as much
+unnecessary author-work state as possible, keeping the learner ready for lesson9, durable general
+and PostgreSQL-specific findings, and cleanup again after the overall work. This requirement
+supersedes earlier instructions to retain every raw scratch database indefinitely. It does not allow
+deleting learner progress, the live learner lab, unrelated work or active agent state.
+
+Read `docs/knowledge/vm-resource-cleanup.md` and `docs/knowledge/postgres-lab.md` in the repository
+root. AGENTS.md, docs/README.md, AUTHORING.md and REWORK-PLAN now make resource budgeting and final
+cleanup explicit. Before another validation fixture, follow the new resource budget and cleanup
+lifecycle.
+
+Verified before cleanup: root filesystem24GB, only170MB available;151 owned experiment roots
+about6.8GB; obsolete `/var/lib/postgresql/pglab`6.1GB; private pivot lab2.6GB. The real learner lab
+is `/labs/pglab/primary`, port5440/socket `/tmp`, database `lab`. It responds and contains course
+extensions and learner storage tables. Lesson9's start/run render with copied progress; its setup
+creates st_toast and needs no discarded validation cluster.
+
+The stale `/var/lib/postgresql/pglab` tree was independently inventoried/hashed, checked stopped and
+removed. npm download cache and apt package downloads were cleared. The private pivot server had no
+client sessions, was stopped normally, and its full data/archive tree was compressed, reopened and
+checked against complete hashes before original removal. Only the learner's PostgreSQL server
+remains live.
+
+Cleanup is COMPLETE; no cleanup job remains live. Authoritative scripts/logs/manifests live in
+`/root/pg-cleanup-20260905/`. compact-evidence.py and compact-snapshots.py terminated0 after
+preserving234 roots:151 owned experiments, the private pivot lab, and82 obsolete build/private
+source/copied-progress snapshots. Each archive was reopened and checked against complete hashes;
+stopped state and original hashes were rechecked before removal. No `/tmp/pg-owned-*` root or
+private pivot tree remains. retire-prototypes.py then discarded59 superseded/unaccepted full images
+after keeping verified small forensic records. The old6.1GB validation tree was removed outright
+after ownership/stopped/inventory checks; it was not a retained audit input.
+
+Free space increased from about170MB to16GB (34% used). About1.6GB of compressed accepted evidence,
+small forensic records and source snapshots remains under `/root/pg-validation-evidence/20260905/`
+only until the final whole-course audit. `compacted.jsonl` maps original roots to archives and
+complete `.files.json` inventories. `retired-prototypes.jsonl` supersedes that mapping for59
+small-evidence archives; the discarded originals' manifests are inventories, not retained bytes.
+Read `/root/pg-validation-evidence/README.md` for selective member access. Do not reconstruct all
+old trees. final-verify.py checks archive SHA256s, removed originals, six current88 archived
+SQLite/source outcomes, learner connectivity and unchanged progress; its final summary/log are in
+the same cleanup directory. The repository acceptance record is `validation/07-resource-cleanup.md`.
+
+The first snapshot preflight stopped at the canonical docs symlink without deleting anything. The
+corrected manifest preserves link targets without following them. Current copied progress remains
+`/tmp/pg-observe-progress-ps3cmlto/progress.sqlite`, pointer `/tmp/pg-observe-progress-path`; older
+copies/build snapshots are archived. Detailed general and PostgreSQL-specific findings, retention
+obligations and final cleanup gates are now indexed in the knowledge base. The original
+`/root/disk-usage-report.md` has a verified cleanup addendum.
+
+Existing acceptance reports name original scratch paths. Their files are now archive members under
+the original root basename, not evidence that the original path remains on disk. Read individual
+members or extract only required small inventories/SQLite stores for the pending course audit. Do
+not inflate/start all old databases. Remove bulky retained images after that final audit and any new
+labs after each acceptance boundary, then check learner readiness/free space before marking the
+overall goal complete.
+
+## Current88 validation completed during cleanup preparation
+
+Read `designs/07-incidents-integration.md` for the full88–92/final-audit contract and
+`validation/07-disk-incident.md` for current88's complete runtime acceptance evidence. Current
+source is disk-incident.ts plus the first entry of15-incidents.ts and authored
+`guides/15-incidents.ts` registered in guides/mod.ts. PLAN.md's other four incident entries remain
+explicitly legacy. No current89 implementation has begun.
+
+All three causes ran with all seven inspections, an explicitly rejected irrelevant action, and the
+correct remedy. Source discard/reseed variation, direct production recovery without inspection
+restarts, and the CURRENT exact rendered hint all ran successfully. New exact root was
+`/tmp/pg-owned-_oinj72b`; its verified results are12,301 rows/balance226,990,353, empty new tail
+with12,000-row gap before reconstruction, later delivery and16MB to2MB WAL allocation.
+`/tmp/pg-disk-incident-audit.py` independently checked all six current trials' full source payloads,
+SQLite receipts/balance, archive hashes, workload arithmetic, actual error logs and stopped state.
+Its `.json`/`.log` retain the summary. Every final slot was reserved and backlog empty. Current
+source/rendered/executed correspondence and start/inspect/reveal/full passed in
+`/tmp/pg-disk-incident-render-audit.ts` and `.log`. Citations belong in reveal/full, not
+start/inspect; the first audit's mistaken start-citation requirement was corrected without changing
+the lesson.
+
+Thirty tests pass (`/tmp/pg-disk-incident-tests.log`). Full format/lint/typecheck passed after
+formatting; log `/tmp/pg-disk-incident-check.log`. The scoped builder previously changed only88
+among92 objects; do not unscoped-build unrelated storage changes. Copied progress check
+`/tmp/pg-bootstrap-progress.py` passes and real learner SHA256
+remains395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6.
+
+## Next actions
+
+1. Continue sequentially with89 corrupt-a-page-and-detect-it under design07, then90,91,92 and chunk7
+   integration. Current88's full source/runtime/diff review, tests, full check, progress
+   preservation and current exact hint pass; its acceptance is included in this checkpoint.
+2. Finish the whole-course audit, including earlier idle insertion/replay and abort-only WAL-flush
+   boundaries, PLAN/ordinals/retirements/readings/checkpoints/docs/wrapper and copied-progress
+   invariants. Use the new archive mappings when historical evidence paths no longer exist.
+3. Clean new owned labs after each accepted experiment; retain only needed evidence and keep at
+   least2GB free (more than twice the next fixture's peak footprint). No permanent author server.
+4. After the final audit, remove retained bulky evidence/new scratch labs and verify resource
+   headroom, learner readiness and unchanged progress BEFORE marking the full goal complete.
+
+Protected unrelated changes: curriculum/02-storage.ts, guides/02-storage.ts,
+`docs/knowledge/postgres-experiment-evidence.md`, and untracked root bin/. Never blanket-stage,
+reset or edit them. No agents are assigned. Continue sequential primary work.
 
 ## Notification recovery and chunk6 integration accepted, 2026-09-05
 

@@ -13,9 +13,11 @@ Progress checkpoint, 2026-09-05: chunks1–6 are accepted. Durability/recovery c
 recorded in [chunk5 integration](validation/05-integration.md), and durable protocols in
 [chunk6 integration](validation/06-integration.md). Current83–87 have individually executed core,
 source variation and exact-hint evidence; the current scripts/fresh hints match all15 retained
-executions and checked outcome inventories. Next: chunk7's symptom-first incidents/current88–92 and
-final workload integration, then the full whole-course audit. The course has92 active lessons and
-seven reading stops; the full pivot remains unfinished.
+executions and checked outcome inventories. Current88 is accepted in
+[the disk-growth incident report](validation/07-disk-incident.md). The user-requested resource
+cleanup is complete in [the cleanup record](validation/07-resource-cleanup.md). Next: current89–92
+and final workload integration, then the full whole-course audit and final evidence cleanup. The
+course has92 active lessons and seven reading stops; the full pivot remains unfinished.
 
 ## Teaching contract
 
@@ -44,6 +46,14 @@ retry-abort versus unknown outcome, metadata-only DDL locks, zero-scan indexes, 
 simulation, concurrent insert-or-read, token enforcement and unconditional replica reads.
 
 ## Delivery chunks
+
+**Top priority: VM resource cleanup and learner readiness.** Read and verify
+`/root/disk-usage-report.md` before further implementation. Remove obsolete validation state,
+compact only evidence still required by the final audit, and leave `/labs/pglab` ready for the
+learner's lesson 9. Follow `docs/knowledge/vm-resource-cleanup.md` in the repository root. Account
+for resource use and clean up after each validation boundary. Repeat cleanup after the remaining
+course work and final audit, before marking this goal complete; remove retained bulky evidence once
+its audit dependency is discharged. Preserve learner progress and unrelated work.
 
 0. **Plan and restart checkpoint.** Commit this plan, the prior detailed review, initial handoff and
    implementation contracts. Record a baseline of the completed seven lessons and learner progress.

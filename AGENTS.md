@@ -4,6 +4,25 @@ Read [`docs/README.md`](docs/README.md) before working in this repository. It
 indexes the durable research and operational notes that already exist; use those
 documents instead of repeating expensive discovery work.
 
+## VM resources and cleanup — first operational task
+
+Read `/root/disk-usage-report.md` when present and
+[`docs/knowledge/vm-resource-cleanup.md`](docs/knowledge/vm-resource-cleanup.md).
+Verify reports against current disk, memory, process and cluster state before
+acting. Account for peak space (including backups, replicas, archives and
+evidence copies) before allocating a lab. Clean up owned work after validation
+and at each checkpoint; do not let stopped clusters accumulate. Final resource
+cleanup and a learner-lab readiness check are required before marking an overall
+goal finished, not an optional follow-up.
+
+Preserve the learner's live `/labs/pglab` cluster, progress databases, unrelated
+work and active agent sessions. Similar path names and absence from `pgrep` do
+not establish disposability. Retain only evidence required by an outstanding
+acceptance check, compact it with verified manifests, record its
+location/expiry, and remove bulky retained evidence after that check.
+
+## Learner context
+
 When planning or revising lessons, consult [`docs/articles/README.md`](docs/articles/README.md)
 for learner-selected articles and interests. Use relevant insights to motivate bounded
 experiments; distinguish the learner's preferences, source claims, and proposed applications.
