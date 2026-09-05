@@ -1,13 +1,10 @@
 # PostgreSQL study checkpoint plan
 
-The table below preserves the original 96-lesson research numbering. During the approved refactor,
-use the [current lesson and checkpoint map](../../../curriculum-tools/courses/postgres/lesson-map.md)
-for active numbers and consolidated slugs. Match book citations by slug, not by an old ordinal.
-
-This plan adds seven deliberate reading pauses to the 96-lesson PostgreSQL Systems course. The
-pauses are course-order stops: finish the named lesson, read the bounded core items, then resume
-with the next numbered lesson. Existing per-lesson `reading` and `readingNotes` citations remain
-useful as optional lookups; only `studyCheckpoint` means “stop here before continuing.”
+Updated 2026-09-05 for the 92 active lessons. These seven course-order stops match current
+studyCheckpoint metadata. Finish the named lesson, read its bounded core items, then resume the next
+numbered lesson. The original 96-lesson identities and moved stops are recorded in the
+[identity map](../../../curriculum-tools/courses/postgres/lesson-map.md). Per-lesson reading and
+readingNotes remain optional lookups; only studyCheckpoint requires this deliberate pause.
 
 ## Design criteria
 
@@ -28,15 +25,15 @@ useful as optional lookups; only `studyCheckpoint` means “stop here before con
 
 ## Core stops
 
-| Stop | After lesson                          | Core reading                                                                                                                 | Approx. pages | Consolidates                                                          |
-| ---- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------: | --------------------------------------------------------------------- |
-| 1    | 11 `free-space-map-and-reuse`         | Ch. 1 §1.1 “Files and Forks” and “Pages,” pp. 24–28; Ch. 3 §3.1 “Page Structure,” pp. 62–64                                  |             8 | Relation files/forks, pages, line pointers, and reusable space        |
-| 2    | 15 `commit-visibility-and-clog`       | Ch. 3 §§3.2–3.3, pp. 64–74; Ch. 4 §§4.1–4.3, pp. 80–86                                                                       |            18 | Tuple versions, commit/abort status, visibility, and snapshots        |
-| 3    | 23 `long-transaction-bloats-everyone` | Ch. 4 §4.5, pp. 87–89; Ch. 6 §§6.1–6.3, pp. 102–109; Ch. 6 §6.5 selected subheadings, pp. 110–113                            |            15 | Horizons, vacuum phases, and autovacuum triggers                      |
-| 4    | 30 `retry-loop-and-idempotency`       | Ch. 2 §2.3 “Isolation Levels in PostgreSQL,” pp. 44–60                                                                       |            17 | Read Committed, Repeatable Read, Serializable/SSI, and retries        |
-| 5    | 38 `unique-constraint-race`           | Ch. 12 §12.5, pp. 206–209; Ch. 13 §13.1, pp. 210–211; Ch. 13 §13.4 “Exclusive Modes,” pp. 215–220; Ch. 13 §13.6, pp. 225–230 |            18 | Wait queues, tuple row locks, and deadlocks                           |
-| 6    | 48 `max-wal-size-forces-checkpoints`  | Ch. 10 §§10.1–10.4, pp. 164–175; Ch. 10 §10.6, pp. 177–181                                                                   |            17 | WAL-before-data, LSNs, checkpoints, redo, recovery, and configuration |
-| 7    | 67 `statistics-drive-plans`           | Ch. 16 §16.2 subheadings “Planning” and “Execution,” pp. 257–265; Ch. 17 §§17.1–17.5, pp. 271–282                            |            22 | Plan construction/execution and statistics behind row estimates       |
+| Stop | After current lesson                 | Core reading                                                                                                                 | Approx. pages | Consolidates                                                          |
+| ---- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------: | --------------------------------------------------------------------- |
+| 1    | 10 `buffer-cache-and-io`             | Ch. 1 §1.1 “Files and Forks” and “Pages,” pp. 24–28; Ch. 3 §3.1 “Page Structure,” pp. 62–64                                  |             8 | Relation files/forks, pages, line pointers, and reusable space        |
+| 2    | 14 `commit-visibility-and-clog`      | Ch. 3 §§3.2–3.3, pp. 64–74; Ch. 4 §§4.1–4.3, pp. 80–86                                                                       |            18 | Tuple versions, commit/abort status, visibility, and snapshots        |
+| 3    | 20 `autovacuum-triggers`             | Ch. 4 §4.5, pp. 87–89; Ch. 6 §§6.1–6.3, pp. 102–109; Ch. 6 §6.5 selected subheadings, pp. 110–113                            |            15 | Horizons, vacuum phases, and autovacuum triggers                      |
+| 4    | 28 `retry-loop-and-idempotency`      | Ch. 2 §2.3 “Isolation Levels in PostgreSQL,” pp. 44–60                                                                       |            17 | Read Committed, Repeatable Read, Serializable/SSI, and retries        |
+| 5    | 37 `unique-constraint-race`          | Ch. 12 §12.5, pp. 206–209; Ch. 13 §13.1, pp. 210–211; Ch. 13 §13.4 “Exclusive Modes,” pp. 215–220; Ch. 13 §13.6, pp. 225–230 |            18 | Wait queues, tuple row locks, and deadlocks                           |
+| 6    | 39 `statistics-drive-plans`          | Ch. 16 §16.2 subheadings “Planning” and “Execution,” pp. 257–265; Ch. 17 §§17.1–17.5, pp. 271–282                            |            22 | Plan construction/execution and statistics behind row estimates       |
+| 7    | 60 `max-wal-size-forces-checkpoints` | Ch. 10 §§10.1–10.4, pp. 164–175; Ch. 10 §10.6, pp. 177–181                                                                   |            17 | WAL-before-data, LSNs, checkpoints, redo, recovery, and configuration |
 
 Total: approximately **115 printed pages**. Page totals count only the listed sections; a section
 boundary can make the physical count differ by one page.

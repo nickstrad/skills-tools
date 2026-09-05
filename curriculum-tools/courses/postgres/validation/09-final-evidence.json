@@ -1,0 +1,1008 @@
+{
+  "date": "2026-09-05",
+  "metadata": {
+    "active": 92,
+    "retired": [
+      "dead-tuples-accumulate",
+      "free-space-map-and-reuse",
+      "index-only-scan-needs-visibility-map",
+      "initial-sync-vs-streaming",
+      "long-transaction-bloats-everyone",
+      "timeline-history",
+      "wal-replay-is-deterministic"
+    ],
+    "new": [
+      "bounded-online-migration",
+      "keyset-pagination-and-concurrent-writes",
+      "unknown-commit-outcome"
+    ],
+    "checkpoints": [
+      {
+        "ordinal": 10,
+        "slug": "buffer-cache-and-io",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 1 \u00a71.1, subheadings \"Files and Forks\" and \"Pages\" (printed pp. 24\u201328)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 3 \u00a73.1 \"Page Structure\" (printed pp. 62\u201364)"
+            }
+          ],
+          "rationale": "You have observed relation files, page allocation, tuple layout, cached pages, and dirty-page\nflushing. Read these bounded sections to consolidate the physical model before the course moves into\ntransaction IDs. Skip exact example filenames, relfilenodes, and catalog output in the book."
+        }
+      },
+      {
+        "ordinal": 14,
+        "slug": "commit-visibility-and-clog",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 3 \u00a7\u00a73.2\u20133.3 \"Row Version Layout\" and \"Operations on Tuples\" (printed pp. 64\u201374)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 4 \u00a7\u00a74.1\u20134.3 (printed pp. 80\u201386)"
+            }
+          ],
+          "rationale": "You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility.\nRead these sections to connect the tuple headers and commit/abort status to the formal snapshot\nmodel before the horizon and freezing work. Skip from the PG14 text: exact infomask bit values,\ncatalog output, and example transaction numbers; resume with the horizon experiment when you finish."
+        }
+      },
+      {
+        "ordinal": 20,
+        "slug": "autovacuum-triggers",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 4 \u00a74.5 \"Transaction Horizon\" (printed pp. 87\u201389)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 6 \u00a7\u00a76.1\u20136.3 (printed pp. 102\u2013109)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 6 \u00a76.5, subheadings \"About the Autovacuum Mechanism\", \"Which Tables Need to be Vacuumed?\", and \"Which Tables Need to Be Analyzed?\" (printed pp. 110\u2013113)"
+            }
+          ],
+          "rationale": "You observed version cleanup, in-place reuse, visibility information, and an autovacuum threshold.\nRead these bounded sections to connect the safety horizon and the background control loop. Skip exact\nautovacuum defaults, threshold numbers, and monitoring output; continue when you have the mechanism."
+        }
+      },
+      {
+        "ordinal": 28,
+        "slug": "retry-loop-and-idempotency",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 2 \u00a72.3 \"Isolation Levels in PostgreSQL\" (printed pp. 44\u201360)"
+            }
+          ],
+          "rationale": "You observed statement snapshots, lost updates, snapshot-isolation anomalies, SSI and whole-transaction retries. Read this section to consolidate the isolation guarantees before the unknown-outcome experiment. Skip exact timing, defaults and example output from the PostgreSQL14 text."
+        }
+      },
+      {
+        "ordinal": 37,
+        "slug": "unique-constraint-race",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 12 \u00a712.5 \"Wait Queue\" (printed pp. 206\u2013209)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 13 \u00a713.1 \"Lock Design\" (printed pp. 210\u2013211)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 13 \u00a713.4 \"Wait Queue\", subheading \"Exclusive Modes\" (printed pp. 215\u2013220)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 13 \u00a713.6 \"Deadlocks\" (printed pp. 225\u2013230)"
+            }
+          ],
+          "rationale": "You observed tuple row locks, blocking queues, durable claims and deadlocks. Read these selected\nsections to consolidate row-lock storage, queued ownership, and deadlock detection. Keep the lessons\nas your primary treatment of NOWAIT/SKIP LOCKED, advisory locks, and unique-key races; the assigned\nexcerpts do not cover those workflows. Skip from the PG14 text: multixact internals, exact lock\ncatalog rows, and version-specific output/API details; continue after completing these core sections."
+        }
+      },
+      {
+        "ordinal": 39,
+        "slug": "statistics-drive-plans",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 16 \u00a716.2, subheadings \"Planning\" and \"Execution\" (printed pp. 257\u2013265)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 17 \u00a7\u00a717.1\u201317.5 (printed pp. 271\u2013282; stop before \u00a717.6 on p. 283)"
+            }
+          ],
+          "rationale": "You observed EXPLAIN estimates versus actuals, buffer evidence, and several ways statistics produce\nbad row estimates in these two experiments. Read these focused sections to consolidate the planner pipeline\nand the sampled evidence behind estimates before the next lessons turn to access paths, joins,\nmemory, and parallelism. Skip from the PG14 text: exact estimates, sample contents, default\nstatistics targets, and version-specific planner output/API names; continue to the access-path\nexperiment when you finish."
+        }
+      },
+      {
+        "ordinal": 60,
+        "slug": "max-wal-size-forces-checkpoints",
+        "checkpoint": {
+          "core": [
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 10 \u00a7\u00a710.1\u201310.4 (printed pp. 164\u2013175)"
+            },
+            {
+              "source": "PostgreSQL 14 Internals",
+              "locator": "Chapter 10 \u00a710.6 \"WAL Setup\" (printed pp. 177\u2013181)"
+            }
+          ],
+          "rationale": "You observed WAL records, commit boundaries, crash replay and checkpoint work. Read these sections\nto consolidate WAL-before-data, LSNs, segment layout, redo bounds, recovery and configuration\ntradeoffs. Keep the experiments as your primary treatment of measured commit latency and page-image\ncosts. Skip the PG14 checkpoint defaults, example segment names/LSNs and exact pg_waldump output.\nResume with the actual base-backup experiment when you finish."
+        }
+      }
+    ],
+    "progress_sha256": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "first_seven_exact": true,
+    "reading_rows_match": 92,
+    "copied_migration_preserved": true
+  },
+  "accepted_objects": [
+    {
+      "ordinal": 8,
+      "slug": "hot-updates-and-fillfactor",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "28f56544d6e20a089732f1cd7e59fa49beb0e1c878a67f15e341506f890b17b1"
+    },
+    {
+      "ordinal": 9,
+      "slug": "toast-and-large-values",
+      "accepted_commit": "563aceb",
+      "normalized_object_sha256": "d39ab4f5d9621e7a734625fd9b13e5ff4f0546a27ef1149d17b401663841f763"
+    },
+    {
+      "ordinal": 10,
+      "slug": "buffer-cache-and-io",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "c9081b58bc250271e6d80504b27046f19df2f7b037fd072e5d0bf0c930a76969"
+    },
+    {
+      "ordinal": 11,
+      "slug": "xids-and-the-transaction-counter",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "c039eda24f2db831385347f764ab9dd39eaa8b8ff6862681414ff9575ae7ea05"
+    },
+    {
+      "ordinal": 12,
+      "slug": "snapshot-anatomy",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "dc941b003696845ed5e91076845cf564204f7e12e6b5a797035cad40b7dcc1cf"
+    },
+    {
+      "ordinal": 13,
+      "slug": "two-sessions-see-different-versions",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "3e398aaa11d457cb5e8fe1ed1c6aa0d1488e1cdbdcb8b64bd1451894683c3854"
+    },
+    {
+      "ordinal": 14,
+      "slug": "commit-visibility-and-clog",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "fdb326d986d98039cf01cc78ee7fa8673e52d1af6f577ab28285135646488114"
+    },
+    {
+      "ordinal": 15,
+      "slug": "xmin-horizon-blocks-cleanup",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "a36d25a4b22e196d0f5f40aeb0e18f7ab2340ab8137e446368d9a42b5bca3cc0"
+    },
+    {
+      "ordinal": 16,
+      "slug": "wraparound-and-freezing",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "eeaa9e75cfb2ce082b3af95b72761af8d347e7f552e9ce9a5fd87febd9c45e86"
+    },
+    {
+      "ordinal": 17,
+      "slug": "vacuum-reclaims-in-place",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "cb8564a1e53908c5aab93077956c4613bf3ec70046f34db9e272a4071cadf768"
+    },
+    {
+      "ordinal": 18,
+      "slug": "vacuum-full-rewrites-and-locks",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "7d266554b2ca9b44a1ab4ee6f628072374430fb180d733a2c993e4de64b3f43c"
+    },
+    {
+      "ordinal": 19,
+      "slug": "visibility-map-and-index-only-scans",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "04153a0430500d2768f4151012baa2d0011a483cf2b7b2c9e9fd12c921dde201"
+    },
+    {
+      "ordinal": 20,
+      "slug": "autovacuum-triggers",
+      "accepted_commit": "948f2d1",
+      "normalized_object_sha256": "d2269a7c6a0647933c5ebd56c57777d4307fb8bf64d0e3728723fd7e9ddd7f17"
+    },
+    {
+      "ordinal": 21,
+      "slug": "atomic-abort",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "90e4b589c61d990137d506232e7c0d1f871647db92dc0a52b338c00c174ea7cb"
+    },
+    {
+      "ordinal": 22,
+      "slug": "read-committed-sees-each-statement",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "feb756a7e150f1af9551c09a9560860259404af5f3111a26f718963a16b68097"
+    },
+    {
+      "ordinal": 23,
+      "slug": "lost-update-under-read-committed",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "7d0022afe9c6b17d3dcba4fda4c1141821a7682c0565bd6a04f84cf7c8835afe"
+    },
+    {
+      "ordinal": 24,
+      "slug": "optimistic-concurrency-with-version-columns",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "7b46352765845aa3ab939046e17c3941ef30d76b661453bc45330560bdc745c9"
+    },
+    {
+      "ordinal": 25,
+      "slug": "repeatable-read-blocks-then-fails",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "535b2e328dc13edfd88e64a59a65cff4152b0a30d762be829978f6710062cbfe"
+    },
+    {
+      "ordinal": 26,
+      "slug": "write-skew",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "eee739e3267ea554b915782fca3306fdd47e71a7999aae89b3789da63a044949"
+    },
+    {
+      "ordinal": 27,
+      "slug": "serializable-ssi",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "ff3dc9f49a8e500fce7eafca9e1a25967f942a774d61c3f2b4d61f19540634bc"
+    },
+    {
+      "ordinal": 28,
+      "slug": "retry-loop-and-idempotency",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "6216a6f9625df9d80d66b9ffb90e72de609dbfae8a8588e43d8f2199e2e64268"
+    },
+    {
+      "ordinal": 29,
+      "slug": "unknown-commit-outcome",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "664125cd576250d59c5d036a5cbd3b5676d4747d9794d0353a06eba60520cbaf"
+    },
+    {
+      "ordinal": 30,
+      "slug": "row-locks-are-in-the-tuple",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "b2a05a055d2c1e24a52f37b92271079d7680fa1e8deefe34f063276d20aff710"
+    },
+    {
+      "ordinal": 31,
+      "slug": "lock-queue-and-blocking-pids",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "4c0e4f86d05b4560117660b7a1974befa4590aa043ad9f7d312cdc8558acd127"
+    },
+    {
+      "ordinal": 32,
+      "slug": "deadlock-detection",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "000c40964dfc932a30ee43abd01e267d46ae8ff8f62229d7df8bf83506502386"
+    },
+    {
+      "ordinal": 33,
+      "slug": "lock-timeout-and-nowait",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "8a1f413ea7d3de47d7bfe41c75fbb1485a7ceab125b15b36d3cf6cb892221fd7"
+    },
+    {
+      "ordinal": 34,
+      "slug": "ddl-behind-a-long-query",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "4ee4643eb73d64cb16403dcbcfc7b1293db47e33f0b5c1dffae4642f218318ba"
+    },
+    {
+      "ordinal": 35,
+      "slug": "advisory-locks-as-leases",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "c2f30598cc626642b9c8be14d375784eb3b5043017454ee89abe55abc7f1eabb"
+    },
+    {
+      "ordinal": 36,
+      "slug": "skip-locked-work-queue",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "6794d6685c98c4b89363b1cdb02ab078520388cd92938d4879be2afcfd970452"
+    },
+    {
+      "ordinal": 37,
+      "slug": "unique-constraint-race",
+      "accepted_commit": "d0ce060",
+      "normalized_object_sha256": "f332826bb1a932be5f5bd1d0403da368f6262098f40fb2910ec654d338cb4b74"
+    },
+    {
+      "ordinal": 38,
+      "slug": "explain-analyze-buffers",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "99056186575c52f3204590a2ef45b5c7a679bada10d0c00e59fed9223247f637"
+    },
+    {
+      "ordinal": 39,
+      "slug": "statistics-drive-plans",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "059b1bf30e0c6118a610fa20937dec567ad20ee3ccd6eb525bbddc3afb122dad"
+    },
+    {
+      "ordinal": 40,
+      "slug": "index-scan-vs-seq-scan-crossover",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "26f0990667f0fd9fb38e2a470b2779016382b8c065998f29f7636bb3fe0fdd32"
+    },
+    {
+      "ordinal": 41,
+      "slug": "join-strategies",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "d88e3eba5f6622f3af6c552afe1904432051a9d4e96bce4c11025f8009ad052e"
+    },
+    {
+      "ordinal": 42,
+      "slug": "work-mem-spills-to-disk",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "cdae8189e842b91c81da1e15e62b0b89a2f15d2e1854b2dd9f7c0e06942909e8"
+    },
+    {
+      "ordinal": 43,
+      "slug": "parallel-query",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "8f39fb6eb57bebfb6dc6ea09aba4f31f2b9c3375eb13e12b96aba0359c271d22"
+    },
+    {
+      "ordinal": 44,
+      "slug": "pg-stat-statements-as-tracing",
+      "accepted_commit": "ba91880",
+      "normalized_object_sha256": "e8a9ea3f2226df33e6150c7a45eaf92ef55bbbddce9ef05eff3dfaa0f4f4c5ea"
+    },
+    {
+      "ordinal": 45,
+      "slug": "btree-page-anatomy",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "3e683348f3d24cbf5d4c7420ed77ef1ece3ee7f862ab2d3c7f38ac151db0895b"
+    },
+    {
+      "ordinal": 46,
+      "slug": "create-index-concurrently-and-invalid-indexes",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "47ba663a008e96b45edb3c3dfd129b9472220feb4a0af1fb2f127bcb2c3612cd"
+    },
+    {
+      "ordinal": 47,
+      "slug": "bounded-online-migration",
+      "accepted_commit": "673f332",
+      "normalized_object_sha256": "01c401fa607359c26ca5b9cd4191e552c650b2dea74d6e384ddd7bd7b5b3be0b"
+    },
+    {
+      "ordinal": 48,
+      "slug": "partial-and-covering-indexes",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "4b91c7ffd25038313a17494348774de5b0bfc272810d8c75cef79b970f4016f4"
+    },
+    {
+      "ordinal": 49,
+      "slug": "index-bloat-from-churn",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "4f0831483231b4b376daa30ccddc2867d990730546b8867e0b462e700c8b5f7b"
+    },
+    {
+      "ordinal": 50,
+      "slug": "unique-index-enforcement-under-concurrency",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "3eb010368ec64218ed87c14b23fd854a1e2f0aee2d7dd3117542d0bc9ad7fa87"
+    },
+    {
+      "ordinal": 51,
+      "slug": "keyset-pagination-and-concurrent-writes",
+      "accepted_commit": "05070cc",
+      "normalized_object_sha256": "a637eb02e609c69e0da614b0967b2e5eccf6b9b00b819f0ee38cf3f0f48d5fa2"
+    },
+    {
+      "ordinal": 52,
+      "slug": "every-change-is-a-wal-record",
+      "accepted_commit": "54e9ff3",
+      "normalized_object_sha256": "3ee3f144ebbeb3b751f0ad418f7b1b0a19bb4e5e81240e995abce1bd4a148739"
+    },
+    {
+      "ordinal": 53,
+      "slug": "full-page-writes-after-checkpoint",
+      "accepted_commit": "54e9ff3",
+      "normalized_object_sha256": "54c48b4ef5befbc0337984938a5a4a3b532ed0a3a251f85a7bcd297a3254fe6c"
+    },
+    {
+      "ordinal": 54,
+      "slug": "commit-means-fsync",
+      "accepted_commit": "6c181bd",
+      "normalized_object_sha256": "feb585c1aaef9a78db5e0f669b430ce6c6b071dccb5b6b3bf5c9f2e20fc8f5e0"
+    },
+    {
+      "ordinal": 55,
+      "slug": "wal-files-and-recycling",
+      "accepted_commit": "be2bc76",
+      "normalized_object_sha256": "18aaa8304c115761ec4b76a151af8b5e258a548886de24a6933ae55f6311f49e"
+    },
+    {
+      "ordinal": 56,
+      "slug": "crash-and-redo",
+      "accepted_commit": "7f66e01",
+      "normalized_object_sha256": "70810a71641dc1f8278e84f31fd2be02413ca79c6e3eca66f9d3c348f47f1a83"
+    },
+    {
+      "ordinal": 57,
+      "slug": "wal-size-of-operations",
+      "accepted_commit": "ab6eb7a",
+      "normalized_object_sha256": "c90f1cb93742937818877c343639897450efc81b83db5d977e11d123dacf0e78"
+    },
+    {
+      "ordinal": 58,
+      "slug": "checkpoint-anatomy",
+      "accepted_commit": "b2e90f5",
+      "normalized_object_sha256": "b98550ad8b59eaec66e4e440d3aae1acb9966035b8b716b297c25ee1b3a1c037"
+    },
+    {
+      "ordinal": 59,
+      "slug": "redo-point-bounds-recovery",
+      "accepted_commit": "0570466",
+      "normalized_object_sha256": "7af4e0ed44fb69194b7fb15bf7865165b01c3e1658bb092ca355abb3ba63891e"
+    },
+    {
+      "ordinal": 60,
+      "slug": "max-wal-size-forces-checkpoints",
+      "accepted_commit": "f0f9a30",
+      "normalized_object_sha256": "1ec558182af2e2e539a51275c34a966195753cc5af5e86d9cf76eca31aa8d6f0"
+    },
+    {
+      "ordinal": 61,
+      "slug": "base-backup",
+      "accepted_commit": "564dd7e",
+      "normalized_object_sha256": "f7f4848cd3704dede8b1455adc09c193414ca00fbb704db37cda25bb11701cfc"
+    },
+    {
+      "ordinal": 62,
+      "slug": "point-in-time-recovery",
+      "accepted_commit": "655baa1",
+      "normalized_object_sha256": "0d868778522c06b30bc73d3874981bcdca3d9fd4e473049941aad1c467d87bdc"
+    },
+    {
+      "ordinal": 63,
+      "slug": "wait-events-tell-you-where-time-goes",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "7ed5c926096c2a6ff519fd21673c5ad5599b8cd722223771bfd90eb1f413b179"
+    },
+    {
+      "ordinal": 64,
+      "slug": "pg-stat-io-by-backend-type",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "d6f51cb8f322f5a7003c140d4316f87b8536297fca9cc4872dfc32b94e96aa93"
+    },
+    {
+      "ordinal": 65,
+      "slug": "connection-saturation",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "11939227d599060a431918d4dfdb23daf2fcf7f01d9cf5b93c900039d07fdea2"
+    },
+    {
+      "ordinal": 66,
+      "slug": "idle-in-transaction-kills-you",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "afbe1b472ff055eea416dba6d41a948fb9d7dac3ff46c7d83d566c7da2eed289"
+    },
+    {
+      "ordinal": 67,
+      "slug": "table-and-index-usage-counters",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "747976262c085fc4512e46b8cbfbee262368152d3d4b5247ba331998d504b064"
+    },
+    {
+      "ordinal": 68,
+      "slug": "read-the-server-log",
+      "accepted_commit": "5fcf82f",
+      "normalized_object_sha256": "ebbd4a4a5d089b55bae6a23bd8e6c5b2c813dde8c6fbea1d3b3a4f1b6a619ef1"
+    },
+    {
+      "ordinal": 69,
+      "slug": "build-a-streaming-standby",
+      "accepted_commit": "57bc03e",
+      "normalized_object_sha256": "b2c02024f3f051d9f6123073b347ea23dd750d748cdeaa54ece8504cfbc8b67b"
+    },
+    {
+      "ordinal": 70,
+      "slug": "replication-lag-under-load",
+      "accepted_commit": "57bc03e",
+      "normalized_object_sha256": "d4850cb7d0e88dbd293578267a9b69aa2cd2a8a1e67b614c2b3b6c86690d2f31"
+    },
+    {
+      "ordinal": 71,
+      "slug": "read-your-writes-on-a-replica",
+      "accepted_commit": "57bc03e",
+      "normalized_object_sha256": "bbca540ce35b590f17a2b9a8473192f16797515daf5c7973041faa9e263d2dc8"
+    },
+    {
+      "ordinal": 72,
+      "slug": "synchronous-replication-blocks-commit",
+      "accepted_commit": "57bc03e",
+      "normalized_object_sha256": "8df3d1dffb609c7c5859e74e06d1f5b2968a67705f8d3ed12c6daed6fa37776d"
+    },
+    {
+      "ordinal": 73,
+      "slug": "hot-standby-query-conflict",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "ef2cbd29b292d7239a7a45ed91ddabf96818a64d5eb27d532dbd8e3bb894bba4"
+    },
+    {
+      "ordinal": 74,
+      "slug": "replication-slot-retains-wal",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "bd220ceb4f049747a29c5517f6e34aa9e8e8ef775477d9f427a925bc11c9389b"
+    },
+    {
+      "ordinal": 75,
+      "slug": "promote-the-standby",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "ff85b88be618c3a4d05c523af791d09c8c977c70dc144cea9dcca1d3ac0091b8"
+    },
+    {
+      "ordinal": 76,
+      "slug": "rewind-the-old-primary",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "e4859dfc6a8b7f0ca56ba5d629d68c052a414243aff689f0e80e3b5722f08c1b"
+    },
+    {
+      "ordinal": 77,
+      "slug": "cascading-and-failback",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "ce182d1834b7213b41ed1dfc7bd3b8afe4a24d2b89c75f3257cd8dd4b43211b5"
+    },
+    {
+      "ordinal": 78,
+      "slug": "decode-the-log",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "fff7b69566aa30986a83f00cf2ead79c830bb5b977f717d8f6667120529e4cb4"
+    },
+    {
+      "ordinal": 79,
+      "slug": "slot-position-and-acknowledgement",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "590115fd2d0d9078904b914022f08a89b3461dfabd34602bcf7de4c0efe3814b"
+    },
+    {
+      "ordinal": 80,
+      "slug": "publication-and-subscription",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "ca997227c5a4fd53307e770c9edf705f660b1caed103ff90c72aa1207d479800"
+    },
+    {
+      "ordinal": 81,
+      "slug": "conflicts-stop-the-apply-worker",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "53cf345ac065c936db266aa979ae05704d4aa533f874a92ffa4d2deaf81d9f20"
+    },
+    {
+      "ordinal": 82,
+      "slug": "slot-lag-and-disk",
+      "accepted_commit": "8eb1034",
+      "normalized_object_sha256": "3442954fa7a1db97affcc8c869c821bdb5259f45272ae93be249b1eafb6230c8"
+    },
+    {
+      "ordinal": 83,
+      "slug": "transactional-outbox",
+      "accepted_commit": "e2bbc56",
+      "normalized_object_sha256": "58def5764adf0b50103c8c1afedd06292080706241334c743e1aaf57e95dd26b"
+    },
+    {
+      "ordinal": 84,
+      "slug": "idempotency-keys",
+      "accepted_commit": "e2bbc56",
+      "normalized_object_sha256": "786359b96b06db913b6f6a7894f56e176b834a085f1693f5761b345a5cfef4d2"
+    },
+    {
+      "ordinal": 85,
+      "slug": "two-phase-commit",
+      "accepted_commit": "e2bbc56",
+      "normalized_object_sha256": "c3b3708786180ae49b5eed179fda176ee08f6a11b7519feef454d1a2069fe3ed"
+    },
+    {
+      "ordinal": 86,
+      "slug": "fencing-tokens-with-a-monotonic-counter",
+      "accepted_commit": "e2bbc56",
+      "normalized_object_sha256": "104bdf4aa5aed3e73e37922c5ff67670752a769594126c33c4d9c4c477a169cd"
+    },
+    {
+      "ordinal": 87,
+      "slug": "listen-notify-as-a-bus",
+      "accepted_commit": "e2bbc56",
+      "normalized_object_sha256": "43c6272652ca86fdbc01a2c89b4d41258796d5bffd3e687a90d408f456d6267f"
+    },
+    {
+      "ordinal": 88,
+      "slug": "abandoned-slot-fills-the-disk",
+      "accepted_commit": "563aceb",
+      "normalized_object_sha256": "49d4d07618e55b515bc752e0f2a7aacc1ef02dfe9b38eb7eba40426dfd8ff5c9"
+    },
+    {
+      "ordinal": 89,
+      "slug": "corrupt-a-page-and-detect-it",
+      "accepted_commit": "a02fd85",
+      "normalized_object_sha256": "851db6a0f99182212c480a7b66c8fc1cda6c3ee21c913ba6a730c56108a42044"
+    },
+    {
+      "ordinal": 90,
+      "slug": "wraparound-drill",
+      "accepted_commit": "f633933",
+      "normalized_object_sha256": "ea1d061bb1097f4c6fe275a9933aa6318360a0ca8d5ed0ee790498a429973502"
+    },
+    {
+      "ordinal": 91,
+      "slug": "runaway-query-and-cancel",
+      "accepted_commit": "322674a",
+      "normalized_object_sha256": "918a9682657a8b813bbc9d9746fdca155552480fc47068cfc278655885074ea0"
+    },
+    {
+      "ordinal": 92,
+      "slug": "postmortem-from-the-log",
+      "accepted_commit": "4790baa",
+      "normalized_object_sha256": "59e5bca6a1d771b6717224419e8440fd8766506ebcd96bb5f6ec17b6a9053e8a"
+    }
+  ],
+  "replication_scripts": 14,
+  "replication_log_hashes_checked": 42,
+  "protocol_outcomes_rechecked": 15,
+  "archive_count": 261,
+  "archive_bytes": 1810235481,
+  "archive_inventory_sha256": "ed9f1a125a57d4f34c3448ef5ff5e499df2175607467cb2f3c48f494554bc6bb",
+  "additional_variations": [
+    {
+      "ordinal": 11,
+      "slug": "xids-and-the-transaction-counter",
+      "assertion": "select count(*) from pg_stat_activity where datname=current_database() and state='idle in transaction'",
+      "actual": "0",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-11.sql",
+          "sha256": "f5b660031db0d76fec2ea4387d530a0d585a7be74eb3cd9c03d448b178fcefb3"
+        },
+        {
+          "path": "/tmp/pg-final-hint-11.log",
+          "sha256": "50e11979b8e021d0fd7c96f605387e1ad0163b89a70af04d43dcbda41aaaf57f"
+        }
+      ]
+    },
+    {
+      "ordinal": 12,
+      "slug": "snapshot-anatomy",
+      "assertion": "select 1",
+      "actual": "1",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-12.sql",
+          "sha256": "d2eadc6c97f8ffb5a703e8bdbb3406aaec6c7e4ee1f28670e615d69f01d880fa"
+        },
+        {
+          "path": "/tmp/pg-final-hint-12.log",
+          "sha256": "3c59312bf939ae17c4d342385905bef22506caadafd4cc00e7ffadc7565fc910"
+        }
+      ]
+    },
+    {
+      "ordinal": 13,
+      "slug": "two-sessions-see-different-versions",
+      "assertion": "select balance from mv_accounts where id=1",
+      "actual": "101",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-13.sql",
+          "sha256": "da4f8072ecfc0f72453d19508baaed35559d86286cc43b6726885a2d6c4cac3a"
+        },
+        {
+          "path": "/tmp/pg-final-hint-13.log",
+          "sha256": "7b11e605cf71da85e1165619df2b3dd9232d356d34eac660caf195bbf8d2fa0f"
+        }
+      ]
+    },
+    {
+      "ordinal": 15,
+      "slug": "xmin-horizon-blocks-cleanup",
+      "assertion": "select count(*),min(n),max(n),(select dead_tuple_count from pgstattuple('mv_horizon')) from mv_horizon",
+      "actual": "10|100|100|0",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-15.sql",
+          "sha256": "ce9acb62d67c4d49ef6754744252db9bbf796b9a10683cdb1c6c6ca24e903288"
+        },
+        {
+          "path": "/tmp/pg-final-hint-15.log",
+          "sha256": "d2f4beb9e73db92202ef0c38a949649ac25ccbb1445250ff06260c9c1b1d2129"
+        }
+      ]
+    },
+    {
+      "ordinal": 16,
+      "slug": "wraparound-and-freezing",
+      "assertion": "select count(*) filter(where (t_infomask & 768)=768),count(*) from heap_page_items(get_raw_page('mv_accounts',0))",
+      "actual": "50|50",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-16.sql",
+          "sha256": "72b7014d4b29644c779a5cd05915dc854a4fe0d207217d91767b4608e83e80b4"
+        },
+        {
+          "path": "/tmp/pg-final-hint-16.log",
+          "sha256": "fd12f57162d61520ab3ec8cdad5e98c52759e2b060036f6693bbf95586188bc7"
+        }
+      ]
+    },
+    {
+      "ordinal": 17,
+      "slug": "vacuum-reclaims-in-place",
+      "assertion": "select dead_tuple_count from pgstattuple('vac_t')",
+      "actual": "0",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-17.sql",
+          "sha256": "f2f8b0b9717048440abac9e3fe26d079f1e9b82c06a024f6726372142c184222"
+        },
+        {
+          "path": "/tmp/pg-final-hint-17.log",
+          "sha256": "ea274b1b8ae0628c41eb573c4d1178931dee1b097aeb23fd1415eae53c141afe"
+        }
+      ]
+    },
+    {
+      "ordinal": 18,
+      "slug": "vacuum-full-rewrites-and-locks",
+      "assertion": "select count(*) from vac_t",
+      "actual": "20000",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-18.sql",
+          "sha256": "7696f4254512b055a6f4cbd792e3e25865b30f562092ae9427ca0547e3504895"
+        },
+        {
+          "path": "/tmp/pg-final-hint-18.log",
+          "sha256": "052b02266da32e4eac6f911f98750b017193b0d774e3cb5113505e45fff5d312"
+        }
+      ]
+    },
+    {
+      "ordinal": 19,
+      "slug": "visibility-map-and-index-only-scans",
+      "assertion": "select count(*) filter(where pad='z'),count(*) from vac_t",
+      "actual": "200|20000",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-19.sql",
+          "sha256": "a48d581e61738b0c0ab551fdda30f1c481fbc1dcba94cc138b64d032fe7a6cc4"
+        },
+        {
+          "path": "/tmp/pg-final-hint-19.log",
+          "sha256": "7297fd57c4e1f7640ff53764c1e8a18e1b44142a2ea2a8ba5fbb49b58f8cbe19"
+        }
+      ]
+    },
+    {
+      "ordinal": 20,
+      "slug": "autovacuum-triggers",
+      "assertion": "select (autovacuum_count>0)::int,n_dead_tup,(select count(*) from vac_t) from pg_stat_user_tables where relname='vac_t'",
+      "actual": "1|0|20000",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-20.sql",
+          "sha256": "a70f3d22fbfd92b9e5903444a0faf5a1a82c46477d24a4f9ed7ccfdeb27fb712"
+        },
+        {
+          "path": "/tmp/pg-final-hint-20.log",
+          "sha256": "502ce9d47d85111b9d2c690e57dcc01b92adc1cc69483245993228c6d0dab15c"
+        }
+      ]
+    },
+    {
+      "ordinal": 21,
+      "slug": "atomic-abort",
+      "assertion": "select string_agg(balance::text,',' order by id) from iso_accounts",
+      "actual": "100,100",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-21.sql",
+          "sha256": "31521a58e1623b84cb637537a88d73d5635a09b2a26a0c146530ea10e12c5a37"
+        },
+        {
+          "path": "/tmp/pg-final-hint-21.log",
+          "sha256": "2c610febb87d5b7141cf6489e11ac1b89546ab4568ffe598f90382a43900c031"
+        }
+      ]
+    },
+    {
+      "ordinal": 22,
+      "slug": "read-committed-sees-each-statement",
+      "assertion": "select count(*) from iso_accounts",
+      "actual": "3",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-22.sql",
+          "sha256": "f70637d1367d95955437dd42b7a871cb06ad8f6e62a0631a4b31539d40205f7a"
+        },
+        {
+          "path": "/tmp/pg-final-hint-22.log",
+          "sha256": "7b5a05b811e7741ba0c372ae2aac28a2d14c8e7a04aa8f8318d35180a654b102"
+        }
+      ]
+    },
+    {
+      "ordinal": 23,
+      "slug": "lost-update-under-read-committed",
+      "assertion": "select balance from iso_accounts where id=1",
+      "actual": "80",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-23.sql",
+          "sha256": "0a85dbfe5e7541352066cf74052f6f051576e07b3cc8cb23bb05df20187b092a"
+        },
+        {
+          "path": "/tmp/pg-final-hint-23.log",
+          "sha256": "eb3872c94fd68ba21c04fdd57a995ffc5b10c09cab7c16d89a59f9c409f6058e"
+        }
+      ]
+    },
+    {
+      "ordinal": 25,
+      "slug": "repeatable-read-blocks-then-fails",
+      "assertion": "select balance from iso_accounts where id=1",
+      "actual": "90",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-25.sql",
+          "sha256": "6cdd237a089efd96770782bd6652a6ba22f48b94ded8a9780c4bf48e126a039e"
+        },
+        {
+          "path": "/tmp/pg-final-hint-25.log",
+          "sha256": "6e61e6327cf275dff2a39788f6e1278b9a2a2dbf2ae998ae55ac6ef1b4a55993"
+        }
+      ]
+    },
+    {
+      "ordinal": 30,
+      "slug": "row-locks-are-in-the-tuple",
+      "assertion": "select count(*) from pgrowlocks('lk_t')",
+      "actual": "0",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-30.sql",
+          "sha256": "904760fe223879dde0ff6063496cab0ca741455da80aaec94108d30a34749356"
+        },
+        {
+          "path": "/tmp/pg-final-hint-30.log",
+          "sha256": "0e90f94c003a35eb50dfd9ecfd6859f2b7f1db1098d673673ec12a03d1e829c9"
+        }
+      ]
+    },
+    {
+      "ordinal": 31,
+      "slug": "lock-queue-and-blocking-pids",
+      "assertion": "select val from lk_t where id=2",
+      "actual": "row 2",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-31.sql",
+          "sha256": "106203d11c734f246ca7cf10d3bf5adbad424e91e8ed6eebdcb6cb03a824e175"
+        },
+        {
+          "path": "/tmp/pg-final-hint-31.log",
+          "sha256": "704fe9bf11e96f1e527a5563d725e9edc2757ad87730bf9fd339027a7b9adae0"
+        }
+      ]
+    },
+    {
+      "ordinal": 32,
+      "slug": "deadlock-detection",
+      "assertion": "select string_agg(val,',' order by id) from lk_t where id<=2",
+      "actual": "B1,B2",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-32.sql",
+          "sha256": "f596a024a163859c83b7f3a440db3e54e3b3b54aed11f1f01b59fa9cfe0ea7a6"
+        },
+        {
+          "path": "/tmp/pg-final-hint-32.log",
+          "sha256": "827f61d0ece2da210227b0c4797c59af32c3bf2d37a2745a107b4bc92ba1fbd9"
+        }
+      ]
+    },
+    {
+      "ordinal": 36,
+      "slug": "skip-locked-work-queue",
+      "assertion": "select id,status,owner,generation from wq_jobs where owner='B'",
+      "actual": "1|running|B|1",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-36.sql",
+          "sha256": "e9fe17367113d83821af4674780f1fb054eb73aa2b8b1fb9701bb94a5217b162"
+        },
+        {
+          "path": "/tmp/pg-final-hint-36.log",
+          "sha256": "c257d07b047fe43ba1c45cb662243c1f596b4bc4bbbb321aa8eb0f64982d4ab5"
+        }
+      ]
+    },
+    {
+      "ordinal": 37,
+      "slug": "unique-constraint-race",
+      "assertion": "select k,who from lk_uniq",
+      "actual": "1|B",
+      "files": [
+        {
+          "path": "/tmp/pg-final-hint-37.sql",
+          "sha256": "a0227f829c949e01776fb4130ad046cbe4777ecf215caf5f59d9dc7040691bd9"
+        },
+        {
+          "path": "/tmp/pg-final-hint-37.log",
+          "sha256": "59a2b721a0cdee1c32b693af87419c7651b33f4d33c0ab224b954afdc90534c0"
+        }
+      ]
+    }
+  ],
+  "direct_stage_renders": 765,
+  "copied_cli_renders": 44,
+  "tests_passed": 30,
+  "final_cleanup": {
+    "date": "2026-09-05",
+    "retired_archive_count": 261,
+    "retired_archive_bytes": 1810235481,
+    "retired_loose_inventory_bytes": 32703680,
+    "retained_inventory_bundle": "/root/pg-cleanup-20260905/retired-evidence-inventories.tar.gz",
+    "inventory_bundle_bytes": 10051954,
+    "inventory_bundle_sha256": "ca863f7985162c52873240f1a29d708bd41e254a7252da7fb400d43edba5a097",
+    "retired_progress_copies": [
+      {
+        "path": "/tmp/pg-observe-progress-jbx6d_t4",
+        "bytes": 1679360
+      },
+      {
+        "path": "/tmp/pg-observe-progress-nmonwpvk",
+        "bytes": 1712128
+      },
+      {
+        "path": "/tmp/pg-observe-progress-ps3cmlto",
+        "bytes": 1675264
+      },
+      {
+        "path": "/tmp/pg-observe-progress-7vuwt4yl",
+        "bytes": 1712128
+      },
+      {
+        "path": "/tmp/pg-observe-progress-cysf8pwa",
+        "bytes": 1679360
+      },
+      {
+        "path": "/tmp/pg-observe-progress-kltqj55x",
+        "bytes": 1744896
+      },
+      {
+        "path": "/tmp/pg-observe-progress-t7bgbky6",
+        "bytes": 1687552
+      }
+    ],
+    "learner_progress_sha256": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "only_learner_postmaster": true,
+    "disk_total": 24883167232,
+    "disk_used": 7515918336,
+    "disk_free": 17350471680
+  }
+}

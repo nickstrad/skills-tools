@@ -1,529 +1,234 @@
-# PostgreSQL Systems: module plan
+# PostgreSQL Systems: current module plan
 
-Current acceptance, 2026-09-05: chunks1–4 are implemented. Current62 PITR incorporates the retired
-original51 timeline-history through actual before/after named-target branches and archived ancestry.
-The generated course has93 active lessons and seven reading stops. [REWORK-PLAN](REWORK-PLAN.md) and
-[lesson-map](lesson-map.md) remain authoritative during the remaining replication/protocol/ incident
-work and final outline refresh.
+Updated 2026-09-05. The course has 92 active lessons, seven bounded reading stops, and three new
+identities replacing seven consolidated identities from the original 96-lesson course. The
+[identity map](lesson-map.md) preserves that lineage without transferring completions. Original
+completed lessons 1–7 remain identical. [REWORK-PLAN.md](REWORK-PLAN.md) records the authorized
+change; [validation/](validation/) records actual execution evidence and its limits.
 
-Refactor in progress: [REWORK-PLAN.md](REWORK-PLAN.md) and its bounded designs supersede affected
-sections below. This original module outline remains a reference until final integration. Use
-[lesson-map.md](lesson-map.md) for current numbers, surviving slugs and reading stops.
+## Scope and intended outcome
 
-Audience: a software engineer who builds and operates distributed systems and wants to understand
-PostgreSQL as a storage/replication system, not as a DBA. Every lesson is an experiment: setup,
-action, observation, expected result, systems lens. The lab is the cluster from module 01 (port
-5440, db `lab`, `$PGLAB=/var/lib/postgresql/pglab`). Slugs below are fixed; other modules reference
-them as prerequisites, so keep them exactly.
+This is a deep systems course for an engineer with Kubernetes production experience, Docker
+familiarity and the background in [the learner profile](../../../docs/learner-profile.md). Shorten
+familiar usage; do not assume unfamiliar internals are mastered. No host-init administration, new
+web application or copying of the learner's repositories is required. Supplied CLI workloads keep
+the work focused on PostgreSQL mechanisms and engineering decisions.
 
-Conventions for authors:
+The progression is read → predict → run supplied commands → inspect → explain → vary → apply. Early
+lessons introduce mechanisms with complete scaffolding. Isolation/locking require explicit
+invariants and concurrency decisions. Performance requires controlled measurements. Recovery and
+replication require full state/history reconciliation. Durable protocols join independent commits.
+The final incidents ask the learner to choose evidence/remedies; the capstone requires a complete
+operation history and a defended correctness/recovery/capacity decision. Runnable hints and full
+worked commands remain available throughout; syntax recall is not the assessment.
 
-- `code` is executed by `tools/validate.ts`: one psql per session, split on `-- Session A/B` lines;
-  a header containing `(blocks ...)` is sent without waiting. Use `\watch i=1 c=3` style bounds.
-- Everything the learner creates lives in the `lab` database or under `$PGLAB`. Use table names
-  prefixed with the module (`st_`, `mv_`, `vac_`, `iso_`, `lk_`, ...) so modules do not collide.
-- `setup` must be idempotent (`drop table if exists ...; create table ...`).
-- `expectedResult` must quote the real output: the error text, the wait_event, the row count, the
-  LSN delta magnitude. "It works" is not an expected result.
-- Prerequisites: reference only slugs in your own module or in module 01 unless the plan says
-  otherwise (other modules may not be built yet).
-- Keep data small: this machine has 1 CPU and under 1 GB RAM. 100k rows is plenty.
-- Every lesson has `tags` from the vocabulary below (book chapter first, then concepts).
-- Every lesson has the exact `reading` line assigned in `docs/reading-map.md`: either a citation to
-  _PostgreSQL 14 Internals_ (Egor Rogov) by chapter number, exact title, and section, or a plain
-  statement that the book does not cover the lesson with the closest background chapter. The chapter
-  digest is `docs/pg14-internals-chapters.md`, and the book itself is
-  `docs/postgresql_internals-14_en.pdf`; use the digest rather than re-reading the PDF so titles and
-  coverage decisions stay consistent.
-- When `reading` cites a chapter, `readingNotes` explains the overlap: which structure, mechanism or
-  section the experiment shows live, what the book explains that the lesson does not, where the
-  lesson differs (PostgreSQL 16 names versus the book's 14), and whether to read the chapter before
-  or after the experiment. Lessons the book does not cover have no `readingNotes`.
-- `syntaxBreakdown` follows the learning template in `../../docs/AUTHORING.md` (`In plain terms:`,
-  `What you are learning:`, `Piece by piece:`), written for a learner who knows basic SQL but not
-  PostgreSQL internals. No five-word blurbs; every command, flag, function, view, setting, and
-  unusual clause gets what it is, what it does here, and what it gives us.
+The recurring request/job/result/receipt workload connects short claims, retry identity, durable
+outcomes, independent effects and bounded admission. Early tiny tables isolate a cause; later
+fixtures are independently initialized and do not depend on a predecessor leaving a topology live.
+The final task runner proves the tested accepted-work obligation, deduplicated receiver effect,
+reclaimed abandoned claim, stale-completion rejection, missed-wake-up reconciliation, chosen receipt
+freshness and measured overload failure. Logs/LSNs/timelines support the account. Shared-host tests
+do not establish network partitions, consensus or independent host availability.
 
-## Tag vocabulary (for `tags`, `--topic`, and `topics`)
+## First operational task: resource ownership and cleanup
 
-Every lesson carries 2-5 kebab-case tags. The learner is reading _PostgreSQL 14 Internals_ (Egor
-Rogov), so the first group mirrors its chapters; the second names systems concepts; add a new tag
-only when nothing fits, and prefer reusing these exact strings.
+Read `/root/disk-usage-report.md` when available and verify its claims against current resources.
+Follow [the cleanup policy](../../../docs/knowledge/vm-resource-cleanup.md). On this VM the learner
+lab is `/labs/pglab/primary`, port 5440, socket `/tmp`, database lab; discover current paths before
+operating an environment. Do not recreate the retired `/var/lib/postgresql/pglab` validation tree
+because an original lesson or historical report names it. Preserve the learner's data and progress.
 
-Book chapters: `isolation`, `mvcc`, `pages-and-tuples`, `snapshots`, `page-pruning`, `hot-updates`,
-`vacuum`, `autovacuum`, `freezing`, `rebuilding-tables-and-indexes`, `buffer-cache`, `wal`,
-`wal-modes`, `checkpoints`, `recovery`, `relation-locks`, `row-locks`, `deadlocks`,
-`advisory-locks`, `lightweight-locks`, `query-planning`, `statistics`, `table-access-methods`,
-`index-access-methods`, `index-scans`, `nested-loop`, `hashing`, `sorting-and-merging`, `btree`,
-`hash-index`, `gist`, `gin`, `brin`.
+Author crash/replication/incident trials use unique private directories and sockets. Budget primary,
+standby, backup, archive and restored copies, retain at least 2 GB free and twice the next trial's
+peak footprint, and bound process lifetimes. Stop owned clients/servers in failure cleanup. Record
+needed findings, remove disposable raw state after acceptance and give any retained audit archive a
+named removal trigger. Finish the final evidence audit and reclaim its bulky inputs before declaring
+a whole task complete. A stopped server alone has not released its files.
 
-Finer PostgreSQL topics: `read-committed`, `repeatable-read`, `serializable`, `snapshot-isolation`,
-`predicate-locks`, `serialization-failure`, `lost-update`, `write-skew`, `xid`, `clog`,
-`visibility-map`, `free-space-map`, `toast`, `bloat`, `wraparound`, `fsync`, `full-page-writes`,
-`timelines`, `backup`, `pitr`, `streaming-replication`, `replication-slots`, `hot-standby`,
-`synchronous-replication`, `failover`, `logical-replication`, `logical-decoding`, `cdc`, `explain`,
-`work-mem`, `parallel-query`, `pg-stat-statements`, `wait-events`, `pg-stat-io`, `connections`,
-`timeouts`, `logging`, `checksums`, `corruption`, `process-model`, `background-processes`,
-`configuration`, `extensions`, `psql`, `lab`, `ddl`, `migrations`, `unique-constraints`,
-`skip-locked`, `lock-queue`, `listen-notify`, `two-phase-commit`.
+## Reading and identity
 
-Systems concepts: `transactions`, `durability`, `consistency`, `availability`, `replicated-log`,
-`quorum`, `gc-horizon`, `write-amplification`, `caching`, `retries`, `idempotency`, `queues`,
-`leases`, `leader-election`, `fencing`, `outbox`, `optimistic-concurrency`, `split-brain`,
-`distributed-patterns`, `capacity`, `observability`, `incident`, `postmortem`.
+Mandatory core stops follow current 10,14,20,28,37,39,60. The
+[canonical checkpoint plan](../../../docs/books/postgresql-14-internals/study-checkpoint-plan.md)
+contains their bounded excerpts and PostgreSQL14/16 exclusions. The
+[current citation map](../../../docs/books/postgresql-14-internals/reading-map.md) matches every
+active slug. Reuse the canonical research instead of rereading the PDF. The book does not cover most
+replication/distributed protocols; closest-background citations are explicitly limited.
 
----
+The tables below give current numbers, stable identities, key commands, the phenomenon/evidence and
+the engineering decision. Each lesson's full syntax breakdown explains its complete command
+inventory and measurement limits. Source order is curriculum/mod.ts; edit curriculum TypeScript,
+then build lessons.json. Keep unrelated work and learner progress intact.
 
-## 02 storage (file: 02-storage.ts, export STORAGE, category "storage")
+## 1–4: Own a whole node: build a disposable lab cluster
 
-Mental model: a table is a file of 8 KB pages; a row is a tuple with a header; updates never
-overwrite in place; the buffer cache sits between pages and disk.
+| Current / stable identity  | Key commands          | Experiment and required evidence                                             | Learner decision / systems principle                    |
+| -------------------------- | --------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1 `build-lab-cluster`      | initdb; pg_ctl; psql  | Create a disposable cluster and verify its files, settings and connectivity. | Identify the owned node before operating it.            |
+| 2 `shell-and-psql-toolkit` | psql; gset; timing    | Run the shell/psql toolkit and distinguish client commands from SQL.         | Choose the right execution context.                     |
+| 3 `install-lab-extensions` | CREATE EXTENSION; \dx | Install the inspection tools and verify their availability.                  | Know which observations need extensions and privileges. |
+| 4 `process-model`          | pg_stat_activity; ps  | Correlate live server processes, sessions and memory roles.                  | Explain backend ownership and process lifetime.         |
 
-1. `table-is-a-file` (ddl, shell/mixed, 1 session). Create `st_events(id int, payload text)`, insert
-   1000 rows, find its file with `pg_relation_filepath`, `\! ls -l` it under `$PGLAB/primary`,
-   compare `pg_relation_size` to file size and `pg_relation_size(...)/8192` to
-   `pg_stat_user_tables.n_live_tup`-ish. Expect: file size is a multiple of 8192; the relfilenode in
-   the path matches `pg_class.relfilenode`. Lens: everything is pages; the OS file is the unit of
-   durability and replication.
-2. `page-header-and-line-pointers` (read-only). `pageinspect`:
-   `page_header(get_raw_page('st_events',0))` and `heap_page_items(...)` limit 5. Observe lp,
-   lp_off, lp_len, t_xmin, t_xmax, t_ctid. Expect: first tuple ctid (0,1); pd_lower grows down from
-   header, pd_upper grows up from the end. Lens: slotted pages, indirection via line pointers =
-   stable addressing within a page.
-3. `update-writes-a-new-tuple` (writes-data). Update one row twice, then heap_page_items for that
-   page: old versions remain with t_xmax set, new version appended; ctid chain old -> new. Show
-   `ctid` of the live row changed. Expect: 3 physical tuples for one logical row; xmax of old ones =
-   the updating transaction's xid (`pg_current_xact_id` captured with \gset). Lens: MVCC by copy;
-   append-only-ish storage; why bloat exists.
-4. `hot-updates-and-fillfactor` (ddl). Two tables: `st_hot` fillfactor 100 with an index on id and
-   `st_hot_ff` fillfactor 70. Update a non-indexed column N times on each; compare
-   `pg_stat_user_tables.n_tup_hot_upd` vs `n_tup_upd` and the t_ctid chains staying on the same
-   page. Then update the indexed column and see HOT stop (n_tup_hot_upd unchanged). Expect concrete
-   counter values. Lens: in-page redirection avoids index writes; leaving space is a write
-   amplification trade.
-5. `toast-and-large-values` (writes-data). Insert a 100 KB `repeat('x', 100000)` text and a
-   compressible vs `random`-ish incompressible value (use `gen_random_uuid()` concatenation or
-   `encode(gen_random_bytes(...),'hex')` via pgcrypto? pgcrypto may not be installed; use
-   `string_agg(md5(i::text))` for pseudo-random). Show `pg_relation_size` of the main table vs
-   `pg_total_relation_size`, the toast relation name from `pg_class.reltoastrelid::regclass`, and
-   `pg_column_size` before/after. Expect: main heap stays tiny, toast table holds chunks; compressed
-   value much smaller than logical size. Lens: out-of-line storage; why big values are expensive to
-   update; chunking as a general pattern.
-6. `buffer-cache-and-io` (read-only, uses pg_buffercache, pg_prewarm, track_io_timing). Restart is
-   not needed: evict by `select pg_prewarm('st_events')` vs cold read after `\!` cannot drop cache;
-   instead observe `explain (analyze, buffers)` on `st_events` twice: first shows `read`, second
-   shows `hit`; and `pg_buffercache` rows for the relation with `isdirty` after an update and
-   before/after `checkpoint`. Expect: shared hit count == pages; isdirty flips true after update and
-   false after `checkpoint`. Lens: write-back cache; dirty pages are the checkpoint's job; reads
-   cost differently by tier.
-7. `free-space-map-and-reuse` (writes-data, pg_freespacemap). Delete half of `st_events`, run
-   `vacuum st_events` (just this once, as a black box; module 04 explains it), look at
-   `pg_freespace('st_events')` and insert rows again: new tuples land in old pages (ctid page
-   numbers < old max). Expect: relation size does not grow after reinsert. Lens: space reuse vs
-   compaction; why heap files rarely shrink.
+## 5–10: Storage: pages, tuples, and the buffer cache
 
-## 03 mvcc (file: 03-mvcc.ts, export MVCC, category "mvcc")
+| Current / stable identity         | Key commands                               | Experiment and required evidence                                          | Learner decision / systems principle                            |
+| --------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 5 `table-is-a-file`               | pg_relation_filepath; pg_relation_size     | Match relation files and page-aligned size to stored rows.                | Separate logical relations from physical files.                 |
+| 6 `page-header-and-line-pointers` | get_raw_page; page_header; heap_page_items | Inspect real page headers, slots and tuple locations.                     | Read physical evidence without confusing slots with keys.       |
+| 7 `update-writes-a-new-tuple`     | UPDATE; heap_page_items                    | Follow successive row versions and their physical links.                  | Explain a logical update's physical version history.            |
+| 8 `hot-updates-and-fillfactor`    | fillfactor; HOT counters                   | Compare indexed/unindexed updates and space available for HOT.            | Defend reserved space against update and index costs.           |
+| 9 `toast-and-large-values`        | pg_column_size; TOAST chunks; EXPLAIN      | Compare compression, external chunks, projection and payload replacement. | Separate visible chunks, allocated bytes and execution buffers. |
+| 10 `buffer-cache-and-io`          | pg_buffercache; EXPLAIN BUFFERS            | Observe residency, cache hits and dirty-page transitions.                 | Distinguish cached access from durable storage work.            |
 
-Mental model: every tuple carries xmin/xmax; a snapshot decides visibility; the oldest snapshot in
-the cluster pins garbage.
+## 11–16: MVCC: versions, snapshots, and horizons
 
-1. `xids-and-the-transaction-counter` (writes-data). `select pg_current_xact_id_if_assigned()` in
-   and out of a transaction: null until a write; two sessions get increasing xids; `txid_status`.
-   Expect: read-only txn assigns no xid; xids monotonically increase across sessions. Lens: ids are
-   allocated lazily; a global counter is a serialization point.
-2. `snapshot-anatomy` (read-only, 2 sessions). B opens a transaction, writes, does not commit; A
-   runs `select pg_current_snapshot()`; parse xmin:xmax:xip. Expect: B's xid appears in xip list of
-   A's snapshot; after B commits and A takes a new snapshot it disappears. Lens: snapshot = (low
-   water mark, high water mark, in-progress list); the same structure as vector clocks/GC horizons.
-3. `two-sessions-see-different-versions` (writes-data, 2 sessions). A in `repeatable read` reads
-   `mv_accounts`; B updates and commits; A re-reads (old value), A commits and reads again (new).
-   Show xmin/xmax of both versions via heap_page_items. Expect: A's second read unchanged, third
-   read changed. Lens: snapshot isolation is time travel per transaction.
-4. `commit-visibility-and-clog` (writes-data). Show `pg_xact_status(xid)` for committed/aborted xids
-   from earlier; abort a transaction and show its tuples remain on the page with xmin = the aborted
-   xid but are invisible; `\! ls $PGLAB/primary/pg_xact`. Expect: 'aborted' status; row count
-   excludes it; heap_page_items still lists the tuple. Lens: commit is a bit flip in the commit log,
-   not a data rewrite; visibility = tuple header + clog + snapshot.
-5. `xmin-horizon-blocks-cleanup` (locking, 2 sessions). B opens a transaction with a snapshot
-   (`begin; select 1`), A deletes rows and runs `vacuum verbose mv_accounts` -> "dead row versions
-   cannot be removed yet, oldest xmin"; A queries `pg_stat_activity.backend_xmin` for B. B commits;
-   vacuum again removes them. Expect: verbose lines with the counts. Lens: GC horizon = min over all
-   observers; one idle observer stalls the whole system (idle_in_transaction_session_timeout).
-6. `wraparound-and-freezing` (read-only + writes). `age(relfrozenxid)` for mv_accounts and
-   `age(datfrozenxid)`; `vacuum freeze mv_accounts`; heap_page_items shows t_infomask with the
-   frozen bits (mask 0x0300); age resets to ~0. Explain the 2^31 horizon and
-   `autovacuum_freeze_max_age`. Expect: age drops after freeze. Lens: 32-bit counters and
-   epoch-based reclamation; the failure mode is a forced shutdown.
+| Current / stable identity                | Key commands                                       | Experiment and required evidence                                   | Learner decision / systems principle              |
+| ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| 11 `xids-and-the-transaction-counter`    | pg_current_xact_id; pg_current_xact_id_if_assigned | Observe when transactions obtain identities.                       | Separate virtual activity from assigned XIDs.     |
+| 12 `snapshot-anatomy`                    | pg_current_snapshot; snapshot functions            | Read actual snapshot bounds and in-progress identities.            | Explain what a snapshot includes and excludes.    |
+| 13 `two-sessions-see-different-versions` | BEGIN; REPEATABLE READ; SELECT                     | Hold concurrent snapshots over committed row changes.              | Predict which version each reader can see.        |
+| 14 `commit-visibility-and-clog`          | heap_page_items; pg_xact_status                    | Compare transaction outcome, visibility and tuple hint bits.       | Avoid inferring commit status from one raw field. |
+| 15 `xmin-horizon-blocks-cleanup`         | VACUUM; backend_xmin                               | Keep a reader open and observe retained versions, then release it. | Identify the dependency blocking cleanup.         |
+| 16 `wraparound-and-freezing`             | VACUUM FREEZE; tuple flags                         | Observe freezing and transaction-age metadata on bounded data.     | Distinguish frozen tuples from catalog age.       |
 
-## 04 vacuum (file: 04-vacuum.ts, export VACUUM, category "vacuum")
+## 17–20: Vacuum: dead tuples, visibility, bloat, and freezing
 
-1. `dead-tuples-accumulate` (writes-data). Update all rows of `vac_t` (20k rows) 3 times; watch
-   `pg_stat_user_tables.n_dead_tup`, `pgstattuple` dead_tuple_percent, relation size growing 4x.
-   Expect numbers.
-2. `vacuum-reclaims-in-place` (writes-data). `vacuum verbose vac_t`: removed N dead versions, pages
-   remain, size unchanged; `pg_freespace` now shows free space; reinsert refills. Lens: vacuum is a
-   compactor within pages, not a file shrinker.
-3. `vacuum-full-rewrites-and-locks` (locking, 2 sessions). A runs `vacuum full vac_t` while B tries
-   a `select` -> B blocks (pg_locks shows AccessExclusiveLock). Show relfilenode changed. Lens:
-   rewrite = new file + exclusive lock; compaction vs availability.
-4. `visibility-map-and-index-only-scans` (read-only, pg_visibility). After vacuum,
-   `pg_visibility_map_summary`; `explain (analyze, buffers)` an index-only scan shows Heap Fetches:
-   0; then update some rows -> all_visible flips false for those pages; Heap Fetches > 0.
-5. `autovacuum-triggers` (writes-data). Set `vac_t`
-   `autovacuum_vacuum_scale_factor=0.01,
-   autovacuum_vacuum_threshold=50, autovacuum_naptime` is
-   global (1min default) so instead compute the threshold from `pg_settings`, dirty enough rows,
-   then `select ... \watch i=5 c=12` on `pg_stat_user_tables.last_autovacuum` until it fires
-   (bounded 60 s). If timing is unreliable, accept "may take up to a minute" and show
-   `pg_stat_progress_vacuum` if caught. Lens: threshold GC triggers; why tiny hot tables are the
-   problem.
-6. `long-transaction-bloats-everyone` (locking, 2 sessions). B holds an old snapshot; A churns
-   updates in a loop (`do $$ ... $$` 200 iterations on a tiny table) -> table grows to hundreds of
-   pages although it has 10 logical rows; after B commits + vacuum, dead tuples go away but size
-   stays. Lens: the cost of one straggler is paid by everyone; mitigations
-   (`idle_in_transaction_session_timeout`, `old_snapshot_threshold`).
+| Current / stable identity                | Key commands                             | Experiment and required evidence                              | Learner decision / systems principle                     |
+| ---------------------------------------- | ---------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| 17 `vacuum-reclaims-in-place`            | VACUUM; FSM; relation sizes              | Reclaim and reuse space without assuming file shrinkage.      | Choose reuse evidence over a row-count shortcut.         |
+| 18 `vacuum-full-rewrites-and-locks`      | VACUUM FULL; pg_locks                    | Observe an exclusive rewrite and physical file replacement.   | Account for blocking and temporary rewrite space.        |
+| 19 `visibility-map-and-index-only-scans` | visibility map; EXPLAIN                  | Change visibility and observe index-only heap fetches.        | Explain when covering data still needs heap access.      |
+| 20 `autovacuum-triggers`                 | autovacuum settings; pg_stat_user_tables | Cause maintenance eligibility and observe backlog/completion. | Separate trigger eligibility from completed reclamation. |
 
-## 05 isolation (file: 05-isolation.ts, export ISOLATION, category "isolation")
+## 21–29: Transactions and isolation anomalies
 
-All lessons use `iso_accounts(id int primary key, balance int)` with 2-3 rows; 2 sessions.
+| Current / stable identity                        | Key commands                                | Experiment and required evidence                                         | Learner decision / systems principle                    |
+| ------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------- |
+| 21 `atomic-abort`                                | BEGIN; errors; ROLLBACK                     | Cause a failed transaction and verify atomic rollback.                   | Distinguish an error from a usable transaction.         |
+| 22 `read-committed-sees-each-statement`          | READ COMMITTED; concurrent SELECT           | Observe fresh statement snapshots within one transaction.                | Choose where a coherent read boundary is needed.        |
+| 23 `lost-update-under-read-committed`            | UPDATE; concurrent read/modify/write        | Cause a lost update and compare a protected mutation.                    | Place the invariant at the serialization point.         |
+| 24 `optimistic-concurrency-with-version-columns` | version predicate; UPDATE RETURNING         | Reject a stale edit, then explicitly reread and merge.                   | Choose conflict rejection or a valid application merge. |
+| 25 `repeatable-read-blocks-then-fails`           | REPEATABLE READ; concurrent UPDATE          | Observe blocking followed by a serialization failure.                    | Restart work with a fresh snapshot after abort.         |
+| 26 `write-skew`                                  | concurrent predicate reads/writes           | Cause write skew across individually valid row updates.                  | Name the cross-row invariant that failed.               |
+| 27 `serializable-ssi`                            | SERIALIZABLE; SSI; SQLSTATE                 | Observe a dangerous dependency and a rejected transaction.               | Defend isolation using the actual invariant.            |
+| 28 `retry-loop-and-idempotency`                  | fresh transactions; SQLSTATE retry loop     | Run bounded retries and classify actual aborts.                          | Separate retryable failure from an unknown outcome.     |
+| 29 `unknown-commit-outcome`                      | request receipt; atomic debit; fresh lookup | Hide known outcomes and reconcile retained identity, payload and result. | Replay the same request without repeating its effect.   |
 
-1. `atomic-abort` (writes-data). Update two rows, `rollback`; also an error mid-transaction
-   ("current transaction is aborted, commands ignored until end of transaction block"). Expect exact
-   error string. Lens: atomicity via undo-by-ignoring (MVCC) not undo logs.
-2. `read-committed-sees-each-statement` (2 sessions). A `begin` (read committed), select; B updates
-   & commits; A select again -> new value inside the same txn. Contrast with lesson 3 of mvcc.
-3. `lost-update-under-read-committed` (2 sessions). A and B both `select balance` then
-   `update ... set balance = <read value> - 10` with A committing first; B's update overwrites. Then
-   repeat with `update ... set balance = balance - 10` (atomic RMW) and with
-   `select ... for update`: B blocks (`(blocks until A commits)`) and then recomputes. Expect final
-   balances for each variant.
-4. `repeatable-read-blocks-then-fails` (2 sessions). A `begin isolation level repeatable read`,
-   select, B updates & commits the same row, A updates it ->
-   `ERROR:  could not serialize access
-   due to concurrent update` (SQLSTATE 40001). Expect exact
-   text.
-5. `write-skew` (2 sessions, repeatable read). Doctors-on-call: both read count of on-call >= 2,
-   each removes itself, both commit -> invariant broken. Expect 0 on call. Lens: snapshot isolation
-   is not serializable; the anomaly requires reasoning about read sets.
-6. `serializable-ssi` (2 sessions). Same as 5 under `serializable`: second commit fails with
-   `could not serialize access due to read/write dependencies among transactions` (40001) and the
-   hint about retry. Show `pg_locks` SIReadLock rows during the run. Lens: SSI tracks rw
-   dependencies; the price is aborts and the need for retry loops.
-7. `retry-loop-and-idempotency` (1-2 sessions). A `do $$` block or client-side loop pattern that
-   retries on 40001 with `savepoint`; show `pg_stat_database.conflicts`? (that is standby). Instead
-   count retries via a counter table. Keep it simple and honest; may be single session demonstrating
-   `savepoint`/`rollback to savepoint` + SQLSTATE capture in plpgsql
-   (`exception when serialization_failure`). Lens: retries need idempotent effects.
+## 30–37: Locks, queues, deadlocks, and DDL
 
-## 06 locking (file: 06-locking.ts, export LOCKING, category "locking")
+| Current / stable identity         | Key commands                                 | Experiment and required evidence                                         | Learner decision / systems principle                           |
+| --------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| 30 `row-locks-are-in-the-tuple`   | SELECT FOR UPDATE; tuple headers             | Inspect actual row-lock state and transactional ownership.               | Separate tuple lock evidence from table-level metadata.        |
+| 31 `lock-queue-and-blocking-pids` | pg_blocking_pids; pg_stat_activity           | Build a real wait chain and correlate exact backends.                    | Draw the dependency before selecting a remedy.                 |
+| 32 `deadlock-detection`           | deadlock detector; ROLLBACK                  | Cause a cycle and recover whichever transaction is chosen as victim.     | Make cleanup independent of victim identity.                   |
+| 33 `lock-timeout-and-nowait`      | lock_timeout; NOWAIT                         | Bound actual lock acquisition and inspect transaction aftermath.         | Choose waiting versus immediate rejection.                     |
+| 34 `ddl-behind-a-long-query`      | ALTER TABLE; lock queue                      | Queue metadata-only DDL behind a long transaction and bound its wait.    | Separate metadata cost from lock availability.                 |
+| 35 `advisory-locks-as-leases`     | pg_try_advisory_lock; session loss           | Verify session-scoped exclusion and release on actual disconnection.     | Avoid treating an advisory lock as a lease or election.        |
+| 36 `skip-locked-work-queue`       | SKIP LOCKED; generations; guarded completion | Commit short claims, reclaim expired work and reject a stale completion. | Protect local results without holding work-duration row locks. |
+| 37 `unique-constraint-race`       | UNIQUE; concurrent INSERT                    | Observe uniqueness waiting and commit/abort-dependent outcomes.          | Locate constraint enforcement's serialization point.           |
 
-Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`, `pgrowlocks`.
+## 38–44: The planner, statistics, and execution
 
-1. `row-locks-are-in-the-tuple` (2 sessions). A `select ... for update` on one row, no commit; B
-   `pgrowlocks('lk_t')` shows the locker xid and mode; B `update` that row
-   `(blocks until A
-   commits)`; A commits; B proceeds. Expect pgrowlocks row with `For Update`,
-   B's wait_event `transactionid`. Lens: row locks live in tuple headers (xmax) not a lock table;
-   waiting is on the xid.
-2. `lock-queue-and-blocking-pids` (3 sessions). A locks a row, B and C wait; from A run
-   `pg_blocking_pids(pid)` for each and a query joining pg_stat_activity; show FIFO: when A commits
-   B gets it, C still waits. Lens: wait-for graph; head-of-line blocking.
-3. `deadlock-detection` (2 sessions). Classic A->1, B->2, A->2 (blocks), B->1 -> deadlock; after
-   `deadlock_timeout` (1 s) one gets `ERROR:  deadlock detected` with the DETAIL lines. Expect exact
-   error and that the other proceeds. Lens: cycle detection with a timer; lock ordering as
-   prevention.
-4. `lock-timeout-and-nowait` (2 sessions). `set lock_timeout = '500ms'` ->
-   `canceling statement
-   due to lock timeout`; `select ... for update nowait` ->
-   `could not obtain lock on row`; `skip
-   locked` returns other rows. Lens: bounded waits,
-   fail-fast, and work stealing.
-5. `ddl-behind-a-long-query` (3 sessions). A runs a long `select pg_sleep(20)` inside a txn on
-   `lk_t` (holding AccessShareLock); B `alter table lk_t add column x int` blocks on
-   AccessExclusiveLock; C's plain `select` now blocks behind B (lock queue is fair). Show `pg_locks`
-   granted=false modes. Lens: schema changes are exclusive; a queued exclusive lock turns a harmless
-   reader into an outage; `lock_timeout` + retry for migrations.
-6. `advisory-locks-as-leases` (2 sessions). `pg_try_advisory_lock(42)` true in A, false in B;
-   session-scoped vs transaction-scoped (`pg_advisory_xact_lock`); A disconnects/ends -> B acquires.
-   Lens: leader election / leases; no fencing token, discuss what happens on partition.
-7. `skip-locked-work-queue` (2 sessions). `lk_jobs` table; both sessions run
-   `select ... for
-   update skip locked limit 1`; they get different jobs; delete on commit. Show
-   what happens without skip locked (B blocks). Lens: at-least-once queue on a database; visibility
-   = commit.
-8. `unique-constraint-race` (2 sessions). Both insert the same key in open transactions; B blocks on
-   A's xid `(blocks until A commits)`; A commits -> B gets
-   `duplicate key value violates unique
-   constraint`; with `on conflict do nothing` B gets INSERT
-   0 0. Lens: uniqueness needs a serialization point; how `insert ... on conflict` behaves under
-   concurrency.
+| Current / stable identity             | Key commands                           | Experiment and required evidence                                           | Learner decision / systems principle                          |
+| ------------------------------------- | -------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 38 `explain-analyze-buffers`          | EXPLAIN ANALYZE BUFFERS                | Compare estimates, execution and buffer work for fixed answers.            | Keep modeled cost separate from measured work.                |
+| 39 `statistics-drive-plans`           | ANALYZE; statistics target             | Change statistical evidence and compare row estimates with reality.        | Choose evidence for misestimation before tuning execution.    |
+| 40 `index-scan-vs-seq-scan-crossover` | indexes; selective predicates; EXPLAIN | Vary selectivity and observe access-path crossover.                        | Defend an access path for the actual workload.                |
+| 41 `join-strategies`                  | join controls; Memoize; EXPLAIN        | Compare join work and repeated inner probes under controlled shapes.       | Identify which input/work pattern benefits from caching.      |
+| 42 `work-mem-spills-to-disk`          | work_mem; sort/hash plans              | Cause spills and compare memory-resident execution with unchanged answers. | Budget per-operation memory and temporary work.               |
+| 43 `parallel-query`                   | parallel settings; launched workers    | Compare planned and actually launched parallel execution.                  | Distinguish requested parallelism from delivered capacity.    |
+| 44 `pg-stat-statements-as-tracing`    | pg_stat_statements; interval deltas    | Measure scoped aggregate calls/work with reset-retention checks.           | Use aggregates without pretending they are individual traces. |
 
-## 07 wal (file: 07-wal.ts, export WAL, category "wal")
+## 45–51: Indexes: B-tree internals, concurrent builds, and bloat
 
-1. `every-change-is-a-wal-record` (revision4, privileged, psql). Attribute records to writing xids
-   and owned relations; establish flushed bounds. Compare committed/aborted row outcomes and
-   physical records, including read-side hint images. Vary an indexed key; cluster LSN distance
-   remains an interval, not exact request accounting. Accepted validation/04-wal-records-images.md.
-2. `full-page-writes-after-checkpoint` (revision4, privileged, psql). Compare first, repeated and
-   post-checkpoint updates on a fresh page with full_page_writes retained; inspect actual block
-   image bytes. Exact pglz variation preserves row outcomes. Images are not necessarily8192 bytes.
-3. `commit-means-fsync` (revision4, shell). Eight bounded pgbench trials compare synchronous_commit
-   on/off and1/4 clients, then batch5 varies transaction size with400 useful increments unchanged.
-   Verify all client counters, failures, raw latency samples and qualified cluster WAL-sync deltas.
-   Optional owned-file pg_test_fsync is a separate storage probe. No universal speedup, fsync-per-
-   transaction equivalence or demonstrated asynchronous lost-commit claim. Accepted04-commit-cost.
-4. `wal-files-and-recycling` (revision4, privileged shell). Own a fresh1MB-segment cluster with
-   an8MB WAL target. Cause archive-command exit1 and seal12 segments, then check actual retained
-   bytes, ready markers and failure counters after checkpoint. Repair, verify every target hash and
-   receipt, then observe old-name disappearance through removal/recycling. Vary to20 segments. Local
-   archive copy is not yet a tested backup or host-loss boundary. Accepted04-archive.
-5. `crash-and-redo` (revision4, dangerous shell). Own a fresh cluster; one committed and one
-   unfinished transaction both produce flushed WAL. Verify xid-specific physical/transaction
-   records, crash without first closing the unfinished client, inspect the unclean control file and
-   offline pg_waldump, then restart and match fresh redo messages, raw tuple headers and independent
-   receipts. Exact variation commits the second transaction before the same crash. Includes former
-   `wal-replay-is-deterministic` coverage; that slug retires without moving its completion record.
-   Accepted04-crash; local process recovery does not establish power-loss or disk-loss recovery.
-6. `wal-size-of-operations` (revision4, privileged shell). Match fresh heap layouts and200 requested
-   rows for INSERT SELECT,200 statements/one transaction,200 autocommits and client-streamed COPY.
-   Separate owned heap-record bytes, commit-record bytes and unequal catalog hint-image overhead.
-   Matched amount updates with/without its secondary index preserve results and show200/0 HOT;
-   separate index build verifies valid/ready output. Exact no-op comparison preserves all values
-   while its guard prevents200 redundant tuple updates. Accepted validation/04-amplification.md.
+| Current / stable identity                          | Key commands                               | Experiment and required evidence                                              | Learner decision / systems principle                       |
+| -------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 45 `btree-page-anatomy`                            | bt_page_items; page statistics             | Inspect B-tree structure and page evolution.                                  | Connect index layout to lookup and maintenance work.       |
+| 46 `create-index-concurrently-and-invalid-indexes` | CREATE INDEX CONCURRENTLY; progress views  | Observe concurrent-build phases, waiting and invalid-index outcomes.          | Verify build completion and handle failed artifacts.       |
+| 47 `bounded-online-migration`                      | bounded backfill; constraints; SKIP LOCKED | Migrate populated data while accounting for skipped and invalid rows.         | Prove schema/data readiness before tightening constraints. |
+| 48 `partial-and-covering-indexes`                  | partial/covering indexes; HOT counters     | Compare read benefits with predicate coverage and update amplification.       | Price an index across both reads and writes.               |
+| 49 `index-bloat-from-churn`                        | churn; index size; REINDEX                 | Observe index growth and a measured rebuild outcome.                          | Distinguish retained allocation from useful access work.   |
+| 50 `unique-index-enforcement-under-concurrency`    | UNIQUE index; concurrent writers           | Exercise constraint behavior across competing transactions.                   | Preserve correctness while interpreting index behavior.    |
+| 51 `keyset-pagination-and-concurrent-writes`       | OFFSET; composite seek; snapshots          | Compare pagination during concurrent changes and a stable-snapshot variation. | Choose ordering and consistency contracts together.        |
 
-## 08 checkpoints & recovery (file: 08-checkpoints.ts, export CHECKPOINTS, category "checkpointing")
+## 52–57: The write-ahead log: records, durability, crash redo
 
-1. `checkpoint-anatomy` (privileged). `pg_control_checkpoint()` before/after `checkpoint`;
-   `pg_stat_checkpointer`/`pg_stat_bgwriter` counters; the log line "checkpoint complete: wrote N
-   buffers". Lens: bounding recovery time by flushing dirty pages.
-2. `redo-point-bounds-recovery` (dangerous). Big write, no checkpoint, crash -> recovery replays
-   from redo lsn (log shows how much); vs checkpoint then crash -> almost nothing to replay. Compare
-   "redo starts at" to "redo done at" distances.
-3. `max-wal-size-forces-checkpoints` (privileged). Set `max_wal_size='64MB'` + reload, generate WAL,
-   log shows "checkpoint starting: wal". Lens: back-pressure between log growth and cache flushing.
-4. `base-backup` (shell). `pg_basebackup -D $PGLAB/backup1 -c fast -X stream`; inspect
-   `backup_label`; `pg_verifybackup`. Lens: a consistent snapshot = files + WAL from the redo point.
-5. `point-in-time-recovery` (dangerous, shell). Insert marker rows with timestamps, "accidentally"
-   drop the table, restore backup1 to `$PGLAB/pitr` with `restore_command` from `$PGLAB/archive`,
-   `recovery_target_time` before the drop, `recovery_target_action=promote`, start on port 5441, see
-   the table alive, note the new timeline id in `pg_control_checkpoint()`. Stop and remove it. Lens:
-   the log + snapshots gives time travel; timelines are branches.
-6. `timeline-history` (read-only, shell). Look at `$PGLAB/archive/*.history`, `pg_walfile_name`
-   encodes timeline; explain why a rewound primary cannot follow. Sets up module 09.
+| Current / stable identity              | Key commands                                | Experiment and required evidence                                      | Learner decision / systems principle                              |
+| -------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 52 `every-change-is-a-wal-record`      | pg_walinspect; XID-filtered records         | Cause writes and inspect physical records and transaction outcomes.   | Account for WAL work beyond the final visible rows.               |
+| 53 `full-page-writes-after-checkpoint` | checkpoints; full-page images               | Compare actual image records and compression under controlled writes. | Measure write amplification instead of assuming fixed image cost. |
+| 54 `commit-means-fsync`                | synchronous_commit; concurrent commits      | Measure acknowledgement cost, overlap and tested crash outcomes.      | Defend durability policy separately from throughput.              |
+| 55 `wal-files-and-recycling`           | WAL segments; archive_command               | Produce/recycle WAL and test bounded archiving failure/recovery.      | Treat retention dependencies as storage obligations.              |
+| 56 `crash-and-redo`                    | immediate stop; pg_waldump; restart         | Cause a real crash and reconcile physical redo with visible data.     | Separate durable records from committed application state.        |
+| 57 `wal-size-of-operations`            | WAL intervals; controlled operation batches | Measure operation and transaction-layout amplification.               | Compare equivalent work before choosing a write pattern.          |
 
-## 09 replication (file: 09-replication.ts, export REPLICATION, category "replication") SERIAL
+## 58–62: Checkpoints, backups, and point-in-time recovery
 
-1. `build-a-streaming-standby` (accepted, shell, privileged). Owned source/copy, dedicated role,
-   verified basebackup, actual sender/receiver/identity checks, post-backup receipt replay and
-   rejected standby write. Variation replaces the receiver and verifies another streamed receipt.
-2. `replication-lag-under-load` (accepted, shell, privileged). Pause actual replay; commit2,000
-   receipts and require durable receive plus source flush acknowledgement while independent rows
-   remain stale. Resume, gate replay and verify all values. Variation doubles only the workload.
-3. `read-your-writes-on-a-replica` (accepted, moved from14, shell, privileged). Post-COMMIT token,
-   pinned source history/topology,500ms replay deadline, timeout without stale payload,
-   wrong-history rejection before comparison and a fresh profile/receipt snapshot after apply.
-   Variation performs a separately bounded pinned-primary fallback while replay remains paused. No
-   failover authority service is implied; system/timeline checks alone are insufficient for that
-   contract.
-4. `synchronous-replication-blocks-commit` (accepted, shell, privileged). Actual local/on commits
-   during paused replay; remote_apply waits despite received/flushed COMMIT. Match active XID to
-   locally durable WAL while a fresh primary snapshot still excludes that row. Stop the required
-   standby; local completes and on waits. Cancel its acknowledgement, classify WARNING plus COMMIT
-   and reconcile exact receipts. Variation reconnects instead; all five receipts finally replay.
-   Observer sessions use local policy, writers SET LOCAL; no election/fencing or latency benchmark
-   claim follows from these same-host acknowledgement observations.
-5. `hot-standby-query-conflict` (accepted, shell, privileged). Two identically seeded tables;
-   feedback off produces actual40001 snapshot cancellation after primary cleanup. Feedback on
-   requires observed physical-slot xmin protecting the active old snapshot, retains5,000 deleted
-   versions while fresh reads advance and the old reader survives. Release/disable feedback, observe
-   the horizon clear, vacuum and verify reusable space plus complete source/copy agreement.
-   Variation deletes one quarter instead of half. Sender backend_xmin may remain NULL when the slot
-   owns xmin.
-6. `replication-slot-retains-wal` (accepted, shell, privileged). Disconnect the actual owned
-   physical consumer;32,000 later receipts retain35 one-MB WAL segments despite an8MB target.
-   Reconnect, verify every receipt and reclaim obsolete segments. Variation caps the oversized
-   inactive slot at4MB, observes lost state/missing segment and actual old-consumer rejection with
-   stale baseline-only rows, then preserves that copy and rebuilds from a verified full backup. Both
-   paths verify a post-return streamed receipt and complete32,002-row result before cleanup.
-7. `promote-the-standby` (accepted, dangerous, shell). Two independent owned pairs: unsafe promotion
-   preserves actual split-brain receipt inventories, then controlled cutover closes admission,
-   blocks old app login, verifies zero app sessions and complete candidate replay/rows, stops the
-   old source before promotion and rejects stale routing authority. Current authority accepts a
-   later receipt and all acknowledged work is present. Variation refuses a paused/stale candidate
-   before resuming the same gate. Driver-owned epoch is not a distributed election or durable lease;
-   local exclusion assumes no uncontrolled supervisor restarts the old process.
-8. `rewind-the-old-primary` (accepted, dangerous, shell). Fresh divergence, explicit timeline2
-   choice and independent acknowledged-receipt sets. Fence/stop target; preserve a hash-verified
-   compressed cold image. Actual dry run leaves target hashes unchanged; real pg_rewind identifies
-   divergence/common checkpoint and rewrites files. Repair copied recovery/socket/slot settings,
-   rejoin read-only, verify25006 on target writes and a later streamed receipt. Variation increases
-   discarded old acknowledgements from one to three; all remain accounted for in preserved evidence.
-9. `cascading-and-failback` (accepted, dangerous, shell). Controlled round trip on fresh owned
-   nodes. Close admission, verify known-history replay and every receipt, exclude outgoing writer
-   before each promotion. Rebuild original endpoint from a verified backup, refuse it while stale,
-   then return and prove timeline3/full receipts after restart with zero slots. Optional hint2 adds
-   a verified third hop with the middle still in recovery; stop leaf/release its slot before return.
-   Cleanup is required in both scripts; no learner-cluster reset or inherited live topology.
+| Current / stable identity            | Key commands                                | Experiment and required evidence                                         | Learner decision / systems principle                             |
+| ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| 58 `checkpoint-anatomy`              | pg_buffercache; checkpoint; file inspection | Track dirty buffers, physical pages and completed checkpoint work.       | Establish the observation and flush boundaries explicitly.       |
+| 59 `redo-point-bounds-recovery`      | checkpoint age; crash recovery              | Compare retained redo work under controlled recovery histories.          | Explain measured recovery cost without promising production RTO. |
+| 60 `max-wal-size-forces-checkpoints` | max_wal_size; checkpoint counters           | Cause bounded WAL pressure and observe requested/performed checkpoints.  | Treat WAL settings as thresholds, not hard disk quotas.          |
+| 61 `base-backup`                     | pg_basebackup; pg_verifybackup; restore     | Restore a verified backup and check complete application state.          | Require recovered meaning beyond startup or file checks.         |
+| 62 `point-in-time-recovery`          | named recovery targets; timelines           | Restore two actual branches and reconcile target/history/row boundaries. | Choose a recovery point and account for omitted accepted work.   |
 
-## 10 logical (file: 10-logical.ts, export LOGICAL, category "logical-replication")
+## 63–68: Wait events, I/O stats, and capacity
 
-1. `decode-the-log` (accepted, privileged, shell). Fresh logical-WAL cluster: match
-   committed/aborted XIDs to actual physical heap/transaction records and test_decoding events.
-   Repeated peek/get, DDL empty envelope and later new-column row, then deliver a newer commit while
-   an older writer stays open. Compare commit order with XID and individual row LSN order.
-   FULL-identity variation adds old UPDATE/DELETE fields with the same final table. Explicit plugin
-   mode and flush gates bound the claims; no receiver-effect acknowledgement is implied.
-2. `slot-position-and-acknowledgement` (accepted, dangerous, shell). Independent owned
-   source/receiver: consume-first failure, then atomic receipt plus credit and acknowledgement
-   through a complete decoded transaction. Kill consumers before receiver commit, after commit and
-   after source ack; replay deduplicates and later work stays pending. Variation crashes source
-   before slot checkpoint, proving acknowledged-offset replay with receiver state intact. Final safe
-   IDs10–21/total186 survive receiver restart; unsafe missing effects remain separately classified.
-3. `publication-and-subscription` (privileged, shell). Combines initial subscription and new-table
-   refresh with actual snapshot/tail evidence. Private replica row trigger holds COPY after a seed
-   tuple arrives; concurrent source INSERT/UPDATE/DELETE batches commit. Audit exactly100 old seed
-   images under the blocked worker XID and all later row changes under separate transaction IDs.
-   Verify ready states, apply-origin COMMIT boundaries, full contents and post-ready receipts.
-   Existing items continue streaming while refreshed ledger is still copying. Four-batch variation
-   doubles overlap without changing final row counts; verify values/membership rather than counts.
-   Former `initial-sync-vs-streaming` is consolidated here after both executed handoffs pass.
-4. `conflicts-stop-the-apply-worker` (privileged, shell). Independent source/subscriber with
-   disable_on_error and complete-transaction streaming. Actual23505 rolls back an update, delete and
-   non-conflicting insert along with the collision; later source commits accumulate behind it. Core
-   removes the preserved local collision and replays. Variation uses the logged COMMIT-start finish
-   LSN to SKIP, inventories all four discrepancies despite advancing origin, then explicitly
-   reconciles under stopped apply and paused source writes. Source-only ADD COLUMN causes actual
-   55000; compatible target DDL recovers queued work. Both paths require all ten final payloads,
-   fresh post-repair receipts and cleanup; counters remain cumulative rather than proving agreement.
-5. `slot-lag-and-disk` (privileged, shell). Pause a real independent subscriber, retain bounded
-   published changes plus unpublished WAL churn, then verify backlog replay and acknowledgement.
-   Drop the inactive slot with new work pending; actual missing-slot startup fails while apply/sync
-   counters remain zero. Recreating the name starts beyond the gap: new receipts arrive while
-   IDs1/2/600 remain stale/extra/missing. Variation REFRESH(copy_data=true) does not recopy the
-   existing table. Preserve stale rows, empty the owned target and create a fresh subscription under
-   paused source writes; audit the actual copied snapshot and verify post-copy receipt902 with all
-   15 final payloads. An inserted-then-deleted gap event remains missing from consumer history, so
-   current-state recovery is not historical delivery. Drop every owned subscription/slot and stop
-   both servers; full physical retention/invalidation mechanics remain in the earlier experiment.
+| Current / stable identity                 | Key commands                               | Experiment and required evidence                                           | Learner decision / systems principle                           |
+| ----------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 63 `wait-events-tell-you-where-time-goes` | pg_stat_activity; wait sampling            | Compare lock, timer and idle states with exact backend correlations.       | Distinguish the observed dependency from unrelated activity.   |
+| 64 `pg-stat-io-by-backend-type`           | pg_stat_io; controlled scans               | Compare scoped I/O deltas across workload/cache conditions.                | Keep cluster counters and physical-device claims separate.     |
+| 65 `connection-saturation`                | pgbench; bounded clients; transaction logs | Measure repeated controlled concurrency, latency and exact committed work. | Choose capacity from failures, backlog and resource evidence.  |
+| 66 `idle-in-transaction-kills-you`        | statement/idle deadlines; client SQLSTATE  | Observe cancellation, transaction recovery and idle-session termination.   | Align deadlines with connection and commit boundaries.         |
+| 67 `table-and-index-usage-counters`       | usage counters; constraint catalog         | Observe used/unused indexes and a correctness-preserving comparison.       | Avoid dropping a constraint because its scan counter is zero.  |
+| 68 `read-the-server-log`                  | log_lock_waits; bounded log slice          | Correlate a wait and final transaction outcome with real appended logs.    | Read the right interval and distinguish commit from execution. |
 
-## 11 planner (file: 11-planner.ts, export PLANNER, category "query-planning")
+## 69–77: Physical streaming replication and failover
 
-1. `explain-analyze-buffers` basics on `pl_orders` 100k rows: seq scan cost vs actual, buffers.
-2. `statistics-drive-plans`: bad estimate after bulk load without analyze (rows=1 vs actual 100000),
-   then `analyze`; `pg_stats` histogram; `n_distinct`.
-3. `index-scan-vs-seq-scan-crossover`: same query with selectivity 0.1% vs 50%, planner switches;
-   force with `enable_seqscan=off` to show the cost difference.
-4. `join-strategies`: nested loop vs hash vs merge, `work_mem` influence; `Batches: 2` when
-   spilling.
-5. `work-mem-spills-to-disk`: sort with `work_mem=64kB`: `Sort Method: external merge  Disk:`;
-   `pg_stat_database.temp_files`; log_temp_files.
-6. `parallel-query`: `max_parallel_workers_per_gather`, `Workers Launched`, when it does not launch.
-   Lens: scatter-gather inside one node.
-7. `pg-stat-statements-as-tracing`: reset, run workload, top by total_exec_time, `shared_blks_hit`
-   ratio; mean vs stddev. Lens: aggregate telemetry; normalization by query id.
+| Current / stable identity                  | Key commands                                 | Experiment and required evidence                                                  | Learner decision / systems principle                                 |
+| ------------------------------------------ | -------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 69 `build-a-streaming-standby`             | pg_basebackup; sender/receiver; WAL marker   | Verify a real standby, streamed receipts and receiver reconnection.               | Check topology identity and complete data before claiming readiness. |
+| 70 `replication-lag-under-load`            | replay pause; receive/flush/replay LSNs      | Receive WAL while rows remain stale, then replay a real marker.                   | Separate transport durability from applied state.                    |
+| 71 `read-your-writes-on-a-replica`         | same-history token; bounded receipt gate     | Reject wrong histories, time out without data and read after replay.              | Defend freshness, authority and explicit fallback separately.        |
+| 72 `synchronous-replication-blocks-commit` | synchronous_commit; SyncRep; exact COMMIT    | Compare local, remote-flush and remote-apply waits and cancelled acknowledgement. | Reconcile a locally committed request with its remote promise.       |
+| 73 `hot-standby-query-conflict`            | standby snapshots; feedback; VACUUM          | Cause a recovery conflict and measure feedback-retained history.                  | Choose reader continuity versus cleanup/replay costs.                |
+| 74 `replication-slot-retains-wal`          | physical slot; checkpoints; reinitialization | Retain then lose required history and validate consumer reconstruction.           | Account for retention limits and recovery obligations.               |
+| 75 `promote-the-standby`                   | promotion; authority fence; branch receipts  | Preserve split-brain evidence and execute controlled writer cutover.              | Choose one authority and identify lost acknowledgements.             |
+| 76 `rewind-the-old-primary`                | pg_rewind; divergence inventory              | Rewind the old source against the chosen history and verify discarded work.       | Make branch-loss decisions explicit before joining histories.        |
+| 77 `cascading-and-failback`                | catch-up; fenced failback; optional cascade  | Move authority back through a verified receipt boundary.                          | Separate topology convenience from availability guarantees.          |
 
-## 12 indexes (file: 12-indexes.ts, export INDEXES, category "indexes")
+## 78–82: Logical decoding, CDC, and publications
 
-1. `btree-page-anatomy` (`bt_metap`, `bt_page_stats`, `bt_page_items` on a 100k-row index):
-   root/leaf levels, high keys.
-2. `index-only-scan-needs-visibility-map` (cross-ref vacuum module).
-3. `create-index-concurrently-and-invalid-indexes` (2 sessions): a concurrent build waits for an
-   open transaction (`(blocks ...)`), and a failed one leaves `indisvalid = false`.
-4. `partial-and-covering-indexes`: `include`, `where`, sizes and plans.
-5. `index-bloat-from-churn`: updates + `pgstatindex` avg_leaf_density; `reindex concurrently`.
-6. `unique-index-enforcement-under-concurrency` (cross-ref locking lesson 8): show
-   `pg_stat_user_indexes` and why uniqueness is a btree property.
+| Current / stable identity              | Key commands                              | Experiment and required evidence                                               | Learner decision / systems principle                                |
+| -------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 78 `decode-the-log`                    | physical WAL; test_decoding; flush gate   | Compare commit/abort, row/schema evidence and actual delivery ordering.        | Do not infer committed delivery from XID or row-LSN order.          |
+| 79 `slot-position-and-acknowledgement` | logical slot; independent receiver commit | Lose acknowledgement and replay into deduplicated receiver effects.            | Advance a source cursor only after durable receiver outcome.        |
+| 80 `publication-and-subscription`      | publication/subscription; COPY/tail audit | Observe initial and added-table handoffs while existing work streams.          | Reconcile snapshot and tail without inventing missing history.      |
+| 81 `conflicts-stop-the-apply-worker`   | apply errors; repair/skip; reconciliation | Cause real logical conflicts and check every repaired/skipped operation.       | Price error recovery in application state, not worker status alone. |
+| 82 `slot-lag-and-disk`                 | slot recreation; resnapshot; later tail   | Lose a cursor, observe ineffective repair and rebuild complete receiver state. | State which history must survive for a valid recovery.              |
 
-## 13 observability (file: 13-observability.ts, export OBSERVABILITY, category "observability")
+## 83–87: Distributed-systems patterns on PostgreSQL
 
-1. `wait-events-tell-you-where-time-goes` (2 sessions): a blocked update shows `Lock:transactionid`;
-   a sleeping one `Timeout:PgSleep`; an idle-in-transaction session.
-2. `pg-stat-io-by-backend-type` (PG16): reads/writes/extends per context after a workload; the
-   checkpointer's writes vs backend writes.
-3. `connection-saturation` (shell): `max_connections` down to 10 via ALTER SYSTEM + restart? too
-   heavy; instead open N psql via shell loop until `FATAL: sorry, too many clients already` (100
-   default: set `max_connections=20` needs restart; acceptable, do it and restore). Lens:
-   process-per-connection capacity; poolers.
-4. `idle-in-transaction-kills-you` : `idle_in_transaction_session_timeout=2s` ->
-   `FATAL:
-   terminating connection due to idle-in-transaction timeout`; `statement_timeout`.
-5. `table-and-index-usage-counters`: `pg_stat_user_tables` seq_scan vs idx_scan, `n_tup_*`,
-   `pg_statio_user_tables` heap_blks_hit; reset and re-measure.
-6. `read-the-server-log`: `log_lock_waits` lines from a real wait, `log_min_duration_statement`,
-   checkpoint lines; tail via `\!`. Lens: logs as the ground truth for postmortems.
+| Current / stable identity                    | Key commands                                    | Experiment and required evidence                                             | Learner decision / systems principle                                  |
+| -------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 83 `transactional-outbox`                    | transactional outbox; relay; receiver receipt   | Lose real relay processes across independent commits and deduplicate replay. | Separate source acknowledgement from external effect durability.      |
+| 84 `idempotency-keys`                        | idempotency interface; snapshot race; retention | Exercise duplicate races, result replay and forgotten-identity failure.      | Choose identity lifetime and payload agreement as protocol rules.     |
+| 85 `two-phase-commit`                        | PREPARE TRANSACTION; durable decision           | Lose a coordinator and recover known participants from a committed decision. | Resolve durable obligations without guessing from absent GIDs.        |
+| 86 `fencing-tokens-with-a-monotonic-counter` | restricted roles; epochs; resource interface    | Reject stale, missing-token and direct-DML attempts at the guarded resource. | Identify when the resource actually accepts a newer fence.            |
+| 87 `listen-notify-as-a-bus`                  | LISTEN/NOTIFY; durable scan; receipts           | Lose listeners and reconcile work despite missed/coalesced wake-ups.         | Treat notifications as hints and durable state as the work inventory. |
 
-## 14 patterns (file: 14-patterns.ts, export PATTERNS, category "distributed-patterns")
+## 88–92: Capstone incidents: read the symptom, find the cause, get the cluster back
 
-1. `transactional-outbox` (privileged, shell). Source business/event atomicity with an actual killed
-   uncommitted application; independent receiver receipt plus balance commit. Competing SKIP LOCKED
-   claims commit briefly and leave no row locks during delivery. Kill a receiver client before
-   commit and a real Python relay after receiver commit/before source acknowledgement. Controlled
-   expiry permits new generations; stale acknowledgements fail, replay adds no duplicate credit, and
-   full order/outbox/receipt payloads plus total18 survive normal restarts. Variation moves relay
-   loss after the sent-marker commit, leaving only the other abandoned claim to recover.
-2. `idempotency-keys` (privileged, shell). Reproduce the combined insert-or-select Read Committed
-   snapshot race after an observed unique-conflict wait. A complete function uses a fresh SQL
-   command for duplicate lookup and atomically commits request identity/payload, debit/history and
-   saved answer. Concurrent duplicates apply once; changed payloads and insufficient funds fail
-   without mutation. Actual caller loss before/after commit recovers through the same request key.
-   Receipt deletion deliberately repeats a debit on an isolated account; in-place retirement retains
-   the identity guard and refuses reexecution. Reconcile all balances, payloads and history through
-   normal restart. Variation changes only the first winner from COMMIT to ROLLBACK.
-3. `two-phase-commit` (dangerous, shell). Independently prepare debit/credit participants with
-   stable GIDs, full outcome receipts and a registered operation. Observe actual blocked
-   writers/null-PID locks,250 retained dead tuples and prepared-state recovery after a participant
-   crash. A separate Python coordinator commits its SQLite FULL decision before finalization; kill
-   it after A commits but before B, then recover B from COMMIT and verify both receipts/total200.
-   Variation kills the coordinator before its decision commit; recovery first records ABORT, rolls
-   back both participants and records zero-delta outcomes. Release locks/cleanup retention and prove
-   repeated recovery is unchanged before and after normal restarts. Independent reads can see
-   partial finalization.
-4. `optimistic-concurrency-with-version-columns`: `update ... where version = :v` returning 0 rows
-   as the conflict signal, vs `for update`.
-5. `fencing-tokens-with-a-monotonic-counter` (privileged, shell). Actual restricted worker logins
-   receive issued epochs and write through non-login-owned SECURITY DEFINER interfaces. Compare
-   claim takeover with resource acceptance: A's old token still works before B's new resource fence
-   commits. Race A against B's held update; B COMMIT fences A, while the rollback variation admits A
-   before a fresh B fence. Require explicit tokens, reject forged/other-worker tokens, and verify
-   direct writes, history/issuance forgery, schema creation, role escalation and temporary-table
-   redirection fail. Reconcile full accepted history through restart. The issuer counter represents
-   an authorized handoff, not lease expiry or election; same-epoch writes still need idempotency.
-6. `listen-notify-as-a-bus` (privileged, shell). Commit LISTEN before a fresh durable scan; vary
-   publication immediately before/after registration commit. A row trigger ties work and generic
-   wake-ups to publisher commit/rollback; two jobs in one transaction produce one wake-up. Kill the
-   actual listener after local credit/receipt/completion execute but before commit, then publish
-   while it is absent. Reconnect/register and recover all five pending jobs despite only one new
-   wake-up; redundant wake-ups and bounded polls add no effects. Match all six job/receipt payloads
-   and total72 through normal restart. Notifications guide scans; they are not the work inventory.
+| Current / stable identity          | Key commands                                | Experiment and required evidence                                                  | Learner decision / systems principle                                  |
+| ---------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 88 `abandoned-slot-fills-the-disk` | WAL/slot/archive evidence; explicit remedy  | Diagnose one of three growth causes and verify application recovery.              | Choose remediation from evidence and price consumer reconstruction.   |
+| 89 `corrupt-a-page-and-detect-it`  | checksums; cold backup; separate restore    | Detect bounded corruption and reconcile the restored accepted-operation boundary. | Distinguish readable storage from recovered application completeness. |
+| 90 `wraparound-drill`              | tuple flags; horizons; durable 2PC decision | Resolve a freeze plateau while preserving the required participant outcome.       | Release the actual dependency with the correct decision.              |
+| 91 `runaway-query-and-cancel`      | activity/CPU evidence; cancel/terminate     | Measure a missed request budget and verify fresh-policy session/data outcomes.    | Choose the least disruptive intervention and check completion.        |
+| 92 `postmortem-from-the-log`       | task runner; process loss; bounded arrivals | Reconcile every accepted/rejected/retried identity through recovery and load.     | Defend correctness, admission and concurrency with measured limits.   |
 
-## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL
+## Tags and navigation
 
-Implementation follows [designs/07-incidents-integration.md](designs/07-incidents-integration.md).
-Entries4–5 below still describe legacy content awaiting that replacement contract.
-
-1. `abandoned-slot-fills-the-disk` (privileged, shell): prepare a randomly selected bounded
-   disk-growth case, retaining incident-time samples while stopping the private server between
-   stages. The learner selects workload/WAL/slot/archiver/data/log evidence and an explicit remedy.
-   Resume a retained consumer, verify repaired archive file hashes, or measure reduced write demand;
-   validate complete receiver payloads/balance, a later delivery, duplicate stability and old WAL
-   reclamation. Variation releases the slot first, proves the empty new tail and12,000-row receiver
-   gap, then reconstructs from the complete immutable ledger and proves later delivery. No real disk
-   exhaustion, allocated-file byte rate or snapshot reconstruction of deleted history is claimed.
-2. `corrupt-a-page-and-detect-it` (dangerous, shell): investigate an actual heap-read/checksum
-   failure, compare a complete cold backup with all510 accepted operations, and restore into a
-   separate private destination. The core's500-row backup cannot recover accepted IDs501–510; report
-   their full records, then verify every recovered payload plus a new operation511 and total880,327.
-   The variation moves only the backup boundary after those ten commits and recovers all510 before
-   the same later write, total915,712. Preserve the damaged source and original page bytes, verify
-   clean restored checksums and unchanged backup hashes, and clean up after recording findings. No
-   destructive salvage or production RTO claim.
-3. `wraparound-drill` (privileged, shell): investigate a plateau after three completed freeze
-   passes. Match per-identity frozen flags and relation horizon to a detached prepared transaction,
-   despite no live client or slot. Follow its independently committed coordinator decision; verify
-   all200 tuples become frozen, relfrozenxid advances and the complete ledger remains
-   200rows/amount60,300. ABORT core has no effect row; COMMIT variation retains exactly(1,41).
-   Verify restart persistence and clean up. No XID burn, threshold tour or production deadline.
-4. `runaway-query-and-cancel`: `pg_cancel_backend` vs `pg_terminate_backend`, what the client sees,
-   `pg_stat_activity` after.
-5. `postmortem-from-the-log`: given the lab's log, reconstruct the timeline of the crash in module
-   07 and the failover in module 09 using only log lines and LSNs.
+Use the tutor topics command for the current vocabulary and progress; tags connect mechanisms across
+modules rather than assign fixed chapter numbers. Current categories are `lab-setup`, `storage`,
+`mvcc`, `vacuum`, `isolation`, `locking`, `query-planning`, `indexes`, `wal`, `checkpointing`,
+`observability`, `replication`, `logical-replication`, `distributed-patterns`, `reliability`.

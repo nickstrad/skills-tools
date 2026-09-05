@@ -18,10 +18,11 @@ validation notes. Resolve actual paths and query `data_directory`; do not infer 
 cluster name. The private pivot server had no application clients and was stopped for cleanup.
 Neither learner progress nor learner data was reset.
 
-Cleanup evidence and current disposition are recorded in `/root/pg-cleanup-20260905/` and the
-PostgreSQL handoff. Bulky evidence still needed for the unfinished whole-course audit is eligible
-for compact preservation, with complete manifests checked before originals are removed. This
-preserves evidence; it does not establish that an archived database has been successfully restored.
+Cleanup evidence and final disposition are recorded in `/root/pg-cleanup-20260905/` and
+[the final cleanup report](../../curriculum-tools/courses/postgres/validation/09-final-cleanup.md).
+During an unfinished audit, bulky evidence still needed for named checks is eligible for compact
+preservation, with complete manifests checked before originals are removed. This preserves evidence;
+it does not establish that an archived database has been successfully restored.
 
 ## Why it matters
 
@@ -106,7 +107,7 @@ validation reports remain valid records of measured runs; their old scratch path
 through the cleanup manifest and should not trigger redundant reruns just because the directories
 have been reclaimed.
 
-## Completed cleanup and remaining obligation (2026-09-05)
+## Initial cleanup checkpoint (historical, 2026-09-05)
 
 Verification finished with about16GB available (34% used), up from about170MB. The obsolete6.1GB
 validation tree and all151 raw owned experiment roots are gone. The unused private pivot server was
@@ -127,3 +128,22 @@ checks. `/root/pg-validation-evidence/README.md` explains selective access. The 
 report now has a verified cleanup addendum. After the remaining course audit, remove the retained
 bulky evidence and any new scratch resources, recheck learner readiness and free space, and only
 then mark the overall goal finished. Do not allow a new set of151 retained raw fixtures to form.
+
+## Final audit and cleanup completed (2026-09-05)
+
+The whole-course audit is complete. All 261 mapped archives were hash-checked again and retired,
+reclaiming 1,810,235,481 bytes. Loose inventories and nine small prototype forensic archives were
+compressed into one reopened, member-verified 10,051,954-byte diagnostic bundle under
+`/root/pg-cleanup-20260905/`; it contains no restorable PostgreSQL data/WAL image. Seven final
+copied progress catalogs were removed. The one new small cluster used to close 18 early
+variation-evidence gaps was also stopped and deleted. The original bulky evidence directory no
+longer exists.
+
+Final `df -h /` shows about 17 GB available and 31% used. The learner's original server remains
+running, read-only checks pass, the lesson-9 views render and the real progress hash is unchanged.
+The earlier retention obligation in this document is discharged. Historical archive/member paths
+remain provenance, not instructions to recreate inputs. Small logs/scripts and compressed
+inventories remain useful diagnostics; unrelated work and installed tools were preserved.
+
+[Final integration findings](postgres-refactor-integration.md) explain how stable identities,
+accepted source hashes and selective archived outcome reads avoided recreating every database.

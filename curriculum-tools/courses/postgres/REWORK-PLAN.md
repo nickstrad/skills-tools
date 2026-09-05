@@ -5,23 +5,16 @@ user changed the execution approach on 2026-09-04: the primary agent now designs
 section sequentially, reviews its wording and code, validates it, and commits/pushes each completed
 chunk. Agents may perform narrowly scoped verification of supplied commands or finished changes;
 parallel lesson authoring has stopped. This supersedes the earlier Terra implementation assignments
-in historical designs. See [handoff.md](handoff.md) for the current checkpoint and
-[designs/](designs/) for exact contracts.
+in historical designs. The final acceptance is
+[validation/09-final-integration.md](validation/09-final-integration.md); [designs/](designs/)
+retain the implementation contracts.
 
-Progress checkpoint, 2026-09-05: chunks1–6 are accepted. Durability/recovery concludes with
-[actual PITR and timeline consolidation](validation/04-pitr.md); replication/change processing is
-recorded in [chunk5 integration](validation/05-integration.md), and durable protocols in
-[chunk6 integration](validation/06-integration.md). Current83–87 have individually executed core,
-source variation and exact-hint evidence; the current scripts/fresh hints match all15 retained
-executions and checked outcome inventories. Current88 is accepted in
-[the disk-growth incident report](validation/07-disk-incident.md). The user-requested resource
-cleanup is complete in [the cleanup record](validation/07-resource-cleanup.md). Current89 is
-accepted in [the corruption restore report](validation/07-corruption-incident.md). Current90 is
-accepted in [the freeze incident report](validation/07-freeze-incident.md). Current91 is accepted in
-[the request intervention report](validation/07-cancel-incident.md). Current92 is accepted in
-[the task-runner report](validation/07-task-runner-capstone.md). Next: final integration, the
-whole-course audit and final evidence cleanup. The course has92 active lessons and seven reading
-stops; the full pivot remains unfinished.
+Completed 2026-09-05: all seven delivery chunks, the whole-course source/evidence audit, final
+PLAN/identity/readings/checkpoints/wrapper integration and final resource cleanup. The course has 92
+active lessons and seven reading stops; original completed lessons 1–7 and learner progress are
+preserved. See [the final evidence manifest](validation/09-final-evidence.json) and
+[final resource retirement](validation/09-final-cleanup.md). Historical per-chunk reports describe
+their accepted runs; use the current lesson map when comparing old ordinal numbers.
 
 ## Teaching contract
 
@@ -124,8 +117,10 @@ Build/typecheck/lint/format the changed course; run engine tests for integration
 output against expected results: the harness completion count detects timeouts, not correctness.
 Validate changed lessons individually, then their sequence. Primary independently reruns important
 concurrency/failure cases and benchmarks without competing benchmark agents. Store concise durable
-evidence in `validation/` and raw logs in scratch paths recorded in the handoff. Run final whole
-repo checks and distinguish unrelated concurrent failures without editing other workstreams.
+evidence in `validation/` and small diagnostics in scratch paths recorded in acceptance reports. Run
+final whole repo checks and distinguish unrelated concurrent failures without editing other
+workstreams.
 
-Keep `handoff.md` current at assignment, implementation, review, validation and commit boundaries.
-Record exact next actions, owners, scratch paths, commands, failures, evidence and pending concerns.
+During implementation, keep a handoff current with exact next actions, owners, scratch paths,
+commands, failures and pending concerns. At full acceptance replace that temporary handoff with the
+durable final integration and cleanup reports.

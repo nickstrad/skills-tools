@@ -1,9 +1,9 @@
 # PostgreSQL lesson identity map
 
-Updated2026-09-05 after logical bootstrap consolidation;92 active lessons. Original means
-the96-lesson course before the pivot. Current numbers reflect the generated course; stable slugs
-identify lessons across later changes. Retirement does not transfer completion. Original lessons1–7
-remain identical.
+Updated 2026-09-05 after final lesson integration; 92 active lessons. Original means the 96-lesson
+course before the pivot. Current numbers reflect the generated course; stable slugs identify lessons
+across later changes. Retirement does not transfer completion. Original lessons 1–7 remain
+identical.
 
 | Original | Current | Stable slug                                     | Disposition                                                                                                                                         |
 | -------: | ------: | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -98,11 +98,11 @@ remain identical.
 |       89 |      86 | `fencing-tokens-with-a-monotonic-counter`       | Retained                                                                                                                                            |
 |       90 |      71 | `read-your-writes-on-a-replica`                 | Moved to physical replication; bounded same-history replay and receipt gate                                                                         |
 |       91 |      87 | `listen-notify-as-a-bus`                        | Retained                                                                                                                                            |
-|       92 |      88 | `abandoned-slot-fills-the-disk`                 | Retained                                                                                                                                            |
-|       93 |      89 | `corrupt-a-page-and-detect-it`                  | Retained                                                                                                                                            |
-|       94 |      90 | `wraparound-drill`                              | Retained                                                                                                                                            |
-|       95 |      91 | `runaway-query-and-cancel`                      | Retained                                                                                                                                            |
-|       96 |      92 | `postmortem-from-the-log`                       | Retained                                                                                                                                            |
+|       92 |      88 | `abandoned-slot-fills-the-disk`                 | Neutral three-cause diagnosis with explicit remedy and complete receiver recovery                                                                   |
+|       93 |      89 | `corrupt-a-page-and-detect-it`                  | Verified corruption detection and separate restore with explicit accepted-operation loss boundary                                                   |
+|       94 |      90 | `wraparound-drill`                              | Retained as independent freeze-eligibility diagnosis with durable prepared-decision resolution                                                      |
+|       95 |      91 | `runaway-query-and-cancel`                      | Retained as bounded request diagnosis and fresh-policy session/transaction/data comparison                                                          |
+|       96 |      92 | `postmortem-from-the-log`                       | Replaced log-only deliverable with complete task-runner correctness/recovery/capacity reconciliation; logs retained as evidence                     |
 
 ## Added experiments
 

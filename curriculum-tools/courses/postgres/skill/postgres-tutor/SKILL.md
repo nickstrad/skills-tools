@@ -78,6 +78,26 @@ shorten, paraphrase, or re-wrap its `Optional reference`, `## Syntax breakdown`,
 Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
 structured fields are needed.
 
+## Incident ownership and VM resources
+
+Before allocating a lab, read the repository's `docs/knowledge/vm-resource-cleanup.md` and verify
+current resources; `/root/disk-usage-report.md` is a historical inventory to check, not a deletion
+allowlist. The learner's current VM lab is `/labs/pglab/primary`, port 5440/socket `/tmp`, database
+lab. Confirm current paths rather than recreating an obsolete validation lab. Preserve learner data.
+
+For independent incidents, start with the authored symptom and prediction. When the learner
+explicitly asks you to prepare a fixture, obtain the supplied run/full commands and execute only the
+named preparation/survey stage before showing its symptom. Honor explicit requests for full source
+or a worked solution. Saved incident PIDs are historical when a phase stopped; use the supplied
+fresh trial/interface instead of signalling a remembered PID.
+
+Keep agent-created trials bounded, stop their processes in failure cleanup and reclaim their owned
+files after findings are recorded. Use the printed cleanup action where supplied. Retain only the
+evidence needed for a named unfinished check, and remove bulky audit inputs before declaring that
+task finished. Do not remove `/labs/pglab`, learner progress or unrelated work as scratch cleanup.
+The course [README](../../README.md) and knowledge base explain preparation, catalog refresh and
+resource ownership. Reading or cleanup never implies learner completion.
+
 ## Progress invariants
 
 - The lesson `ordinal` is the number the user sees.

@@ -15,10 +15,12 @@ storage experiment tables and installed course extensions. Lesson 9 creates its 
 table; no old author-validation database or archive is needed to begin it.
 
 The agent's `/tmp/postgres-pivot-20260904` validation cluster on port 5540 had no client sessions
-and was stopped during cleanup. Its retained evidence and the per-experiment `pg-owned-*` images
-were compacted for the outstanding whole-course audit. Consult the current handoff and
-`/root/pg-cleanup-20260905/compacted.jsonl` for actual archive locations before using an old scratch
-path. No permanently running author cluster is required.
+and was stopped during cleanup. Its evidence and the per-experiment images were compacted only until
+the final whole-course audit. That audit is now complete and all bulky inputs are removed;
+[the final cleanup report](../../curriculum-tools/courses/postgres/validation/09-final-cleanup.md)
+records the disposition. `/root/pg-cleanup-20260905/` retains compact inventories and small
+diagnostics, not a running cluster or backup service. Historical scratch paths are not dependencies
+for lesson 9.
 
 ## Why it matters
 
