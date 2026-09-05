@@ -1,12 +1,16 @@
 # PostgreSQL systems engineering pivot
 
-Status: implementation authorized 2026-09-04. Scope is unfinished work after original lesson 7.
-The user changed the execution approach on 2026-09-04: the primary agent now designs and implements
-each section sequentially, reviews its wording and code, validates it, and commits/pushes each
-completed chunk. Agents may perform narrowly scoped verification of supplied commands or finished
-changes; parallel lesson authoring has stopped. This supersedes the earlier Terra implementation
-assignments in historical designs. See [handoff.md](handoff.md) for the current checkpoint and
+Status: implementation authorized 2026-09-04. Scope is unfinished work after original lesson 7. The
+user changed the execution approach on 2026-09-04: the primary agent now designs and implements each
+section sequentially, reviews its wording and code, validates it, and commits/pushes each completed
+chunk. Agents may perform narrowly scoped verification of supplied commands or finished changes;
+parallel lesson authoring has stopped. This supersedes the earlier Terra implementation assignments
+in historical designs. See [handoff.md](handoff.md) for the current checkpoint and
 [designs/](designs/) for exact contracts.
+
+Progress checkpoint, 2026-09-05: chunks1–3 are accepted. Observability acceptance and actual-tool
+evidence are in [validation/03-observability.md](validation/03-observability.md). Next is chunk4,
+durability and recovery; chunks4–7 remain unfinished.
 
 ## Teaching contract
 

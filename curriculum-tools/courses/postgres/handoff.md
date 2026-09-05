@@ -1,24 +1,31 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Paused at user request for a fresh context. Planner, indexes, capacity and
-bounded migration are accepted and pushed. Resume with the five remaining observability lessons.**
+Updated 2026-09-05. **Observability is accepted; chunks1–3 are complete. Continue sequentially with
+chunk4: durability and recovery. The overall course refactor remains unfinished.**
 
 ## Restart checkpoint
 
-The user requested a clean stopping point and a committed/pushed handoff before clearing context. No
-observability edits have started beyond the accepted capacity lesson. There is no partially
-implemented section to recover. Latest implementation commit is `673f332`, confirmed on origin/main.
-The only unrelated working-tree entry at this checkpoint was untracked root `bin/`; leave it alone.
+The user resumed from context-reset checkpoint a288b21 and requested sequential observability work.
+Primary designed and implemented all five remaining lessons, authored specific guides and exact
+runnable hints, executed every core and CLI-rendered variation, and completed integration checks.
+See designs/03-observability.md and validation/03-observability.md. No agents were spawned. The
+accepted capacity lesson and original first7 built objects remain identical.
 
-Estimated remaining effort is roughly **50%**, not a lesson-count calculation. Chunks1–2 are
-accepted; chunk3 has four accepted sections but five observability lessons remain. Chunks4–7 still
-need implementation and validation, including the hardest recovery and distributed-protocol work.
-Continue sequential primary implementation; do not restart parallel authoring.
+Estimated remaining effort is roughly **45–50%**, not a lesson-count calculation: the hardest
+recovery and distributed-protocol work is still ahead. Chunks4–7 remain pending. Do not restart
+parallel authoring or re-review accepted sections without a concrete concern.
 
-For a small-context restart, read this file, REWORK-PLAN and design03, then only the active
-observability source/guide and relevant durable findings. Accepted section reports are indexed
-below; do not re-review obsolete agent worktrees or repeat completed experiments without a concrete
-reason.
+For a small-context restart: read this file, REWORK-PLAN, relevant durability sources07/08 and the
+existing project review. Design the recovery chunk before editing. The only unrelated work-tree
+entry at this section's start was untracked root bin/; leave it alone. SQLite and Linux remain
+outside this task.
+
+The user is studying lesson8 while the refactor proceeds. Full-path pgcoach and pgtutor aliases were
+added to /root/.bashrc at their request. pgcoach reads lesson content from the tutor catalog;
+generated lessons.json updates need an explicit pgtutor init to refresh an existing catalog. Author
+checks used a copied catalog and did not refresh the learner's database. Completion remains explicit
+(pgtutor done NUMBER). Do not assume progress stays frozen at seven completions on future turns:
+compare current before/after snapshots and preserve legitimate learner progress.
 
 ## User authorization and intended result
 
@@ -78,9 +85,8 @@ another review or stop after planning: implementation and validation are authori
   Validation/03-capacity.md records measurements and limits. Raw dirs /tmp/pg-capacity-ebeu3oeq and
   /tmp/pg-capacity-9bhs5l9e. Extracted scripts/logs /tmp/pg-capacity-core-20260905.* and
   /tmp/pg-capacity-variation-20260905.*.
-- Observability now follows checkpoints and precedes replication; backward prerequisites pass. Only
-  its capacity lesson is rewritten so far. The other five lessons in module13 still need primary
-  review.
+- Observability now follows checkpoints and precedes replication; backward prerequisites pass. Its
+  five remaining lessons are now accepted as well; see the current observability acceptance below.
 - Primary added migration-workload.ts after concurrent index creation, plus its exact retention
   guide in guides12.95-lesson build, current map refreshed, seven reading stops, first7 unchanged.
   Core direct run: 55P03/22P02/23514 were the only errors; B saw999 committed backfill rows while1
@@ -88,8 +94,14 @@ another review or stop after planning: implementation and validation are authori
   variation completed with800 rows starting201 after reconciling the skipped eligible row. Logs:
   /tmp/pg-migration-core-20260905.log and /tmp/pg-retention-hint-20260905.log; driver:
   /tmp/pg-retention-hint.ts. Acceptance in validation/03-migration.md.
-- Primary owns all remaining source/coaching/failure work. Next is remaining observability to finish
-  chunk3. Agents remain verification-only; no new authoring assignments.
+- Primary accepted all remaining observability work: wait-observation.ts, io-observation.ts,
+  deadline-observation.ts, index-usage-observation.ts, log-observation.ts, module13 and guides13.
+  Current ordinals65/66/68/69/70 are revision4; capacity67 is unchanged. Every core and exact
+  CLI-rendered hint ran with correct outcomes. Full repo check passes. Report:
+  validation/03-observability.md. Thirty tests pass;95 lessons/seven reading stops; first7 and
+  capacity identical; copied IDs/history/progress preserved. Durable findings:
+  docs/knowledge/postgres-observability-evidence.md.
+- Primary owns remaining chunks4–7. Next is durability/recovery; no new authoring assignments.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -104,47 +116,39 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Resume directly with remaining observability source13 and authored guides13: wait-state/sample
-   interpretation, cluster-wide pg_stat_io deltas and PostgreSQL/OS I/O distinction,
-   idle-transaction deadlines and cleanup, index usage versus correctness, bounded log correlation.
-   The new capacity helper and its validated guide are accepted; preserve them. Then accept chunk3
-   after section integration.
-2. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
-   durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
-3. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
-   checks per chunk. Record durable findings, commit/push handoff updates, and delete this file only
-   after every authorized chunk is complete. Do not stop after the concurrency checkpoint.
+1. Design and implement chunk4, durability/recovery (original39–51; current52–64) from REWORK-PLAN.
+   Strengthen measured WAL costs, crash/recovery evidence within the same exercise, actual restore
+   with domain assertions, missing-history failure and bounded checkpoint work. Restart/crash runs
+   are serial in owned private clusters. Never touch learner port5440.
+2. Continue chunks5–7: replication/change processing, durable delivery/fencing/2PC, then incidents
+   and final integration. None is accepted. Snapshot/tail handoff, read-your-writes readiness,
+   receiver commit/lost acknowledgement and enforced fencing remain the hardest work.
+3. Keep real-tool evidence, exact-hint runs, current progress-copy checks, durable knowledge and
+   commit/push checkpoints. Update final PLAN, mappings and wrapper/book references at final
+   integration; delete handoff only after the entire authorized refactor is finished.
 
-## Next section: review leads, not implemented decisions
+## Latest section: accepted observability
 
-Read `curriculum/13-observability.ts` and `guides/13-observability.ts`. Keep the accepted CAPACITY
-helper/guide. Remaining slugs are wait-events-tell-you-where-time-goes, pg-stat-io-by-backend-type,
-idle-in-transaction-kills-you, table-and-index-usage-counters and read-the-server-log. Consult the
-original project review and design02 before deciding whether to merge anything: basic wait
-inspection already appears in concurrency lessons. Keep each remaining experiment distinct and
-useful; no retirement decision has been made for these five.
+Design and evidence: designs/03-observability.md and validation/03-observability.md. Wait core has
+10 registered blocker edges; variation holder sleeps while still blocking the writer; final
+balance1000. I/O core71MB heap,18,182 bulkread hits and zero bulkread reads in the initial run;
+small variation uses normal context. Answers/epochs pass. Deadline verifies actual disappearance,
+lock cleanup, rollback and new connection; statement timeout keeps its PID, with row99 absent after
+explicit rollback but present with autocommit. Index has2seq/20000rows/2PK scans; zero-use unique
+index rejects23505. Optional-index variation preserves100rows/sum495700 and rolls back its drop.
+Both log runs record UPDATE completion, but independent reads reflect COMMIT versus ROLLBACK.
 
-- Waits: old prose wrongly treats NULL wait events as proof of CPU execution and sample shares as a
-  latency breakdown. Scope observation to owned clients; use bounded readiness checks and read
-  state, wait, blocker and transaction age together. Refresh cached statistics during polling.
-- I/O: distinguish PostgreSQL reads from device I/O; pg_stat_io is cluster-wide and has
-  nonapplicable NULL fields. Use deltas without global resets, explicit publication/snapshot
-  boundaries, restore changed settings, and do not claim CHECKPOINT evicts shared buffers.
-- Idle transactions: exercise an owned client deadline and verify rollback/reconnection. Distinguish
-  statement cancellation from session termination; avoid an unverified sleep-only timeout demo.
-- Index counters: zero scans alone cannot justify dropping a correctness constraint. Use bounded,
-  scoped workloads and check statistic publication plus constraint metadata.
-- Logs: capture file/offset before an owned event, read a bounded appended range, correlate PID or
-  application identity, account for collector lag/rotation and classify expected errors. Do not read
-  the entire file merely to take its tail or imply server logging proves a business outcome.
+Scratch drivers: /tmp/pg-observe-validate.ts, /tmp/pg-observe-run.sh, /tmp/pg-observe-exact.ts and
+/tmp/pg-observe-exact.sh. Exact rendered hints and logs use /tmp/pg-observe-rendered-SLUG.md and
+/tmp/pg-observe-exact-SLUG.log. Individual logs use /tmp/pg-observe-UNIT-{core,variation}.log, where
+UNIT is the helper filename without .ts. Copied progress verifier /tmp/pg-observe-progress.py
+records its copy path in /tmp/pg-observe-progress-path. Repo check: /tmp/pg-observe-repo-check.log.
 
-Author an explicit bounded design, then source and specific coaching (predict/inspect/explain/vary/
-apply with an exact runnable hint). Execute both supplied core and exact variation against the
-private PostgreSQL lab. SQL harness skips shell lessons and does not establish that every SQL error
-is expected: inspect logs. Run dependent experiments serially even if a tool returns a session ID.
-Build from curriculum-tools with /root/.deno/bin/deno, refresh lesson-map via the scratch helper if
-ordering/identities change, verify first7 and copied progress, record acceptance/durable findings,
-then commit/push explicit paths and this handoff. Delete handoff only after the entire refactor.
+Important findings: NULL passed to psql gset unsets its variable; coalesce nullable reset timestamps
+before saving them. Published statistics and cleared observer caches are separate boundaries. The
+SQL harness neither classifies expected errors nor executes shell code. The deadline shell ran
+separately. Log reader guards reject invalid intervals rather than reconstructing rotated history.
+Preserve these limits in future edits.
 
 ## Durable constraints
 
@@ -198,3 +202,7 @@ separate databases; coordinate global operations serially.
 - `673f332` pushed: bounded migration and exact retention variation accepted,95-lesson build, 30
   tests passing, first7 unchanged and copied progress/IDs/history preserved. Continue with the five
   remaining observability lessons after the requested context reset.
+
+- Observability acceptance2026-09-05 completes chunk3. All five remaining cores and exact rendered
+  hints ran against the private lab; full repository checks and30 integration tests pass. Next
+  implementation is chunk4 durability/recovery.

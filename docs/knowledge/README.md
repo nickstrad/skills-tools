@@ -20,6 +20,7 @@ otherwise rediscover.
 | [sqlite-curriculum-design.md](sqlite-curriculum-design.md) | Design SQLite as a second systems course and avoid false evidence in retry, checkpoint, benchmark, offline-history and toolkit experiments. |
 | [lesson-identity-refresh.md](lesson-identity-refresh.md) | Preserve notes, completions and attempts when lessons move, retire or return; test refresh on copied progress. |
 | [postgres-experiment-evidence.md](postgres-experiment-evidence.md) | Controlled database comparisons, visibility hints, reclamation boundaries, asynchronous statistics and exact rendered-command validation. |
+| [postgres-observability-evidence.md](postgres-observability-evidence.md) | Wait samples, I/O scope/publication, nullable psql variables, timeout outcomes, index responsibilities and bounded log correlation. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |
