@@ -42,3 +42,30 @@ remain serial. See validation/05-standby.md for source and exact rendered-variat
 References: PostgreSQL16 [standby operation and streaming](https://www.postgresql.org/docs/16/warm-standby.html)
 and [hot standby](https://www.postgresql.org/docs/16/hot-standby.html). Runtime observations above
 come from the repository's actual experiments rather than those documents.
+
+## Paused replay, durable receive and feedback (2026-09-05)
+
+### What happened
+
+The driver waits for pg_get_wal_replay_pause_state='paused', saves replay LSN, then commits
+2,000/4,000 receipts. Receiver flushed_lsn and source pg_stat_replication.flush_lsn separately
+reach the post-COMMIT bound, while replay remains fixed and a fresh standby query returns only
+the original row. Resuming actual replay and checking complete values produces2,001/4,001
+correct rows, with zero missing/extra IDs and expected sums.
+
+### Why it matters
+
+A pause request is not yet a paused process. Local receiver flush and the source's receipt of
+that acknowledgement are also separate observed boundaries. Neither establishes visibility
+before replay. After catch-up, source replay_lag can remain a positive recent acknowledgement
+sample even when direct standby receive/replay positions match. Initial transaction replay
+timestamps can be NULL after bootstrap; preserving NULL is preferable to inventing a time origin.
+
+### How to apply
+
+Wait for actual paused state, require a fixed replay position while receive/flush advances, and
+prove stale rows independently. Gate resumed reads on the intended committed bound within one
+known history, then check every application value under a fresh query. Preserve time-lag fields
+as asynchronous observations rather than asserting that they become zero. Bounded workload and
+finally cleanup prevent a paused consumer from leaving an unbounded retention obligation.
+Source and exact CLI evidence: validation/05-replay-lag.md.

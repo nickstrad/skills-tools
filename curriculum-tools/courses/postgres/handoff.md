@@ -4,6 +4,27 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Paused replication replay accepted, 2026-09-05
+
+Current70 replication-lag-under-load is accepted at revision4. Actual paused state/fixed replay
+position precede2,000/4,000 committed receipts. Local flushed receive and acknowledged primary flush
+advance while standby rows stay at original row0. Source has2,001/4,001 correct rows; resume plus
+replay-bound and full data checks match both sides. Source feedback time-lag fields remain honest
+nonzero samples rather than a readiness test. Core/source/exact-hint passed; all owned servers
+stopped and slots removed. Report validation/05-replay-lag.md; core /tmp/pg-owned-e4_g2fpj,
+variation /tmp/pg-owned-x7oa2uxc, raw /tmp/pg-replay-lag-{core,variation}.log and
+/tmp/pg-replay-lag-exact-replication-lag-under-load.log.
+
+Thirty tests/full check pass; scoped build changes only current70.93 lessons/seven stops, first
+seven/capacity and fresh copied IDs/history/progress preserved. Standby fc580c7 is pushed. Next
+implement read-your-writes-on-a-replica from14-patterns as an owned physical standby gate:
+post-COMMIT bound, known source system/history, actual paused timeout without serving stale data,
+resume/catch-up success, independent receipt, wrong-history rejection. Move its stable identity
+immediately after replication-lag-under-load only after core/exact variation pass; no retirement
+needed for this move. Update all ordinal references/mappings and copied progress checks. Then
+synchronous acknowledgement and the rest of design05. Chunks5–7 remain unfinished. Preserve
+unrelated storage source/guide/knowledge and root bin/; no learner catalog/cluster writes.
+
 ## Physical standby accepted, 2026-09-05
 
 Current69 build-a-streaming-standby is accepted at revision4. New owned-replication.ts layers on the
