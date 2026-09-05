@@ -20,12 +20,12 @@ existing project review. Design the recovery chunk before editing. The only unre
 entry at this section's start was untracked root bin/; leave it alone. SQLite and Linux remain
 outside this task.
 
-The user is studying lesson8 while the refactor proceeds. Full-path pgcoach and pgtutor aliases were
-added to /root/.bashrc at their request. pgcoach reads lesson content from the tutor catalog;
-generated lessons.json updates need an explicit pgtutor init to refresh an existing catalog. Author
-checks used a copied catalog and did not refresh the learner's database. Completion remains explicit
-(pgtutor done NUMBER). Do not assume progress stays frozen at seven completions on future turns:
-compare current before/after snapshots and preserve legitimate learner progress.
+The user completed lesson8 at revision2 while the refactor proceeded. Full-path pgcoach and pgtutor
+aliases were added to /root/.bashrc at their request. pgcoach reads lesson content from the tutor
+catalog; generated lessons.json updates need an explicit pgtutor init to refresh an existing
+catalog. Author checks used a copied catalog and did not refresh the learner's database. Completion
+remains explicit (pgtutor done NUMBER). Do not assume progress stays frozen at seven completions on
+future turns: compare current before/after snapshots and preserve legitimate learner progress.
 
 ## User authorization and intended result
 
@@ -206,3 +206,7 @@ separate databases; coordinate global operations serially.
 - Observability acceptance2026-09-05 completes chunk3. All five remaining cores and exact rendered
   hints ran against the private lab; full repository checks and30 integration tests pass. Next
   implementation is chunk4 durability/recovery.
+
+- `5fcf82f` pushed: accepted observability helpers/guides, full repo checks, real core/exact-hint
+  evidence, updated knowledge notes, plan and handoff. This follow-up checkpoint records the new
+  learner completion and repeat copied-progress preservation check; it changes no lesson code.
