@@ -1,0 +1,6 @@
+#!/bin/sh
+# Repository-local launcher for the curriculum tutor.
+set -eu
+SELF=$(readlink -f "$0")
+REPO_DIR=$(dirname "$(dirname "$SELF")")
+exec "$REPO_DIR/curriculum-tools/bin/tutor" "$@"
