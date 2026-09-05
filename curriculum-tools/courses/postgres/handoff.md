@@ -39,6 +39,11 @@ SHA256 manifest is validation/05-evidence-manifest.json. This correspondence aud
 old experiments; individual reports contain their actual outcome/expected-error review. Whole-course
 final audit remains required, including idle insertion/replay and abort-only WAL flush boundaries.
 
+Chunk6 replacement contract is drafted in designs/06-durable-protocols.md after reviewing
+14-patterns.ts, worker-protocol.ts, request-protocol.ts and the prior review. Current83 is not yet
+implemented or runtime-validated. Start its standalone owned source/receiver fixture and new
+guides/14-patterns.ts; do not treat the design as acceptance. Current82 commit8eb1034 is pushed.
+
 Continue sequentially with chunk6/current83 transactional-outbox, then84 idempotency-keys, 85
 two-phase-commit,86 fencing-tokens-with-a-monotonic-counter and87 listen-notify-as-a-bus. Read
 REWORK-PLAN's durable-protocol contract, current14-patterns.ts, existing protocol helpers and prior
