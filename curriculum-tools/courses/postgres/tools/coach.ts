@@ -1,6 +1,9 @@
 import { run as runTutor } from "../../../src/main.ts";
 import { GUIDES } from "../guides/mod.ts";
 import type { Guide } from "../guides/types.ts";
+import { shellQuote } from "./coach_commands.ts";
+export { shellQuote } from "./coach_commands.ts";
+import { batchReview, renderPilot, REVIEW_BEFORE } from "./pilot.ts";
 
 const COURSE = "postgres";
 const COACH = "/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach";
@@ -15,6 +18,7 @@ const STAGES = new Set([
   "hint2",
   "reveal",
   "full",
+  "syntax",
 ]);
 type Output = { log(value: string): void; error(value: string): void };
 export type SelectedLesson = {
@@ -26,6 +30,7 @@ export type SelectedLesson = {
   safetyLevel: string;
   minVersion: string;
   syntaxBreakdown: string;
+  overview?: string;
   setup?: string;
   code: string;
   expectedResult: string;
@@ -42,9 +47,9 @@ export type SelectedLesson = {
 type Parsed = { ordinal?: number; stage: string; db?: string; topic?: string };
 function usage(): string {
   return "Guided PostgreSQL Systems lessons.\n\nUsage:\n  pgcoach [NUMBER] [STAGE] [--db PATH] [--topic TEXT]\n\n" +
-    "Stages: start (default), run, inspect, explain, vary, apply, hint1, hint2, reveal, full\n\n" +
+    "Stages: start (default), run, inspect, explain, vary, apply, hint1, hint2, reveal, full, syntax\n\n" +
     "Without NUMBER, pgcoach selects the next unfinished lesson. --topic selects the next unfinished\n" +
-    "lesson matching every topic word. Use full for the unchanged complete tutor view.";
+    "lesson matching every topic word. Lessons 9–12 use the pilot flow; review it before lesson 13. Use full for a complete lesson.";
 }
 function parseArgs(args: string[]): Parsed {
   const positional: string[] = [];
@@ -146,9 +151,6 @@ function identity(lesson: SelectedLesson): string {
   return "# Lesson " + lesson.ordinal + ": " + lesson.title + "\n\n**Lesson:** " + lesson.ordinal +
     " · `" + lesson.slug + "`";
 }
-export function shellQuote(value: string): string {
-  return /^[A-Za-z0-9_./:=+-]+$/.test(value) ? value : "'" + value.replaceAll("'", "'\"'\"'") + "'";
-}
 function nextCommand(lesson: SelectedLesson, db?: string): string {
   return COACH + " " + lesson.ordinal + " run" + (db ? " --db " + shellQuote(db) : "");
 }
@@ -182,7 +184,9 @@ export function renderStage(
   guide: Guide,
   db?: string,
 ): string {
+  if (guide.pilot) return renderPilot(lesson, stage, guide, db);
   const intro = identity(lesson);
+  if (stage === "syntax") return intro + "\n\n" + lesson.syntaxBreakdown;
   if (stage === "start") {
     const runIn = lesson.runIn === "tool" ? "psql" : lesson.runIn;
     const sessions = lesson.sessions === 1 ? "1 session" : lesson.sessions + " sessions";
@@ -271,7 +275,12 @@ export async function runCoach(args: string[], io: Output = console): Promise<nu
     io.log(selected.message);
     return 0;
   }
-  if (options.stage === "full") {
+  if (options.stage === "start" && selected.lesson.slug === REVIEW_BEFORE) {
+    io.log(batchReview());
+    return 0;
+  }
+  const guide = GUIDES[selected.lesson.slug];
+  if (options.stage === "full" && !guide?.pilot) {
     const full = await renderFull(selected.lesson, options);
     if (full.code !== 0) {
       io.error("Error: " + (full.error || full.output || "tutor could not render the full lesson"));
@@ -280,7 +289,6 @@ export async function runCoach(args: string[], io: Output = console): Promise<nu
     io.log(full.output);
     return 0;
   }
-  const guide = GUIDES[selected.lesson.slug];
   if (!guide) {
     io.log(missingGuide(selected.lesson, options.db));
     return 0;

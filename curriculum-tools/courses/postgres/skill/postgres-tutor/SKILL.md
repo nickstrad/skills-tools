@@ -36,7 +36,7 @@ source, or the SQLite progress database directly. Neither CLI runs lesson code; 
   `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres topics`
 - Progress summary: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres status --json`
 - Record completion (explicit request only):
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres done NUMBER [--note TEXT]`
+  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres done NUMBER`
 - Reverse completion:
   `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres undone NUMBER`
 - Save a note: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres note NUMBER TEXT`
@@ -50,30 +50,34 @@ retry.
 
 ## Guide one lesson
 
-Start with
-`/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach [NUMBER] start`. It gives
-the lesson identity, full safety instructions, and an authored prediction without exposing setup,
-runnable code, expected output, or the systems conclusion. Ask the learner for that prediction
-first.
+The active coaching pilot is lessons **9–12**. Start it explicitly with `pgcoach 9 start`; the
+learner has already done lesson 8 using the old coach, though its older completion revision may make
+the generic next selector offer it again. Do not require a repeat or alter that completion. Follow
+the current rendered stages, not an assumed universal ordering. For the pilot the path is
+`start → run → inspect → explain → reveal → apply`, with `vary` optional and `syntax` available for
+reference. Supply the rendered terminal instructions before the commands.
 
-After the prediction, serve
-`/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER run`. It provides
-the complete setup and exact runnable commands, syntax breakdown, and session guidance. Do not turn
-the lesson into syntax recall or run its commands on the learner's behalf. Ask for evidence after
-they run it, then use the authored `inspect`, `explain`, `vary`, `apply`, `hint1`, and `hint2`
-stages as appropriate. The explain stage asks for causal reasoning before `reveal`.
+Ask the authored prediction at the relevant moment, but a mental guess is enough. Never require a
+typed response, notes or an evidence worksheet before continuing. Invite comparison with the actual
+output and explain using the later coach stages. The learner executes the supplied commands in psql;
+do not turn this into syntax recall. If output is confusing, give targeted help rather than
+requiring a polished explanation. Reveal is available sooner whenever requested.
 
-Use `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER reveal` after
-the learner has supplied their evidence and explanation, or sooner when they explicitly ask for the
-answer or help. It shows the expected result, systems lens, optional reference context, and every
-Core/Optional-depth study item. Tell the learner to complete Core material before the next lesson;
-Optional depth is enrichment. The coach never records a completion.
+Use the core time range and wrap-up cue from start. Optional depth is separate. At apply, show any
+core reading stop verbatim, including all excerpt locators; it remains required before the next
+lesson. Ordinary references and optional depth are elective. No stage marks completion.
 
-If the learner explicitly asks for the complete lesson, use
-`/root/Software/skills-tools/curriculum-tools/bin/tutor postgres pretty NUMBER` and paste the output
-verbatim. This is also the explicit fallback when a lesson has no authored guided record. Never
-shorten, paraphrase, or re-wrap its `Optional reference`, `## Syntax breakdown`, or
-`## Study checkpoint` content.
+After lesson 12, **stop for the batch review before serving lesson 13**. Its start view repeats the
+review reminder. Ask briefly whether pgcoach supplied enough context, where outside help was needed,
+and whether the pacing worked. Discuss what to keep/change, record agreed design decisions in
+`designs/09-coach-pilot-batches.md` as author work, then prepare only the next small batch. Do not
+require the learner to write a report or use an acknowledgement command. Do not roll the new flow
+out to the whole course before this feedback. Per-lesson feedback is welcome but not mandatory.
+
+For a complete lesson request, use `pgcoach NUMBER full`. It preserves the full experiment and
+reference material; the pilot presents its complete optional variation too. For lessons without a
+guide, use the explicitly offered full fallback. Preserve complete syntax and reading excerpts.
+Other guided lessons retain their earlier flow until their batch is revised.
 
 Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
 structured fields are needed.

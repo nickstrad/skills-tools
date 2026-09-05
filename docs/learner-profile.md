@@ -66,6 +66,18 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- PostgreSQL coaching clarification (2026-09-05): lessons 1–7 were completed with the old
+  non-pgcoach flow; only lesson 8 was completed with the old pgcoach flow, with ChatGPT help.
+  Learning happens outside work alongside marriage and children. Show realistic core lesson estimates and a simple time cap; keep optional depth
+  separate. pgcoach plus the experiment terminal(s) should usually provide all needed context, with
+  ChatGPT/readings available for deeper exploration. Introduce concepts before asking about them,
+  explain each step's purpose, and connect the results back to a quick mental guess. Practice and
+  reflection are the outcome: no required notes, written answers, `-n` note phrases,
+  answer-submission commands or pause/resume system. Personal note-taking is the learner's choice.
+  Prefer revising a small batch, trying it, then briefly discussing what worked before preparing
+  the next batch. The assistant can record design decisions; the learner need not write reports.
+  See the
+  [coaching flow review](../curriculum-tools/courses/postgres/designs/08-coach-flow-navigation.md).
 - CLI-based experiments: shell, SQL, APIs, configuration, logs, process/file/network evidence.
   No required GUI, dashboard, or cloud console.
 - Prefer easily runnable local services and a bounded lab over managed cloud products.

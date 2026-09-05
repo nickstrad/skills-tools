@@ -12,6 +12,8 @@ import { guides as indexes } from "./12-indexes.ts";
 import { guides as observability } from "./13-observability.ts";
 import { guides as patterns } from "./14-patterns.ts";
 import { guides as incidents } from "./15-incidents.ts";
+import { guides as pilotStorage } from "./pilot-storage.ts";
+import { guides as pilotMvcc } from "./pilot-mvcc.ts";
 import type { Guide } from "./types.ts";
 
 export const GUIDES: Record<string, Guide> = {
@@ -29,4 +31,6 @@ export const GUIDES: Record<string, Guide> = {
   ...observability,
   ...patterns,
   ...incidents,
+  ...pilotStorage,
+  ...pilotMvcc,
 };

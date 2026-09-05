@@ -25,6 +25,13 @@ declaring the goal done.
 
 ## Use the course
 
+The current coaching pilot is **lessons 9–12**. Start with `bin/pgcoach 9 start`; follow the printed
+next command through run, inspect, explain, reveal and apply. Make guesses mentally; no notes or
+typed answers are required. The start view budgets core time, optional variation and any required
+reading separately. After lesson 12, stop for a brief conversation about the flow before we prepare
+another small batch; opening lesson 13's start repeats that reminder. See the
+[batch plan](designs/09-coach-pilot-batches.md). Other guides retain their existing flow for now.
+
 From this directory, start the next unfinished lesson with `bin/pgcoach start`, or open lesson 9
 with `bin/pgcoach 9 start`. After predicting, use `bin/pgcoach 9 run`; continue through inspect,
 explain, vary and apply. hint1/hint2 and reveal/full remain available when wanted. Neither rendering
