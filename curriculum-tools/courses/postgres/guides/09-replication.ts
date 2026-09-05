@@ -2,9 +2,29 @@ import { STANDBY_VARIATION } from "../curriculum/standby-workload.ts";
 import { REPLAY_LAG_VARIATION } from "../curriculum/replay-lag.ts";
 import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts";
 import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgement.ts";
+import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "hot-standby-query-conflict": {
+    brief:
+      "Cause a snapshot recovery cancellation, then measure feedback-protected reader survival, retained primary versions and reclamation after release.",
+    predict:
+      "What happens when primary VACUUM removes versions an active standby snapshot needs? With feedback on, which primary horizon must protect this reader before deletion, and where will the space cost appear?",
+    inspect:
+      "Require 40001 with row-version detail and a confl_snapshot increment. In the feedback phase, inspect the physical slot xmin even if sender backend_xmin is NULL; match retained dead versions, old and fresh snapshot results, then free-space recovery after release.",
+    explain:
+      "Why can a fresh standby snapshot see fewer rows while the old reader still sees all10,000? Why is enabling feedback alone insufficient evidence, and why does reusable space increase without requiring the file to shrink?",
+    vary:
+      "Delete only multiples of4 instead of every even ID. Predict the new survivor sum and retained-version count while keeping both feedback policies and snapshot duration fixed.",
+    apply:
+      "Choose cancellation/retry or feedback for an interactive read replica and a long analytics reader. Define a retained-space budget and the evidence needed to confirm an old reader's horizon was released.",
+    hints: [
+      "Check the actual holder of the horizon: this physical slot stores feedback xmin, so the sender field can remain NULL. A surviving query plus retained versions and later reclamation establishes the tradeoff; configuration alone does not.",
+      "Run this complete quarter-deletion variation in a shell.\n\n```bash\n" +
+      STANDBY_CONFLICTS_VARIATION + "\n```",
+    ],
+  },
   "synchronous-replication-blocks-commit": {
     brief:
       "Observe the chosen remote acknowledgement stage, then reconcile a canceled or reconnected commit from its exact WAL record and receipts.",

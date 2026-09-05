@@ -154,3 +154,57 @@ References: PostgreSQL16 [commit policies](https://www.postgresql.org/docs/16/ru
 [synchronous replication](https://www.postgresql.org/docs/16/warm-standby.html#SYNCHRONOUS-REPLICATION)
 and [REL_16_STABLE cancellation handling](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/replication/syncrep.c).
 The local durability/visibility separation and warning handling above were also executed directly.
+
+## Recovery conflict versus slot-owned feedback horizon (2026-09-05)
+
+### What happened
+
+Two fresh10,000-row tables isolate feedback off/on. Off: actual active PgSleep reader with a
+repeatable-read snapshot fails with40001 and removed-row-version detail after DELETE/VACUUM;
+confl_snapshot increases by one and other captured conflict counters stay unchanged. Primary
+physical inspection reports5,000 surviving/zero dead versions; fresh standby agrees after replay.
+
+On: the reader's xmin is737. The primary sender's backend_xmin stays NULL, but the owned active
+physical slot's xmin becomes737. Waiting for sender backend_xmin alone failed three prototypes;
+the slot is the actual holder in this topology. After observing a protecting slot horizon, delete
+and vacuum retain5,000 dead versions while both fresh nodes see5,000 survivors. The same old
+reader returns all10,000 rows again and commits normally; no additional conflict occurs.
+
+Reader release plus feedback-off acknowledgement clears slot xmin. Another VACUUM changes dead
+versions5,000→0 and free bytes12,372→693,064 while table bytes remain1,417,216 (TRUNCATE false).
+Quarter-deletion variation retains2,500 dead versions, then recovers free bytes12,372→352,720;
+7,500 survivors/sum37,500,000 versus core5,000/sum25,000,000. Cardinality, distinctness, valid-ID
+range, zero remaining deletion candidates and every payload jointly prove exact result membership.
+
+### Why it matters
+
+In PostgreSQL16, ProcessStandbyHSFeedbackMessage uses PhysicalReplicationSlotNewXmin when a
+physical slot is attached, clearing the sender process xmin and storing the horizon in the slot.
+Without a slot it uses the sender process. NULL pg_stat_replication.backend_xmin therefore does
+not establish that feedback is inactive. Query the retention owner used by the actual topology.
+The design05 wording now records this evidence-backed correction without dropping the required
+observed horizon, reader survival, retained-version or eventual reclamation behavior.
+
+An earlier bootstrap gate at idle pg_current_wal_insert_lsn0/F00028 timed out immediately after
+backup. No reader or mutation was active yet. Replacing that insertion-location gate with an
+explicit pg_create_restore_point record end makes replay readiness concrete; each later vacuum
+boundary uses the same marker technique. Insertion space can be ahead of the last replayable
+record. Review idle boundary assumptions during the final integration audit; this finding does
+not invalidate an already observed post-COMMIT receipt result, but a generic gate should avoid
+assuming that every next-insertion location is an existing record end.
+
+### How to apply
+
+Observe the actual reader xmin and primary slot horizon before deletion. Compare XID ages within
+one primary query, not raw numerical XID ordering. Preserve sender NULL and slot xmin together.
+Use VACUUM VERBOSE and pgstattuple alongside independent old/new snapshot results; reader survival
+alone is insufficient. Disable file truncation to isolate snapshot conflicts from lock conflicts,
+and distinguish reusable space from file shrinking. The1s replay-delay setting is an accumulated
+apply-delay limit, not an exact one-second query timeout. Finish the old transaction, observe
+horizon release and verify actual reclamation. A fresh retry restarts the whole canceled read
+transaction. Source/exact CLI evidence: validation/05-standby-conflicts.md.
+
+References: PostgreSQL16 [feedback/delay settings](https://www.postgresql.org/docs/16/runtime-config-replication.html),
+[physical tuple inspection](https://www.postgresql.org/docs/16/pgstattuple.html) and
+[slot versus sender horizon handling](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/replication/walsender.c).
+Runtime values above come from the actual owned experiments.

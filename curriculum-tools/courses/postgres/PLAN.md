@@ -332,10 +332,13 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    and reconcile exact receipts. Variation reconnects instead; all five receipts finally replay.
    Observer sessions use local policy, writers SET LOCAL; no election/fencing or latency benchmark
    claim follows from these same-host acknowledgement observations.
-5. `hot-standby-query-conflict` (2 sessions). Long query on standby, vacuum on primary removes rows
-   it needs -> `ERROR: canceling statement due to conflict with recovery` (after
-   `max_standby_streaming_delay` 30 s; lower it for the lab). `pg_stat_database_conflicts`. Lens:
-   replicas are not free reads; consistency vs freshness on a follower.
+5. `hot-standby-query-conflict` (accepted, shell, privileged). Two identically seeded tables;
+   feedback off produces actual40001 snapshot cancellation after primary cleanup. Feedback on
+   requires observed physical-slot xmin protecting the active old snapshot, retains5,000 deleted
+   versions while fresh reads advance and the old reader survives. Release/disable feedback, observe
+   the horizon clear, vacuum and verify reusable space plus complete source/copy agreement.
+   Variation deletes one quarter instead of half. Sender backend_xmin may remain NULL when the slot
+   owns xmin.
 6. `replication-slot-retains-wal` (privileged). Create physical slot, point standby at it, stop
    standby, generate WAL: `pg_replication_slots.wal_status`, pg_wal grows; `max_slot_wal_keep_size`
    makes the slot `lost`. Lens: retention is a contract with the slowest consumer.

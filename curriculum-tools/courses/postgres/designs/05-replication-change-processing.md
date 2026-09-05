@@ -34,9 +34,10 @@ another lesson's shared PGLAB topology remains running.
   reconnection. Do not equate caller cancellation with known rollback or synchronous replication
   with elections.
 - **hot-standby-query-conflict:** cause a real recovery conflict and classify its cancellation. Then
-  enable feedback, establish the actual standby xmin horizon and show primary reclamation delayed
-  while the reader survives. Release reader/feedback and verify reclamation/catch-up. Keep
-  cancellation and retained old versions as the controlled tradeoff, with bounded waits/settings.
+  enable feedback, establish the actual standby xmin horizon (physical-slot xmin when a slot owns
+  it; sender backend_xmin may remain NULL) and show primary reclamation delayed while the reader
+  survives. Release reader/feedback and verify reclamation/catch-up. Keep cancellation and retained
+  old versions as the controlled tradeoff, with bounded waits/settings.
 - **replication-slot-retains-wal:** disconnect the actual consumer, generate a fixed WAL workload
   beyond a small private target and observe the slot's retention position/files. Reconnect and
   verify complete receipt replay plus reclamation. A bounded lost-history variation must classify

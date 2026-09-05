@@ -4,6 +4,37 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Standby conflicts and feedback accepted, 2026-09-05
+
+Current73 hot-standby-query-conflict is revision4. Two seeded tables isolate feedback off/on. Actual
+active old-snapshot reader gets40001 plus confl_snapshot+1 after off-policy DELETE/VACUUM. Feedback
+protects the old reader while5,000/2,500 deleted versions remain physically retained; fresh
+snapshots already see5,000/7,500 survivors. The old reader returns all10,000 rows again and commits
+normally. Release plus feedback-off acknowledgement clears the actual horizon; new vacuum removes
+all dead versions and increases reusable free space. Full source/copy membership passes.
+
+Important corrected evidence: with the owned physical slot, primary sender backend_xmin stays NULL
+while pg_replication_slots.xmin holds the reader's737 horizon. Requiring the sender field caused
+failed prototypes; PostgreSQL16 source and runtime prove the slot is the retention owner. Design05
+and docs/knowledge/postgres-replication-evidence.md record this. Also use explicit WAL record-end
+markers for idle bootstrap/cleanup gates; an idle post-backup next-insertion location timed out.
+Review generic idle-boundary assumptions during the final integration audit.
+
+Core/source/exact hint2 pass; report validation/05-standby-conflicts.md. Final roots
+/tmp/pg-owned-30hokd0p, /tmp/pg-owned-k1p51p6v and /tmp/pg-owned-6saz3w1h are stopped/slots removed.
+Raw /tmp/pg-standby-conflicts-{core,variation}.log and
+/tmp/pg-standby-conflicts-exact-hot-standby-query-conflict.log. Thirty tests/full check pass. Scoped
+builder /tmp/pg-standby-conflicts-scoped-build.py changes only current73.93 lessons/seven stops,
+first seven/capacity and copied IDs/history/progress preserved. Prior sync03db511 is pushed. No
+learner writes or agents. Preserve unrelated storage source/guide/knowledge and root bin/.
+
+Next: current74 replication-slot-retains-wal. Disconnect the actual owned consumer, generate bounded
+WAL beyond a small private target, observe restart position/files and retention, then reconnect,
+verify complete receipts and reclaim. Lost-history variation must actually classify slot
+invalidation/reinitialization and rebuild the consumer rather than claim continuation is possible.
+Then controlled failover/rewind/failback, logical processing, chunks6–7 and final audit per
+design05. Full goal remains active; all owned topology lifecycle runs stay serial.
+
 ## Synchronous acknowledgement accepted, 2026-09-05
 
 Current72 synchronous-replication-blocks-commit is revision4. Fresh owned source/standby and
