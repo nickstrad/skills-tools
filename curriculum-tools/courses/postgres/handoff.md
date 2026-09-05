@@ -18,6 +18,9 @@ checkpoint c9dca16 followed it. Learner progress can advance independently; use 
 
 ## WAL module checkpoint
 
+Accepted and pushed: **ab6eb7a** amplification, **7f66e01** crash/replay, **be2bc76** archive. All
+three accepted subsections and their handoff updates are on origin/main.
+
 Primary accepted wal-amplification.ts and guide07. Four matched200-row ingestion trials verified
 heap/commit records and exact values. Primary caught unequal catalog hint-image overhead and
 separated owned-heap bytes (20800 INSERT versus11845 COPY) from decision and whole-interval costs.
