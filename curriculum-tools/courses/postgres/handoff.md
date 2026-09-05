@@ -1,9 +1,8 @@
 # PostgreSQL pivot handoff
 
-Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL records, page images and measured
-commit cost, archive failure/repair and crash recovery (current52–56) are verified. Replay-only
-lesson is consolidated;94 lessons remain. Next: matched WAL amplification, then
-checkpoints/restore.**
+Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 WAL is accepted through current57, including
+archive failure, actual crash/replay and matched amplification. Replay-only lesson is consolidated;
+94 lessons remain. Next: checkpoint anatomy, recovery cost, WAL pressure, backup/restore and PITR.**
 
 ## Active goal
 
@@ -16,6 +15,29 @@ work come next.
 At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
 untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
 checkpoint c9dca16 followed it. Learner progress can advance independently; use a fresh copy.
+
+## WAL module checkpoint
+
+Primary accepted wal-amplification.ts and guide07. Four matched200-row ingestion trials verified
+heap/commit records and exact values. Primary caught unequal catalog hint-image overhead and
+separated owned-heap bytes (20800 INSERT versus11845 COPY) from decision and whole-interval costs.
+Matched amount update:200 HOT/plain versus0 HOT/indexed, same final values; index build valid/ready.
+Source and exact CLI guards preserve all200 values with zero tuple work versus200 unconditional HOT
+updates. Report validation/04-amplification.md; final core /tmp/pg-owned-4573r03w, variation
+tpq4t7lj, exact g3_ms5wq; raw /tmp/pg-amplification-{core,variation}.log and
+/tmp/pg-amplification-exact-wal-size-of-operations.log. All owned clusters stopped.
+
+Thirty tests/full repo check pass; scoped build changes only current57,94 lessons/seven stops,
+first7 and capacity unchanged, copied IDs/history/progress preserved. Terra/high only reviewed final
+code read-only; primary owns runtime and wording acceptance.7f66e01 is the pushed prior crash/replay
+subsection; be2bc76 is archive. WAL module07 is now fully accepted.
+
+Next: implement08-checkpoints from design04, sequentially. Current58 checkpoint-anatomy,59 redo-
+point-bounds-recovery,60 max-wal-size-forces-checkpoints,61 base-backup,62 point-in-time-recovery,
+63 timeline-history. Reuse owned-cluster.ts by embedding its full helper in runnable shell lessons;
+never crash learner5440. Require actual matched recovery trials, actual backup/restore and missing-
+WAL failure, actual PITR branches before retiring timeline-history. Then chunks5–7. Active goal is
+not complete. No pending primary edits or active validation processes at this checkpoint.
 
 ## Crash/replay checkpoint
 

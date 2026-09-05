@@ -136,3 +136,42 @@ scope audits, normalize each prerequisite integer to its catalog slug before com
 lessons. Preserve old SQLite IDs/history and inactive retirement without completion transfer.
 Current course94 lessons/seven reading stops; first7 unchanged. See validation/04-crash.md for
 evidence.
+
+## Matched WAL amplification and catalog-image confounding (2026-09-05)
+
+Accepted wal-amplification.ts compares200 identical requested rows in freshly created matching
+heaps: INSERT SELECT,200 statements in one transaction,200 file-driven autocommits, and COPY FROM
+STDIN. All three INSERT paths produce20,800 owned heap-record bytes (104/row); COPY5 multi-insert
+records total11,845 (59.23/row). Transaction COMMIT counts/bytes are1/34,1/34,200/6800,1/34. A psql
+file with individually unwrapped statements establishes autocommit boundaries; a multiple-command -c
+string would have different transaction behavior. Client STDIN COPY avoids shared server CSVs.
+
+A fresh heap does NOT match all catalog-page state. Full-image hint bytes in these sequential
+intervals differ38,004/21,148/14,512/18,164, so whole-interval costs59,416/42,336/43,616/30,344
+could misrank intrinsic ingestion cost. Report owned-heap record bytes (deduplicated by position
+after filtering database/filenode/main fork), commit-record bytes and catalog/image detail
+separately. Explain the difference instead of hiding unfavorable totals or inferring a universal
+ratio.
+
+The matched200-row amount update remains HOT for every row with only the primary-key index, and for
+none when amount is also indexed. Both heap-record totals31,510 match, but the indexed case adds400
+B-tree INSERT_LEAF records and its interval rises31,856→65,664. Non-HOT maintenance also creates new
+primary-key entries because tuple locations change. Index-build output16,384 bytes coexists
+with72,232 WAL interval bytes including catalogs; these are different denominators.
+
+Exact guard comparison: amount already equals id for all200 rows. Unconditional UPDATE writes200 HOT
+versions (31,832 interval bytes); WHERE amount IS DISTINCT FROM id writes none (zero here), with
+identical independently verified values. Use null-safe outcome checks too. A zero-row UPDATE can
+still take a write lock; do not call it a read-only SQL operation. Equal measured endpoints need an
+empty result path because a decoder cannot find a nonexistent record. Trigger/per-attempt side
+effects require a separate equivalence decision before applying such a guard in real software.
+
+Core, source variation and exact CLI variation all executed on owned PostgreSQL16.15 clusters. See
+validation/04-amplification.md for final paths and scoped integration evidence. Volume alone
+establishes neither throughput nor recovery duration; that distinction remains in the lesson.
+
+Reference boundaries: the official [psql command-string documentation](https://www.postgresql.org/docs/15/app-psql.html)
+explains why one -c request groups SQL statements; this behavior was independently verified here
+with PostgreSQL16 record counts. PostgreSQL16 [COPY](https://www.postgresql.org/docs/16/sql-copy.html)
+distinguishes client-streamed STDIN from server filesystem inputs. The fixture's byte counts above
+are live observations, not numbers supplied by those documents.

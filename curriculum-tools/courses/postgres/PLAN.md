@@ -278,10 +278,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    receipts. Exact variation commits the second transaction before the same crash. Includes former
    `wal-replay-is-deterministic` coverage; that slug retires without moving its completion record.
    Accepted04-crash; local process recovery does not establish power-loss or disk-loss recovery.
-6. `wal-size-of-operations` (pending design04 rewrite). Match fresh initial layouts and equivalent
-   useful work for ingestion methods and indexed/plain updates; report WAL per useful change and
-   actual record evidence. Preserve separate batching/commit and flush costs. Exact guarded-no-op
-   variation must preserve logical results while testing avoided tuple work.
+6. `wal-size-of-operations` (revision4, privileged shell). Match fresh heap layouts and200 requested
+   rows for INSERT SELECT,200 statements/one transaction,200 autocommits and client-streamed COPY.
+   Separate owned heap-record bytes, commit-record bytes and unequal catalog hint-image overhead.
+   Matched amount updates with/without its secondary index preserve results and show200/0 HOT;
+   separate index build verifies valid/ready output. Exact no-op comparison preserves all values
+   while its guard prevents200 redundant tuple updates. Accepted validation/04-amplification.md.
 
 ## 08 checkpoints & recovery (file: 08-checkpoints.ts, export CHECKPOINTS, category "checkpointing")
 

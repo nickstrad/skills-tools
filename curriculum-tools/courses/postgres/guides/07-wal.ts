@@ -1,3 +1,4 @@
+import { WAL_AMPLIFICATION_VARIATION } from "../curriculum/wal-amplification.ts";
 import { CRASH_WORKLOAD_VARIATION } from "../curriculum/crash-workload.ts";
 import { ARCHIVE_WORKLOAD_VARIATION } from "../curriculum/archive-workload.ts";
 import { WAL_RECORDS_VARIATION } from "../curriculum/wal-records.ts";
@@ -6,6 +7,25 @@ import { COMMIT_WORKLOAD_VARIATION } from "../curriculum/commit-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "wal-size-of-operations": {
+    brief:
+      "Compare physical WAL work only after verifying equivalent requested rows, initial layouts and transaction boundaries.",
+    predict:
+      "Which ingestion methods change statement count, transaction count or physical tuple grouping? Why might the same amount update generate more work when amount is indexed?",
+    inspect:
+      "Verify row values and commit counts before comparing bytes. Match COPY to multi-insert records, plain updates to HOT, and indexed updates to B-tree work; compare owned heap and commit-record bytes separately from unequal catalog hint-image overhead in whole-interval totals.",
+    explain:
+      "Why can two hundred statements in one transaction have similar tuple WAL to one INSERT SELECT? Why are COMMIT records not a count of physical sync calls? Which initial-state differences would invalidate these comparisons?",
+    vary:
+      "Request the same final values with an unconditional no-op UPDATE and an IS DISTINCT FROM guard. Compare equal requested outcomes, actual heap updates and WAL records on fresh matching fixtures.",
+    apply:
+      "Choose an ingestion and index policy for a write-heavy service with a lagging replica. Use measured useful-row cost, expected write rate and read requirements, and identify the throughput/recovery measurements this experiment has not supplied.",
+    hints: [
+      "A zero-change request still concerns two hundred rows, but need not write two hundred tuples. Preserve the requested values and consider trigger or per-attempt side effects before declaring the guard semantically equivalent.",
+      "Run this complete guarded-no-op comparison in a shell.\n\n```bash\n" +
+      WAL_AMPLIFICATION_VARIATION + "\n```",
+    ],
+  },
   "crash-and-redo": {
     brief:
       "Use an actual owned-server crash to distinguish physical WAL replay, transaction decisions and visible application outcomes.",
