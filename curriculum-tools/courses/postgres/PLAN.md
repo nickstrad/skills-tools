@@ -313,29 +313,35 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
 
 ## 09 replication (file: 09-replication.ts, export REPLICATION, category "replication") SERIAL
 
-1. `build-a-streaming-standby` (shell, privileged). `pg_basebackup -R -D $PGLAB/standby`, set port
-   5441 and `cluster_name='lab-standby'`, start; `pg_stat_replication` on primary shows state
-   streaming; `pg_is_in_recovery()` true on standby.
-2. `replication-lag-under-load` (2 sessions: A primary, B standby via `\c` with port). Insert on A,
-   `pg_stat_replication` sent/write/flush/replay lsns; on B `pg_last_wal_replay_lsn()`; compute byte
-   lag; `pg_wal_lsn_diff`. Lens: the lags are the pipeline stages of a replicated log.
-3. `synchronous-replication-blocks-commit` (privileged, 2 sessions). `synchronous_standby_names` =
+1. `build-a-streaming-standby` (accepted, shell, privileged). Owned source/copy, dedicated role,
+   verified basebackup, actual sender/receiver/identity checks, post-backup receipt replay and
+   rejected standby write. Variation replaces the receiver and verifies another streamed receipt.
+2. `replication-lag-under-load` (accepted, shell, privileged). Pause actual replay; commit2,000
+   receipts and require durable receive plus source flush acknowledgement while independent rows
+   remain stale. Resume, gate replay and verify all values. Variation doubles only the workload.
+3. `read-your-writes-on-a-replica` (accepted, moved from14, shell, privileged). Post-COMMIT token,
+   pinned source history/topology,500ms replay deadline, timeout without stale payload,
+   wrong-history rejection before comparison and a fresh profile/receipt snapshot after apply.
+   Variation performs a separately bounded pinned-primary fallback while replay remains paused. No
+   failover authority service is implied; system/timeline checks alone are insufficient for that
+   contract.
+4. `synchronous-replication-blocks-commit` (privileged, 2 sessions). `synchronous_standby_names` =
    the standby, `synchronous_commit=remote_apply`; commit latency rises; stop the standby -> commit
    on A hangs `(blocks ...)` until `synchronous_standby_names` reset or standby back. Lens: quorum
    writes, availability vs durability.
-4. `hot-standby-query-conflict` (2 sessions). Long query on standby, vacuum on primary removes rows
+5. `hot-standby-query-conflict` (2 sessions). Long query on standby, vacuum on primary removes rows
    it needs -> `ERROR: canceling statement due to conflict with recovery` (after
    `max_standby_streaming_delay` 30 s; lower it for the lab). `pg_stat_database_conflicts`. Lens:
    replicas are not free reads; consistency vs freshness on a follower.
-5. `replication-slot-retains-wal` (privileged). Create physical slot, point standby at it, stop
+6. `replication-slot-retains-wal` (privileged). Create physical slot, point standby at it, stop
    standby, generate WAL: `pg_replication_slots.wal_status`, pg_wal grows; `max_slot_wal_keep_size`
    makes the slot `lost`. Lens: retention is a contract with the slowest consumer.
-6. `promote-the-standby` (dangerous, shell). `pg_ctl promote` on standby: new timeline, it accepts
+7. `promote-the-standby` (dangerous, shell). `pg_ctl promote` on standby: new timeline, it accepts
    writes; old primary still accepting writes = split brain; show both with different data.
-7. `rewind-the-old-primary` (dangerous, shell). `pg_rewind` old primary to follow the new one (needs
+8. `rewind-the-old-primary` (dangerous, shell). `pg_rewind` old primary to follow the new one (needs
    `wal_log_hints` or checksums: lab has checksums); restart as standby; the divergent write is
    gone. Lens: fencing and the cost of un-fencing; why STONITH exists.
-8. `cascading-and-failback` (optional, shell). Swap roles back so the lab returns to the original
+9. `cascading-and-failback` (optional, shell). Swap roles back so the lab returns to the original
    layout (primary 5440). Must leave the lab as module 01 built it, standby stopped and removed.
 
 ## 10 logical (file: 10-logical.ts, export LOGICAL, category "logical-replication")
@@ -420,11 +426,7 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    as the conflict signal, vs `for update`.
 5. `fencing-tokens-with-a-monotonic-counter`: a `lease` table + `epoch` column; a stale holder's
    write is rejected by a `check` in an update `where epoch = :mine`.
-6. `read-your-writes-on-a-replica` (needs standby from module 09 or simulates with
-   `synchronous_commit` levels): wait for `pg_last_wal_replay_lsn() >= :lsn` on the standby. If no
-   standby, demonstrate the LSN handshake using two databases with logical replication. Keep honest
-   about what the lab supports.
-7. `listen-notify-as-a-bus`: `listen`/`notify` across 2 sessions; delivery is at commit; not durable
+6. `listen-notify-as-a-bus`: `listen`/`notify` across 2 sessions; delivery is at commit; not durable
    (disconnect misses). Lens: pub/sub inside the database; where it breaks.
 
 ## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL

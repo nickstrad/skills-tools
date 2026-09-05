@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { REPLICA_READINESS } from "./replica-readiness.ts";
 import { REPLAY_LAG } from "./replay-lag.ts";
 import { STANDBY_WORKLOAD } from "./standby-workload.ts";
 import { ARCHIVE_PRUNING_REMINDER } from "./archive-reminder.ts";
@@ -10,6 +11,8 @@ export const REPLICATION: Module = {
     STANDBY_WORKLOAD,
 
     REPLAY_LAG,
+
+    REPLICA_READINESS,
 
     {
       slug: "synchronous-replication-blocks-commit",

@@ -4,6 +4,31 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Physical read-your-writes accepted, 2026-09-05
+
+Stable read-your-writes-on-a-replica is now current71 in module09, revision4. It replaces the old
+logical simulation in14 with a fresh owned physical standby: post-COMMIT token, pinned source
+system/history/topology, actual paused replay plus flushed receipt WAL,500ms timeout with no data,
+three mismatched-identity rejections before any LSN comparison, then a fresh matching profile and
+receipt after resume. The source/exact variation explicitly reads from the pinned primary while the
+standby remains paused and stale. Fixed topology is an assumption, not an authority service.
+
+Core/source/exact rendered hint2 pass. Roots /tmp/pg-owned-sj6nx3xs, /tmp/pg-owned-67ks82gh and
+/tmp/pg-owned-rw5s3j4x are stopped and slots removed. Report validation/05-replica-readiness.md; raw
+/tmp/pg-replica-readiness-{core,variation}.log and
+/tmp/pg-replica-readiness-exact-read-your-writes-on-a-replica.log. Thirty tests/full check pass.
+Scoped builder /tmp/pg-replica-readiness-scoped-build.py normalizes moved ordinals/prerequisite
+references and proves only this identity materially changed.93 lessons/seven stops, first seven,
+capacity and fresh copied IDs/history/progress remain intact; no learner writes. PLAN, identity map
+and canonical reading-map note reflect the move. Prior replay acceptance a5b7681 is pushed.
+
+Next: current72 synchronous-replication-blocks-commit. Follow design05 sequentially: actual paused
+replay allows remote flush but blocks remote_apply; disconnected required standby blocks synchronous
+acknowledgement. Observe SyncRep waits and reconcile durable receipts after cancellation or
+reconnection. Then standby conflicts/feedback, slot retention, controlled failover/rewind/failback,
+logical processing and chunks6–7/final audit. Full goal remains active. Preserve unrelated storage
+source/guide/knowledge and root bin/; no learner catalog/cluster operations.
+
 ## Paused replication replay accepted, 2026-09-05
 
 Current70 replication-lag-under-load is accepted at revision4. Actual paused state/fixed replay

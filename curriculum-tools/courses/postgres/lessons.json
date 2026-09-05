@@ -2251,6 +2251,37 @@
   },
   {
     "ordinal": 71,
+    "slug": "read-your-writes-on-a-replica",
+    "title": "Read your write: a history-bound replay gate with a deadline",
+    "category": "replication",
+    "difficulty": "advanced",
+    "tags": [
+      "streaming-replication",
+      "consistency",
+      "replicated-log",
+      "wal"
+    ],
+    "prerequisites": [
+      70,
+      22
+    ],
+    "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
+    "overview": "Commit a profile change and durable request receipt while an owned physical standby has replay\npaused. Mint a token after COMMIT, then require a matching known history and replay through that\nbound before taking a fresh application snapshot. Exercise a deadline that returns no data,\nwrong-history rejection and successful catch-up; decide whether an explicit primary fallback is\nappropriate for a caller whose replica deadline expired.",
+    "syntaxBreakdown": "### In plain terms\n\nA user's successful write should be visible in the response to their next read. Receiving its WAL\nis insufficient: the standby must apply through a bound from the same known history, and the read\nmust use a snapshot taken afterward. A deadline makes delayed replay an explicit response policy.\n\n### What you are learning\n\n- **Post-commit token:** a later WAL bound contains the committed effect without identifying its exact record.\n- **History scope:** positions are comparable only under the trusted topology and branch contract.\n- **Fresh application snapshot:** the receipt and profile are read together after the replay check.\n- **Deadline response:** timeout returns no stale payload; primary fallback is an explicit separate choice.\n\n### Piece by piece\n\n- **python3** runs the included owned-replication helper. **PGBIN / pg_config --bindir** finds\n  matching binaries. **tempfile.mkdtemp**, private sockets and cleared PG variables isolate the\n  fixture; root-only **runuser/os.chown** assigns server files to postgres.\n- **initdb -D** selects the new data directory; **-U postgres** names its administrator;\n  **--auth-local=trust** allows access inside the protected socket directory; **--auth-host=reject**\n  rejects network authentication; **--no-locale**, **--data-checksums** and **--wal-segsize=1** select\n  deterministic locale, checksums and1MB segments. **listen_addresses=''** disables TCP.\n- **fsync/synchronous_commit/full_page_writes=on**, **wal_level=replica**, small buffers and\n  **max_wal_size=128MB**, **checkpoint_timeout=1h**, **autovacuum=off**, **wal_sender_timeout=5s**\n  configure this bounded private workload. **pg_ctl -D ... -l ... -w -t20** selects data/log files\n  and waits at most20 seconds for startup; **-m fast stop** rolls back active work at shutdown.\n- **psql -X -At -v ON_ERROR_STOP=1 -c** ignores startup files, produces unaligned tuples only,\n  stops on SQL errors and executes the supplied query. **PGCONNECT_TIMEOUT**, **statement_timeout**,\n  **lock_timeout** and Python subprocess timeouts bound ordinary helper calls.\n- **clone_standby** creates the dedicated **LOGIN REPLICATION** role. **pg_basebackup -U** chooses\n  it, **-D** names the copy, **-c fast** requests a fast checkpoint, **-X stream** includes streamed\n  WAL, **-R** writes recovery settings, **-C -S owned_standby** creates/names the physical slot and\n  **--manifest-checksums=SHA256 -v** adds checksums and diagnostics. **pg_verifybackup** verifies\n  the copy before settings change. **standby.signal/primary_conninfo/primary_slot_name** connect\n  recovery to the source; private socket, **hot_standby=on**, **archive_mode=off**,\n  **wal_receiver_status_interval=1s** and retry100ms configure the standby.\n- **profiles** holds version1/before in the backup. **read_receipts** has an independent unique\n  request key and a **REFERENCES** constraint linking the profile. Explicit **BEGIN/COMMIT**\n  atomically changes the profile to version2/after and saves request-42 with the same values.\n- **pg_control_system.system_identifier** identifies the originating cluster;\n  **pg_control_checkpoint.timeline_id** identifies checkpoint history. **pg_is_in_recovery** and\n  **current_setting('data_directory')** check roles and owned endpoints. The driver pins one\n  unchanging topology epoch and timeline1, then checks **pg_stat_wal_receiver.received_tli** on\n  each gate poll. A missing receiver or changed identity fails closed. These checks cannot elect\n  a writer or prove authority after failover; divergent descendants share a system identifier.\n- **pg_wal_replay_pause** requests suspension; **pg_get_wal_replay_pause_state='paused'** must\n  actually hold first. **pg_current_wal_insert_lsn** runs in a separate call after COMMIT. This\n  bound may include unrelated later WAL; it is sufficient within this history, not an exact\n  transaction address. **pg_stat_wal_receiver.flushed_lsn** reaches it while replay remains fixed.\n- **read_with_token** compares system, timeline and topology epoch before converting or comparing\n  LSNs. Python **lsn** converts hexadecimal high/low halves to a byte position. Three synthetic\n  wrong-identity tokens keep the correct numeric bound and must produce zero comparisons and\n  zero application reads; they test rejection, not actual promotion or divergent recovery.\n- **time.monotonic** gives the500ms replica deadline. Each **bounded_sql** call gets only the\n  remaining subprocess budget and a matching **statement_timeout**, including the final data\n  query. Poll sleeps are capped by that same remaining budget. Process startup/termination can\n  add scheduling overhead; no hard real-time guarantee is claimed. Query errors return unavailable,\n  expiration returns timeout, and neither response includes application data.\n- **pg_last_wal_replay_lsn >= token.bound** admits the application query only after apply.\n  **json_build_object**, **row_to_json** and Python **json.loads/dumps** keep the profile and\n  request receipt in one statement snapshot and retain evidence files. A new psql connection\n  ensures that snapshot is acquired after the gate, without an old repeatable-read transaction.\n  Payload/key mismatches return receipt_mismatch rather than success.\n- The printed stale query is diagnostic evidence outside the response path. Its version1 and\n  absent receipt must never appear as a successful gated response. **pg_wal_replay_resume** permits\n  a new five-second attempt; exactly one fresh domain query returns version2 and request-42.\n- The variation changes only timeout policy: it separately checks the pinned source identity/role,\n  then performs a bounded fresh primary read while standby remains paused and stale. This fallback\n  has its own helper bounds; it is not completion within the expired500ms replica budget.\n- Finally stops standby, waits for **pg_replication_slots.active=false**, uses\n  **pg_drop_replication_slot** only on its owned slot, verifies absence and stops the source.",
+    "code": "python3 - <<'PY'\n\nimport json, os, pathlib, pwd, shutil, subprocess, tempfile, time\n\nbindir = pathlib.Path(os.environ.get(\"PGBIN\") or subprocess.check_output(\n    [\"pg_config\", \"--bindir\"], text=True).strip())\nfor name in (\"initdb\", \"pg_ctl\", \"psql\"):\n    if not (bindir / name).is_file():\n        raise RuntimeError(\"Missing PostgreSQL server executable: \" + str(bindir / name))\nroot = pathlib.Path(tempfile.mkdtemp(prefix=\"pg-owned-\", dir=\"/tmp\"))\nowner = pwd.getpwnam(\"postgres\") if os.geteuid() == 0 else pwd.getpwuid(os.geteuid())\nif os.geteuid() == 0:\n    os.chown(root, owner.pw_uid, owner.pw_gid)\nprefix = [\"runuser\", \"-u\", owner.pw_name, \"--\"] if os.geteuid() == 0 else []\ndata, sock, log = root / \"data\", root / \"socket\", root / \"server.log\"\nsock.mkdir()\nif os.geteuid() == 0:\n    os.chown(sock, owner.pw_uid, owner.pw_gid)\nenv = {k: v for k, v in os.environ.items() if not k.startswith(\"PG\")}\nenv.update(PGHOST=str(sock), PGPORT=\"6543\", PGUSER=\"postgres\", PGDATABASE=\"postgres\",\n           PGCONNECT_TIMEOUT=\"3\", PGOPTIONS=\"-c statement_timeout=5000 -c lock_timeout=1000\",\n           LC_ALL=\"C\")\nprint(\"owned evidence directory:\", root, flush=True)\n\ndef run(args, timeout=30):\n    result = subprocess.run(args, env=env, text=True, capture_output=True, timeout=timeout)\n    if result.returncode:\n        raise RuntimeError(str(args) + \"\\n\" + result.stdout + result.stderr)\n    return result.stdout.strip()\n\ndef server(name, *args, timeout=30):\n    return run(prefix + [str(bindir / name), *map(str, args)], timeout)\n\ndef sql(query):\n    return run([str(bindir / \"psql\"), \"-X\", \"-At\", \"-v\", \"ON_ERROR_STOP=1\", \"-c\", query], 10)\n\ndef wait_for(label, check, seconds=20):\n    deadline = time.monotonic() + seconds\n    while time.monotonic() < deadline:\n        result = check()\n        if result:\n            return result\n        time.sleep(0.2)\n    raise RuntimeError(\"Timed out waiting for \" + label + \"; inspect \" + str(log))\n\ndef start():\n    server(\"pg_ctl\", \"-D\", data, \"-l\", log, \"-w\", \"-t\", \"20\", \"start\", timeout=25)\n    assert sql(\"select current_setting('data_directory')\") == str(data)\n\ndef stop():\n    # Only the directory allocated above is ever passed to pg_ctl.\n    if (data / \"postmaster.pid\").exists():\n        server(\"pg_ctl\", \"-D\", data, \"-m\", \"fast\", \"-w\", \"-t\", \"20\", \"stop\", timeout=25)\n\nserver(\"initdb\", \"-D\", data, \"-U\", \"postgres\", \"--auth-local=trust\",\n       \"--auth-host=reject\", \"--no-locale\", \"--data-checksums\", \"--wal-segsize=1\")\nwith (data / \"postgresql.conf\").open(\"a\") as config:\n    config.write(\"\\nlisten_addresses=''\\nport=6543\\nunix_socket_directories='\" + str(sock) + \"'\\n\"\n                 \"shared_buffers='16MB'\\nmax_connections=10\\nwal_level=replica\\n\"\n                 \"fsync=on\\nsynchronous_commit=on\\nfull_page_writes=on\\n\"\n                 \"min_wal_size='2MB'\\nmax_wal_size='8MB'\\ncheckpoint_timeout='1h'\\n\"\n                 \"logging_collector=off\\nlog_checkpoints=on\\n\")\n\nstandby, standby_sock, standby_log = root/'standby',root/'standby-socket',root/'standby.log'\nstandby_sock.mkdir()\nif os.geteuid()==0:\n    os.chown(standby_sock,owner.pw_uid,owner.pw_gid)\nreplica_env = dict(env,PGHOST=str(standby_sock))\nwith (data/'postgresql.conf').open('a') as config:\n    config.write(\"\\nmax_wal_size='128MB'\\nwal_sender_timeout='5s'\\nautovacuum=off\\n\")\n\ndef replica_sql(query):\n    result = subprocess.run([str(bindir/'psql'),'-X','-At','-v','ON_ERROR_STOP=1','-c',query],\n        env=replica_env,text=True,capture_output=True,timeout=10)\n    if result.returncode:\n        raise RuntimeError(result.stdout+result.stderr)\n    return result.stdout.strip()\n\ndef sender():\n    return json.loads(sql(\"select coalesce(json_agg(s),'[]') from (select pid,usename,application_name,state,sync_state,\"\n        \"sent_lsn,write_lsn,flush_lsn,replay_lsn,backend_xmin from pg_stat_replication \"\n        \"where application_name='owned_standby') s\"))\n\ndef receiver():\n    return json.loads(replica_sql(\"select coalesce(json_agg(r),'[]') from (select pid,status,sender_host,sender_port,\"\n        \"slot_name,received_tli,written_lsn,flushed_lsn from pg_stat_wal_receiver) r\"))\n\ndef clone_standby():\n    for name in ('pg_basebackup','pg_verifybackup'):\n        assert (bindir/name).is_file(),'Missing utility: '+name\n    sql('create role owned_repl login replication')\n    result = subprocess.run(prefix+[str(bindir/'pg_basebackup'),'-D',str(standby),'-U','owned_repl','-c','fast',\n        '-X','stream','-R','-C','-S','owned_standby','--manifest-checksums=SHA256','-v'],\n        env=env,text=True,capture_output=True,timeout=60)\n    (root/'standby-basebackup.log').write_text(result.stdout+result.stderr)\n    assert result.returncode==0,result.stdout+result.stderr\n    assert 'backup successfully verified' in server('pg_verifybackup',standby,timeout=60)\n    assert (standby/'standby.signal').is_file()\n    # Append to auto.conf after -R's primary_conninfo, leaving that generated connection intact.\n    with (standby/'postgresql.auto.conf').open('a') as config:\n        config.write(\"\\nunix_socket_directories='\"+str(standby_sock)+\"'\\ncluster_name='owned_standby'\\n\"\n            \"archive_mode=off\\nhot_standby=on\\nwal_receiver_status_interval='1s'\\n\"\n            \"wal_retrieve_retry_interval='100ms'\\n\")\n    server('pg_ctl','-D',standby,'-l',standby_log,'-w','-t','20','start',timeout=25)\n    assert replica_sql('show data_directory')==str(standby)\n    assert replica_sql('select pg_is_in_recovery()')=='t'\n    wait_for('streaming sender and receiver',lambda:\n        len(sender())==1 and sender()[0]['state']=='streaming' and len(receiver())==1 and receiver()[0]['status']=='streaming')\n\ndef wait_replay(position,seconds=20):\n    wait_for('standby replay through '+position,lambda:\n        replica_sql(\"select coalesce(pg_last_wal_replay_lsn()>='\"+position+\"'::pg_lsn,false)\")=='t',seconds)\n\ndef stop_replication():\n    try:\n        if (standby/'postmaster.pid').exists():\n            server('pg_ctl','-D',standby,'-m','fast','-w','-t','20','stop',timeout=25)\n        if (data/'postmaster.pid').exists():\n            wait_for('owned physical slot inactive',lambda:\n                sql(\"select not exists(select 1 from pg_replication_slots where slot_name='owned_standby' and active)\")=='t')\n            sql(\"select pg_drop_replication_slot(slot_name) from pg_replication_slots where slot_name='owned_standby'\")\n            assert sql(\"select count(*) from pg_replication_slots where slot_name='owned_standby'\")=='0'\n    finally:\n        stop()\n    print('Owned standby/source stopped and owned slot removed; evidence retained at',root,flush=True)\n\nfallback = False\n\ndef emit(label,value):\n    print(label+': '+json.dumps(value,sort_keys=True),flush=True)\n    (root/(label+'.json')).write_text(json.dumps(value,indent=2))\n\ndef lsn(value):\n    high,low=value.split('/')\n    return (int(high,16)<<32)+int(low,16)\n\nidentity_query=\"select json_build_object('system',system_identifier::text,'timeline',timeline_id,\" \\\n    \"'recovery',pg_is_in_recovery(),'directory',current_setting('data_directory')) \" \\\n    \"from pg_control_system(),pg_control_checkpoint()\"\nstate_query=\"select json_build_object('system',(select system_identifier::text from pg_control_system()),\" \\\n    \"'timeline',(select received_tli from pg_stat_wal_receiver),'recovery',pg_is_in_recovery(),\" \\\n    \"'directory',current_setting('data_directory'),'replay',pg_last_wal_replay_lsn())\"\ndomain_query=\"select json_build_object('profile',(select row_to_json(p) from profiles p where id=1),\" \\\n    \"'receipt',(select row_to_json(r) from read_receipts r where request_key='request-42'))\"\nexpected=dict(profile=dict(id=1,version=2,display_name='after'),\n    receipt=dict(request_key='request-42',profile_id=1,version=2,display_name='after'))\n\ndef bounded_sql(query,deadline):\n    remaining=deadline-time.monotonic()\n    if remaining<=0:\n        raise TimeoutError('read deadline expired')\n    query_env=dict(replica_env,PGOPTIONS='-c statement_timeout='+str(max(1,int(remaining*1000))))\n    result=subprocess.run([str(bindir/'psql'),'-X','-At','-v','ON_ERROR_STOP=1','-c',query],\n        env=query_env,text=True,capture_output=True,timeout=remaining)\n    if result.returncode:\n        raise RuntimeError(result.stderr)\n    if time.monotonic()>=deadline:\n        raise TimeoutError('read completed after deadline')\n    return json.loads(result.stdout.strip())\n\ndef read_with_token(token,seconds):\n    began=time.monotonic()\n    deadline=began+seconds\n    comparisons=0\n    domain_reads=0\n    def answer(status,payload=None):\n        return dict(status=status,payload=payload,lsn_comparisons=comparisons,domain_reads=domain_reads,\n            elapsed_ms=round(1000*(time.monotonic()-began),2),deadline_ms=seconds*1000)\n    # Tokens are trusted objects minted by this fixed writer, not arbitrary client SQL.\n    # The topology epoch is a driver-owned fixture assertion, not a database election service.\n    if any(token[k]!=pinned[k] for k in ('system','timeline','topology_epoch')):\n        return answer('wrong_history')\n    try:\n        while True:\n            state=bounded_sql(state_query,deadline)\n            if (state['system']!=pinned['system'] or state['timeline']!=pinned['timeline']\n                or not state['recovery'] or state['directory']!=str(standby)):\n                return answer('wrong_history')\n            comparisons+=1\n            if state['replay'] is not None and lsn(state['replay'])>=lsn(token['bound']):\n                # A NEW connection/statement takes a snapshot after the successful replay check.\n                domain_reads+=1\n                payload=bounded_sql(domain_query,deadline)\n                if payload!=expected or payload['receipt']['request_key']!=token['request_key']:\n                    return answer('receipt_mismatch')\n                return answer('ready',payload)\n            remaining=deadline-time.monotonic()\n            if remaining<=0:\n                raise TimeoutError('replay deadline expired')\n            time.sleep(min(0.05,remaining))\n    except (TimeoutError,subprocess.TimeoutExpired):\n        return answer('timeout')\n    except RuntimeError:\n        return answer('unavailable')\n\ntry:\n    start()\n    sql('create table profiles(id int primary key,version int not null,display_name text not null)')\n    sql('create table read_receipts(request_key text primary key,profile_id int not null references profiles(id),'\n        'version int not null,display_name text not null)')\n    sql(\"insert into profiles values(1,1,'before')\")\n    clone_standby()\n    identity=json.loads(sql(identity_query))\n    copy_identity=json.loads(replica_sql(identity_query))\n    assert identity['recovery'] is False and identity['directory']==str(data)\n    assert copy_identity['system']==identity['system'] and copy_identity['recovery'] is True\n    assert identity['timeline']==copy_identity['timeline']==1\n    pinned=dict(system=identity['system'],timeline=1,topology_epoch='owned-fixed-writer-1')\n    wait_replay(sql('select pg_current_wal_insert_lsn()'))\n    replica_sql('select pg_wal_replay_pause()')\n    wait_for('actual paused replay',lambda: replica_sql('select pg_get_wal_replay_pause_state()')=='paused')\n    paused_lsn=replica_sql('select pg_last_wal_replay_lsn()')\n    # Commit the domain effect and the independently keyed receipt atomically, THEN mint a bound.\n    sql(\"begin; update profiles set version=2,display_name='after' where id=1; \"\n        \"insert into read_receipts values('request-42',1,2,'after'); commit\")\n    token=dict(pinned,bound=sql('select pg_current_wal_insert_lsn()'),request_key='request-42')\n    assert lsn(token['bound'])>lsn(paused_lsn)\n    wait_for('durably received token',lambda: len(receiver())==1 and\n        lsn(receiver()[0]['flushed_lsn'])>=lsn(token['bound']))\n    stale=json.loads(replica_sql(domain_query))\n    assert stale==dict(profile=dict(id=1,version=1,display_name='before'),receipt=None)\n    assert replica_sql('select pg_last_wal_replay_lsn()')==paused_lsn\n    source=json.loads(sql(domain_query))\n    assert source==expected\n    timed_out=read_with_token(token,0.5)\n    assert timed_out['status']=='timeout' and timed_out['payload'] is None\n    assert timed_out['domain_reads']==0 and timed_out['lsn_comparisons']>0\n    emit('paused_timeout',dict(token=token,paused_lsn=paused_lsn,receiver=receiver(),\n        diagnostic_stale_rows=stale,source=source,response=timed_out))\n    # Negative token tests keep the SAME valid numeric bound; reject identity before comparing it.\n    rejected=[]\n    for field,value in [('system',str(int(pinned['system'])+1)),('timeline',2),('topology_epoch','expired-writer')]:\n        response=read_with_token(dict(token,**{field:value}),0.5)\n        assert response['status']=='wrong_history' and response['payload'] is None\n        assert response['lsn_comparisons']==response['domain_reads']==0\n        rejected.append(dict(changed_field=field,response=response))\n    emit('wrong_history_rejected',rejected)\n    if fallback:\n        # Separate bounded fallback request; the 500ms replica budget has already expired.\n        # This fixture never promotes either node or changes writer ownership.\n        assert json.loads(sql(identity_query))==identity\n        primary_response=json.loads(sql(domain_query))\n        assert primary_response==expected\n        assert replica_sql('select pg_get_wal_replay_pause_state()')=='paused'\n        assert json.loads(replica_sql(domain_query))==stale\n        emit('explicit_primary_fallback',dict(authority=pinned,response=primary_response,\n            standby_still_stale=True,replica_budget_reused=False))\n    replica_sql('select pg_wal_replay_resume()')\n    ready=read_with_token(token,5)\n    assert ready['status']=='ready' and ready['payload']==expected and ready['domain_reads']==1\n    assert json.loads(sql(domain_query))==ready['payload']\n    emit('fresh_read_after_replay',ready)\n    print('PASS: timeout served no data; wrong histories rejected before LSN comparison; fresh replay-gated receipt and profile agree.',flush=True)\nfinally:\n    stop_replication()\nPY",
+    "expectedResult": "The source contains profile1/version2/after and receipt request-42 with matching values. While\nreplay is actually paused, flushed receive reaches the post-COMMIT token but diagnostic standby\nrows remain version1/before with no receipt. The500ms attempt returns timeout, payload=null and\nzero domain reads after at least one replay comparison. Measured elapsed time includes scheduling\nand process overhead and need not equal exactly500ms.\n\nEach of the three deliberately mismatched identity tokens returns wrong_history with zero LSN\ncomparisons, zero domain reads and no payload. After resume, a fresh attempt returns ready with\nexactly one domain query and the correct profile plus receipt. The variation additionally returns\nthat same result from the pinned primary while the standby still has the stale diagnostic state.\nAll owned servers stop and the physical slot is removed.",
+    "systemsLens": "An applied log position is a readiness boundary within an identified history. Read-your-writes\ncombines that boundary with a post-write token, a later snapshot and an explicit deadline response.\nIt does not promise globally latest data, serializability or writer election. During failover,\nvalidate the history and authority contract before using either the token or a fallback endpoint.",
+    "challenge": "Change only the timeout response policy: use pgcoach hint2 to return an explicit fresh read from\nthe pinned primary while the replica remains paused, then resume and verify the replica result.\nExplain the extra primary load and why a500ms replica deadline cannot also describe the total\nfallback response time. State what must change in this policy when writer authority changes.",
+    "caution": "Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including\npg_basebackup/pg_verifybackup; PGBIN may select their folder. It creates private source/standby data\nand socket directories, ignores inherited PG/PGLAB settings and disables TCP. Root uses runuser as\nthe postgres OS owner. Only the owned standby pauses. Finally stops it, removes its inactive slot\nand stops the source. Keep the printed stopped paths/logs; allow a few hundred MB.\n\nThis fixed topology has one driver-owned writer and no failover. Tokens and routing metadata are\ntrusted local objects. The epoch label is a fixture assertion, not an implemented fencing service;\nsystem ID and timeline alone cannot establish current writer authority. A production router must\nvalidate its authority/history contract again across topology changes.",
+    "safetyLevel": "privileged",
+    "runIn": "shell",
+    "sessions": 1,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 4
+  },
+  {
+    "ordinal": 72,
     "slug": "synchronous-replication-blocks-commit",
     "title": "Synchronous replication: pay for durability in commit latency",
     "category": "replication",
@@ -2283,7 +2314,7 @@
     "revision": 2
   },
   {
-    "ordinal": 72,
+    "ordinal": 73,
     "slug": "hot-standby-query-conflict",
     "title": "Recovery conflicts: the replica cancels your query",
     "category": "replication",
@@ -2315,7 +2346,7 @@
     "revision": 2
   },
   {
-    "ordinal": 73,
+    "ordinal": 74,
     "slug": "replication-slot-retains-wal",
     "title": "A slot is an unbounded promise until you bound it",
     "category": "replication",
@@ -2348,7 +2379,7 @@
     "revision": 2
   },
   {
-    "ordinal": 74,
+    "ordinal": 75,
     "slug": "promote-the-standby",
     "title": "Promote the standby, and meet split brain",
     "category": "replication",
@@ -2380,7 +2411,7 @@
     "revision": 2
   },
   {
-    "ordinal": 75,
+    "ordinal": 76,
     "slug": "rewind-the-old-primary",
     "title": "pg_rewind: rejoin a diverged primary without a new base backup",
     "category": "replication",
@@ -2393,7 +2424,7 @@
       "split-brain"
     ],
     "prerequisites": [
-      74
+      75
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The old primary has a write the new primary never saw. It cannot simply start following the new\nprimary: their histories diverged, and physical replication has no way to un-apply a page change.\nThe safe, slow answer is to throw the old primary away and take a fresh base backup -- 350 MB here,\nterabytes in production.\n\npg_rewind is the fast answer. It asks the new primary \"where did our timelines diverge\", then reads\nthe old primary's WAL from that point forward to find every block it touched afterwards, copies\njust those blocks back from the new primary, and rewinds the control file to the divergence point.\nWhat is left is a data directory that can replay the new primary's history. The doomed row from the\nprevious lesson disappears -- physically, silently, with no error anywhere -- which is what\n\"resolving split brain\" always means: somebody's committed data is chosen for deletion.",
@@ -2411,7 +2442,7 @@
     "revision": 2
   },
   {
-    "ordinal": 76,
+    "ordinal": 77,
     "slug": "cascading-and-failback",
     "title": "Cascade, fail back, and put the lab away",
     "category": "replication",
@@ -2424,7 +2455,7 @@
       "lab"
     ],
     "prerequisites": [
-      75
+      76
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Two things are left. The first is cascading: a standby is also a WAL sender, so you can chain\nreplicas, and 5440 -- which is currently a standby -- can feed a third node without the primary\nknowing or caring. You will build one on port 5442, watch a write travel 5441 to 5440 to 5442, and\nthen throw it away.\n\nThe second is failback, and it is the whole reason this module can be run twice. The lab must end\nexactly as module 01 built it: one primary on 5440 with its data in $PGLAB/primary, nothing on\n5441, no standby directory, no replication slots, and a postgresql.auto.conf with no settings in\nit. So you will reverse the roles one more time -- stop the primary on 5441 cleanly, confirm 5440\nhas replayed everything, promote it, and delete the rest. The only trace left is the timeline: the\nlab started on timeline 1 and ends on timeline 3, one branch per promotion, which is exactly what\nthe .history files in pg_wal say.",
@@ -2442,7 +2473,7 @@
     "revision": 2
   },
   {
-    "ordinal": 77,
+    "ordinal": 78,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -2474,7 +2505,7 @@
     "revision": 2
   },
   {
-    "ordinal": 78,
+    "ordinal": 79,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -2487,7 +2518,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      77
+      78
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
@@ -2505,7 +2536,7 @@
     "revision": 2
   },
   {
-    "ordinal": 79,
+    "ordinal": 80,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -2517,7 +2548,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      78
+      79
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
@@ -2536,7 +2567,7 @@
     "revision": 2
   },
   {
-    "ordinal": 80,
+    "ordinal": 81,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -2548,7 +2579,7 @@
       "consistency"
     ],
     "prerequisites": [
-      79
+      80
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 \"Snapshots\".",
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
@@ -2566,7 +2597,7 @@
     "revision": 2
   },
   {
-    "ordinal": 81,
+    "ordinal": 82,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -2578,7 +2609,7 @@
       "observability"
     ],
     "prerequisites": [
-      80
+      81
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
@@ -2596,7 +2627,7 @@
     "revision": 2
   },
   {
-    "ordinal": 82,
+    "ordinal": 83,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -2609,7 +2640,7 @@
       "observability"
     ],
     "prerequisites": [
-      81
+      82
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
@@ -2628,7 +2659,7 @@
     "revision": 2
   },
   {
-    "ordinal": 83,
+    "ordinal": 84,
     "slug": "transactional-outbox",
     "title": "Transactional outbox: one commit for the row and the message",
     "category": "distributed-patterns",
@@ -2660,7 +2691,7 @@
     "revision": 2
   },
   {
-    "ordinal": 84,
+    "ordinal": 85,
     "slug": "idempotency-keys",
     "title": "Idempotency keys: make the retry a no-op, not a second charge",
     "category": "distributed-patterns",
@@ -2673,7 +2704,7 @@
     ],
     "prerequisites": [
       37,
-      83
+      84
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\".",
     "overview": "A client that does not get an answer must retry, and it cannot tell \"the request never arrived\"\nfrom \"the answer was lost\". So the server has to make the second request harmless. The whole\nmechanism is a unique index on a key the client chooses plus ON CONFLICT DO NOTHING, which turns\n\"this already happened\" from an error into zero rows. You will run the retry three ways - the naive\nINSERT that errors, the idempotent one that no-ops, and the read-back that returns the original\nanswer - and then race two retries concurrently to watch the second one wait on the first\ntransaction's fate before it learns it lost.",
@@ -2691,7 +2722,7 @@
     "revision": 2
   },
   {
-    "ordinal": 85,
+    "ordinal": 86,
     "slug": "two-phase-commit",
     "title": "Two-phase commit: a transaction with no process",
     "category": "distributed-patterns",
@@ -2706,7 +2737,7 @@
     "prerequisites": [
       56,
       15,
-      84
+      85
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 \"Pages and Tuples\".",
     "overview": "PREPARE TRANSACTION splits COMMIT in half. The first half does everything a commit does except\nbecome visible: it writes the changes to WAL, fsyncs them, keeps every lock, and then detaches the\nwhole thing from your session. What is left is a transaction with no backend, no connection and no\ntimeout, sitting in pg_prepared_xacts until somebody says COMMIT PREPARED or ROLLBACK PREPARED.\nThat is exactly the guarantee an external coordinator needs to run 2PC across several databases -\nand exactly the operational hazard, because a coordinator that dies leaves a transaction that holds\nlocks and pins the xmin horizon forever. You will build one, watch it block a writer, watch it\nstall VACUUM, kill the server underneath it, find it still there after recovery, and finally\nresolve it.\n\nThe feature is off by default: max_prepared_transactions is 0 on a stock cluster, and it is a\npostmaster-level setting, so turning it on needs a restart, not a reload. The lab's postgresql.conf\nfrom module 01 already sets it to 10; the first block changes it anyway so you can watch a config\nreload fail to take effect.",
@@ -2725,7 +2756,7 @@
     "revision": 2
   },
   {
-    "ordinal": 86,
+    "ordinal": 87,
     "slug": "fencing-tokens-with-a-monotonic-counter",
     "title": "Fencing tokens: why a lease alone is not mutual exclusion",
     "category": "distributed-patterns",
@@ -2757,38 +2788,6 @@
     "revision": 2
   },
   {
-    "ordinal": 87,
-    "slug": "read-your-writes-on-a-replica",
-    "title": "Read your writes: carry an LSN from the primary to the replica",
-    "category": "distributed-patterns",
-    "difficulty": "advanced",
-    "tags": [
-      "logical-replication",
-      "consistency",
-      "replication-slots",
-      "distributed-patterns"
-    ],
-    "prerequisites": [
-      79,
-      24
-    ],
-    "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
-    "overview": "The cheapest way to scale reads is to send them to a replica, and the first bug it causes is always\nthe same: a user saves a change, the redirect issues a read, the read lands on a replica that has\nnot applied it yet, and the change appears to have been lost. Eventual consistency is not the\nproblem - the problem is that the client has no way to say \"I need at least the state I already\nsaw\". The fix is a session token: take the write position from the primary, carry it with the\nrequest, and make the replica wait until it has applied at least that position before answering.\n\nThe lab has no standby yet (module 09 builds one), so you will do the same handshake with logical\nreplication between the lab database and a second database, lab_rr, in this same cluster. The token\nis an LSN either way, and so is the comparison; the only difference is that a physical standby\nreports its position as pg_last_wal_replay_lsn() while a logical subscriber reports it as the\nremote_lsn of its replication origin. You will deliberately stop the replica, observe the stale\nread, and then watch the LSN comparison flip from false to true at exactly the moment the row\nappears.",
-    "syntaxBreakdown": "### In plain terms\n\nThis experiment asks how a user can read a change immediately after writing when reads may go to a lagging replica. The primary returns a log position, the client carries it to the replica, and the replica is trusted only after its applied position reaches that token. Disabling logical apply creates the stale-read window; enabling it closes it.\n\n### What you are learning\n\n- **Read-your-writes guarantee:** A client can require a replica to have applied the state produced by its write.\n- **LSN tokens:** A log sequence number is an ordered WAL position that travels with a request.\n- **Logical apply position:** remote_lsn reports how far the subscriber has applied publisher changes.\n- **Replication cleanup:** Slots retain WAL, so disabled subscriptions must be detached and dropped.\n\n### Piece by piece\n\n- **CREATE PUBLICATION ... FOR TABLE** (publisher definition)\n  - What it is: It declares which table changes are offered to subscribers.\n  - What it does here: pat_profile changes become publishable.\n  - What it gives us: A name for CREATE SUBSCRIPTION.\n- **pg_create_logical_replication_slot** and **pg_drop_replication_slot** (slot functions)\n  - What they are: A slot reserves WAL until a consumer receives it; these functions create and remove it.\n  - What they do here: A hand-created pgoutput slot avoids same-cluster creation deadlock.\n  - What they give us: slot_name and lsn identify the stream; zero slots proves cleanup.\n- **CREATE SUBSCRIPTION ... create_slot = false, slot_name, copy_data** (subscriber setup)\n  - What it is: It connects lab_rr to pat_pub, copies existing rows, then streams changes.\n  - What it does here: It reuses the hand-created slot and copies v0.\n  - What it gives us: A subscriber table and apply worker.\n- **ALTER SUBSCRIPTION ... DISABLE / ENABLE** (apply control)\n  - What it is: It stops or starts the apply worker without dropping the slot.\n  - What it does here: DISABLE creates lag; ENABLE lets remote_lsn catch up.\n  - What it gives us: caught_up changes from false to true.\n- **pg_current_wal_lsn()**, **\\gset**, **pg_replication_origin_status**, and **remote_lsn** (position handshake)\n  - What they are: The first returns primary WAL position; \\gset stores it; the view reports subscriber progress.\n  - What they do here: The token is compared with remote_lsn.\n  - What they give us: caught_up = f means stale is possible; t means the write is applied.\n- **\\c**, **\\set conn**, and **\\watch i=1 c=4** (psql controls)\n  - What they are: \\c changes database; \\set stores a variable; \\watch repeats a query.\n  - What they do here: One session moves between databases and watches apply progress.\n  - What they give us: The LSN variable survives the connection switch.\n- **DROP SUBSCRIPTION**, **pg_drop_replication_slot**, and **DROP DATABASE** (cleanup)\n  - What they are: They detach subscription, release the slot, and remove the scratch database.\n  - What they do here: They prevent retained WAL and leftover connections.\n  - What they give us: slots_left = 0 and lab_rr_left = 0.",
-    "setup": "drop table if exists pat_profile;\ncreate table pat_profile(id int primary key, name text, bio text);\ninsert into pat_profile values (1, 'ada', 'v0');\ndrop publication if exists pat_pub;",
-    "code": "-- Session A: publish the table and remember which database we are in.\nselect current_database() as pubdb \\gset\n\\set conn 'host=/tmp port=5440 user=postgres dbname=' :pubdb\ncreate publication pat_pub for table pat_profile;\nselect 'create database lab_rr' where not exists\n  (select 1 from pg_database where datname = 'lab_rr')\n\\gexec\nselect pg_drop_replication_slot('pat_rr_slot')\nwhere exists (select 1 from pg_replication_slots where slot_name = 'pat_rr_slot');\nselect slot_name, lsn from pg_create_logical_replication_slot('pat_rr_slot', 'pgoutput');\n\n-- Session A: become the replica. Schema is not replicated, so create it.\n\\c lab_rr\ndrop table if exists pat_profile;\ncreate table pat_profile(id int primary key, name text, bio text);\ncreate subscription pat_rr_sub connection :'conn' publication pat_pub\n  with (create_slot = false, slot_name = 'pat_rr_slot', copy_data = true);\nselect id, name, bio from pat_profile \\watch i=1 c=3\nselect external_id, remote_lsn from pg_replication_origin_status;\n\n-- Session A: now make the replica lag, on purpose.\nalter subscription pat_rr_sub disable;\n\n-- Session A: back to the primary. Write, and capture the position of that write.\n\\c :pubdb\nupdate pat_profile set bio = 'v1-written-by-me' where id = 1 returning id, bio;\nselect pg_current_wal_lsn() as write_lsn \\gset\nselect :'write_lsn' as token_i_carry_to_the_replica;\n\n-- Session A: read from the replica the naive way, and lose your own write.\n\\c lab_rr\nselect id, bio from pat_profile where id = 1;\nselect external_id, remote_lsn, remote_lsn >= :'write_lsn'::pg_lsn as caught_up\nfrom pg_replication_origin_status;\n\n-- Session A: the honest read waits for the token before it answers.\nalter subscription pat_rr_sub enable;\nselect remote_lsn, remote_lsn >= :'write_lsn'::pg_lsn as caught_up\nfrom pg_replication_origin_status \\watch i=1 c=4\nselect id, bio from pat_profile where id = 1;\n\n-- Session A: clean up. Detach the slot before dropping the subscription.\nalter subscription pat_rr_sub disable;\nalter subscription pat_rr_sub set (slot_name = none);\ndrop subscription pat_rr_sub;\n\\c :pubdb\nselect pg_drop_replication_slot('pat_rr_slot')\nwhere exists (select 1 from pg_replication_slots where slot_name = 'pat_rr_slot');\ndrop publication if exists pat_pub;\ndrop database if exists lab_rr;\nselect count(*) as slots_left from pg_replication_slots;\nselect count(*) as lab_rr_left from pg_database where datname = 'lab_rr';",
-    "expectedResult": "The manual slot is created at the current position, for example pat_rr_slot / 1/85E60BE8. On the\nreplica the \\watch catches the initial copy: the first sample prints (0 rows), the next prints\n1 / ada / v0. pg_replication_origin_status then shows one origin, external_id like pg_67639, with\nremote_lsn 0/0 - those rows arrived through a COPY, and the origin has not durably applied any\nstreamed change yet.\n\nAfter DISABLE, the write on the primary returns 1 / v1-written-by-me and the token is an LSN:\n\n   token_i_carry_to_the_replica\n  ------------------------------\n   1/85E69BC8\n\nThe naive read on the replica is the bug, reproduced on demand:\n\n   id | bio\n  ----+-----\n    1 | v0\n\nand the check says why:\n\n   external_id | remote_lsn | caught_up\n  -------------+------------+-----------\n   pg_67639    | 0/0        | f\n\ncaught_up = f is the answer a correct read path needs BEFORE it serves anything. Enable the\nsubscription and the \\watch shows the flip, one sample per second:\n\n   remote_lsn | caught_up               remote_lsn | caught_up\n  ------------+-----------      ->     ------------+-----------\n   0/0        | f                       1/85E69BC8 | t\n\nremote_lsn lands on exactly the write_lsn the primary reported. Only now does the read return\n\n   id |       bio\n  ----+------------------\n    1 | v1-written-by-me\n\nCleanup reports slots_left = 0 and lab_rr_left = 0. (If DROP DATABASE complains that lab_rr \"is\nbeing accessed by other users\", the apply worker is still connected: re-run the DISABLE and try\nagain.)",
-    "systemsLens": "Read-your-writes is a session guarantee, not a system guarantee, and that distinction is the whole\ndesign. The storage layer stays eventually consistent and cheap; the client carries one monotonic\ntoken saying how much of the log it has already observed, and each replica decides locally whether\nit can serve the request or must wait, redirect, or fail. That is the same shape as DynamoDB's\nconsistent-read flag, MongoDB's afterClusterTime, Kafka consumer offsets, and vector clocks in\nDynamo-style stores - a causal token, not a global order.\n\nThree engineering consequences follow, all visible above. First, the token must come from the write\npath: an LSN read separately a moment later is not the LSN of your write. Second, the wait is\nunbounded unless you bound it, so a production read path needs a timeout plus a fallback to the\nprimary - a replica twenty minutes behind will happily block your user forever. Third, the\nguarantee is only as good as the position the replica reports: remote_lsn here means \"durably\napplied by the apply worker\", while a physical standby's pg_last_wal_replay_lsn() means \"replayed\",\nand hot_standby_feedback, synchronous_commit and recovery_min_apply_delay all change what those\nnumbers promise. Read the definition of your replica's position field before you trust it.",
-    "challenge": "Redo the handshake against a physical standby once module 09 is built: the check becomes\npg_last_wal_replay_lsn() >= :write_lsn, and synchronous_commit = remote_apply on the primary turns\nthe wait into the writer's problem instead of the reader's. Measure both - the handshake costs the\nreader latency only when it is behind, remote_apply costs every writer latency all the time.",
-    "caution": "This lesson creates a database (lab_rr) and a replication slot, and the last block drops both. If\nyou stop early, drop them by hand: an abandoned logical slot retains WAL until the disk fills.",
-    "safetyLevel": "privileged",
-    "runIn": "tool",
-    "sessions": 1,
-    "minVersion": "16",
-    "estimatedMinutes": 25,
-    "revision": 2
-  },
-  {
     "ordinal": 88,
     "slug": "listen-notify-as-a-bus",
     "title": "LISTEN/NOTIFY: a bus with no memory",
@@ -2802,7 +2801,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      83
+      84
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\".",
     "overview": "LISTEN/NOTIFY is the one piece of pub/sub built into PostgreSQL, and it is genuinely useful: it\nremoves the polling loop from the outbox relay you built in the first lesson. It is also the most\nfrequently misused feature in the database, because it looks like a message queue and is not one.\nIn this lesson you establish the two properties that decide where it belongs: delivery happens at\nCOMMIT, in the same instant the data becomes visible, and delivery reaches only whoever is\nlistening at that instant. Nothing is stored. A listener that is disconnected, restarting, or\nsimply not subscribed yet misses the message permanently, and there is no offset, no\nacknowledgement and no redelivery.",
@@ -2834,8 +2833,8 @@
     ],
     "prerequisites": [
       55,
-      73,
-      82
+      74,
+      83
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "03:07. The page says \"db-primary root filesystem 91% and climbing, 40 minutes to full\". Nobody\ndeployed anything. The database is serving traffic normally. This is the most common way a healthy\nPostgreSQL server kills itself: a replication slot whose consumer went away, holding every WAL\nsegment written since it left.\n\nYou will run the incident end to end. First the three queries that identify it in under a minute.\nThen a controlled reproduction: a slot nobody consumes, and enough writes to walk it through all\nfour values of pg_replication_slots.wal_status -- reserved, extended, unreserved, lost -- with\nsafe_wal_size counting down to a negative number and then the server taking the promise back in\nthe log. Then the recovery (drop the slot), then the revert.\n\nThe reproduction bounds the damage with max_slot_wal_keep_size instead of actually filling the\ndisk, because filling the disk on a PostgreSQL primary is not a drill you can take back: the WAL\nwriter PANICs and the server dies. The real failure text is quoted below so you know it when you\nsee it.",
@@ -2972,7 +2971,7 @@
       56,
       62,
       68,
-      76
+      77
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The incident is over. Somebody has to write down what happened, and all you have is what the\nservers wrote down themselves: $PGLAB/primary/log/postgresql.log and the .history files in\n$PGLAB/archive. No metrics, no traces, nobody's memory.\n\nThis lesson turns those two sources into a timeline of timestamp, event, LSN and timeline id --\nfor the crash you caused in module 07 and the promote / rewind / failback you ran in module 09.\nNothing here writes anything. The skill being taught is which twenty lines out of ten thousand are\nthe ones that carry state transitions, and how to read an LSN and a timeline id as the two\ncoordinates that place every event in the cluster's history.\n\nIt also teaches the most uncomfortable lesson in postmortem work: some of your evidence is\ndestroyed by the recovery itself, and you have to notice that rather than conclude nothing\nhappened.",

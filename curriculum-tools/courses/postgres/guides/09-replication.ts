@@ -1,8 +1,28 @@
 import { STANDBY_VARIATION } from "../curriculum/standby-workload.ts";
 import { REPLAY_LAG_VARIATION } from "../curriculum/replay-lag.ts";
+import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "read-your-writes-on-a-replica": {
+    brief:
+      "Commit a profile and receipt, then enforce a same-history replay boundary, deadline and fresh application snapshot.",
+    predict:
+      "While receipt WAL is flushed but replay stays paused, what should the 500ms read return? Can the same numeric LSN from a different history authorize the read?",
+    inspect:
+      "Check post-COMMIT token creation, actual paused state and flushed receive. Require timeout with no payload or domain query, wrong-history rejection with zero LSN comparisons, then a fresh matching profile and receipt after replay.",
+    explain:
+      "Why is a bound sampled after COMMIT sufficient in this fixed history even though it is not the write's exact LSN? Why must the domain snapshot follow the gate, and why do system ID and timeline alone fail to establish writer authority?",
+    vary:
+      "Change only timeout policy: explicitly read from the pinned primary while the replica remains paused, then resume and compare its gated result.",
+    apply:
+      "A profile service promises read-your-writes within a total request budget. Choose wait, retry or primary fallback; allocate time to each stage and explain which authority/history assumptions must be revalidated after failover.",
+    hints: [
+      "A timed-out gate must not return the diagnostic stale rows. Compare trusted history before LSNs; after replay, acquire a new snapshot and verify the independently keyed receipt together with the profile.",
+      "Run this complete primary-fallback variation in a shell.\n\n```bash\n" +
+      REPLICA_READINESS_VARIATION + "\n```",
+    ],
+  },
   "replication-lag-under-load": {
     brief:
       "Pause actual replay while streaming continues, then connect durable receive and acknowledged flush with independently stale rows.",

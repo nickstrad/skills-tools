@@ -201,3 +201,11 @@ restores, archived history/segment verification and reversed restoration order p
 outside the book. The current identity map now has93 active lessons and seven reading stops;
 match the retained PITR citation by slug. Promotion and the final postmortem depend on the retained
 PITR lesson. No completed lesson or retired completion is transferred to a different task.
+
+## Executed physical read-your-writes move (2026-09-05)
+
+Original90 read-your-writes-on-a-replica now follows replication-lag-under-load at current71.
+Its stable identity and outside-book citation remain; the replacement executes an owned physical
+standby gate, post-COMMIT bound, known-history rejection, timeout, fresh receipt snapshot and
+explicit primary-fallback variation. No logical received position substitutes for physical apply.
+The original research table stays numbered1–96; use lesson-map.md for current93-lesson order.
