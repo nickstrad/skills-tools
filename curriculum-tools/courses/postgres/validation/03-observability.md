@@ -70,11 +70,17 @@ raw SQL errors and outcome lines were inspected.
 
 Build95 lessons; all prerequisites point backward and seven reading stops remain. The first seven
 built objects and the full accepted capacity object are identical to their baselines. Copied refresh
-preserves all original IDs, attempts and progress. Real learner progress hash remains
-c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f. All30 existing
-engine/validator/coaching tests pass. Scoped format, lint and type checks pass. The repository check
-initially found only pre-existing formatting in PostgreSQL REWORK-PLAN.md; that owned plan is
-formatted with the section acceptance update before the final check.
+preserves all original IDs, attempts and progress. The initial check left learner progress at hash
+c7866ba1b78cb7b2aa6c1a2951149cd14c278130f92333c1e5b8dffd063f128f. The learner then completed lesson8
+at revision2 concurrently with this work. A fresh copied refresh preserved that completion, every
+current attempt/progress row and the original IDs; its source hash stayed
+167c9c50091f4b3bb6988b71652e382dd0b02d4f7536d6509f7ad088d2695045 throughout the second check. Author
+tools did not refresh the live catalog or write learner progress. The user was informed that pgtutor
+init loads revised text and may offer changed lessons again while retaining earlier records.
+
+All30 existing engine/validator/coaching tests pass. Scoped checks and the full repository
+format/lint/type check pass. The repository check initially found only pre-existing formatting in
+PostgreSQL REWORK-PLAN.md; formatting that owned plan resolved the failure.
 
 This accepts chunk3's remaining observability work. Recovery, replication, durable protocols and
 incidents/final integration remain pending. The timer experiments require the learner to prepare and

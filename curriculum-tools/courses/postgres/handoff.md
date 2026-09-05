@@ -27,6 +27,13 @@ catalog. Author checks used a copied catalog and did not refresh the learner's d
 remains explicit (pgtutor done NUMBER). Do not assume progress stays frozen at seven completions on
 future turns: compare current before/after snapshots and preserve legitimate learner progress.
 
+Final validation repeated the copied refresh after the learner's new completion. It preserved every
+current progress/attempt row and original lesson ID. Current learner database hash at that check:
+167c9c50091f4b3bb6988b71652e382dd0b02d4f7536d6509f7ad088d2695045. The live catalog still had96
+original active lessons and lesson8 revision2; author tools did not refresh it. The learner was told
+to run pgtutor init to load revisions; changed lessons can then be offered again while earlier
+completion records and notes remain. Implementation5fcf82f and handoff checkpoint2eed93e are pushed.
+
 ## User authorization and intended result
 
 The learner completed original lessons 1–7. They approved the systems-engineering review and the
