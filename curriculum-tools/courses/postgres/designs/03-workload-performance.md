@@ -101,3 +101,30 @@ workload, preserving its slug at revision4. This is primary-owned sequential imp
 - Variation changes only lock-hold time to1ms and reruns the same matrix. Provide exact invocation
   and explain all supporting commands. Execute both extracted core and variation, inspect counters,
   log failures and wait evidence, then integrate and commit/push with handoff and durable findings.
+
+## Primary bounded migration synthesis, 2026-09-05
+
+Add bounded-online-migration after the concurrent-index lesson, revision1. Two persistent sessions,
+owned mig_jobs table and mig_bridge trigger function; setup drops/recreates only these objects.
+
+- Start with1,000 jobs storing priority_text. B holds a row lock; A's short-budget ADD COLUMN fails
+  with55P03, then rolls back. Release B and retry in a short transaction that atomically adds
+  priority_int and a BEFORE-write compatibility trigger. Legacy text remains canonical during this
+  phase; malformed input rejects the write and no conflicting dual-write policy is implied.
+- Add a CHECK(priority_int IS NOT NULL) NOT VALID in a bounded DDL transaction. New/updated rows
+  must satisfy it while historical rows may still be null. B inserts a new legacy-format row and
+  verifies the trigger populated priority_int, then holds old row1 locked.
+- A uses supplied psql gexec to execute11 independent100-row SKIP LOCKED backfill batches in
+  autocommit. B's lock leaves row1 unfilled; the final empty batch is not completion. Query
+  remaining nulls and deliberately attempt validation, which must fail23514 without marking the
+  check valid.
+- Release B, execute one final batch and validate the check. Set NOT NULL under a short lock budget
+  with the valid check retained; explain PostgreSQL's documented scan avoidance separately from
+  measured lock/file observations. Validate row count, equality with canonical text and catalog
+  state.
+- Keep the compatibility bridge and old column: retiring them needs a writer/read-contract rollout
+  outside this lab. Do not claim one synchronous trigger is an independent application deployment.
+- Exact variation supplies a bounded retention deletion over a fixed id cutoff using the same
+  separately committed batches and a held eligible row. Empty work is again not complete; after
+  releasing the holder, delete the remaining row and assert only the intended id range remains. No
+  automatic claim that deleting rows shrinks the physical file or achieves an archival policy.

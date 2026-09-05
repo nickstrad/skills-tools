@@ -1467,6 +1467,39 @@
   },
   {
     "ordinal": 47,
+    "slug": "bounded-online-migration",
+    "title": "Backfill in short transactions and prove the migration is complete",
+    "category": "indexes",
+    "difficulty": "advanced",
+    "tags": [
+      "migrations",
+      "ddl",
+      "skip-locked",
+      "constraints"
+    ],
+    "prerequisites": [
+      46,
+      36,
+      34
+    ],
+    "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\"; Chapter 13 \"Row-Level Locks\".",
+    "overview": "Add a typed priority beside a legacy text field while writers continue using the old format. Bound\nDDL waits, commit backfill batches independently and deliberately skip a locked historical row.\nOnly a reconciliation query and validated constraint establish completion; an empty batch does not.\nThe retained compatibility trigger makes the rollout boundary explicit.",
+    "syntaxBreakdown": "### In plain terms\n\nA schema migration changes both stored data and the contract used by callers. You introduce a new\ninteger field without rewriting every row under the initial DDL lock. A trigger keeps new writes\ncompatible while old rows are filled in small commits. A held row creates a deliberate gap that the\nmigration must find before declaring success.\n\n### What you are learning\n\n- **Brief schema locks:** A metadata change still needs a table lock; a lock deadline bounds its\n  wait and rollback leaves the failed attempt unpublished.\n- **Compatibility during rollout:** The text field stays canonical while a trigger derives the new\n  integer. This is a concrete database bridge, not proof that application clients have been upgraded.\n- **Bounded partial progress:** Every backfill statement commits independently. An interruption\n  preserves earlier batches, and the predicate selects rows still needing work on the next attempt.\n- **Reconciliation after skipping locks:** SKIP LOCKED avoids waiting for a busy row but can return\n  an empty batch while eligible rows remain. Count remaining work separately.\n- **Constraint lifecycle:** NOT VALID postpones checking old rows while enforcing the check for\n  new/changed rows. Validation establishes the condition over the existing relation.\n\n### Piece by piece\n\n- **priority_text and priority_int** (old and new representations)\n  - What they are: A legacy text value and its integer interpretation.\n  - What they do here: The fixture contains 1,000 convertible values; the new field starts null.\n  - What they give us: A precise final invariant: every integer equals its corresponding text cast.\n- **SELECT ... FOR UPDATE, lock_timeout and ROLLBACK** (lock experiment)\n  - What they are: A row-locking read, a bounded lock-acquisition wait and transaction rollback.\n  - What they do here: B's transaction also holds a relation lock that blocks A's ADD COLUMN.\n    A's 250ms attempt fails with 55P03 and rolls back before retrying after B commits.\n  - What they give us: A failed attempt with no published new column, not an assumed instant DDL.\n- **pg_relation_filenode and pg_attribute** (physical identity and schema evidence)\n  - What they are: The relation's file identifier and its column catalog.\n  - What they do here: They check that the failed ADD left no live column and the successful nullable\n    ADD did not replace the heap file in this trial.\n  - What they give us: Limited evidence about this schema change; file identity is not an I/O counter.\n- **CREATE FUNCTION ... RETURNS trigger, NEW and RETURN NEW** (compatibility bridge)\n  - What they are: A PL/pgSQL trigger function and the row being written.\n  - What they do here: NEW.priority_int is assigned from NEW.priority_text before each insert/update.\n    A supplied integer is deliberately overwritten because text remains canonical in this phase.\n  - What they give us: New legacy-format writes receive the integer atomically; malformed text raises\n    22P02 and rejects that write rather than leaving inconsistent representations.\n- **CREATE TRIGGER ... BEFORE INSERT OR UPDATE ... FOR EACH ROW** (write hook)\n  - What it is: A row trigger invoked inside the caller's transaction.\n  - What it does here: It is installed in the same short DDL transaction as the new column and check.\n  - What it gives us: No committed schema phase exposes the new column without its compatibility hook.\n- **ADD CONSTRAINT ... CHECK (...) NOT VALID** (deferred historical validation)\n  - What it is: A check enforced for later inserts/updates without first scanning all old rows.\n  - What it does here: It requires nonnull priority_int for changed rows while backfill is incomplete.\n  - What it gives us: pg_constraint.convalidated remains false until a separate validation succeeds.\n- **WITH candidate ... LIMIT 100 FOR UPDATE SKIP LOCKED** (bounded candidate selection)\n  - What it is: An ordered row selection that locks up to 100 available candidates and skips locked ones.\n  - What it does here: It selects null priorities without waiting for B's row 1.\n  - What it gives us: A bounded transaction size, not proof that every candidate was examined or processed.\n- **UPDATE ... FROM ... RETURNING and COUNT** (backfill and evidence)\n  - What they are: An update joined to the selected IDs, a changed-row result and an aggregate.\n  - What they do here: They fill those rows and report exactly how many the batch changed.\n  - What they give us: Per-batch work counts; the final zero is compared with still_null=1.\n- **Dollar-quoted batch text, generate_series and \\gexec** (psql batch driver)\n  - What they are: A literal SQL command, a bounded generator and a psql command executing each result.\n  - What they do here: They emit 11 batch statements. In autocommit, each finishes its own transaction\n    before the next begins; the generator does not wrap those writes into one large transaction.\n  - What they give us: Runnable partial progress with a fixed maximum number of batches.\n- **VALIDATE CONSTRAINT and SET NOT NULL** (completion and schema cutover)\n  - What they are: A check of historical rows and a column nullability change.\n  - What they do here: Premature validation fails 23514; after the skipped row is filled, validation\n    succeeds. PostgreSQL can use that retained valid check to skip SET NOT NULL's normal table scan.\n  - What they give us: convalidated=true and attnotnull=true. Scan avoidance is documented behavior;\n    SET NOT NULL still needs its DDL lock, so the trial retains a short lock budget.\n- **\\echo and :SQLSTATE** (psql error evidence)\n  - What they are: A client output command and the result code of the most recent SQL statement.\n  - What they do here: They print 55P03, 22P02 and 23514 immediately after the deliberately failing statements.\n  - What they give us: Classified outcomes before a later statement overwrites the status.\n- **statement_timeout and SET LOCAL** (execution bounds)\n  - What they are: A statement deadline and settings scoped to a transaction.\n  - What they do here: Statements have a 10-second limit; DDL lock waits have short local budgets.\n  - What they give us: Failure is bounded and session defaults are restored after the experiment.\n- **Retention variation: DELETE USING, fixed cutoff and FILTER** (bounded deletion)\n  - What they are: Deletion joined to candidate IDs, the explicit id<=200 policy and a conditional count.\n  - What they do here: They reuse independent batches while B holds one eligible row, then reconcile.\n  - What they give us: Exactly the intended 800 rows remain after reconciliation. Deleted rows do\n    not imply reclaimed filesystem bytes, and this fixed lab cutoff is not an archival policy.",
+    "setup": "drop table if exists mig_jobs;\ndrop function if exists mig_bridge();\ncreate table mig_jobs(id int primary key,priority_text text not null)\n  with(autovacuum_enabled=off);\ninsert into mig_jobs select g,(g%5)::text from generate_series(1,1000) g;\nanalyze mig_jobs;",
+    "code": "-- Session A\nset statement_timeout='10s';\nselect pg_relation_filenode('mig_jobs') as before_node \\gset\n-- Session B: a row lock also keeps this transaction's relation lock until commit.\nbegin;\nselect id from mig_jobs where id=1 for update;\n-- Session A: expected 55P03; a nullable ADD COLUMN still needs its table lock.\nbegin;\nset local lock_timeout='250ms';\nalter table mig_jobs add column priority_int integer;\n\\echo ddl_sqlstate :SQLSTATE\nrollback;\nselect count(*) as published_columns from pg_attribute\nwhere attrelid='mig_jobs'::regclass and attname='priority_int' and not attisdropped;\n-- Session B\ncommit;\n-- Session A: install the compatibility boundary atomically under a short lock budget.\nbegin;\nset local lock_timeout='500ms';\nalter table mig_jobs add column priority_int integer;\ncreate function mig_bridge() returns trigger language plpgsql as $$\nbegin\n  new.priority_int := new.priority_text::integer;\n  return new;\nend $$;\ncreate trigger mig_bridge before insert or update on mig_jobs\nfor each row execute function mig_bridge();\nalter table mig_jobs add constraint mig_priority_present check(priority_int is not null) not valid;\ncommit;\nselect pg_relation_filenode('mig_jobs')=:before_node as same_heap_file;\n-- Session B: legacy writer still supplies only the old representation.\ninsert into mig_jobs(id,priority_text) values(1001,'2');\nselect * from mig_jobs where id=1001;\n-- Expected 22P02; this autocommit write is rejected as a unit.\ninsert into mig_jobs(id,priority_text) values(1002,'invalid');\n\\echo writer_sqlstate :SQLSTATE\nbegin;\nselect id from mig_jobs where id=1 for update;\n-- Session A: no surrounding BEGIN. gexec runs these as independent committed batches.\nselect $batch$\nwith candidate as (\n  select id from mig_jobs where priority_int is null order by id limit 100 for update skip locked\n), changed as (\n  update mig_jobs j set priority_int=j.priority_text::integer\n  from candidate c where j.id=c.id returning j.id\n)\nselect count(*) as filled_this_batch from changed;\n$batch$ from generate_series(1,11) \\gexec\nselect count(*) as still_null from mig_jobs where priority_int is null;\n-- Session B: an independent reader can already see the committed historical batches.\nselect count(*) as committed_backfill_rows from mig_jobs where id<=1000 and priority_int is not null;\n-- Session A\n-- Expected 23514: the skipped historical row still violates the check.\nbegin;\nset local lock_timeout='500ms';\nalter table mig_jobs validate constraint mig_priority_present;\n\\echo validation_sqlstate :SQLSTATE\nrollback;\nselect convalidated from pg_constraint where conrelid='mig_jobs'::regclass and conname='mig_priority_present';\n-- Session B\ncommit;\n-- Session A: finish the skipped work before retrying validation.\nwith candidate as (\n  select id from mig_jobs where priority_int is null order by id limit 100 for update skip locked\n), changed as (\n  update mig_jobs j set priority_int=j.priority_text::integer\n  from candidate c where j.id=c.id returning j.id\n)\nselect count(*) as final_filled from changed;\nbegin;\nset local lock_timeout='500ms';\nalter table mig_jobs validate constraint mig_priority_present;\ncommit;\nbegin;\nset local lock_timeout='500ms';\nalter table mig_jobs alter column priority_int set not null;\ncommit;\nselect count(*) as rows,sum(priority_int) as priority_sum,\n  count(*)=1001 and count(*) filter(where priority_int is distinct from priority_text::integer)=0 as consistent\nfrom mig_jobs;\nselect attnotnull from pg_attribute where attrelid='mig_jobs'::regclass and attname='priority_int';\nselect convalidated from pg_constraint where conrelid='mig_jobs'::regclass and conname='mig_priority_present';\nreset statement_timeout;",
+    "expectedResult": "The first ADD COLUMN fails 55P03 while B's row transaction is open. After rollback,\npublished_columns=0. The successful bounded retry installs the column, bridge and unvalidated check;\nsame_heap_file=true in this trial. B's new id 1001 has priority_int=2 even though it supplied only\npriority_text. Its malformed id 1002 insert fails 22P02 and creates no row.\n\nWith B holding historical row 1, the 11 batches fill 999 old rows: nine batches of 100, one of 99 and\none of 0. The separate query still reports still_null=1, while B sees committed_backfill_rows=999. Earlier batches are already committed;\npremature validation fails 23514, rolls back that validation attempt and leaves convalidated=false.\nAn empty SKIP LOCKED batch has not established completion.\n\nAfter B commits, final_filled=1. Validation succeeds and the column becomes NOT NULL. The final\ninvariants are rows=1001, priority_sum=2002, consistent=true, attnotnull=true and convalidated=true.\nThe legacy column and trigger remain active; the final schema supports legacy writers and typed\nreads, not a completed application rollout that removes the old contract.\n\nThe retention variation starts from setup alone. It removes 199 eligible rows while id1 is locked,\nreports still_eligible=1 after empty batches, then removes the last eligible row after release.\nFinal remaining_rows=800, first_id=201 and retained_expected_range=true. Inspect file size separately;\nlogical deletion is not evidence of immediate disk-space reclamation.",
+    "systemsLens": "A long operation can make durable partial progress while preserving a compatibility invariant for\nconcurrent callers. Bound each unit of work, retain an idempotent remaining-work predicate, and\nreconcile before declaring completion. Skip-on-contention mechanisms improve availability but weaken\nwhat an empty poll means. Migration cutover and retiring a compatibility path are separate decisions\nbecause database state alone cannot prove every external caller has adopted a new contract.",
+    "challenge": "Apply the same batching discipline to a retention cutoff: remove only ids <= 200 while B holds id1.\nExplain why an empty deletion batch cannot finish the job, then reconcile after B releases the row.\nThe runnable hint supplies the complete two-session schedule and final range assertions.",
+    "caution": "Run only on the supplied mig_jobs table in two dedicated lab sessions. Start with no open\ntransaction. The first DDL attempt, malformed write and premature validation deliberately fail;\nfollow their rollback/continuation steps. Do not wrap the whole script in BEGIN or use psql -1:\nbackfill batches must commit separately. If a deadline fails unexpectedly, end B's transaction and\nrerun setup. The final bridge and legacy field remain until all application writers/readers have a\nreplacement contract; removing them is a separate deployment decision.",
+    "safetyLevel": "ddl",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 35,
+    "revision": 1
+  },
+  {
+    "ordinal": 48,
     "slug": "partial-and-covering-indexes",
     "title": "Index less, or index more: partial and covering indexes",
     "category": "indexes",
@@ -1497,7 +1530,7 @@
     "revision": 4
   },
   {
-    "ordinal": 48,
+    "ordinal": 49,
     "slug": "index-bloat-from-churn",
     "title": "Measure index churn before deciding to rebuild",
     "category": "indexes",
@@ -1530,7 +1563,7 @@
     "revision": 4
   },
   {
-    "ordinal": 49,
+    "ordinal": 50,
     "slug": "unique-index-enforcement-under-concurrency",
     "title": "A partial unique index enforces one active owner row",
     "category": "indexes",
@@ -1544,7 +1577,7 @@
     ],
     "prerequisites": [
       37,
-      47
+      48
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 19 \"Index Access Methods\" (section \"Indexing Engine Interface\"); Chapter 12 \"Relation-Level Locks\" (section \"Locks on Transaction IDs\")",
     "readingNotes": "Chapter 19 explains the indexing-engine uniqueness property, and Chapter 12 explains waits on a\ntransaction ID when a conflicting change is uncommitted. This experiment makes a partial unique\nindex enforce one active owner row and observes the losing insert wait and error. Read both chapters\nbefore or after; use the live wait to connect the index invariant to transaction locking.",
@@ -1563,7 +1596,7 @@
     "revision": 4
   },
   {
-    "ordinal": 50,
+    "ordinal": 51,
     "slug": "keyset-pagination-and-concurrent-writes",
     "title": "Continue from a key boundary while new rows arrive",
     "category": "indexes",
@@ -1575,7 +1608,7 @@
       "index-scans"
     ],
     "prerequisites": [
-      47
+      48
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 20 \"Index Scans\".",
     "overview": "OFFSET asks PostgreSQL to walk past every earlier result, while keyset pagination seeks from a saved\nordered key. This lesson uses a nonunique timestamp plus id tie-breaker, compares a deep OFFSET with\na keyset page from the same boundary, and then inserts a row before that boundary. In READ COMMITTED,\nOFFSET 5 repeats a row after the insert; the keyset predicate continues after the saved pair.",
@@ -1593,7 +1626,7 @@
     "revision": 1
   },
   {
-    "ordinal": 51,
+    "ordinal": 52,
     "slug": "every-change-is-a-wal-record",
     "title": "Every change is a WAL record",
     "category": "wal",
@@ -1625,7 +1658,7 @@
     "revision": 2
   },
   {
-    "ordinal": 52,
+    "ordinal": 53,
     "slug": "full-page-writes-after-checkpoint",
     "title": "Full-page writes: why the first change after a checkpoint costs 8 KB",
     "category": "wal",
@@ -1638,7 +1671,7 @@
       "checksums"
     ],
     "prerequisites": [
-      51,
+      52,
       6
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (section \"Fault Tolerance\"); Chapter 10 \"Write-Ahead Log\" (section \"Recovery\")",
@@ -1659,7 +1692,7 @@
     "revision": 2
   },
   {
-    "ordinal": 53,
+    "ordinal": 54,
     "slug": "commit-means-fsync",
     "title": "Commit means fsync: the durability latency floor",
     "category": "wal",
@@ -1671,7 +1704,7 @@
       "capacity"
     ],
     "prerequisites": [
-      51,
+      52,
       1
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (sections \"Performance\", \"Fault Tolerance\")",
@@ -1691,7 +1724,7 @@
     "revision": 2
   },
   {
-    "ordinal": 54,
+    "ordinal": 55,
     "slug": "wal-files-and-recycling",
     "title": "Segments, recycling, and the archive",
     "category": "wal",
@@ -1703,7 +1736,7 @@
       "capacity"
     ],
     "prerequisites": [
-      51
+      52
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"WAL Structure\", \"WAL Setup\")",
     "readingNotes": "Chapter 10 describes finite WAL segments, their naming, and setup and monitoring choices. This lesson\nwalks the segment directory and observes archiving, extending local WAL into the backup boundary.",
@@ -1723,7 +1756,7 @@
     "revision": 2
   },
   {
-    "ordinal": 55,
+    "ordinal": 56,
     "slug": "crash-and-redo",
     "title": "Kill the server: redo, and what survives a crash",
     "category": "wal",
@@ -1735,7 +1768,7 @@
       "transactions"
     ],
     "prerequisites": [
-      51,
+      52,
       14
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Recovery\")",
@@ -1756,7 +1789,7 @@
     "revision": 2
   },
   {
-    "ordinal": 56,
+    "ordinal": 57,
     "slug": "wal-replay-is-deterministic",
     "title": "Read the log the server replayed",
     "category": "wal",
@@ -1768,8 +1801,8 @@
       "consistency"
     ],
     "prerequisites": [
-      55,
-      54
+      56,
+      55
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"Recovery\")",
     "readingNotes": "Chapter 10 presents recovery as deterministic replay of WAL records. This lesson compares SQL\npg_walinspect output with pg_waldump output for the same LSN range, making the replay stream visible\nfrom both interfaces.",
@@ -1788,7 +1821,7 @@
     "revision": 2
   },
   {
-    "ordinal": 57,
+    "ordinal": 58,
     "slug": "wal-size-of-operations",
     "title": "What things cost: measuring WAL per operation",
     "category": "wal",
@@ -1800,7 +1833,7 @@
       "capacity"
     ],
     "prerequisites": [
-      51,
+      52,
       8
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (sections \"Fault Tolerance\", \"WAL Levels\"); Chapter 5 \"Page Pruning and HOT Updates\" (section \"HOT Updates\")",
@@ -1820,7 +1853,7 @@
     "revision": 2
   },
   {
-    "ordinal": 58,
+    "ordinal": 59,
     "slug": "checkpoint-anatomy",
     "title": "What a checkpoint actually does",
     "category": "checkpointing",
@@ -1833,7 +1866,7 @@
     ],
     "prerequisites": [
       10,
-      51
+      52
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Background Writing\", \"WAL Setup\")",
     "readingNotes": "Chapter 10 explains checkpoint work, background writing, and the settings and counters used to\nmonitor it. This lesson makes those ideas visible by dirtying buffers, forcing a checkpoint, and\nmatching LSN arithmetic with pg_stat_bgwriter and log output.",
@@ -1852,7 +1885,7 @@
     "revision": 2
   },
   {
-    "ordinal": 59,
+    "ordinal": 60,
     "slug": "redo-point-bounds-recovery",
     "title": "Crash twice: the redo point is your RTO",
     "category": "checkpointing",
@@ -1864,8 +1897,8 @@
       "durability"
     ],
     "prerequisites": [
-      58,
-      55
+      59,
+      56
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Recovery\")",
     "readingNotes": "Chapter 10 explains how checkpoints bound redo work and how crash recovery replays the remaining WAL.\nThis lesson runs the same crash twice, with and without an intervening checkpoint, to measure that\nrecovery bound while showing that both committed datasets remain durable.",
@@ -1885,7 +1918,7 @@
     "revision": 2
   },
   {
-    "ordinal": 60,
+    "ordinal": 61,
     "slug": "max-wal-size-forces-checkpoints",
     "title": "Back-pressure: max_wal_size forces a checkpoint",
     "category": "checkpointing",
@@ -1897,8 +1930,8 @@
       "configuration"
     ],
     "prerequisites": [
-      58,
-      54
+      59,
+      55
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Setup\")",
     "readingNotes": "Chapter 10's WAL setup section explains checkpoint thresholds and the monitoring signals around them.\nThis lesson lowers max_wal_size to trigger WAL-driven checkpoints during a bulk write, showing the\nback-pressure and warning messages live.",
@@ -1931,7 +1964,7 @@
     "revision": 3
   },
   {
-    "ordinal": 61,
+    "ordinal": 62,
     "slug": "base-backup",
     "title": "Take a base backup and see why it needs WAL",
     "category": "checkpointing",
@@ -1943,8 +1976,8 @@
       "durability"
     ],
     "prerequisites": [
-      58,
-      54
+      59,
+      55
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "A checkpoint bounds recovery from a crash. It does nothing for a lost disk, a dropped table, or a\nbad migration. For those you need a copy of the data files somewhere else, plus enough WAL to make\nthat copy mean something -- and \"plus enough WAL\" is the part people get wrong.\n\npg_basebackup copies the whole data directory of a running server over the replication protocol.\nIt cannot take an atomic snapshot: files are read one at a time while transactions keep\ncommitting, so the copy is a smear of states, torn pages and all. What makes it usable is the pair\nof LSNs it records in backup_label. Replay every WAL record between them and the smear resolves\ninto a consistent database. In this lesson you take that backup, read backup_label, verify it with\npg_verifybackup, and break it on purpose to watch verification catch it. The backup you make here\nis the input to the next lesson.",
@@ -1962,7 +1995,7 @@
     "revision": 2
   },
   {
-    "ordinal": 62,
+    "ordinal": 63,
     "slug": "point-in-time-recovery",
     "title": "Undo a dropped table by restoring to a moment in time",
     "category": "checkpointing",
@@ -1974,8 +2007,8 @@
       "timelines"
     ],
     "prerequisites": [
-      61,
-      59
+      62,
+      60
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Now put the pieces together. You have a base backup (a smeared file copy plus two LSNs) and an\narchive holding every WAL segment the cluster has ever sealed. Between them they let you\nreconstruct the database as it was at any instant the archive covers -- including the instant one\nsecond before somebody dropped a table.\n\nYou will drop a table on purpose, having first recorded the timestamp of a moment you know was\nsafe. Then you restore backup1 into a second data directory, tell it to replay the archive up to\nthat timestamp and stop there, and start it on port 5441 alongside the untouched original. The\nrestored server replays forward, announces \"recovery stopping before commit of transaction NNN\",\npromotes itself onto a new timeline, and the table is there. The original on 5440 never notices.",
@@ -1994,7 +2027,7 @@
     "revision": 2
   },
   {
-    "ordinal": 63,
+    "ordinal": 64,
     "slug": "timeline-history",
     "title": "Timelines: the archive remembers both histories",
     "category": "checkpointing",
@@ -2006,8 +2039,8 @@
       "replicated-log"
     ],
     "prerequisites": [
-      62,
-      54
+      63,
+      55
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The restored server is gone, but it left a fossil. When it promoted it allocated timeline 2 and\nwrote a history file into the shared archive recording exactly where it branched off timeline 1.\nThat eight-hex-digit prefix on every WAL segment name -- the one you have been ignoring since\nmodule 07 -- is what keeps two divergent histories of the same cluster from being mistaken for\neach other.\n\nThis lesson is short and read-only: look at the history file, count the segments per timeline in\nthe archive, and reason out the consequence that sets up the whole replication module. A server\nthat has diverged onto its own timeline cannot follow a server on another one, because their logs\nagree on a prefix and then disagree, and there is no way to apply one on top of the other.",
@@ -2025,7 +2058,7 @@
     "revision": 2
   },
   {
-    "ordinal": 64,
+    "ordinal": 65,
     "slug": "wait-events-tell-you-where-time-goes",
     "title": "Wait events: where a backend's time actually goes",
     "category": "observability",
@@ -2057,7 +2090,7 @@
     "revision": 2
   },
   {
-    "ordinal": 65,
+    "ordinal": 66,
     "slug": "pg-stat-io-by-backend-type",
     "title": "pg_stat_io: who reads, who writes, who extends",
     "category": "observability",
@@ -2070,7 +2103,7 @@
     ],
     "prerequisites": [
       10,
-      58
+      59
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 9 \"Buffer Cache\".",
     "overview": "Before PostgreSQL 16 the I/O picture was a handful of scalars in pg_stat_bgwriter: you could see\nthat 26522 buffers were written, but not by whom, or why, or through which strategy. pg_stat_io\nis a matrix instead: (backend_type x object x context) x (reads, writes, extends, hits,\nevictions, reuses, fsyncs). That shape is what lets you answer the question that actually matters\nduring an I/O incident - is this the checkpointer doing scheduled work, an autovacuum worker, or\nordinary backends being forced to write dirty pages themselves because the cache is full?\n\nYou will snapshot the matrix, run one deliberately cache-hostile workload (a table larger than\nshared_buffers, written and then read back), and diff the snapshot. Every number in the diff has\na cause you can point at in the workload.",
@@ -2088,7 +2121,7 @@
     "revision": 2
   },
   {
-    "ordinal": 66,
+    "ordinal": 67,
     "slug": "connection-saturation",
     "title": "Measure throughput and waiting as active clients increase",
     "category": "observability",
@@ -2100,7 +2133,7 @@
       "row-locks"
     ],
     "prerequisites": [
-      64,
+      65,
       44,
       30
     ],
@@ -2120,7 +2153,7 @@
     "revision": 4
   },
   {
-    "ordinal": 67,
+    "ordinal": 68,
     "slug": "idle-in-transaction-kills-you",
     "title": "Timeouts: idle in transaction, and statements that never end",
     "category": "observability",
@@ -2132,7 +2165,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      64,
+      65,
       33
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 8 \"Rebuilding Tables and Indexes\" (section \"Precautions\"); Chapter 4 \"Snapshots\" (section \"Transaction Horizon\")",
@@ -2152,7 +2185,7 @@
     "revision": 2
   },
   {
-    "ordinal": 68,
+    "ordinal": 69,
     "slug": "table-and-index-usage-counters",
     "title": "Per-table counters: seq scans, index scans, and the unused index",
     "category": "observability",
@@ -2165,7 +2198,7 @@
     ],
     "prerequisites": [
       40,
-      65
+      66
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 6 \"Vacuum and Autovacuum\".",
     "overview": "pg_stat_io told you what the cluster did. pg_stat_user_tables tells you what each table did, and\nit answers the two questions you ask first about a schema you did not write: which tables are\nbeing sequentially scanned in a loop, and which indexes has nobody used since the server started.\n\nHere you reset the counters for one table, run a workload you can count from memory - four seq\nscans, a thousand index lookups, some inserts, updates and deletes - and check that every counter\nequals what you did. Then you read the cache-hit side of the same story in pg_statio_user_tables,\nand confirm that the index nobody queries has idx_scan = 0, which is how you find dead indexes\nthat cost you write amplification for nothing.",
@@ -2183,7 +2216,7 @@
     "revision": 2
   },
   {
-    "ordinal": 69,
+    "ordinal": 70,
     "slug": "read-the-server-log",
     "title": "The server log is the ground truth for a postmortem",
     "category": "observability",
@@ -2195,8 +2228,8 @@
       "incident"
     ],
     "prerequisites": [
-      60,
-      67
+      61,
+      68
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Setup\"); Chapter 15 \"Locks on Memory Structures\" (section \"Monitoring Waits\")",
     "readingNotes": "Chapter 10 shows the logging settings used to observe checkpoints, while Chapter 15 connects wait monitoring with lock contention. This lesson adds duration logging, line prefixes, and a complete wait timeline for a postmortem. Read before or after; the book supplies the mechanisms and the experiment supplies the workflow.",
@@ -2215,7 +2248,7 @@
     "revision": 2
   },
   {
-    "ordinal": 70,
+    "ordinal": 71,
     "slug": "build-a-streaming-standby",
     "title": "Build a streaming standby from a base backup",
     "category": "replication",
@@ -2227,7 +2260,7 @@
       "replicated-log"
     ],
     "prerequisites": [
-      61
+      62
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "Module 08 showed that a base backup plus the WAL written since it started is enough to rebuild the\ndatabase at any later point. A streaming standby is that idea with the pause taken out: instead of\nrestoring the backup once and replaying an archive on demand, a second server restores the backup,\nopens a replication connection to the first, and never stops replaying. It is permanently in\nrecovery, permanently a few milliseconds behind, and permanently ready to become the primary.\n\nYou will build one under $PGLAB/standby on port 5441, next to the primary on 5440, and confirm the\nlink from both ends: pg_stat_replication on the primary (one row per connected standby, state\nstreaming) and pg_is_in_recovery() on the standby (true, forever, until you promote it).",
@@ -2245,7 +2278,7 @@
     "revision": 2
   },
   {
-    "ordinal": 71,
+    "ordinal": 72,
     "slug": "replication-lag-under-load",
     "title": "Four LSNs: the pipeline stages of a replicated log",
     "category": "replication",
@@ -2258,8 +2291,8 @@
       "wal"
     ],
     "prerequisites": [
-      70,
-      51
+      71,
+      52
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "\"Replication lag\" is not one number. pg_stat_replication gives you four LSNs per standby -- sent,\nwrite, flush, replay -- and they are the four stages a WAL record passes through on its way from\nthe primary's memory to a query result on the follower. Each gap between two of them is a different\nfailure story: sent-to-write is the network, write-to-flush is the follower's disk, flush-to-replay\nis the follower's CPU and its conflicting queries.\n\nIn this lesson you freeze exactly one stage. pg_wal_replay_pause() on the standby stops replay\nwhile receiving and flushing continue, so the standby keeps every byte safe on disk and still\nanswers queries from a database that is now minutes old. No error, no warning, just stale reads --\nwhich is the single most important thing to understand before you route traffic at a replica.",
@@ -2277,7 +2310,7 @@
     "revision": 2
   },
   {
-    "ordinal": 72,
+    "ordinal": 73,
     "slug": "synchronous-replication-blocks-commit",
     "title": "Synchronous replication: pay for durability in commit latency",
     "category": "replication",
@@ -2290,8 +2323,8 @@
       "consistency"
     ],
     "prerequisites": [
-      71,
-      53
+      72,
+      54
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "So far the standby has been asynchronous: the primary commits, tells the client \"done\", and ships\nthe bytes whenever it gets round to it. If the primary's disk dies one millisecond after a commit,\nthat transaction is acknowledged and gone.\n\nSynchronous replication closes that window by making COMMIT wait for the standby. You name the\nstandby in synchronous_standby_names and pick how far it must get -- remote_write, on (flush), or\nremote_apply -- and every commit now costs a network round trip instead of a local fsync. Then you\nfind out what it costs when the standby is not there: with one synchronous standby named and no\nstandby answering, commits stop. Not fail: stop. You will make that happen, watch a commit hang,\nand rescue the primary from a second session by taking the standby's name back out.",
@@ -2310,7 +2343,7 @@
     "revision": 2
   },
   {
-    "ordinal": 73,
+    "ordinal": 74,
     "slug": "hot-standby-query-conflict",
     "title": "Recovery conflicts: the replica cancels your query",
     "category": "replication",
@@ -2323,7 +2356,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      71,
+      72,
       15
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
@@ -2342,7 +2375,7 @@
     "revision": 2
   },
   {
-    "ordinal": 74,
+    "ordinal": 75,
     "slug": "replication-slot-retains-wal",
     "title": "A slot is an unbounded promise until you bound it",
     "category": "replication",
@@ -2355,8 +2388,8 @@
       "observability"
     ],
     "prerequisites": [
-      71,
-      54
+      72,
+      55
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The standby you built has no safety net. It streams from wherever the primary happens to still have\nWAL, and the primary recycles segments on its own schedule -- so a standby that is offline long\nenough comes back to \"requested WAL segment has already been removed\" and has to be rebuilt from a\nfresh base backup.\n\nA physical replication slot fixes that by making the primary keep every segment the standby has not\nconfirmed. That promise has no expiry date, which is the other failure mode: one forgotten slot\nfills the primary's disk. You will attach the standby to a slot, create a second slot for a\nconsumer that never comes back, watch pg_wal stop shrinking, and then put a 64 MB bound on the\npromise with max_slot_wal_keep_size and watch the server invalidate the slot rather than run out of\ndisk.",
@@ -2375,7 +2408,7 @@
     "revision": 2
   },
   {
-    "ordinal": 75,
+    "ordinal": 76,
     "slug": "promote-the-standby",
     "title": "Promote the standby, and meet split brain",
     "category": "replication",
@@ -2388,8 +2421,8 @@
       "leader-election"
     ],
     "prerequisites": [
-      70,
-      63
+      71,
+      64
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Failover in PostgreSQL is one command: pg_ctl promote. The standby stops following, finishes\nreplaying what it has, picks a new timeline ID, and starts accepting writes. It takes about a\nsecond and there is no election, no quorum, and -- this is the part that matters -- nothing\nwhatsoever that stops the old primary from carrying on.\n\nSo you will do the failover the way a panicking operator does it, without touching the old primary\nfirst, and then look at both servers. Each is a primary. Each has its own timeline. Each accepts a\nwrite into the same table and stores something the other will never see -- and they do not even\ncollide on the primary key, because the promoted node's copy of the sequence had already jumped\nahead. That is split brain, in about four commands, and the next two lessons are the cost of\ngetting out of it.",
@@ -2407,7 +2440,7 @@
     "revision": 2
   },
   {
-    "ordinal": 76,
+    "ordinal": 77,
     "slug": "rewind-the-old-primary",
     "title": "pg_rewind: rejoin a diverged primary without a new base backup",
     "category": "replication",
@@ -2420,7 +2453,7 @@
       "split-brain"
     ],
     "prerequisites": [
-      75
+      76
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The old primary has a write the new primary never saw. It cannot simply start following the new\nprimary: their histories diverged, and physical replication has no way to un-apply a page change.\nThe safe, slow answer is to throw the old primary away and take a fresh base backup -- 350 MB here,\nterabytes in production.\n\npg_rewind is the fast answer. It asks the new primary \"where did our timelines diverge\", then reads\nthe old primary's WAL from that point forward to find every block it touched afterwards, copies\njust those blocks back from the new primary, and rewinds the control file to the divergence point.\nWhat is left is a data directory that can replay the new primary's history. The doomed row from the\nprevious lesson disappears -- physically, silently, with no error anywhere -- which is what\n\"resolving split brain\" always means: somebody's committed data is chosen for deletion.",
@@ -2438,7 +2471,7 @@
     "revision": 2
   },
   {
-    "ordinal": 77,
+    "ordinal": 78,
     "slug": "cascading-and-failback",
     "title": "Cascade, fail back, and put the lab away",
     "category": "replication",
@@ -2451,7 +2484,7 @@
       "lab"
     ],
     "prerequisites": [
-      76
+      77
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Two things are left. The first is cascading: a standby is also a WAL sender, so you can chain\nreplicas, and 5440 -- which is currently a standby -- can feed a third node without the primary\nknowing or caring. You will build one on port 5442, watch a write travel 5441 to 5440 to 5442, and\nthen throw it away.\n\nThe second is failback, and it is the whole reason this module can be run twice. The lab must end\nexactly as module 01 built it: one primary on 5440 with its data in $PGLAB/primary, nothing on\n5441, no standby directory, no replication slots, and a postgresql.auto.conf with no settings in\nit. So you will reverse the roles one more time -- stop the primary on 5441 cleanly, confirm 5440\nhas replayed everything, promote it, and delete the rest. The only trace left is the timeline: the\nlab started on timeline 1 and ends on timeline 3, one branch per promotion, which is exactly what\nthe .history files in pg_wal say.",
@@ -2469,7 +2502,7 @@
     "revision": 2
   },
   {
-    "ordinal": 78,
+    "ordinal": 79,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -2483,7 +2516,7 @@
     ],
     "prerequisites": [
       2,
-      51
+      52
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "Physical replication ships page deltas: unreadable outside PostgreSQL and useless to a downstream\nsystem. Logical decoding runs the same WAL through an output plugin that knows the catalog, and\nturns it back into row-level INSERT/UPDATE/DELETE events. That is exactly what a CDC pipeline is.\nIn this lesson you create a slot with the test_decoding plugin, cause a transaction, read the\nevent stream, and find out what the stream does NOT contain: rolled-back work, DDL, and the old\nvalues of a row unless you ask for them.",
@@ -2501,7 +2534,7 @@
     "revision": 2
   },
   {
-    "ordinal": 79,
+    "ordinal": 80,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -2514,7 +2547,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      78
+      79
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
@@ -2532,7 +2565,7 @@
     "revision": 2
   },
   {
-    "ordinal": 80,
+    "ordinal": 81,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -2544,7 +2577,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      79
+      80
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
@@ -2563,7 +2596,7 @@
     "revision": 2
   },
   {
-    "ordinal": 81,
+    "ordinal": 82,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -2575,7 +2608,7 @@
       "consistency"
     ],
     "prerequisites": [
-      80
+      81
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 \"Snapshots\".",
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
@@ -2593,7 +2626,7 @@
     "revision": 2
   },
   {
-    "ordinal": 82,
+    "ordinal": 83,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -2605,7 +2638,7 @@
       "observability"
     ],
     "prerequisites": [
-      81
+      82
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
@@ -2623,7 +2656,7 @@
     "revision": 2
   },
   {
-    "ordinal": 83,
+    "ordinal": 84,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -2636,7 +2669,7 @@
       "observability"
     ],
     "prerequisites": [
-      82
+      83
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
@@ -2655,7 +2688,7 @@
     "revision": 2
   },
   {
-    "ordinal": 84,
+    "ordinal": 85,
     "slug": "transactional-outbox",
     "title": "Transactional outbox: one commit for the row and the message",
     "category": "distributed-patterns",
@@ -2687,7 +2720,7 @@
     "revision": 2
   },
   {
-    "ordinal": 85,
+    "ordinal": 86,
     "slug": "idempotency-keys",
     "title": "Idempotency keys: make the retry a no-op, not a second charge",
     "category": "distributed-patterns",
@@ -2700,7 +2733,7 @@
     ],
     "prerequisites": [
       37,
-      84
+      85
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\".",
     "overview": "A client that does not get an answer must retry, and it cannot tell \"the request never arrived\"\nfrom \"the answer was lost\". So the server has to make the second request harmless. The whole\nmechanism is a unique index on a key the client chooses plus ON CONFLICT DO NOTHING, which turns\n\"this already happened\" from an error into zero rows. You will run the retry three ways - the naive\nINSERT that errors, the idempotent one that no-ops, and the read-back that returns the original\nanswer - and then race two retries concurrently to watch the second one wait on the first\ntransaction's fate before it learns it lost.",
@@ -2718,7 +2751,7 @@
     "revision": 2
   },
   {
-    "ordinal": 86,
+    "ordinal": 87,
     "slug": "two-phase-commit",
     "title": "Two-phase commit: a transaction with no process",
     "category": "distributed-patterns",
@@ -2731,9 +2764,9 @@
       "recovery"
     ],
     "prerequisites": [
-      55,
+      56,
       15,
-      85
+      86
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 \"Pages and Tuples\".",
     "overview": "PREPARE TRANSACTION splits COMMIT in half. The first half does everything a commit does except\nbecome visible: it writes the changes to WAL, fsyncs them, keeps every lock, and then detaches the\nwhole thing from your session. What is left is a transaction with no backend, no connection and no\ntimeout, sitting in pg_prepared_xacts until somebody says COMMIT PREPARED or ROLLBACK PREPARED.\nThat is exactly the guarantee an external coordinator needs to run 2PC across several databases -\nand exactly the operational hazard, because a coordinator that dies leaves a transaction that holds\nlocks and pins the xmin horizon forever. You will build one, watch it block a writer, watch it\nstall VACUUM, kill the server underneath it, find it still there after recovery, and finally\nresolve it.\n\nThe feature is off by default: max_prepared_transactions is 0 on a stock cluster, and it is a\npostmaster-level setting, so turning it on needs a restart, not a reload. The lab's postgresql.conf\nfrom module 01 already sets it to 10; the first block changes it anyway so you can watch a config\nreload fail to take effect.",
@@ -2752,7 +2785,7 @@
     "revision": 2
   },
   {
-    "ordinal": 87,
+    "ordinal": 88,
     "slug": "fencing-tokens-with-a-monotonic-counter",
     "title": "Fencing tokens: why a lease alone is not mutual exclusion",
     "category": "distributed-patterns",
@@ -2784,7 +2817,7 @@
     "revision": 2
   },
   {
-    "ordinal": 88,
+    "ordinal": 89,
     "slug": "read-your-writes-on-a-replica",
     "title": "Read your writes: carry an LSN from the primary to the replica",
     "category": "distributed-patterns",
@@ -2796,7 +2829,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      80,
+      81,
       24
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
@@ -2816,7 +2849,7 @@
     "revision": 2
   },
   {
-    "ordinal": 89,
+    "ordinal": 90,
     "slug": "listen-notify-as-a-bus",
     "title": "LISTEN/NOTIFY: a bus with no memory",
     "category": "distributed-patterns",
@@ -2829,7 +2862,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      84
+      85
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\".",
     "overview": "LISTEN/NOTIFY is the one piece of pub/sub built into PostgreSQL, and it is genuinely useful: it\nremoves the polling loop from the outbox relay you built in the first lesson. It is also the most\nfrequently misused feature in the database, because it looks like a message queue and is not one.\nIn this lesson you establish the two properties that decide where it belongs: delivery happens at\nCOMMIT, in the same instant the data becomes visible, and delivery reaches only whoever is\nlistening at that instant. Nothing is stored. A listener that is disconnected, restarting, or\nsimply not subscribed yet misses the message permanently, and there is no offset, no\nacknowledgement and no redelivery.",
@@ -2847,7 +2880,7 @@
     "revision": 2
   },
   {
-    "ordinal": 90,
+    "ordinal": 91,
     "slug": "abandoned-slot-fills-the-disk",
     "title": "Incident: an abandoned replication slot eats the disk",
     "category": "reliability",
@@ -2860,9 +2893,9 @@
       "observability"
     ],
     "prerequisites": [
-      54,
-      74,
-      83
+      55,
+      75,
+      84
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "03:07. The page says \"db-primary root filesystem 91% and climbing, 40 minutes to full\". Nobody\ndeployed anything. The database is serving traffic normally. This is the most common way a healthy\nPostgreSQL server kills itself: a replication slot whose consumer went away, holding every WAL\nsegment written since it left.\n\nYou will run the incident end to end. First the three queries that identify it in under a minute.\nThen a controlled reproduction: a slot nobody consumes, and enough writes to walk it through all\nfour values of pg_replication_slots.wal_status -- reserved, extended, unreserved, lost -- with\nsafe_wal_size counting down to a negative number and then the server taking the promise back in\nthe log. Then the recovery (drop the slot), then the revert.\n\nThe reproduction bounds the damage with max_slot_wal_keep_size instead of actually filling the\ndisk, because filling the disk on a PostgreSQL primary is not a drill you can take back: the WAL\nwriter PANICs and the server dies. The real failure text is quoted below so you know it when you\nsee it.",
@@ -2881,7 +2914,7 @@
     "revision": 2
   },
   {
-    "ordinal": 91,
+    "ordinal": 92,
     "slug": "corrupt-a-page-and-detect-it",
     "title": "Incident: a corrupt page, and the difference between detecting and repairing it",
     "category": "reliability",
@@ -2896,7 +2929,7 @@
     "prerequisites": [
       5,
       19,
-      62
+      63
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (section \"Fault Tolerance\")",
     "readingNotes": "Chapter 11's Fault Tolerance section explains data checksums, corruption detection, and the limits\nof protecting non-atomic writes. This lesson damages one heap block offline, verifies it with\npg_checksums, and demonstrates that an index-only lookup can hide a damaged heap page. The repair\nportion goes beyond the book into zero_damaged_pages, pg_surgery, and restore-from-backup practice;\nread the chapter before the drill, then use the backup copy to understand why detection is not repair.",
@@ -2916,7 +2949,7 @@
     "revision": 2
   },
   {
-    "ordinal": 92,
+    "ordinal": 93,
     "slug": "wraparound-drill",
     "title": "Incident: transaction id wraparound, on a schedule you control",
     "category": "reliability",
@@ -2931,7 +2964,7 @@
     "prerequisites": [
       16,
       20,
-      69
+      70
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 7 \"Freezing\" (sections \"Transaction ID Wraparound\", \"Managing Freezing\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Monitoring\")",
     "readingNotes": "Chapter 7 explains transaction-ID wraparound, freezing ages, and aggressive or forced vacuum; Chapter\n6 explains monitoring vacuum progress. This drill compresses the thresholds to a lab-sized table,\nburns real transaction IDs, and watches the anti-wraparound worker and a throttled vacuum. Read the\nchapters before the drill to understand why the server prioritizes advancing relfrozenxid.",
@@ -2951,7 +2984,7 @@
     "revision": 2
   },
   {
-    "ordinal": 93,
+    "ordinal": 94,
     "slug": "runaway-query-and-cancel",
     "title": "Incident: a runaway query, and the difference between cancel and terminate",
     "category": "reliability",
@@ -2965,7 +2998,7 @@
     ],
     "prerequisites": [
       31,
-      67
+      68
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 15 \"Locks on Memory Structures\".",
     "overview": "One query is pinning a CPU, the queue behind it is growing, and somebody in the incident channel\nsays \"just kill it\". There are two ways to do that and they are not interchangeable:\npg_cancel_backend stops the statement and leaves the session, pg_terminate_backend destroys the\nwhole connection. This lesson runs both against the same workload so you can see exactly what the\nclient gets, what pg_stat_activity says afterwards, and what happens to the uncommitted rows the\ntransaction had already written.\n\nThen it installs the guardrail that means nobody has to make this decision at 3 a.m.:\nstatement_timeout, which is the same cancel, applied automatically, by the server, before anyone is\npaged.",
@@ -2983,7 +3016,7 @@
     "revision": 2
   },
   {
-    "ordinal": 94,
+    "ordinal": 95,
     "slug": "postmortem-from-the-log",
     "title": "Postmortem: reconstruct the crash and the failover from the log alone",
     "category": "reliability",
@@ -2996,10 +3029,10 @@
       "failover"
     ],
     "prerequisites": [
-      55,
-      63,
-      69,
-      77
+      56,
+      64,
+      70,
+      78
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The incident is over. Somebody has to write down what happened, and all you have is what the\nservers wrote down themselves: $PGLAB/primary/log/postgresql.log and the .history files in\n$PGLAB/archive. No metrics, no traces, nobody's memory.\n\nThis lesson turns those two sources into a timeline of timestamp, event, LSN and timeline id --\nfor the crash you caused in module 07 and the promote / rewind / failback you ran in module 09.\nNothing here writes anything. The skill being taught is which twenty lines out of ten thousand are\nthe ones that carry state transitions, and how to read an LSN and a timeline id as the two\ncoordinates that place every event in the cluster's history.\n\nIt also teaches the most uncomfortable lesson in postmortem work: some of your evidence is\ndestroyed by the recovery itself, and you have to notice that rather than conclude nothing\nhappened.",

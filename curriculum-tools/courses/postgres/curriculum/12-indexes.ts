@@ -1,4 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
+import { MIGRATION } from "./migration-workload.ts";
 
 export const INDEXES: Module = {
   category: "indexes",
@@ -364,6 +365,7 @@ The second half deliberately fails a DDL statement and leaves an invalid index u
 Run it only in the lab. If the readiness check or15-second deadline fails, end B's transaction,
 inspect and drop only the named invalid index, then rerun setup before continuing.`,
     },
+    MIGRATION,
     {
       slug: "partial-and-covering-indexes",
       tags: ["index-scans", "query-planning", "explain", "btree"],

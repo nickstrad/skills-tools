@@ -128,3 +128,21 @@ rate. Their empirical tail latency does not include an independent application a
 single-row serialized fixture reveals waiting and a throughput plateau, not maximum PostgreSQL
 capacity. Reverse the run order, record local settings, scope the observer and state sample limits;
 400 latency records make p99 the396th ordered observation, not a stable service-level guarantee.
+
+## Batches, reconciliation and migration boundaries, 2026-09-05
+
+psql gexec can emit a bounded list of SQL statements that commit separately in autocommit. Do not
+wrap the whole driver in BEGIN when testing durable partial progress. Verify another session sees
+completed batches before a later validation attempt fails; local counts alone cannot establish the
+commit boundary. See [PostgreSQL16 psql](https://www.postgresql.org/docs/16/app-psql.html).
+
+An empty SKIP LOCKED batch means no available work under that selection, not no eligible work. Both
+backfill and retention variations hold an eligible row, finish with an empty batch, then use a
+separate predicate query to find remaining work and reconcile after the lock is released.
+
+A NOT VALID check constrains subsequent writes while historical rows await validation. Installing an
+explicit compatibility trigger with a new column makes a concrete database transition, but does not
+prove every application caller has migrated. State which representation remains canonical. A valid
+nonnull check can let SET NOT NULL skip its normal table scan; this does not remove its DDL lock.
+Keep the documented optimization separate from measured file identity or elapsed time. See
+[PostgreSQL16 ALTER TABLE](https://www.postgresql.org/docs/16/sql-altertable.html).

@@ -44,33 +44,33 @@ across later changes. Retirement does not transfer completion. Original lessons1
 |       36 |      35 | `advisory-locks-as-leases`                      | Retained                                                                               |
 |       37 |      36 | `skip-locked-work-queue`                        | Retained                                                                               |
 |       38 |      37 | `unique-constraint-race`                        | Retained                                                                               |
-|       39 |      51 | `every-change-is-a-wal-record`                  | Retained                                                                               |
-|       40 |      52 | `full-page-writes-after-checkpoint`             | Retained                                                                               |
-|       41 |      53 | `commit-means-fsync`                            | Retained                                                                               |
-|       42 |      54 | `wal-files-and-recycling`                       | Retained                                                                               |
-|       43 |      55 | `crash-and-redo`                                | Retained                                                                               |
-|       44 |      56 | `wal-replay-is-deterministic`                   | Retained                                                                               |
-|       45 |      57 | `wal-size-of-operations`                        | Retained                                                                               |
-|       46 |      58 | `checkpoint-anatomy`                            | Retained                                                                               |
-|       47 |      59 | `redo-point-bounds-recovery`                    | Retained                                                                               |
-|       48 |      60 | `max-wal-size-forces-checkpoints`               | Retained                                                                               |
-|       49 |      61 | `base-backup`                                   | Retained                                                                               |
-|       50 |      62 | `point-in-time-recovery`                        | Retained                                                                               |
-|       51 |      63 | `timeline-history`                              | Retained                                                                               |
-|       52 |      70 | `build-a-streaming-standby`                     | Retained                                                                               |
-|       53 |      71 | `replication-lag-under-load`                    | Retained                                                                               |
-|       54 |      72 | `synchronous-replication-blocks-commit`         | Retained                                                                               |
-|       55 |      73 | `hot-standby-query-conflict`                    | Retained                                                                               |
-|       56 |      74 | `replication-slot-retains-wal`                  | Retained                                                                               |
-|       57 |      75 | `promote-the-standby`                           | Retained                                                                               |
-|       58 |      76 | `rewind-the-old-primary`                        | Retained                                                                               |
-|       59 |      77 | `cascading-and-failback`                        | Retained                                                                               |
-|       60 |      78 | `decode-the-log`                                | Retained                                                                               |
-|       61 |      79 | `slot-position-and-acknowledgement`             | Retained                                                                               |
-|       62 |      80 | `publication-and-subscription`                  | Retained                                                                               |
-|       63 |      81 | `initial-sync-vs-streaming`                     | Retained                                                                               |
-|       64 |      82 | `conflicts-stop-the-apply-worker`               | Retained                                                                               |
-|       65 |      83 | `slot-lag-and-disk`                             | Retained                                                                               |
+|       39 |      52 | `every-change-is-a-wal-record`                  | Retained                                                                               |
+|       40 |      53 | `full-page-writes-after-checkpoint`             | Retained                                                                               |
+|       41 |      54 | `commit-means-fsync`                            | Retained                                                                               |
+|       42 |      55 | `wal-files-and-recycling`                       | Retained                                                                               |
+|       43 |      56 | `crash-and-redo`                                | Retained                                                                               |
+|       44 |      57 | `wal-replay-is-deterministic`                   | Retained                                                                               |
+|       45 |      58 | `wal-size-of-operations`                        | Retained                                                                               |
+|       46 |      59 | `checkpoint-anatomy`                            | Retained                                                                               |
+|       47 |      60 | `redo-point-bounds-recovery`                    | Retained                                                                               |
+|       48 |      61 | `max-wal-size-forces-checkpoints`               | Retained                                                                               |
+|       49 |      62 | `base-backup`                                   | Retained                                                                               |
+|       50 |      63 | `point-in-time-recovery`                        | Retained                                                                               |
+|       51 |      64 | `timeline-history`                              | Retained                                                                               |
+|       52 |      71 | `build-a-streaming-standby`                     | Retained                                                                               |
+|       53 |      72 | `replication-lag-under-load`                    | Retained                                                                               |
+|       54 |      73 | `synchronous-replication-blocks-commit`         | Retained                                                                               |
+|       55 |      74 | `hot-standby-query-conflict`                    | Retained                                                                               |
+|       56 |      75 | `replication-slot-retains-wal`                  | Retained                                                                               |
+|       57 |      76 | `promote-the-standby`                           | Retained                                                                               |
+|       58 |      77 | `rewind-the-old-primary`                        | Retained                                                                               |
+|       59 |      78 | `cascading-and-failback`                        | Retained                                                                               |
+|       60 |      79 | `decode-the-log`                                | Retained                                                                               |
+|       61 |      80 | `slot-position-and-acknowledgement`             | Retained                                                                               |
+|       62 |      81 | `publication-and-subscription`                  | Retained                                                                               |
+|       63 |      82 | `initial-sync-vs-streaming`                     | Retained                                                                               |
+|       64 |      83 | `conflicts-stop-the-apply-worker`               | Retained                                                                               |
+|       65 |      84 | `slot-lag-and-disk`                             | Retained                                                                               |
 |       66 |      38 | `explain-analyze-buffers`                       | Retained                                                                               |
 |       67 |      39 | `statistics-drive-plans`                        | Retained                                                                               |
 |       68 |      40 | `index-scan-vs-seq-scan-crossover`              | Retained                                                                               |
@@ -81,34 +81,35 @@ across later changes. Retirement does not transfer completion. Original lessons1
 |       73 |      45 | `btree-page-anatomy`                            | Retained                                                                               |
 |       74 |       — | `index-only-scan-needs-visibility-map`          | Consolidated into visibility-map-and-index-only-scans and partial-and-covering-indexes |
 |       75 |      46 | `create-index-concurrently-and-invalid-indexes` | Retained                                                                               |
-|       76 |      47 | `partial-and-covering-indexes`                  | Retained                                                                               |
-|       77 |      48 | `index-bloat-from-churn`                        | Retained                                                                               |
-|       78 |      49 | `unique-index-enforcement-under-concurrency`    | Retained                                                                               |
-|       79 |      64 | `wait-events-tell-you-where-time-goes`          | Retained                                                                               |
-|       80 |      65 | `pg-stat-io-by-backend-type`                    | Retained                                                                               |
-|       81 |      66 | `connection-saturation`                         | Revised to bounded measured concurrency/latency workload                               |
-|       82 |      67 | `idle-in-transaction-kills-you`                 | Retained                                                                               |
-|       83 |      68 | `table-and-index-usage-counters`                | Retained                                                                               |
-|       84 |      69 | `read-the-server-log`                           | Retained                                                                               |
-|       85 |      84 | `transactional-outbox`                          | Retained                                                                               |
-|       86 |      85 | `idempotency-keys`                              | Retained                                                                               |
-|       87 |      86 | `two-phase-commit`                              | Retained                                                                               |
+|       76 |      48 | `partial-and-covering-indexes`                  | Retained                                                                               |
+|       77 |      49 | `index-bloat-from-churn`                        | Retained                                                                               |
+|       78 |      50 | `unique-index-enforcement-under-concurrency`    | Retained                                                                               |
+|       79 |      65 | `wait-events-tell-you-where-time-goes`          | Retained                                                                               |
+|       80 |      66 | `pg-stat-io-by-backend-type`                    | Retained                                                                               |
+|       81 |      67 | `connection-saturation`                         | Revised to bounded measured concurrency/latency workload                               |
+|       82 |      68 | `idle-in-transaction-kills-you`                 | Retained                                                                               |
+|       83 |      69 | `table-and-index-usage-counters`                | Retained                                                                               |
+|       84 |      70 | `read-the-server-log`                           | Retained                                                                               |
+|       85 |      85 | `transactional-outbox`                          | Retained                                                                               |
+|       86 |      86 | `idempotency-keys`                              | Retained                                                                               |
+|       87 |      87 | `two-phase-commit`                              | Retained                                                                               |
 |       88 |      24 | `optimistic-concurrency-with-version-columns`   | Moved to isolation; explicit conflict/merge decision                                   |
-|       89 |      87 | `fencing-tokens-with-a-monotonic-counter`       | Retained                                                                               |
-|       90 |      88 | `read-your-writes-on-a-replica`                 | Retained                                                                               |
-|       91 |      89 | `listen-notify-as-a-bus`                        | Retained                                                                               |
-|       92 |      90 | `abandoned-slot-fills-the-disk`                 | Retained                                                                               |
-|       93 |      91 | `corrupt-a-page-and-detect-it`                  | Retained                                                                               |
-|       94 |      92 | `wraparound-drill`                              | Retained                                                                               |
-|       95 |      93 | `runaway-query-and-cancel`                      | Retained                                                                               |
-|       96 |      94 | `postmortem-from-the-log`                       | Retained                                                                               |
+|       89 |      88 | `fencing-tokens-with-a-monotonic-counter`       | Retained                                                                               |
+|       90 |      89 | `read-your-writes-on-a-replica`                 | Retained                                                                               |
+|       91 |      90 | `listen-notify-as-a-bus`                        | Retained                                                                               |
+|       92 |      91 | `abandoned-slot-fills-the-disk`                 | Retained                                                                               |
+|       93 |      92 | `corrupt-a-page-and-detect-it`                  | Retained                                                                               |
+|       94 |      93 | `wraparound-drill`                              | Retained                                                                               |
+|       95 |      94 | `runaway-query-and-cancel`                      | Retained                                                                               |
+|       96 |      95 | `postmortem-from-the-log`                       | Retained                                                                               |
 
 ## Added experiments
 
 | Current | Stable slug                               |
 | ------: | ----------------------------------------- |
 |      29 | `unknown-commit-outcome`                  |
-|      50 | `keyset-pagination-and-concurrent-writes` |
+|      47 | `bounded-online-migration`                |
+|      51 | `keyset-pagination-and-concurrent-writes` |
 
 ## Current reading stops
 
@@ -120,4 +121,4 @@ across later changes. Retirement does not transfer completion. Original lessons1
 |           28 | `retry-loop-and-idempotency`      |
 |           37 | `unique-constraint-race`          |
 |           39 | `statistics-drive-plans`          |
-|           60 | `max-wal-size-forces-checkpoints` |
+|           61 | `max-wal-size-forces-checkpoints` |

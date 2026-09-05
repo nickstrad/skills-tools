@@ -1,4 +1,5 @@
 import type { Guide } from "./types.ts";
+import { RETENTION_VARIATION } from "../curriculum/migration-workload.ts";
 
 export const guides: Record<string, Guide> = {
   "btree-page-anatomy": {
@@ -106,6 +107,25 @@ export const guides: Record<string, Guide> = {
     "hints": [
       "A must acquire its snapshot before B inserts. Save both cursor fields in A; end its transaction before testing the fresh snapshot and cleaning up.",
       "Rerun this lesson's setup first, then use these commands. Follow session labels in the two-session variation; all other hints use one psql session. Deliberate errors are labelled.\n\n```sql\n-- Session A\nbegin isolation level repeatable read;\nselect id,created_at from ix_page order by created_at,id limit 5;\nselect created_at as boundary_created_at,id as boundary_id\nfrom ix_page order by created_at,id offset 4 limit 1 \\gset\n-- Session B: independent autocommit insert.\ninsert into ix_page values(100001,timestamptz '2025-12-31 23:59:59+00',repeat('n',80));\n-- Session A: both reads still use the original snapshot.\nselect id as rr_offset from ix_page order by created_at,id offset 5 limit 1 \\gset\nselect id as rr_keyset from ix_page\nwhere(created_at,id)>(:'boundary_created_at'::timestamptz,:boundary_id)\norder by created_at,id limit 1 \\gset\nselect :rr_offset as rr_offset,:rr_keyset as rr_keyset,:rr_offset=6 and :rr_keyset=6 as stable_page;\ncommit;\nselect id as fresh_offset from ix_page order by created_at,id offset 5 limit 1;\ndelete from ix_page where id=100001;\n```",
+    ],
+  },
+  "bounded-online-migration": {
+    brief:
+      "Commit bounded progress while keeping old writers compatible, then reconcile before declaring completion.",
+    predict:
+      "If SKIP LOCKED returns an empty batch while another transaction holds an eligible row, is the migration done? What independent check could distinguish empty available work from no remaining work?",
+    inspect:
+      "Verify the unpublished failed ADD, the new legacy write's typed value, per-batch counts, still_null and convalidated. Compare the final row count, conversion invariant and nullability metadata.",
+    explain:
+      "Why do the earlier batches survive a later validation failure? What does the trigger prove about database writes, and what does it fail to prove about an application rollout?",
+    vary:
+      "Delete only ids<=200 in separately committed batches while B holds id1. Reconcile the fixed cutoff after the lock holder leaves.",
+    apply:
+      "Choose lock wait and batch-size budgets for a busy service. What completion evidence and client-rollout evidence would you require before retiring the compatibility bridge?",
+    hints: [
+      "Use the lesson setup alone for this variation. The fixed id cutoff defines eligibility; SKIP LOCKED defines availability right now. Keep the final reconciliation query separate from batch counts.",
+      "Rerun setup, then follow this complete two-session retention variation. Do not wrap all batches in BEGIN.\n\n```sql\n" +
+      RETENTION_VARIATION + "\n```",
     ],
   },
 };

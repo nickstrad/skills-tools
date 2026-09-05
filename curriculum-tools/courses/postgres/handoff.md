@@ -63,8 +63,15 @@ another review or stop after planning: implementation and validation are authori
   /tmp/pg-capacity-variation-20260905.*.
 - Observability now follows checkpoints and precedes replication; backward prerequisites pass. Only
   its capacity lesson is rewritten so far. Remaining13 lessons still need primary review.
-- Primary owns all remaining source/coaching/failure work. Next is bounded migration, then remaining
-  observability. Agents remain verification-only; no new authoring assignments.
+- Primary added migration-workload.ts after concurrent index creation, plus its exact retention
+  guide in guides12.95-lesson build, current map refreshed, seven reading stops, first7 unchanged.
+  Core direct run: 55P03/22P02/23514 were the only errors; B saw999 committed backfill rows while1
+  remained locked. Final1001 rows/sum2002/consistent=true, both schema flags true. Exact retention
+  variation completed with800 rows starting201 after reconciling the skipped eligible row. Logs:
+  /tmp/pg-migration-core-20260905.log and /tmp/pg-retention-hint-20260905.log; driver:
+  /tmp/pg-retention-hint.ts. Acceptance in validation/03-migration.md.
+- Primary owns all remaining source/coaching/failure work. Next is remaining observability to finish
+  chunk3. Agents remain verification-only; no new authoring assignments.
 - Private PostgreSQL16.15: /tmp/postgres-pivot-20260904/primary, socket in sibling/socket, port5540,
   rolepostgres. DBs pivot_primary(primary),pivot_storage(planner),pivot_visibility(index). Do not
   touch learner port5440. Coordinate global changes/restarts and timed benchmarks.
@@ -79,11 +86,11 @@ another review or stop after planning: implementation and validation are authori
 
 ## Next actions
 
-1. Commit/push the accepted capacity section and handoff. Index commit05070cc is already pushed.
-2. Implement bounded migration synthesis next, then remaining observability fixes. Use design03 and
-   REWORK-PLAN. Proposed migration: brief-lock schema/compatibility bridge, bounded backfill batches
-   that commit separately, skipped locked rows do not mean completion, validated constraint and
-   explicit cutover/cleanup boundaries. Write the concrete design before coding it.
+1. Commit/push accepted bounded migration and handoff; capacity commit e811115 is already pushed.
+2. Finish remaining observability source13 and authored guides13: wait-state/sample interpretation,
+   cluster-wide pg_stat_io deltas and PostgreSQL/OS I/O distinction, idle-transaction deadlines and
+   cleanup, index usage versus correctness, bounded log correlation. The new capacity helper and its
+   validated guide are accepted; preserve them. Then accept chunk3 after section integration.
 3. Design and deliver remaining chunks4–7 (durability/recovery, replication/change processing,
    durable delivery/fencing/2PC, incidents/capstone) from REWORK-PLAN. None is complete.
 4. Keep root final review, actual-tool evidence, stable identities/revisions and copied progress
@@ -135,3 +142,8 @@ separate databases; coordinate global operations serially.
   and planner/index ordering before WAL/replication.
 - Capacity acceptance2026-09-05: zero errors in6,400 benchmark transactions across core/variation,
   scoped evidence retained, owned schemas cleaned,94-lesson build and copied progress checks pass.
+
+- `e811115` pushed: bounded capacity driver, verified core/exact variation, scoped evidence and
+  observability ordering before replication.95 lessons now include bounded migration as well.
+- Bounded migration acceptance2026-09-05: source/core/retention variation reviewed and exercised;
+  commit/push then continue sequentially with the five remaining observability lessons.
