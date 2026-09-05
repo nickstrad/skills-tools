@@ -4,13 +4,21 @@ Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 WAL is accepted through cu
 archive failure, actual crash/replay and matched amplification. Replay-only lesson is consolidated;
 94 lessons remain. Next: checkpoint anatomy, recovery cost, WAL pressure, backup/restore and PITR.**
 
+## User-requested context reset
+
+The user chose this verified stopping point on2026-09-05. Resume from current58 checkpoint-anatomy
+in08-checkpoints.ts using designs/04-durability-recovery.md. Do not redo the accepted WAL module or
+start new work before the user resumes. All reviewer agents are completed; all primary validation
+commands finished. Primary implementation and handoff are pushed; remaining uncommitted storage
+source/guide/knowledge and root bin/ belong to other work. Preserve those changes.
+
 ## Active goal
 
 User authorized finishing all remaining items linearly. The goal is active; do not stop after a
 single accepted subsection or mark the entire task complete until chunks4–7 and the final audit are
 verified. Primary is implementing design04-durability-recovery.md. WAL records/images/commit cost,
-archive failure and actual crash/replay are accepted; write amplification and checkpoint/restore
-work come next.
+archive failure, actual crash/replay and matched write amplification are accepted;
+checkpoint/restore work comes next.
 
 At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
 untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
