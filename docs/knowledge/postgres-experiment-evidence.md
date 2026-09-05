@@ -40,6 +40,24 @@ Matching expected-looking numbers or reproducing a different script does not est
   rolled-back claim should become available to a fresh attempt. Distinguish an empty candidate
   result from a database error. Never use gset where the deliberate outcome is zero rows.
 
+## Guided TOAST lesson flow, 2026-09-05
+
+A prediction that referred to "row 2" lacked context because pgcoach start hides the setup. Introduce
+the table, columns, row identifiers, and controlled comparison in the guide brief itself. Check the
+whole rendered sequence: guides are loaded from TypeScript, while lesson SQL comes from the tutor's
+stored lesson catalog. Building lessons.json alone does not refresh that catalog; validate with
+`tutor postgres init --db /tmp/...` on a copy before refreshing the learner-facing catalog.
+
+The vary stage does not render the curriculum challenge. It must provide commands or explicitly
+route to a runnable hint. Keep that hint in the current session when it depends on a psql variable
+such as toast_name, and explain how to recover if the session was lost.
+
+The rendered lesson 9 run and variation were checked on PostgreSQL 16.15: label and length(body)
+used 2 and 16 shared hits respectively; replacing the body left 51 visible chunks but doubled TOAST
+allocation from 106496 to 212992 bytes. The variation added 51 chunks for id = 1, bringing the table
+total to 102. These observations explain why the guide distinguishes visible chunk counts, allocated
+bytes, and per-row data. They are sample evidence, not fixed buffer or allocation guarantees.
+
 ## Concurrent clients: additional findings,2026-09-04
 
 A known transaction abort and an unknown commit response require different reasoning. For a replay

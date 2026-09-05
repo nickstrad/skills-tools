@@ -20,21 +20,75 @@ export const guides: Record<string, Guide> = {
     ],
   },
   "toast-and-large-values": {
-    brief:
-      "TOAST is PostgreSQL's storage path for variable-length values that do not fit comfortably in a heap tuple. Compression can reduce a value enough to remain inline; otherwise the heap stores a pointer to ordered chunks in a side relation.",
+    brief: `The experiment will create st_toast, a table with three columns: id, label (short text),
+and body (large text). It will insert these two rows; you do not need to create them yet:
+
+| Row identified by | label | body |
+| --- | --- | --- |
+| id = 1 | compressible | The character x repeated 100,000 times. |
+| id = 2 | incompressible | 100,000 characters of varied text that compresses poorly. |
+
+Both bodies have the same character count. TOAST is PostgreSQL's way of keeping a row small:
+it can compress a large value or store it in chunks in a separate table, leaving a pointer in
+the main table (the heap). A value kept in the heap row is called inline; one stored separately
+is called out of line.
+
+You will first inspect how the two bodies are stored, then compare two reads of id = 2,
+and finally compare changing its label with replacing its body. The read comparison below
+is your prediction. A buffer access means accessing a page through PostgreSQL's shared cache;
+it does not necessarily mean reading from disk.`,
     predict:
-      "Name one controlled contrast: for row 2, which plan should show more buffer activity, selecting label or computing length(body), and what data must the latter reach?",
-    inspect:
-      "Inspect chars and stored_bytes, then toast_name, chunks, chunk_seq, and EXPLAIN's shared hit/read fields. After each update, compare values, chunks, toast_bytes, lp_len, and t_ctid rather than file size alone.",
-    explain:
-      "Explain the chain from a wide datum to compression or an external pointer, then from payload access to a TOAST index and chunk reads. Explain why a label-only update can preserve the existing external datum while replacing body creates another value version.",
-    vary:
-      "Run the provided STORAGE EXTERNAL challenge for row 1, update its body, and compare pg_column_size(body) with the chunk query already in the lesson. Change only the storage policy.",
-    apply:
-      "An API lists document titles frequently but reads full documents rarely, while another endpoint always reads full values. How would you measure whether their schema needs a different projection, table boundary, or storage policy?",
+      `For the row WHERE id = 2, compare fetching its short label with computing length(body),
+which counts the characters in its large text value. Both queries find the same row and return
+one result; only the requested column or expression changes.
+
+Which do you expect to need more buffer accesses, or do you expect a tie? Explain what data
+each operation needs. A sentence is enough; you do not need to predict an exact count. The run
+step supplies both queries and uses EXPLAIN (ANALYZE, BUFFERS) to measure them.`,
+    inspect: `Use the output saved from run, in this order:
+
+1. **Storage:** compare chars and stored_bytes for id = 1 and id = 2. Then look at heap and
+   toast sizes, the first lp_len output (heap tuple lengths in bytes), and chunks, first_seq,
+   last_seq, and chunk_bytes. Which observations distinguish logical text length from its
+   physical storage?
+2. **Your prediction:** compare the execution Buffers lines for selecting label and computing
+   length(body), both WHERE id = 2. Record shared hit and read counts, treating an omitted
+   counter as zero. Compare the top execution node's totals; do not add parent and child
+   counts together or include Planning buffers. Did the observed accesses match your prediction?
+3. **Updates:** compare the three values/chunks outputs and toast_bytes_before,
+   toast_bytes_after_label, and toast_bytes_after_body. These are visible external-value counts
+   and allocated file sizes, respectively. What changed after each update? In the final page
+   output, lp identifies a physical row-version slot, not the SQL id; t_ctid is a row-version
+   location or link. Do not equate the number of slots with the number of current SQL rows.
+
+Keep observations separate from explanations for now. Next: pgcoach 9 explain.`,
+    explain: `Use your measurements to explain three things in your own words:
+
+1. How can two bodies with the same character count occupy different amounts of storage?
+2. Why did the two reads of id = 2 produce the buffer counts you observed? Trace where each
+   query gets its data: the heap row, and any separate TOAST data it needs.
+3. What do the label-only and body-replacement updates suggest about reusing an existing
+   external value? Does an unchanged visible chunk count or file size prove that no write occurred?
+
+Use pgcoach 9 reveal to check your explanation, then pgcoach 9 vary for one controlled change.`,
+    vary: `Return to id = 1, whose body is still 100,000 copies of x. Predict what will happen to
+its stored_bytes and the table's visible chunk count if compression is disabled for a freshly
+supplied copy of that same text. The setting is called STORAGE EXTERNAL: it permits out-of-line
+storage but disables compression. Changing the setting alone does not rewrite existing values.
+
+Continue in the same psql session after run. Save id = 1's original stored_bytes and the most
+recent chunks count for comparison. Run the commands supplied by pgcoach 9 hint2; use
+pgcoach 9 hint1 if you want a smaller nudge first. The chunk query counts chunks for the whole
+table, including id = 2. Compare its before/after difference, not its total as if it were all
+id = 1. Afterwards, continue with pgcoach 9 apply.`,
+    apply: `An API frequently lists document labels, occasionally renames them, and rarely reads
+full bodies. Another endpoint always reads the full body. Based on this experiment, what would
+you select for the listing query, and what would you measure on representative documents before
+changing compression policy or moving bodies to another table or service? Name one benefit and
+one cost of the change you would consider.`,
     hints: [
-      "A narrow projection can use the heap tuple without asking PostgreSQL to reconstruct the external body.",
-      "After rerunning setup and the lesson's code, run: SELECT reltoastrelid::regclass AS toast_name FROM pg_class WHERE oid = 'st_toast'::regclass \\gset\nALTER TABLE st_toast ALTER COLUMN body SET STORAGE EXTERNAL; UPDATE st_toast SET body = repeat('x',100000) WHERE id = 1; SELECT id, pg_column_size(body) FROM st_toast WHERE id = 1; SELECT count(*) AS chunks, max(length(chunk_data)) AS chunk_bytes FROM :toast_name;",
+      "For the variation, keep id = 1's text identical. Set body's storage policy to EXTERNAL, then assign repeat('x', 100000) again so PostgreSQL stores a fresh value under that policy. Compare its stored_bytes and the change in the whole table's visible chunk count. You do not need to recreate the table.",
+      "Run this once after the main experiment, in the same psql session. toast_name is the variable saved by run; if you lost the session, rerun pgcoach 9 run's setup and SQL first. Compare with your saved values before running the variation again.\n\n```sql\nalter table st_toast alter column body set storage external;\nupdate st_toast set body = repeat('x', 100000) where id = 1;\nselect id, pg_column_size(body) as stored_bytes from st_toast where id = 1;\nselect count(*) as chunks, max(length(chunk_data)) as chunk_bytes from :toast_name;\n```\n\nThese are the same commands as the full lesson's challenge. Next: pgcoach 9 apply.",
     ],
   },
   "buffer-cache-and-io": {

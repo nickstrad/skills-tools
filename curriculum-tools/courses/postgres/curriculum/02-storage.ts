@@ -649,12 +649,12 @@ would the extra reserved pages still be a good trade?`,
       runIn: "tool",
       estimatedMinutes: 15,
       prerequisites: ["page-header-and-line-pointers"],
-      revision: 4,
+      revision: 5,
       overview: code`
-A tuple must fit in an 8 KB page, so a 100 KB value cannot be stored inline. PostgreSQL first tries
-to compress it, and if it still does not fit, moves it to a side table in chunks and leaves an
-18-byte pointer in the row. Store one compressible and one incompressible 100 KB value and watch
-the two paths diverge.`,
+Create two rows with short labels and bodies of 100,000 characters: repeated x for id = 1 and
+varied text for id = 2. Inspect how compression and TOAST chunk storage keep their heap tuples
+small, then compare reading only the label with counting body characters for id = 2. Finally,
+compare changing that row's label with replacing its body to explore when external storage is reused.`,
       reading: code`
 PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "TOAST"); Chapter 3 "Pages and Tuples" (section "TOAST")`,
       readingNotes: code`
@@ -666,7 +666,7 @@ PostgreSQL 16 output. Read after running it, when heap_bytes and toast_bytes hav
       syntaxBreakdown: code`
 ### In plain terms
 
-A row cannot contain an arbitrarily large value because it must fit on an 8 KB page. PostgreSQL tries compression first; if the value still does not fit, it stores chunks in a hidden TOAST table and leaves a pointer in the row. This lesson compares a compressible and incompressible value and measures the extra reads.
+A row cannot contain an arbitrarily large value because it must fit on an 8 KB page. PostgreSQL tries compression first; if the value still does not fit, it stores chunks in a hidden TOAST table and leaves a pointer in the row. The table has id, label, and body columns: id = 1 holds repeated x and id = 2 holds varied text, both 100,000 characters long. First inspect their storage, then compare two reads of id = 2, and finally compare label and body updates. Keep the output for pgcoach 9 inspect.
 
 ### What you are learning
 
@@ -676,12 +676,18 @@ A row cannot contain an arbitrarily large value because it must fit on an 8 KB p
 
 ### Piece by piece
 
+- **\x auto** (psql output format)
+  - What it is: automatically switches wide results to vertical display.
+  - What it does here: keeps inspection output readable in a narrow terminal.
+  - What it gives us: the same named fields regardless of display orientation.
 - **reltoastrelid::regclass** (catalog field and cast)
   - What it is: pg_class's OID for the hidden TOAST relation, cast to a readable name.
   - What it does here: identifies the side table for st_toast.
   - What it gives us: the toast_table name used to inspect chunks.
-- **repeat and string_agg(md5(...), '')** (SQL functions)
-  - What they are: repeat creates compressible text; md5 plus string_agg creates varied text.
+- **repeat, generate_series, md5, and string_agg** (SQL functions)
+  - What they are: repeat duplicates text; generate_series supplies integers 1 through 3125;
+    md5 turns each integer cast to text into 32 hexadecimal characters; string_agg joins those
+    strings with an empty separator. This generates varied test data, not random secrets.
   - What they do here: make two values of 100000 characters with different compression behavior.
   - What they give us: small stored_bytes for repeated x and roughly 100000 for varied text.
 - **length(body) and pg_column_size(body)** (SQL functions)
@@ -699,28 +705,46 @@ A row cannot contain an arbitrarily large value because it must fit on an 8 KB p
   - What they give us: heap=:heap_bytes, toast=:toast_bytes, and total=:total_bytes output that can
     be compared with the later chunk and EXPLAIN evidence.
 - **heap_page_items(get_raw_page(...))** (pageinspect)
-  - What it is: decodes heap tuple lengths.
-  - What it does here: shows the compressed value inline and the pointer-sized tuple.
-  - What it gives us: lp_len evidence that the logical value is not stored inline.
+  - What it is: get_raw_page reads heap page 0; heap_page_items decodes its row-version slots.
+    These functions come from the pageinspect extension installed earlier in the lab.
+  - What it does here: inspects the initial tuples, then the page after both updates.
+  - What it gives us: lp is a physical slot number, not the table's id; lp_len is the tuple's
+    byte length. In the final query, t_ctid gives a tuple location or an update-chain link.
+    Old row versions can remain on the page after they stop appearing in an ordinary SELECT.
 - **chunk_id, chunk_seq, chunk_data** (TOAST columns)
-  - What they are: identifier, ordering number, and bytes for each chunk.
-  - What they do here: count and bound chunks for the incompressible value.
-  - What they give us: sequence 0 through 50 and maximum chunk size near 1996 bytes.
+  - What they are: the external value's identifier, chunk ordering number, and chunk bytes.
+  - What they do here: count and inspect chunks in the relation named by :toast_name, the
+    psql variable saved earlier.
+  - What it gives us: chunks is the visible chunk count; first_seq and last_seq bound their
+    order, starting at zero; chunk_bytes is the largest chunk in bytes. Later, count(distinct
+    chunk_id) AS values counts visible external values, not every old version still on disk.
 - **EXPLAIN (ANALYZE, BUFFERS, costs off, timing off, summary off)** (plan options)
-  - What it is: executes and reports buffer activity without noisy estimates or timings.
-  - What it does here: compares a narrow projection with an expression that must fetch the payload.
+  - What it is: reports a query's execution plan, with these options:
+    - ANALYZE executes the query and records actual work.
+    - BUFFERS reports page accesses through PostgreSQL's buffer cache.
+    - COSTS OFF hides planner cost estimates.
+    - TIMING OFF omits per-node timing while retaining actual rows and buffer counts.
+    - SUMMARY OFF omits the final timing summary.
+  - What it does here: compares selecting label with evaluating length(body), both WHERE id = 2.
   - What it gives us: shared buffer activity; accessing the out-of-line payload normally needs more
-    buffer work than reading the label alone.
+    buffer work than reading the label alone. A shared hit accesses a page already in the cache;
+    a shared read brings one into the cache and may still be served by the operating system.
+    Use the top execution node's totals; parent counts include child work. Planning buffers
+    describe planning work, so keep them out of this execution comparison.
 - **UPDATE ... SET label / UPDATE ... SET body** (row-version updates)
   - What they are: updates that replace the heap row version, first leaving the payload unchanged
     and then supplying a new value.
   - What they do here: separate a label-only change from replacement of an out-of-line datum.
   - What they give us: chunk and relation-size evidence that unchanged external values are normally
-    preserved, while a replacement creates a new external value.
+    preserved, while a replacement creates a new external value. The second update generates
+    another 100,000-character body, using 'new-' || g to change the input to md5. The size
+    query uses :'toast_name' to quote the saved relation name as a SQL string argument.
 - **ALTER TABLE ... ALTER COLUMN body SET STORAGE external** (challenge DDL)
   - What it is: changes the TOAST policy to avoid compression while allowing external storage.
-  - What it does here: forces the compressible value to use chunks when reinserted.
-  - What it gives us: a comparison of stored size and chunk count.
+  - What it does here: changes the policy, then assigns a fresh copy of the same text to id = 1.
+    The policy change alone does not rewrite the existing value.
+  - What it gives us: a comparison of id = 1's stored size and the whole table's chunk count.
+    Keep id = 2's existing chunks in mind when interpreting that total.
 
 `,
       setup: code`
@@ -730,11 +754,12 @@ create table st_toast(id int primary key, label text, body text);`,
 \x auto
 select reltoastrelid::regclass as toast_table from pg_class where relname = 'st_toast';
 
--- Two values, both exactly 100000 characters. One compresses, one does not.
+-- 1. Create the two rows introduced in start: equal character counts, different text.
 insert into st_toast values (1, 'compressible', repeat('x', 100000));
 insert into st_toast values (2, 'incompressible',
   (select string_agg(md5(g::text), '') from generate_series(1, 3125) g));
 
+-- 2. Inspect logical length, stored size, and the heap/TOAST layout. Save this output.
 select id, label, length(body) as chars, pg_column_size(body) as stored_bytes
 from st_toast order by id;
 
@@ -753,13 +778,15 @@ select count(*) as chunks, min(chunk_seq) as first_seq, max(chunk_seq) as last_s
        max(length(chunk_data)) as chunk_bytes
 from :toast_name;
 
--- A narrow projection has no reason to detoast body. length(body) does.
+-- 3. Test your prediction: same id = 2, fetching label versus counting body characters.
+-- Compare the execution Buffers lines; each query returns one result.
 explain (analyze, buffers, costs off, timing off, summary off)
   select label from st_toast where id = 2;
 explain (analyze, buffers, costs off, timing off, summary off)
   select length(body) from st_toast where id = 2;
 
--- Record the external value, change only the label, then replace the body.
+-- 4. Record a baseline, change only id = 2's label, then replace its body.
+-- Save all three values/chunks/size outputs to compare in inspect.
 select count(distinct chunk_id) as values, count(*) as chunks,
        pg_relation_size(:'toast_name') as toast_bytes_before
 from :toast_name;
@@ -773,7 +800,9 @@ where id = 2;
 select count(distinct chunk_id) as values, count(*) as chunks,
        pg_relation_size(:'toast_name') as toast_bytes_after_body
 from :toast_name;
-select lp, lp_len, t_ctid from heap_page_items(get_raw_page('st_toast', 0)) order by lp;`,
+select lp, lp_len, t_ctid from heap_page_items(get_raw_page('st_toast', 0)) order by lp;
+
+-- Keep this psql session open for the variation. Next: pgcoach 9 inspect.`,
       expectedResult: code`
 The TOAST relation name contains this table's changing OID. Both values are 100,000 characters, but
 the repeated value has a far smaller stored datum after compression, while the varied value is stored
