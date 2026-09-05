@@ -461,7 +461,14 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    expiry permits new generations; stale acknowledgements fail, replay adds no duplicate credit, and
    full order/outbox/receipt payloads plus total18 survive normal restarts. Variation moves relay
    loss after the sent-marker commit, leaving only the other abandoned claim to recover.
-2. `idempotency-keys`: `insert ... on conflict do nothing returning` as exactly-once effect.
+2. `idempotency-keys` (privileged, shell). Reproduce the combined insert-or-select Read Committed
+   snapshot race after an observed unique-conflict wait. A complete function uses a fresh SQL
+   command for duplicate lookup and atomically commits request identity/payload, debit/history and
+   saved answer. Concurrent duplicates apply once; changed payloads and insufficient funds fail
+   without mutation. Actual caller loss before/after commit recovers through the same request key.
+   Receipt deletion deliberately repeats a debit on an isolated account; in-place retirement retains
+   the identity guard and refuses reexecution. Reconcile all balances, payloads and history through
+   normal restart. Variation changes only the first winner from COMMIT to ROLLBACK.
 3. `two-phase-commit`: `prepare transaction 'gid'`, `pg_prepared_xacts`, survives a crash (mixed,
    dangerous), holds locks and xmin until `commit prepared`; orphaned prepared xact stalls vacuum
    (link to mvcc lesson 5).

@@ -74,3 +74,74 @@ these controlled writers and retained identities; they are not general exactly-o
 PostgreSQL references: [SELECT locking](https://www.postgresql.org/docs/16/sql-select.html#SQL-FOR-UPDATE-SHARE),
 [INSERT conflict handling](https://www.postgresql.org/docs/16/sql-insert.html) and
 [Read Committed](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED).
+
+## A uniqueness wait does not refresh a combined lookup snapshot (2026-09-05)
+
+### What happened
+
+Current84 starts a real debit/receipt transaction and holds it uncommitted. A diagnostic
+INSERT ON CONFLICT DO NOTHING RETURNING combined with a UNION ALL receipt SELECT actually waits on
+that winner's transaction ID, verified with pg_stat_activity and pg_blocking_pids. After the winner
+commits, the statement returns an empty array even though independent reads see the debit and
+receipt. If the winner instead aborts, the insert-only diagnostic returns a null saved result; that
+diagnostic is always rolled back, because it did not implement a business effect.
+
+A complete PL/pgSQL VOLATILE function reserves the identity, performs the debit, records history and
+stores its result in one caller transaction. On conflict it uses a separate SELECT, validates the
+saved account/amount and returns the original result. Actual concurrent complete requests wait,
+then return the same70 with one debit30. Another replay returns80 while current balance is75.
+Changed account/amount and insufficient funds fail with full state unchanged.
+
+### Why it matters
+
+The uniqueness decision can depend on a transaction outside the original statement snapshot. A
+CTE fallback does not create a fresh read boundary. Nor does inserting a receipt prove that a
+charge happened: the debit and result must be included in the same protocol. Read Committed's new
+command snapshot and VOLATILE function command visibility are the relevant PostgreSQL behaviors;
+changing isolation or volatility changes the assumptions. See the primary
+[Read Committed documentation](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED)
+and [function volatility documentation](https://www.postgresql.org/docs/16/xfunc-volatility.html).
+
+### How to apply
+
+Gate the competing commit on an observed wait with the correct blocking PID, rather than assuming a
+sleep produced overlap. Reproduce the failing combined query before showing the replacement. Use a
+fresh statement/transaction at the correct isolation scope and bound retries; do not treat an empty
+lookup as proof a request never committed. Inspect actual effects and stored answers, including a
+later mutation that makes the current state differ from the original answer. Keep insert-only
+diagnostic transactions rolled back, especially when the competing winner aborts.
+
+## Retiring a result differs from forgetting its request identity (2026-09-05)
+
+### What happened
+
+The idempotency fixture kills two actual owned psql callers. The first has a returned function
+result inside an uncommitted transaction; independent reads see no debit/receipt/history, and
+SIGKILL plus backend exit rolls all changes back. A fresh request applies once. The other caller is
+killed after an independent inventory proves commit; fresh replay returns its stored55 without
+another debit. Forensic logs still contain results, so this is caller-process loss, not asserted
+wire-response loss.
+
+Deleting the receipt after an isolated debit9 leaves its balance91/history intact. Reuse debits9
+again and reaches82, retaining two history rows for the same identity. A separate account instead
+retires the receipt in place, keeping its primary key and payload while discarding the cached
+answer. Reuse raises55000 and leaves balance91 with one debit. Both states remain distinct and fully
+reconciled after a normal restart.
+
+### Why it matters
+
+An absent receipt cannot distinguish an unseen request from a forgotten committed request. Dedup
+retention therefore defines the lifetime of the guarantee. Removing only cached response data can
+preserve the admission guard, provided the function refuses reuse; it does not retain the old
+response or bound the guard set. A separate check-then-insert tombstone table would introduce a new
+coordination race unless designed transactionally.
+
+### How to apply
+
+Keep a deliberately duplicated business effect visible in its own account and history. Do not hide
+it behind a second uniqueness constraint in the audit or include it in a generic success count.
+Test retirement as an actual admission decision. Preserve identity/payload in the same unique row,
+reject expired-result requests, and state how callers reconcile retained history. Arbitrary direct
+writers can violate this controlled protocol; enforced role boundaries are a separate experiment.
+Classify process-loss evidence from committed data, and distinguish normal restart from power-loss
+recovery. Source/core/exact-hint records live in validation/06-idempotency.md.

@@ -1,8 +1,62 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–5 and current83 transactional outbox are accepted. There are92 active
-lessons. Next: current84 idempotency-keys, the rest of chunk6, chunk7 incidents and the final
+Updated 2026-09-05. **Chunks1–5 and current83–84 outbox/idempotency are accepted. There are92 active
+lessons. Next: current85 two-phase-commit, the rest of chunk6, chunk7 incidents and the final
 whole-course audit. The full active goal is not complete.**
+
+## Idempotency race, client loss and retention accepted, 2026-09-05
+
+Current84 idempotency-keys is revision4 with a complete standalone owned PostgreSQL16 shell
+experiment. The first caller holds a real debit20/receipt; the diagnostic combined insert-or-select
+actually waits on its transaction ID. Core commits the winner and gets an empty CTE result despite
+independently visible debit/receipt80. Variation rolls back the winner and gets a temporary
+insert-only receipt with null result. Both diagnostic transactions roll back; a fresh complete
+function call leaves exactly one committed debit20 and answer80. Later debit5 changes balance75, but
+replay returns the original80. Correct overlapping function calls return70 with one debit30. Changed
+account/amount fail22023 and insufficient funds fail22003 with all tables unchanged.
+
+Two real psql caller kills exercise before/after commit. The first has an uncommitted result65,
+while independent state remains75/no receipt; killing it removes its backend and all effects. Fresh
+retry applies once. The second has independently committed debit/receipt55 before kill; replay
+preserves all state and returns55. Logs are forensic evidence, so this is actual caller process
+loss, not claimed packet loss. Four normal clients and two killed clients are reaped.
+
+Unsafe receipt deletion on account3 repeats the same debit9, leaving82 and two history rows. That
+failure remains explicitly separate. In-place retirement on account4 retains key/payload but drops
+the cached answer; reuse fails55000 and leaves91. Final accounts1/2/3/4 are55/70/82/91, with seven
+receipts/eight history rows; every payload, saved balance and debit sum reconciles through normal
+restart. The protocol assumes controlled writers and indefinitely retained identity guards; it does
+not make direct SQL or external effects safe. Python bounds40001 to three fresh transactions, but
+these successful runs need no unavailable-receipt retry.
+
+Core /tmp/pg-owned-8070t6ty, source variation /tmp/pg-owned-flhszqqr, exact hint2
+/tmp/pg-owned-0yptn0r5. All independently stopped/status3 with exactly five expected server errors
+(two payload mismatches, insufficient balance, two retirement refusals). Driver/exact/audit scripts
+/tmp/pg-idempotency-protocol-{validate,exact}.ts and /tmp/pg-idempotency-protocol-audit.py preserve
+source/exact commands, logs and full JSON. Audit matches built core to executed code modulo the
+builder's final-newline trim and matches the exact rendered hint to source variation. Report
+validation/06-idempotency.md and indexed durable-protocol knowledge record the findings.
+
+Scoped build /tmp/pg-idempotency-protocol-build-cwvoh7ct changes only84 among92 built lessons.
+Copied /tmp/pg-observe-progress-eo6t6u_o/progress.sqlite preserves IDs/history/progress, original
+first seven/capacity/seven stops and learner hash
+395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty tests and full check pass
+in /tmp/pg-idempotency-protocol-{tests,check}.log. Current83 abf435b is pushed.
+
+Next: current85 two-phase-commit per designs/06-durable-protocols.md. Introduce actual independent
+prepared participants and blocked competing work, a separately durable coordinator decision, actual
+coordinator loss during incomplete finalization, stable operation/GID and participant outcome
+receipts, recovery without duplicate effects, and the before-decision ABORT variation. SQLite FULL
+durability is a possible local decision log; missing pg_prepared_xacts alone is never proof of
+commit. Then86 enforced resource fencing,87 missed-notification reconciliation, chunk7 incidents and
+final whole-course audit. No current85 code has been authored yet.
+
+Disk about149MB after the three accepted idempotency clusters. Before more pairs, cold-archive only
+explicitly identified stopped owned evidence with complete archive/original hash verification. The
+previous outbox roots pr892aee/sm9qi_x5/3xhfkdc5 each retain data/receiver directories and are known
+candidates; current84 roots also retain data. Reuse the stopped/hash/archive process, adapt its
+explicit directory names, and retain all logs/JSON. No arbitrary tmp cleanup. No agents, learner
+writes or port5440 operations; preserve unrelated storage source/guide/knowledge and bin/.
 
 ## Independent outbox delivery accepted, 2026-09-05
 
