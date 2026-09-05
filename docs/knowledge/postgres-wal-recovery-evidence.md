@@ -98,3 +98,41 @@ soft;
 [archiver statistics](https://www.postgresql.org/docs/16/monitoring-stats.html#PG-STAT-ARCHIVER-VIEW)
 defines success/failure counters. Book Chapter10 covers segments/recycling, not archive_command or
 pg_stat_archiver; keep that reading boundary explicit.
+
+## Owned crash: physical replay versus transaction outcome (2026-09-05)
+
+The accepted crash-workload.ts combines former crash-and-redo and wal-replay-is-deterministic.
+Create extensions/tables, checkpoint, capture lower LSN, commit receipt1, then keep a second psql
+client alive with receipt2 in an unfinished transaction. Observe its idle-in-transaction state; a
+later independent synchronous flush-marker commit and flush_lsn comparison ensure both inserts' WAL
+is durable. Decode the selected xids, retaining transaction records as well as heap records.
+Immediately stop the owned server BEFORE closing/reaping that client, otherwise client EOF would
+change the fault into an ordinary pre-crash rollback.
+
+Core actual xids734/735 both have Heap INSERT; only734 has COMMIT. After unclean stop and actual
+redo, pageinspect still sees both t_xmin values while SELECT sees only receipt1/amount10. Commit-
+second variation adds735's COMMIT and produces receipts[1,2]/amount30, with both physical tuples
+again present. Read raw headers before ordinary SELECT can add visibility hints; disable table
+autovacuum on this tiny fixture to preserve evidence. The experiment does not establish whether a
+particular page was already on disk and skipped by redo; physical presence alone cannot prove which
+page-write path occurred. Service-ready/domain-ready times are sampled separately and not an RTO.
+
+Use pg_controldata while stopped for the unclean in-production state and pg_waldump -p/-s/-e for the
+saved workload interval. Capture a byte offset before the crash to isolate fresh recovery messages,
+then require interruption, redo start/done and readiness. The tested core's log had terminal zero
+magic at0/8EA000 after redo0/8D1F48–0/8E8A50, then completed end-of-recovery checkpoint and became
+ready with correct domain state. Do not infer corruption from an isolated terminal message without
+its boundary and recovery result. Local crash recovery kept timeline1; this says nothing about later
+divergent promotion/PITR authority.
+
+Official PostgreSQL16 [pg_ctl](https://www.postgresql.org/docs/16/app-pg-ctl.html) documents the
+immediate shutdown/crash-recovery boundary;
+[pg_walinspect](https://www.postgresql.org/docs/16/pgwalinspect.html) describes the record/xid
+fields and current-timeline scope. The offline interval is retained in each owned evidence
+directory. It is a subset of the recovery stream, not a complete backup.
+
+Retiring a lesson renumbers built prerequisite integers as well as ordinals. For source/artifact
+scope audits, normalize each prerequisite integer to its catalog slug before comparing unrelated
+lessons. Preserve old SQLite IDs/history and inactive retirement without completion transfer.
+Current course94 lessons/seven reading stops; first7 unchanged. See validation/04-crash.md for
+evidence.

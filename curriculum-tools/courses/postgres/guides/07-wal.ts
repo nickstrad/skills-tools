@@ -1,3 +1,4 @@
+import { CRASH_WORKLOAD_VARIATION } from "../curriculum/crash-workload.ts";
 import { ARCHIVE_WORKLOAD_VARIATION } from "../curriculum/archive-workload.ts";
 import { WAL_RECORDS_VARIATION } from "../curriculum/wal-records.ts";
 import { WAL_PAGE_IMAGES_VARIATION } from "../curriculum/wal-page-images.ts";
@@ -5,6 +6,25 @@ import { COMMIT_WORKLOAD_VARIATION } from "../curriculum/commit-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "crash-and-redo": {
+    brief:
+      "Use an actual owned-server crash to distinguish physical WAL replay, transaction decisions and visible application outcomes.",
+    predict:
+      "Both INSERTs have reached flushed WAL, but only the first transaction has committed. Which records, raw tuples and visible receipts should exist after the crash?",
+    inspect:
+      "Match both xids to INSERT records and the first xid to COMMIT. Check the stopped control state and fresh redo log, then compare the two physical tuple headers with the independent visible receipt query.",
+    explain:
+      "Why is an unfinished tuple physically present after recovery but absent from SELECT? What did the separate flush-marker transaction establish, and which failure boundaries were not exercised?",
+    vary:
+      "Commit the second transaction before the same crash. Predict its additional transaction record and final receipt totals, then compare both histories using the supplied fresh-cluster variation.",
+    apply:
+      "A service crashes after writing an order but before answering its caller. Specify the database and application evidence needed to decide whether retrying may create a duplicate. Which conclusions survive process failure but still need disk-loss recovery tests?",
+    hints: [
+      "Separate physical INSERT, transaction COMMIT, SQL-visible receipt and client acknowledgement. The script deliberately leaves the second client connected until after the core crash.",
+      "Run this complete commit-before-crash variation in a shell.\n\n```bash\n" +
+      CRASH_WORKLOAD_VARIATION + "\n```",
+    ],
+  },
   "wal-files-and-recycling": {
     brief:
       "Investigate the dependency between an archive consumer, retained WAL and a producer's disk budget using an owned failure and repair.",

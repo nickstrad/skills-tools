@@ -1,18 +1,42 @@
 # PostgreSQL pivot handoff
 
 Updated2026-09-05. **Chunks1–3 are accepted. Chunk4 is active: WAL records, page images and measured
-commit cost and archive failure/repair (current52–55) are verified. Next: owned crash/recovery.**
+commit cost, archive failure/repair and crash recovery (current52–56) are verified. Replay-only
+lesson is consolidated;94 lessons remain. Next: matched WAL amplification, then
+checkpoints/restore.**
 
 ## Active goal
 
 User authorized finishing all remaining items linearly. The goal is active; do not stop after a
 single accepted subsection or mark the entire task complete until chunks4–7 and the final audit are
-verified. Primary is implementing design04-durability-recovery.md, beginning with WAL records and
-full-page images, followed by measured commits and actual crash/restore work.
+verified. Primary is implementing design04-durability-recovery.md. WAL records/images/commit cost,
+archive failure and actual crash/replay are accepted; write amplification and checkpoint/restore
+work come next.
 
 At this goal's start, guides/02-storage.ts had an existing uncommitted change and root bin/ was
 untracked. Preserve both. The latest authoritative implementation commit was5fcf82f; documentation
 checkpoint c9dca16 followed it. Learner progress can advance independently; use a fresh copy.
+
+## Crash/replay checkpoint
+
+Primary accepted crash-workload.ts and guide07. Actual owned crash keeps the second client open
+until server shutdown. Core has two flushed INSERTs, one COMMIT, two physical tuple headers and one
+visible receipt/amount10. Source and final copied-catalog CLI variations commit the second
+transaction and verify two receipts/amount30. Stopped control file, offline pg_waldump, fresh redo
+log and independent row assertions all reviewed; every private server stopped. Report
+validation/04-crash.md. Raw logs /tmp/pg-crash-{core,variation}.log and
+/tmp/pg-crash-exact-crash-and-redo.log; final exact evidence /tmp/pg-owned-m2pjno40. Terra/high
+read-only review found no concrete defects.
+
+Duplicate wal-replay-is-deterministic retired only after combined behavior passed.94 lessons, seven
+stops, first7 unchanged; all other content/prerequisite identities preserved after normalizing
+renumbered references. Copied catalog preserves IDs/history/progress and marks retired slug
+inactive. Thirty tests and full repo check pass. Plan, identity map, book map and knowledge updated.
+Builders /tmp/pg-crash-scoped-build.py and /tmp/pg-crash-progress.py understand94 lessons and
+prerequisite renumbering; use these rather than the old95-lesson progress assertions. No generated
+JSON hand edits. be2bc76 is the pushed prior archive subsection. Next: wal-size-of-operations
+(current57), then all six checkpoint/restore lessons (current58–63) with timeline consolidation only
+after actual PITR. Chunks5–7 remain active future work; do not mark the overall goal complete.
 
 ## Archive checkpoint
 
@@ -47,9 +71,7 @@ current storage source into its isolated snapshot and asserts the newly generate
 only at commit-means-fsync. It does not hand-edit JSON. Final integration must recheck the storage
 owner's source/artifact reconciliation and not mistake it for our acceptance.
 
-Next: implement crash recovery from design04, using unique owned clusters/directories with bounded
-start/stop/readiness and retained evidence. Integrate physical record inspection and domain
-assertions into the crash exercise before retiring duplicate wal-replay-is-deterministic. Then
+The archive and crash directions from this earlier checkpoint are now accepted above. Continue with
 matched write amplification and checkpoint/restore/PITR work. No port5440 crashes, no learner
 progress writes, no other agent authoring assignments.
 
