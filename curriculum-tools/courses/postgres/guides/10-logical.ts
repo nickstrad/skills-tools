@@ -1,9 +1,29 @@
 import { LOGICAL_DECODING_VARIATION } from "../curriculum/logical-decoding.ts";
 import { SLOT_DELIVERY_VARIATION } from "../curriculum/slot-delivery.ts";
 import { LOGICAL_BOOTSTRAP_VARIATION } from "../curriculum/logical-bootstrap.ts";
+import { LOGICAL_CONFLICTS_VARIATION } from "../curriculum/logical-conflicts.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "conflicts-stop-the-apply-worker": {
+    brief:
+      "Diagnose actual uniqueness/schema failures, recover queued source commits, and reconcile every effect omitted by a whole-transaction skip.",
+    predict:
+      "The source updates1, deletes2, inserts610 and finally collides on600 in one transaction. Which changes survive on each server after apply fails, and what happens to later601/602?",
+    inspect:
+      "Match logged SQLSTATE and finish LSN to the physical COMMIT start, then compare stopped subscription, fixed origin/confirmation and full row inventories. Verify complete recovery plus new700/900 receipts after each repair.",
+    explain:
+      "Why does an error roll back the earlier valid changes too? Why is the SKIP finish LSN different from the COMMIT-end apply gate, and how can origin advance while four rows still disagree?",
+    vary:
+      "Change only uniqueness recovery to whole-transaction SKIP. Inventory IDs1,2,600,610 after later work resumes, then reconcile under an explicit source-authority and paused-write boundary before repeating schema recovery.",
+    apply:
+      "Define a recovery policy for a replica with local writes: who decides authority, how disputed rows are preserved, how comparison/repair is bounded, and what data plus post-repair evidence permits reads again.",
+    hints: [
+      "Repairing the obstruction permits replay; skipping omits all changes in that transaction. Compare missing, extra and mismatched rows even when later receipts and origin progress look healthy. Source DDL also needs compatible subscriber DDL.",
+      "Run this complete skip-and-reconcile variation in a shell.\n\n```bash\n" +
+      LOGICAL_CONFLICTS_VARIATION + "\n```",
+    ],
+  },
   "publication-and-subscription": {
     brief:
       "Verify actual copied snapshots and concurrent change tails for initial subscription and refreshed-table bootstrap, including continued work on an existing table.",

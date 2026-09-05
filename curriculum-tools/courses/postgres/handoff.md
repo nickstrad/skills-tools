@@ -1,8 +1,53 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–4 and chunk5 through current80 logical bootstrap are accepted. There
-are92 active lessons. Next: current81 logical conflicts, then current82 retention/resnapshot,
-chunks6–7 and the final audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–4 and chunk5 through current81 logical conflict recovery are accepted.
+There are92 active lessons. Next: current82 logical retention/resnapshot, then chunks6–7 and the
+final audit. The full active goal is not complete.**
+
+## Logical conflict repair and explicit skip reconciliation accepted, 2026-09-05
+
+Current81 conflicts-stop-the-apply-worker is revision4. Independent source/subscriber, actual23505
+uniqueness and55000 missing-column failures, disable_on_error=true and streaming=off. Source
+transactions commit while apply is disabled, workers absent, slot inactive and origin/confirmation
+fixed. Uniqueness rolls back the entire incoming update1/delete2/insert610/insert600 transaction.
+Core preserves local600 evidence, removes the obstruction and replays. Variation SKIPs the exact
+logged finish LSN, proves later601/602 and origin progress coexist with discrepancies1,2,600,610,
+then reconciles all four under stopped apply and paused driver-owned source writes. Source-only
+priority DDL causes a second real apply failure; matching target DDL repairs it. Fresh700/900
+receipts and complete ten-row inventories prove continued work, with cumulative2 apply/0 sync
+errors.
+
+First prototype vl7_sfvp exposed that logged finish0/88B158 equals physical COMMIT start, not
+end0/88B188. Accepted SKIP uses that logged start; post-repair apply gates use COMMIT end. The
+schema failure repeats this distinction. No unexecuted direct-origin-advance substitute remains.
+Durable findings appended to docs/knowledge/postgres-logical-evidence.md. Report:
+validation/05-logical-conflicts.md.
+
+Final core /tmp/pg-owned-_z7_bt4a, source variation /tmp/pg-owned-w80452ub and exact hint2
+/tmp/pg-owned-r5f69hzt are stopped, with no slots and exactly the two classified subscriber errors.
+Source logs have no errors. Drivers /tmp/pg-logical-conflicts-{validate,exact}.ts and logs
+/tmp/pg-logical-conflicts-{core,variation}.log plus
+/tmp/pg-logical-conflicts-exact-conflicts-stop-the-apply-worker.log retain evidence. Thirty
+tests/full check pass. Scoped builder /tmp/pg-logical-conflicts-scoped-build.py changes only81
+among92 lessons. Copied /tmp/pg-observe-progress-5eo2uxqo/progress.sqlite preserves
+IDs/history/progress, original first seven/capacity/seven stops and learner hash. Prior
+bootstrap35e5a88 is pushed.
+
+Continue current82 slot-lag-and-disk per designs/05-replication-change-processing.md: focus on
+logical consumer acknowledgement, what removing a slot destroys and an actual tested
+resnapshot/reconciliation path; shorten physical retention mechanics already covered. Then durable
+protocols, incidents and whole-course audit. Full scope remains active. Preserve unrelated storage
+source/guide/knowledge and root bin/; no agents, learner writes or port5440 operations.
+
+Disk about157MB. Before more large fixtures, archive verified-stopped owned evidence with exact
+path/hash verification and retained logs/metadata. Script /tmp/pg-conflicts-archive-prototypes.py
+has finished verified cold archival of superseded bootstrap f6dv1lv1 and aq8062et data/subscriber
+folders; manifests, control output, cold.tar.gz and raw logs remain. Final bootstrap roots remain
+intact. Failed current81 prototype vl7_sfvp is stopped and its data images could be archived while
+retaining the diagnostic log. If more space is needed, explicitly inventory other accepted owned
+roots and preserve their cold file images rather than deleting evidence or arbitrary /tmp trees. Do
+not claim archival as a tested restore. Final audit still includes idle insertion/replay boundaries
+and abort-only WAL flush availability.
 
 ## Audited logical bootstrap and refresh accepted, 2026-09-05
 

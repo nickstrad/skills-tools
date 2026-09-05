@@ -387,11 +387,14 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    Existing items continue streaming while refreshed ledger is still copying. Four-batch variation
    doubles overlap without changing final row counts; verify values/membership rather than counts.
    Former `initial-sync-vs-streaming` is consolidated here after both executed handoffs pass.
-4. `conflicts-stop-the-apply-worker` (writes-data). Insert a conflicting PK on the subscriber, then
-   on the publisher -> apply worker errors (`duplicate key`) in the log and
-   `pg_stat_subscription_stats.apply_error_count`; fix by deleting the row; optionally
-   `pg_replication_origin_advance` to skip. Lens: logical replicas diverge silently unless you
-   watch; conflict handling is your job.
+4. `conflicts-stop-the-apply-worker` (privileged, shell). Independent source/subscriber with
+   disable_on_error and complete-transaction streaming. Actual23505 rolls back an update, delete and
+   non-conflicting insert along with the collision; later source commits accumulate behind it. Core
+   removes the preserved local collision and replays. Variation uses the logged COMMIT-start finish
+   LSN to SKIP, inventories all four discrepancies despite advancing origin, then explicitly
+   reconciles under stopped apply and paused source writes. Source-only ADD COLUMN causes actual
+   55000; compatible target DDL recovers queued work. Both paths require all ten final payloads,
+   fresh post-repair receipts and cleanup; counters remain cumulative rather than proving agreement.
 5. `slot-lag-and-disk` (privileged). Drop the subscriber's ability to apply (disable the
    subscription), write on the publisher, `pg_replication_slots` restart_lsn stays, `pg_wal` grows;
    re-enable. Cleanup: drop subscription, slots, lab_sub.

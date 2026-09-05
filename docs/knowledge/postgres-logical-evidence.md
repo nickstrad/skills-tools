@@ -249,3 +249,72 @@ intermediate state to be sampled. Use the relevant origin's remote_lsn plus fres
 post-ready work, while retaining per-table readiness during multi-table bootstrap. References:
 [pg_subscription_rel](https://www.postgresql.org/docs/16/catalog-pg-subscription-rel.html) and
 [pg_replication_origin_status](https://www.postgresql.org/docs/16/view-pg-replication-origin-status.html).
+
+## Conflict finish LSN and apply COMMIT end are different boundaries (2026-09-05)
+
+### What happened
+
+Current81's first prototype compared the subscriber log's finished-at LSN with the physical COMMIT
+end and failed. Captured source XID737 instead had COMMIT start0/88B158/end0/88B188, while the actual
+23505 log named0/88B158. The corrected experiment checks finish against start, uses that exact logged
+value for ALTER SUBSCRIPTION SKIP and reserves end for its apply-origin gate. The schema failure
+similarly logged0/8900B0, matching COMMIT start rather than end0/8900E0. Core, source variation and
+exact rendered variation reproduce these relationships on PostgreSQL16 with streaming=off.
+
+### Why it matters
+
+A diagnostic transaction identity and an applied-through boundary need not be interchangeable.
+Using a plausible neighboring position can silently change the intended recovery command. The
+original lesson also described direct origin advancement as if it used the identical argument;
+that unexecuted alternative has been removed from the lesson. PostgreSQL documents a different
+next-LSN argument for direct pg_replication_origin_advance, so it should not be taught as an alias
+for SKIP.
+
+### How to apply
+
+Capture the source XID and exact physical record start/end, preserve the matching new error context
+and execute the chosen recovery command. Use the logged finish for SKIP, then verify later complete
+transaction application using the COMMIT-end/origin gate and independent row contents. See
+[logical conflicts](https://www.postgresql.org/docs/16/logical-replication-conflicts.html) and
+[ALTER SUBSCRIPTION](https://www.postgresql.org/docs/16/sql-altersubscription.html). The experiment
+uses ordinary committed transactions, not prepared transactions or parallel in-progress apply.
+
+## Skipping an obstruction restores progress before it restores data (2026-09-05)
+
+### What happened
+
+The source transaction updates1, deletes2, inserts610 and finally collides with subscriber-local600.
+Actual23505 rolls back all local effects: old1 and2 remain,610 is absent and600 keeps its local999
+payload. Explicit disable_on_error=true leaves the subscription disabled with no worker and its
+source slot inactive. Source601/602 still commit while origin/confirmation stay fixed and the target
+lacks those rows. Core preserves local600 in a separate evidence table, deletes it from the replicated
+table and enables replay. The complete failed transaction and later backlog then apply.
+
+The variation uses the same workload but skips the failed transaction. Origin reaches0/88B318 and
+601/602 exist, yet full comparison finds exactly IDs1,2,600,610 inconsistent. Error count stays1.
+With apply stopped and all driver-owned source writes paused, a declared source-authority repair
+removes2 and upserts the inventoried source rows1,600,610 atomically. Only afterward does full equality
+hold. A fresh700 receipt proves continued apply. The discarded local600/value999 remains in evidence.
+
+Source-only ADD COLUMN priority then causes an actual55000 missing-column failure when a new UPDATE
+and INSERT arrive. Source801 commits behind it;800/801 remain absent locally and the old note on1
+survives. Matching target DDL and ENABLE replay the queued transactions. A later900 receipt and all
+ten final row payloads agree. Cumulative counters finish2 apply/0 sync, not zero. Raw logs contain
+exactly these two classified errors in each accepted run.
+
+### Why it matters
+
+Skipping the whole transaction omits its non-conflicting changes too. A running worker, later receipt
+or advancing origin can therefore coexist with extra, missing and wrong rows. Fixing only the
+collision row after SKIP leaves three other discrepancies. The authority and pause boundary are
+part of reconciliation, not optional operational details. Source DDL also does not migrate target
+schema; connection health cannot establish row-shape compatibility.
+
+### How to apply
+
+Preserve disputed local values and inventory the entire skipped transaction. Establish who owns the
+answer and how writers/apply are controlled before modifying target data. Compare full payloads and
+require fresh post-repair work. Use actual schema failure and retained-transaction replay to validate
+a migration repair, not just an ALTER TABLE success message. See validation/05-logical-conflicts.md
+and PostgreSQL16's
+[logical replication restrictions](https://www.postgresql.org/docs/16/logical-replication-restrictions.html).

@@ -12,9 +12,10 @@ Progress checkpoint, 2026-09-05: chunks1–4 are accepted. Durability/recovery a
 in the individual validation/04-*.md reports, concluding with
 [actual PITR and timeline consolidation](validation/04-pitr.md). Chunk5 is accepted through physical
 replication, logical decoding/delivery and
-[bootstrap consolidation](validation/05-logical-bootstrap.md). Logical conflict reconciliation and
-retention/resnapshot, chunks6–7 and the final course audit remain unfinished. The current course
-has92 active lessons and seven stops.
+[bootstrap consolidation](validation/05-logical-bootstrap.md), followed by
+[logical conflict recovery](validation/05-logical-conflicts.md). Logical retention/resnapshot,
+chunks6–7 and the final course audit remain unfinished. The current course has92 active lessons and
+seven stops.
 
 ## Teaching contract
 
