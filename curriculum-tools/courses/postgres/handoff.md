@@ -4,6 +4,38 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Promotion and controlled cutover accepted, 2026-09-05
+
+Current75 promote-the-standby is revision4. Each full script runs two independent owned pairs.
+Unsafe transport disconnect precedes an acknowledged source write; promotion leaves two writable
+histories, old IDs0,1,2 and new IDs0,3, with complete independent receipt inventories. Controlled
+cutover closes admission, changes old app role to NOLOGIN, verifies zero existing app sessions and
+actual rejected login, requires known-history replay plus all source receipts, then stops the old
+source and rejects endpoint access before promotion. Epoch2/new route accepts receipt2; epoch1
+rejects without a DB attempt, and final inventory equals all three acknowledgements. Variation first
+refuses an actually paused/stale candidate, then resumes into the same readiness/exclusion contract.
+The driver epoch is not a distributed authority service; actual local role/process exclusion assumes
+no uncontrolled supervisor restarts the old writer.
+
+Core/source/exact hint2 pass. Report validation/05-failover-workload.md. Final core roots
+/tmp/pg-owned-t2xtc3no and /tmp/pg-owned-zgfepid6; variation /tmp/pg-owned-b9qjbf23 and
+/tmp/pg-owned-yhqkvigw; exact /tmp/pg-owned-g3ug_l0m and /tmp/pg-owned-6986vsaj. All stopped/slots
+removed. Raw /tmp/pg-failover-workload-{core,variation}.log and
+/tmp/pg-failover-workload-exact-promote-the-standby.log. Thirty tests/full check pass. Scoped
+builder /tmp/pg-failover-workload-scoped-build.py changes only current75.93 lessons/seven stops,
+first seven/capacity and copied IDs/history/progress preserved. Prior retention bd4d4b3 is pushed.
+No learner writes or agents; preserve unrelated storage source/guide/knowledge and root bin/.
+
+Next: current76 rewind-the-old-primary. Create fresh owned divergence, retain both complete
+acknowledged-receipt inventories before modifying target files, explicitly choose the authoritative
+history, fence/stop old writer and run actual pg_rewind with checksums/wal_log_hints prerequisites.
+Verify rejoin/streaming/read-only behavior and classify any old-branch acknowledgements discarded by
+that choice. Preserve target WAL needed for divergence scan; do not inherit a running topology from
+this lesson. Then controlled failback (optional cascade depth), logical processing, chunks6–7 and
+final audit per design05. Full goal remains active. Check disk before further retained pairs; all
+lifecycle trials remain serial. Final audit includes the idle insertion-boundary finding from
+current73 in durable replication knowledge.
+
 ## Physical slot retention and rebuild accepted, 2026-09-05
 
 Current74 replication-slot-retains-wal is revision4. The actual owned consumer disconnects after a

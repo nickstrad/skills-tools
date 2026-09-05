@@ -258,3 +258,54 @@ References: PostgreSQL16 [slot view](https://www.postgresql.org/docs/16/view-pg-
 [retention settings](https://www.postgresql.org/docs/16/runtime-config-replication.html) and
 [WAL configuration](https://www.postgresql.org/docs/16/runtime-config-wal.html). Numbers above come
 from executed local trials, not forecasts for another workload.
+
+## Promotion, receipt inventories and controlled writer exclusion (2026-09-05)
+
+### What happened
+
+Each full experiment runs two independent owned topologies. In the unsafe case, clearing the
+standby's primary_conninfo and observing both receiver/sender disappear prevents transport of the
+next acknowledged source receipt. Promotion then creates timeline2 without affecting timeline1's
+writer. Both still accept application inserts: old inventory is IDs0,1,2; new inventory is IDs0,3.
+Choosing new alone omits acknowledged IDs1,2; choosing old alone omits ID3. Both independent sets,
+client acknowledgements, system identity and timeline history are retained before shutdown.
+
+The controlled case creates a fresh pair. After source receipt1 acknowledges, the driver closes
+admission, changes the old application's role to NOLOGIN and verifies zero existing app sessions.
+A direct old-source insert attempt fails at login. The candidate must match known history, replay
+the closed-writer marker and contain all acknowledged source receipts. The owned consumed slot is
+released before old-source shutdown so cleanup never needs to restart that fenced writer. A direct
+old-endpoint insert fails connecting after verified shutdown, before promotion occurs.
+
+After promotion, the driver advances its routing epoch, enables login only on the new node and
+opens admission. The old token rejects with zero database attempts; the new token acknowledges
+receipt2, and the full new inventory equals every successful acknowledgement. Old source remains
+stopped. The variation pauses actual replay before receipt1: candidate initially has only ID0 at
+0/A00090, below the0/A00B50 marker, and is refused. Resume/catch-up precedes the same exclusion and
+cutover gates. Source/exact CLI evidence: validation/05-failover-workload.md.
+
+### Why it matters
+
+Promotion can replay already-received WAL, so pausing apply alone would not reliably demonstrate
+an acknowledged write missing from the promoted history. Stop the actual transport before that
+write when missing-history evidence is required. Timeline2 with the same system identifier records
+ancestry, not writer ownership; the old authority remains usable until separately excluded.
+
+NOLOGIN does not remove existing application sessions, so the zero-session check is part of this
+fixture's quiescence evidence. Process shutdown and rejected endpoint access supply actual local
+writer exclusion. The in-memory epoch is only a driver-owned admission policy: no distributed
+lease, election, durable authority service or protection from an uncontrolled privileged restarter
+has been implemented. The controlled experiment has a reachable writer and cannot establish
+zero-loss failover from an unreachable asynchronous primary.
+
+### How to apply
+
+Record client acknowledgements separately from each branch's contents. Keep the unsafe history
+available before any rewind or rebuild erases it. For a controlled transition, stop admission,
+exclude old clients, inventory acknowledged work, verify candidate history/replay/data, then stop
+the old writer before promotion and open only the new route. Rejected login, endpoint and stale
+routing probes should never appear as accepted receipts. Keep stronger failure-domain and
+external-fencing claims outside what a disposable same-host driver actually proves.
+
+Reference: PostgreSQL16 [failover and old-primary exclusion](https://www.postgresql.org/docs/16/warm-standby-failover.html).
+The receipt sets and rejection observations above are measured local results.

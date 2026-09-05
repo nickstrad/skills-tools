@@ -345,8 +345,13 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    inactive slot at4MB, observes lost state/missing segment and actual old-consumer rejection with
    stale baseline-only rows, then preserves that copy and rebuilds from a verified full backup. Both
    paths verify a post-return streamed receipt and complete32,002-row result before cleanup.
-7. `promote-the-standby` (dangerous, shell). `pg_ctl promote` on standby: new timeline, it accepts
-   writes; old primary still accepting writes = split brain; show both with different data.
+7. `promote-the-standby` (accepted, dangerous, shell). Two independent owned pairs: unsafe promotion
+   preserves actual split-brain receipt inventories, then controlled cutover closes admission,
+   blocks old app login, verifies zero app sessions and complete candidate replay/rows, stops the
+   old source before promotion and rejects stale routing authority. Current authority accepts a
+   later receipt and all acknowledged work is present. Variation refuses a paused/stale candidate
+   before resuming the same gate. Driver-owned epoch is not a distributed election or durable lease;
+   local exclusion assumes no uncontrolled supervisor restarts the old process.
 8. `rewind-the-old-primary` (dangerous, shell). `pg_rewind` old primary to follow the new one (needs
    `wal_log_hints` or checksums: lab has checksums); restart as standby; the divergent write is
    gone. Lens: fencing and the cost of un-fencing; why STONITH exists.

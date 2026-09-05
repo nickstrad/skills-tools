@@ -4,9 +4,29 @@ import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts"
 import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgement.ts";
 import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts";
 import { SLOT_RETENTION_VARIATION } from "../curriculum/slot-retention.ts";
+import { FAILOVER_VARIATION } from "../curriculum/failover-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "promote-the-standby": {
+    brief:
+      "Inventory acknowledged work after unsafe promotion, then execute a separate cutover with candidate readiness and old-writer exclusion.",
+    predict:
+      "If promotion leaves the old primary reachable, which writes can it still acknowledge? Before a controlled cutover, what proves the candidate contains every accepted receipt and the old writer can no longer serve?",
+    inspect:
+      "Compare complete old/new receipt sets and timeline ancestry in the failure case. For controlled cutover, verify closed admission, actual NOLOGIN rejection, zero app sessions, candidate replay/receipts and stopped-endpoint rejection before promotion; then test stale versus current routing tokens.",
+    explain:
+      "Why do a new timeline and recovery=false fail to establish writer authority? Why does NOLOGIN alone leave existing sessions relevant, and why is this driver-owned routing epoch not a distributed fencing service?",
+    vary:
+      "Pause replay before the last acknowledged write in the controlled scenario. Require the candidate to be refused while stale, then resume and satisfy the same inventory and exclusion gates before cutover.",
+    apply:
+      "An asynchronous primary becomes unreachable and a replica is available. Identify the external writer-exclusion fact and acknowledged-data evidence needed before promotion; distinguish what can be established from this reachable-writer cutover and what remains uncertain.",
+    hints: [
+      "Promotion does not close the old writer's route. Inventory receipts separately, quiesce the known writer, verify candidate history/replay, and prove actual exclusion before admitting the new authority. The lagging candidate must wait or be refused.",
+      "Run this complete lagging-candidate variation in a shell.\n\n```bash\n" +
+      FAILOVER_VARIATION + "\n```",
+    ],
+  },
   "replication-slot-retains-wal": {
     brief:
       "Disconnect a real physical consumer, prove its WAL retention obligation, then distinguish catch-up from lost-history reinitialization.",
