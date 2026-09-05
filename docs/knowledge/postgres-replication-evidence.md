@@ -309,3 +309,48 @@ external-fencing claims outside what a disposable same-host driver actually prov
 
 Reference: PostgreSQL16 [failover and old-primary exclusion](https://www.postgresql.org/docs/16/warm-standby-failover.html).
 The receipt sets and rejection observations above are measured local results.
+
+## Rewind preserves a chosen history, not every acknowledgement (2026-09-05)
+
+### What happened
+
+The owned experiment acknowledges old-branch ID1 (IDs1–3 in the variation) and chosen-branch ID100
+on physically related divergent timelines. Before target rewrite it saves both complete independent
+receipt sets and all client acknowledgements, fences/stops the old writer, and creates a compressed
+cold target archive. Reopening and hashing every regular archive member verifies the exact982-file
+map against the stopped target. This preserves physical evidence without claiming an independently
+tested restore. Checksums were enabled at initialization, full_page_writes remains on, and32MB
+wal_keep_size retains target history through the bounded divergence.
+
+Both pg_rewind dry run and actual run print divergence0/A00090, common checkpoint0/900060,6MB copy
+work and Done. A complete before/after target hash comparison proves the dry run did not change
+regular-file contents. Actual -R creates standby.signal. Source configuration is copied too;
+explicit target socket, dedicated replication user, new owned slot and timeline2 must override it
+before startup. The new slot is created on the source, since source replication slots are not copied
+as ordinary target state.
+
+The target rejoins in recovery and streams received_tli2 even while its checkpoint timeline still
+reports1. It contains chosen IDs0,100, rejects an app INSERT with25006/read-only, then receives new
+source receipt200 behind a real replay marker. Final complete sets match IDs0,100,200. Old-only
+acknowledgements remain separately inventoried and physically archived; they are absent from the
+chosen live history. All owned servers stop and slots drop. Source/exact CLI evidence:
+validation/05-rewind-workload.md.
+
+### Why it matters
+
+Progress text and successful tool exit do not prove target mutation or operational recovery. The
+subsequent receiver, read-only probe, replay marker and full domain inventory establish different
+parts of that claim. Copied catalogs also restore source role state: old-target NOLOGIN may become
+LOGIN, making actual recovery-mode write rejection necessary. Checkpoint history can lag active
+streaming history; do not diagnose a failed rewind from that field alone.
+
+### How to apply
+
+Choose authority explicitly, preserve both application and physical evidence before rewrite, and
+classify discarded acknowledgements. Fence the target and verify historical prerequisites before
+running the tool. Inspect copied settings and repair endpoint/receiver identity before startup; then
+verify the actual selected history, domain contents and a later streamed effect. Stop the rejoined
+target before removing its source slot during cleanup, accounting for the swapped roles. Do not
+claim that rewind merges business outcomes or guarantees a particular speedup.
+
+Reference: PostgreSQL16 [pg_rewind](https://www.postgresql.org/docs/16/app-pgrewind.html).

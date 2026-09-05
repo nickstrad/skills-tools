@@ -352,9 +352,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    later receipt and all acknowledged work is present. Variation refuses a paused/stale candidate
    before resuming the same gate. Driver-owned epoch is not a distributed election or durable lease;
    local exclusion assumes no uncontrolled supervisor restarts the old process.
-8. `rewind-the-old-primary` (dangerous, shell). `pg_rewind` old primary to follow the new one (needs
-   `wal_log_hints` or checksums: lab has checksums); restart as standby; the divergent write is
-   gone. Lens: fencing and the cost of un-fencing; why STONITH exists.
+8. `rewind-the-old-primary` (accepted, dangerous, shell). Fresh divergence, explicit timeline2
+   choice and independent acknowledged-receipt sets. Fence/stop target; preserve a hash-verified
+   compressed cold image. Actual dry run leaves target hashes unchanged; real pg_rewind identifies
+   divergence/common checkpoint and rewrites files. Repair copied recovery/socket/slot settings,
+   rejoin read-only, verify25006 on target writes and a later streamed receipt. Variation increases
+   discarded old acknowledgements from one to three; all remain accounted for in preserved evidence.
 9. `cascading-and-failback` (optional, shell). Swap roles back so the lab returns to the original
    layout (primary 5440). Must leave the lab as module 01 built it, standby stopped and removed.
 

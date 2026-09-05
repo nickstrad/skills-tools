@@ -5,9 +5,29 @@ import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgeme
 import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts";
 import { SLOT_RETENTION_VARIATION } from "../curriculum/slot-retention.ts";
 import { FAILOVER_VARIATION } from "../curriculum/failover-workload.ts";
+import { REWIND_VARIATION } from "../curriculum/rewind-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "rewind-the-old-primary": {
+    brief:
+      "Preserve divergent acknowledgements, choose history explicitly, execute pg_rewind and verify read-only rejoin plus new streaming.",
+    predict:
+      "Which acknowledged rows survive if timeline2 is chosen? What evidence must be saved before target files change, and why does a successful rewind exit not yet prove a working standby?",
+    inspect:
+      "Compare both pre-rewind receipt sets and the verified cold archive. Match dry-run divergence with actual rewrite, inspect copied versus corrected recovery settings, then require timeline2 streaming,25006 on target writes and receipt200 on both nodes.",
+    explain:
+      "Why does pg_rewind need historical block-change evidence and target WAL? Why can its copied configuration be wrong for the target, and why are discarded application acknowledgements still unresolved after successful physical repair?",
+    vary:
+      "Acknowledge three old-branch writes instead of one. Predict and verify the full discarded set while following the same chosen history and rejoin procedure.",
+    apply:
+      "A divergent old primary contains acknowledged customer work missing from the chosen source. State what evidence to preserve, how to account for those obligations, and which physical recovery and application reconciliation checks must precede declaring the incident resolved.",
+    hints: [
+      "Rewind follows the selected source; it does not merge histories. Preserve old receipts and bytes first, then verify source identity, target recovery configuration, actual read-only behavior and a new streamed receipt.",
+      "Run this complete three-old-acknowledgement variation in a shell.\n\n```bash\n" +
+      REWIND_VARIATION + "\n```",
+    ],
+  },
   "promote-the-standby": {
     brief:
       "Inventory acknowledged work after unsafe promotion, then execute a separate cutover with candidate readiness and old-writer exclusion.",

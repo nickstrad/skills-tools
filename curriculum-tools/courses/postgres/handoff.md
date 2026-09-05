@@ -4,6 +4,36 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Rewind and chosen-history rejoin accepted, 2026-09-05
+
+Current76 rewind-the-old-primary is revision4. Fresh divergence acknowledges old-only ID1
+(variation1–3) and chosen ID100. Before target rewrite, save complete independent receipt/client
+inventories and timeline history, fence/stop old writer, then verify a compressed cold archive
+against all982 regular-file hashes. Supported checksums/full-page/WAL-retention prerequisites are
+checked. Dry run reports real divergence/common checkpoint and leaves target hashes unchanged;
+actual -R executes repair. Correct copied endpoint/user/slot/timeline settings before startup.
+Recovery=true, timeline2 streaming, actual25006 target write rejection and later receipt200
+establish rejoin; exact final source/target IDs0,100,200 agree. Old acknowledgements remain
+explicitly discarded and preserved, not business-reconciled. Control checkpoint timeline may still
+be1 during streaming2.
+
+Core/source/exact hint2 pass. Report validation/05-rewind-workload.md; roots /tmp/pg-owned-q8jhfat8,
+/tmp/pg-owned-pb5xn_go and /tmp/pg-owned-9ecu9kjz are stopped with source slots removed. Raw logs
+/tmp/pg-rewind-workload-{core,variation}.log and
+/tmp/pg-rewind-workload-exact-rewind-the-old-primary.log. Thirty tests/full check pass. Scoped
+builder /tmp/pg-rewind-workload-scoped-build.py changes only current76;93 lessons/seven stops, first
+seven/capacity and copied IDs/history/progress are preserved. Fresh progress copy
+/tmp/pg-observe-progress-wh7av505/progress.sqlite; learner hash unchanged. Prior promotion938a6fa is
+pushed. No learner writes or agents; preserve unrelated storage source/guide/knowledge and bin/.
+
+Next: current77 cascading-and-failback. Execute controlled failback on fresh owned topology with
+closed writer admission, same-history/domain readiness, actual old-writer exclusion before
+promotion, and complete acknowledged outcomes afterward. Cascading is optional depth only after
+bounded actual extra-hop verification; cleanup stays required. Do not inherit a running topology or
+operate on learner port5440. Then logical processing, chunks6–7 and final audit per design05. Full
+goal remains active. About1.6GB was free after rewind fixtures; check before more retained clusters.
+Final audit still includes current73 idle insertion-boundary findings.
+
 ## Promotion and controlled cutover accepted, 2026-09-05
 
 Current75 promote-the-standby is revision4. Each full script runs two independent owned pairs.
