@@ -1,0 +1,701 @@
+[
+  {
+    "ordinal": 83,
+    "slug": "transactional-outbox",
+    "revision": 4,
+    "core_script": "/tmp/pg-outbox-delivery-core.sh",
+    "core_sha256": "cc3d655fff76d1b1728add1388fdc3223652e190d31f943807d8bde3f82cc53d",
+    "hint_script": "/tmp/pg-outbox-delivery-variation.sh",
+    "hint_sha256": "2b7c8fbf61dd439401c39eb9c1f1fcaa460b7fb219d6d0d0c5c61642b3d9d08e",
+    "runs": [
+      {
+        "kind": "core",
+        "log": "/tmp/pg-outbox-delivery-core.log",
+        "log_sha256": "e6a094feef158ee36ec8fd1348d7434f5e28fec7856edd731c6a4aa512c0a3e6",
+        "root": "/tmp/pg-owned-pr892aee",
+        "checked_outcome": {
+          "orders": 2,
+          "sent": 2,
+          "receipts": 2,
+          "credit": 18,
+          "relay_loss_after_source_ack": false
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-pr892aee/outbox_complete_after_restarts.json",
+            "sha256": "ca53fad73a42d2b0226f18f90616210073a6c49fb3ddcf6db42daf0fcd723094"
+          },
+          {
+            "path": "/tmp/pg-owned-pr892aee/relay_process_loss.json",
+            "sha256": "6c4b215d02d2d59d2dab8bd37f5da2831075d35a0d75611c24f15674b537fe42"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-pr892aee/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-pr892aee/data.cold.tar.gz",
+            "archive_sha256": "31969161542a649e477cc925e70621d2920140d02d472d0dedc4366c4acf4a42",
+            "file_manifest_sha256": "3101e7f13c84de81c3ff26c3a63fb1fbd7b29ebefe0902a9e31bd0b5728e2268",
+            "verified_files": 988
+          },
+          {
+            "directory": "/tmp/pg-owned-pr892aee/receiver",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-pr892aee/receiver.cold.tar.gz",
+            "archive_sha256": "a3131d72e9f391220ac4969352264d1cc85ec537a8106ae8a9973613c4c9473b",
+            "file_manifest_sha256": "6a854587b1f116288465804d987f04f7637fd4c0b551747172d314854a49abc2",
+            "verified_files": 984
+          }
+        ]
+      },
+      {
+        "kind": "variation",
+        "log": "/tmp/pg-outbox-delivery-variation.log",
+        "log_sha256": "d3547ea713523c7bf1af09aff340ce49a46564e4b6da002436cf72cf66e99175",
+        "root": "/tmp/pg-owned-sm9qi_x5",
+        "checked_outcome": {
+          "orders": 2,
+          "sent": 2,
+          "receipts": 2,
+          "credit": 18,
+          "relay_loss_after_source_ack": true
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-sm9qi_x5/outbox_complete_after_restarts.json",
+            "sha256": "51ea30efd0de3495ec3b70b1d84156a83d49b6ee56d0c7646a3164cf2faac554"
+          },
+          {
+            "path": "/tmp/pg-owned-sm9qi_x5/relay_process_loss.json",
+            "sha256": "ac2a7734ed534542ff1e7c5b8c0c01ad9ab283c720b17a26431abf47227ff0ab"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-sm9qi_x5/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-sm9qi_x5/data.cold.tar.gz",
+            "archive_sha256": "42a5cd5267ea0d6a21911ff9a4c4737e7b3d566af3e9ba25e59e7723f4a62fad",
+            "file_manifest_sha256": "57b9ee1e1314bb84a4750eda655f91a8f215e8d936d23bd1f92627eb7087c19e",
+            "verified_files": 988
+          },
+          {
+            "directory": "/tmp/pg-owned-sm9qi_x5/receiver",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-sm9qi_x5/receiver.cold.tar.gz",
+            "archive_sha256": "e64ce70bb4ae204ecfe6d0be55ebaae374a04126658406e878ad38f74fb8e5c9",
+            "file_manifest_sha256": "7a77e9c51017605681bae35f12408a8f0da8ea437bbc508da08c5dee0a2d8616",
+            "verified_files": 984
+          }
+        ]
+      },
+      {
+        "kind": "exact",
+        "log": "/tmp/pg-outbox-delivery-exact-transactional-outbox.log",
+        "log_sha256": "1d2c0be09dcb4cb02c81bb0de3ff51d51a79bc05be71bb5fefa367772fdf6762",
+        "root": "/tmp/pg-owned-3xhfkdc5",
+        "checked_outcome": {
+          "orders": 2,
+          "sent": 2,
+          "receipts": 2,
+          "credit": 18,
+          "relay_loss_after_source_ack": true
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-3xhfkdc5/outbox_complete_after_restarts.json",
+            "sha256": "b1e0f949abff4e511629754c0a0bc4680145ae5dd795b30717f4eddd0572a5c1"
+          },
+          {
+            "path": "/tmp/pg-owned-3xhfkdc5/relay_process_loss.json",
+            "sha256": "916c762acc12b8ad20bb3974ab382ed23ac108f8181b146cfa54ae37616ecac1"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-3xhfkdc5/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-3xhfkdc5/data.cold.tar.gz",
+            "archive_sha256": "4e7c7c357bc5031f7f0b070c1eade08d67c4f32ed8e90ffbd3dc5d86b4c5f628",
+            "file_manifest_sha256": "b4acb02f69ed87a82d5f61a2a6b487382065638b9a4c165a664c46a32c571fdf",
+            "verified_files": 988
+          },
+          {
+            "directory": "/tmp/pg-owned-3xhfkdc5/receiver",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-3xhfkdc5/receiver.cold.tar.gz",
+            "archive_sha256": "8d4e0dc106f24c4bdea78f9ed314b61032ea14efd79dcf1ef53847cf19eb0f33",
+            "file_manifest_sha256": "2400385f1a181d45e963c4ae89ab239b092269e81af837865193cbf39076d5cd",
+            "verified_files": 984
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ordinal": 84,
+    "slug": "idempotency-keys",
+    "revision": 4,
+    "core_script": "/tmp/pg-idempotency-protocol-core.sh",
+    "core_sha256": "05792f3f0f98e3bb2cbd204aa84d50a6500fe8a21c774f8c7fa7d93c77ec96e1",
+    "hint_script": "/tmp/pg-idempotency-protocol-variation.sh",
+    "hint_sha256": "3e5be514944f6402f4b1f7f53b088969dc34e07aab48cd0a7c01d32197151dcb",
+    "runs": [
+      {
+        "kind": "core",
+        "log": "/tmp/pg-idempotency-protocol-core.log",
+        "log_sha256": "5a14a965800b652d628aa0b49610cf4790baadcfdc95deb670492fbcede9ad1f",
+        "root": "/tmp/pg-owned-8070t6ty",
+        "checked_outcome": {
+          "balances": [
+            55,
+            70,
+            82,
+            91
+          ],
+          "receipts": 7,
+          "history": 8,
+          "unsafe_repeated_debits": 2,
+          "cte_result": []
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-8070t6ty/final-after-restart.json",
+            "sha256": "f1866d4dddd72f95f97338ead0a9305b1865a33aa01720e5da8750a0bb5f14cc"
+          },
+          {
+            "path": "/tmp/pg-owned-8070t6ty/final-before-restart.json",
+            "sha256": "f1866d4dddd72f95f97338ead0a9305b1865a33aa01720e5da8750a0bb5f14cc"
+          },
+          {
+            "path": "/tmp/pg-owned-8070t6ty/cte-race-outcome.json",
+            "sha256": "d65e454b5bca33a4646702f3be7c25fc0fd04f0e35e10be870adc01e8340a54b"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-8070t6ty/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-8070t6ty/data.cold.tar.gz",
+            "archive_sha256": "0913e809dc0c92e1128257a43d1f8e9786ed4c149d3bae475de8e65a18184c78",
+            "file_manifest_sha256": "d2dd026706129a0c9be07e116429ccef88531a812d9f88bee133c4adc5f17c3d",
+            "verified_files": 989
+          }
+        ]
+      },
+      {
+        "kind": "variation",
+        "log": "/tmp/pg-idempotency-protocol-variation.log",
+        "log_sha256": "a9101eb8e4b83de07bde7f26ea44d31ede6eb3022d3cd329615b9cd9e04b7334",
+        "root": "/tmp/pg-owned-flhszqqr",
+        "checked_outcome": {
+          "balances": [
+            55,
+            70,
+            82,
+            91
+          ],
+          "receipts": 7,
+          "history": 8,
+          "unsafe_repeated_debits": 2,
+          "cte_result": [
+            {
+              "balance_after": null
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-flhszqqr/final-after-restart.json",
+            "sha256": "2f2c462e5528b4169cd94e356c6eb6623ac4668c5e7021c8ea6ad66f51297b41"
+          },
+          {
+            "path": "/tmp/pg-owned-flhszqqr/final-before-restart.json",
+            "sha256": "2f2c462e5528b4169cd94e356c6eb6623ac4668c5e7021c8ea6ad66f51297b41"
+          },
+          {
+            "path": "/tmp/pg-owned-flhszqqr/cte-race-outcome.json",
+            "sha256": "0e0f50426c7a2cd268b00f220a696496982a2440fb182ff322d8bb7ba88dfef8"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-flhszqqr/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-flhszqqr/data.cold.tar.gz",
+            "archive_sha256": "332a717ac82130b24972748a98b478b5e78917ede0ed5052cb479f4d1e0210c1",
+            "file_manifest_sha256": "4613d8fdd375df2592901b6967fab3c7dfd61fc13b9702e5e9e4792d75c274ed",
+            "verified_files": 989
+          }
+        ]
+      },
+      {
+        "kind": "exact",
+        "log": "/tmp/pg-idempotency-protocol-exact-idempotency-keys.log",
+        "log_sha256": "5c7bb4d865873d3ea2aa467678df8cd14c800ed1cb939cf4911b563de56f2703",
+        "root": "/tmp/pg-owned-0yptn0r5",
+        "checked_outcome": {
+          "balances": [
+            55,
+            70,
+            82,
+            91
+          ],
+          "receipts": 7,
+          "history": 8,
+          "unsafe_repeated_debits": 2,
+          "cte_result": [
+            {
+              "balance_after": null
+            }
+          ]
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-0yptn0r5/final-after-restart.json",
+            "sha256": "2f2c462e5528b4169cd94e356c6eb6623ac4668c5e7021c8ea6ad66f51297b41"
+          },
+          {
+            "path": "/tmp/pg-owned-0yptn0r5/final-before-restart.json",
+            "sha256": "2f2c462e5528b4169cd94e356c6eb6623ac4668c5e7021c8ea6ad66f51297b41"
+          },
+          {
+            "path": "/tmp/pg-owned-0yptn0r5/cte-race-outcome.json",
+            "sha256": "0e0f50426c7a2cd268b00f220a696496982a2440fb182ff322d8bb7ba88dfef8"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-0yptn0r5/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-0yptn0r5/data.cold.tar.gz",
+            "archive_sha256": "906ec8355204f52ad60c4f8fa07cd4ea4a8f7c68b12faf57207f3f136e8ad1a9",
+            "file_manifest_sha256": "46bf6a3aef2846a05b47b6278711aae6d88b5896107024f3cab2330c6f15b0fb",
+            "verified_files": 989
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ordinal": 85,
+    "slug": "two-phase-commit",
+    "revision": 4,
+    "core_script": "/tmp/pg-two-phase-protocol-core.sh",
+    "core_sha256": "9cc8cd6b56fc0aa08d8ffff374ac8bce41faa188b1a192b6096fb193db690bb1",
+    "hint_script": "/tmp/pg-two-phase-protocol-variation.sh",
+    "hint_sha256": "8745013b2e1fef464b49cc3fc0c9c465c357c58840f5c7ce611ccc871e91d85d",
+    "runs": [
+      {
+        "kind": "core",
+        "log": "/tmp/pg-two-phase-protocol-core.log",
+        "log_sha256": "3bf2906801a753b446c70372ec33f9f63df41c35a73aaeac398975c78ee6493f",
+        "root": "/tmp/pg-owned-aky4t1rw",
+        "checked_outcome": {
+          "decision": "COMMIT",
+          "balances": [
+            75,
+            125
+          ],
+          "prepared": 0
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-aky4t1rw/final-after-restarts.json",
+            "sha256": "70f2f2866134a27c9125283b9b3ffe9f2f97186383fdf1d6cdde1dcaa5606111"
+          },
+          {
+            "path": "/tmp/pg-owned-aky4t1rw/resolved.json",
+            "sha256": "70f2f2866134a27c9125283b9b3ffe9f2f97186383fdf1d6cdde1dcaa5606111"
+          },
+          {
+            "path": "/tmp/pg-owned-aky4t1rw/repeat-recovery-unchanged.json",
+            "sha256": "70f2f2866134a27c9125283b9b3ffe9f2f97186383fdf1d6cdde1dcaa5606111"
+          },
+          {
+            "path": "/tmp/pg-owned-aky4t1rw/after-coordinator-loss.json",
+            "sha256": "e8664f96c4bc7c64af61a2ecc3ce9017fbec6b132c6127a2e28963fcb8e90ed2"
+          },
+          {
+            "path": "/tmp/pg-owned-aky4t1rw/recovery-decision-before-resolution.json",
+            "sha256": "e171827a7f7dda81ab8741a44ffe98cf8edb8d090b9f0a7defcb5c7dad7f4d2d"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-aky4t1rw/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-aky4t1rw/data.cold.tar.gz",
+            "archive_sha256": "71bba80e266b75d876985cacbe51ac884eb10970fad9f7210013f535362423c4",
+            "file_manifest_sha256": "40a8a842a1fad0b67eafdb1a3e147adcc41861ffab7c84004df43c6a59326af7",
+            "verified_files": 989
+          },
+          {
+            "directory": "/tmp/pg-owned-aky4t1rw/participant-b",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-aky4t1rw/participant-b.cold.tar.gz",
+            "archive_sha256": "2604bfdf3056af0405bfdcdcafb205ff6158d6b64de6255f45a327346eae1f5b",
+            "file_manifest_sha256": "d92d2b597d21ffb18d9f587011143189b9af6fce175724e1ed249b417756f8b0",
+            "verified_files": 985
+          }
+        ]
+      },
+      {
+        "kind": "variation",
+        "log": "/tmp/pg-two-phase-protocol-variation.log",
+        "log_sha256": "4e33da097c7ba5364bfd54428a91c11bd7bcd2f6939baefc960953245fdb12fa",
+        "root": "/tmp/pg-owned-41p4bhj6",
+        "checked_outcome": {
+          "decision": "ABORT",
+          "balances": [
+            100,
+            100
+          ],
+          "prepared": 0
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-41p4bhj6/final-after-restarts.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-41p4bhj6/resolved.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-41p4bhj6/repeat-recovery-unchanged.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-41p4bhj6/after-coordinator-loss.json",
+            "sha256": "1150e24b719aa34a507aac653f1fdcc391b84313e5d541d0718b0ee00bd09113"
+          },
+          {
+            "path": "/tmp/pg-owned-41p4bhj6/recovery-decision-before-resolution.json",
+            "sha256": "b5cea8af8fc1013eb5e81342d9ac92cb1887274d9155ed6721e345239373f44b"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-41p4bhj6/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-41p4bhj6/data.cold.tar.gz",
+            "archive_sha256": "95cd239545b217e21fb38b8eb2b961f456c835788611ec5ccadf2eaa469966ed",
+            "file_manifest_sha256": "d2ff6ffd5fa798d194db4bf2f6104aba616c19366fcf2144703fd4f7041afe06",
+            "verified_files": 989
+          },
+          {
+            "directory": "/tmp/pg-owned-41p4bhj6/participant-b",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-41p4bhj6/participant-b.cold.tar.gz",
+            "archive_sha256": "a49058168ba083e1162f3762e455cdf905169a03925db41f3fe926f594c80507",
+            "file_manifest_sha256": "c5ce26c96c2653075924e1b32ea8c3971c67535977d98944cb9bf62ead142c04",
+            "verified_files": 985
+          }
+        ]
+      },
+      {
+        "kind": "exact",
+        "log": "/tmp/pg-two-phase-protocol-exact-two-phase-commit.log",
+        "log_sha256": "05c0d5c0ef6a24a4fe326356e972a3e1fac8e4848cef927503e12303b7df5a3c",
+        "root": "/tmp/pg-owned-b8q_7tgt",
+        "checked_outcome": {
+          "decision": "ABORT",
+          "balances": [
+            100,
+            100
+          ],
+          "prepared": 0
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-b8q_7tgt/final-after-restarts.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-b8q_7tgt/resolved.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-b8q_7tgt/repeat-recovery-unchanged.json",
+            "sha256": "4f59e9e8c85eafde880da91bcb78516ae4d4d7baa7884be1b13be64f7f5692ad"
+          },
+          {
+            "path": "/tmp/pg-owned-b8q_7tgt/after-coordinator-loss.json",
+            "sha256": "d5d8658d68525d29b25deb97658253e1fa90808de41ad379fb2e60240e2ecb9d"
+          },
+          {
+            "path": "/tmp/pg-owned-b8q_7tgt/recovery-decision-before-resolution.json",
+            "sha256": "008d9f24c5b178e34f988b5f7e6deb1cdb29ca99e2124fd1b3b37ca86bb022ca"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-b8q_7tgt/data",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-b8q_7tgt/data.cold.tar.gz",
+            "archive_sha256": "69f6449be320a50eadc6be7a4999401f1f636d5ef80c7606f3554f635503455f",
+            "file_manifest_sha256": "f3aa69f7a7e2fbf8479bf451eb2a18657fe664598e7cdfa1a771786d62d39449",
+            "verified_files": 989
+          },
+          {
+            "directory": "/tmp/pg-owned-b8q_7tgt/participant-b",
+            "state": "verified_cold_image",
+            "archive": "/tmp/pg-owned-b8q_7tgt/participant-b.cold.tar.gz",
+            "archive_sha256": "476880f58bb7f17579f7c05cfa7ee272c2ee1bafd6b48eb2f89bba63008b05a9",
+            "file_manifest_sha256": "fc3c60e9989243053b29c374593d5aafc903b49591bf51f2f4e38feb81796d9b",
+            "verified_files": 985
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ordinal": 86,
+    "slug": "fencing-tokens-with-a-monotonic-counter",
+    "revision": 4,
+    "core_script": "/tmp/pg-resource-fencing-core.sh",
+    "core_sha256": "a1735f60debdc402f8f609f1f6354e4f624fe06d40084c908c75e879b174e39b",
+    "hint_script": "/tmp/pg-resource-fencing-variation.sh",
+    "hint_sha256": "56eff976162a42cd89fec2d8e929e9bc2861748921a94ad359b523dba5f022a2",
+    "runs": [
+      {
+        "kind": "core",
+        "log": "/tmp/pg-resource-fencing-core.log",
+        "log_sha256": "3290a686be255ffcc4ff3567c34e4505763e62da39ae960489792a03fcef75b1",
+        "root": "/tmp/pg-owned-cvdhovcz",
+        "checked_outcome": {
+          "epoch": 2,
+          "writer": "worker_b",
+          "value": "B-final",
+          "history": 4
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-cvdhovcz/final-after-restart.json",
+            "sha256": "7aa545f8dd6a4000349c2c3a9c34562cb39735e9f0d5d5ae21f5d26b6a1ff7f9"
+          },
+          {
+            "path": "/tmp/pg-owned-cvdhovcz/final-before-restart.json",
+            "sha256": "7aa545f8dd6a4000349c2c3a9c34562cb39735e9f0d5d5ae21f5d26b6a1ff7f9"
+          },
+          {
+            "path": "/tmp/pg-owned-cvdhovcz/configuration.json",
+            "sha256": "94c7658e88c084a8b00218a6b3840755df89362e8991853a2d85cb4eab3562ce"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-cvdhovcz/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      },
+      {
+        "kind": "variation",
+        "log": "/tmp/pg-resource-fencing-variation.log",
+        "log_sha256": "d85c3ec0f5d8df7ee9f6a5161f563e03dca4cd0df3e9927be53d33032778a287",
+        "root": "/tmp/pg-owned-k5rwaaq0",
+        "checked_outcome": {
+          "epoch": 2,
+          "writer": "worker_b",
+          "value": "B-final",
+          "history": 5
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-k5rwaaq0/final-after-restart.json",
+            "sha256": "af3508bd9cbb03faefc572754e0c143ca9cc6b5294b56bee9b8be3a9ad68fd76"
+          },
+          {
+            "path": "/tmp/pg-owned-k5rwaaq0/final-before-restart.json",
+            "sha256": "af3508bd9cbb03faefc572754e0c143ca9cc6b5294b56bee9b8be3a9ad68fd76"
+          },
+          {
+            "path": "/tmp/pg-owned-k5rwaaq0/configuration.json",
+            "sha256": "a8a5d720edd585ccee9caab80314c63a59cbbd55314927f325f53c7e54e5df2c"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-k5rwaaq0/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      },
+      {
+        "kind": "exact",
+        "log": "/tmp/pg-resource-fencing-exact-fencing-tokens-with-a-monotonic-counter.log",
+        "log_sha256": "2380ee7652d72356c9ed4bb6863490d5d23ce599ff77c814334b0213925ef704",
+        "root": "/tmp/pg-owned-6tkr6u8y",
+        "checked_outcome": {
+          "epoch": 2,
+          "writer": "worker_b",
+          "value": "B-final",
+          "history": 5
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-6tkr6u8y/final-after-restart.json",
+            "sha256": "af3508bd9cbb03faefc572754e0c143ca9cc6b5294b56bee9b8be3a9ad68fd76"
+          },
+          {
+            "path": "/tmp/pg-owned-6tkr6u8y/final-before-restart.json",
+            "sha256": "af3508bd9cbb03faefc572754e0c143ca9cc6b5294b56bee9b8be3a9ad68fd76"
+          },
+          {
+            "path": "/tmp/pg-owned-6tkr6u8y/configuration.json",
+            "sha256": "c1454d9e5746ceb814ab6e7b88d939bd077d2d24304510ab8ab5bd64c73e0ac5"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-6tkr6u8y/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "ordinal": 87,
+    "slug": "listen-notify-as-a-bus",
+    "revision": 4,
+    "core_script": "/tmp/pg-notification-recovery-core.sh",
+    "core_sha256": "6ac7d108368b7ea64b3e73e552f6db5a753a1a294af93b713ccd014e9ec249e3",
+    "hint_script": "/tmp/pg-notification-recovery-variation.sh",
+    "hint_sha256": "c88180691fa3e127c0f2f11eeff59b0bc9c9dec354a9d311bcf54860ffb92bd8",
+    "runs": [
+      {
+        "kind": "core",
+        "log": "/tmp/pg-notification-recovery-core.log",
+        "log_sha256": "de33366bc48210e8c26efd901d13ef81196517019639c91c197c76e8f0b853f7",
+        "root": "/tmp/pg-owned-5gboz79r",
+        "checked_outcome": {
+          "done": 6,
+          "receipts": 6,
+          "credit": 72,
+          "recovered_jobs": 5,
+          "new_recovery_wakeups": 1
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-5gboz79r/final-after-restart.json",
+            "sha256": "f19642531f3cb60b81015c4a057051d39021b7cb887c74de923d9bbc77617fbf"
+          },
+          {
+            "path": "/tmp/pg-owned-5gboz79r/final-before-restart.json",
+            "sha256": "6da02c0485485607546c046a52f0d861e526a59e8434f256ed2ee718138e1808"
+          },
+          {
+            "path": "/tmp/pg-owned-5gboz79r/recovered-despite-missed-wakes.json",
+            "sha256": "a31757d630fafa0999ad6e3dc91049046944687262c3133bc269412878f612a7"
+          },
+          {
+            "path": "/tmp/pg-owned-5gboz79r/listener-loss.json",
+            "sha256": "75671d86b24e4d74453fa11f35be3fee3693f787c1bab3b00d98019aba482f6e"
+          },
+          {
+            "path": "/tmp/pg-owned-5gboz79r/startup-reconciliation.json",
+            "sha256": "16058414c7bd493eda25d7570cabc8294ce4e4e1d2772b8c347aeee17dc2fceb"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-5gboz79r/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      },
+      {
+        "kind": "variation",
+        "log": "/tmp/pg-notification-recovery-variation.log",
+        "log_sha256": "bade5d47d65698e7d4e19757ee965d90c0b56c0f7c647d7736d16f4885e2448a",
+        "root": "/tmp/pg-owned-z76_ul88",
+        "checked_outcome": {
+          "done": 6,
+          "receipts": 6,
+          "credit": 72,
+          "recovered_jobs": 5,
+          "new_recovery_wakeups": 1
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-z76_ul88/final-after-restart.json",
+            "sha256": "92c1af7a8bb06bd0a85b62016270ea87830451b022d4196a1f71e52a7287171b"
+          },
+          {
+            "path": "/tmp/pg-owned-z76_ul88/final-before-restart.json",
+            "sha256": "6da02c0485485607546c046a52f0d861e526a59e8434f256ed2ee718138e1808"
+          },
+          {
+            "path": "/tmp/pg-owned-z76_ul88/recovered-despite-missed-wakes.json",
+            "sha256": "338585cc41dc8446fbc859cd593e5d560fe8c7969b1967b745a925b290efaeab"
+          },
+          {
+            "path": "/tmp/pg-owned-z76_ul88/listener-loss.json",
+            "sha256": "2ca6ecd769342d6c0381f40de5a8d3d4e0322ce9dbf58d86e1663e9a0a626638"
+          },
+          {
+            "path": "/tmp/pg-owned-z76_ul88/startup-reconciliation.json",
+            "sha256": "6fbfd7a0ec38c5ed7fab08100b52e58575b5625077ba1214dadf53b95e8bcb07"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-z76_ul88/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      },
+      {
+        "kind": "exact",
+        "log": "/tmp/pg-notification-recovery-exact-listen-notify-as-a-bus.log",
+        "log_sha256": "590db545edfc564db60e1f31824c24036e68afbf522a8dc2d273e75533f85ab8",
+        "root": "/tmp/pg-owned-2ej038fw",
+        "checked_outcome": {
+          "done": 6,
+          "receipts": 6,
+          "credit": 72,
+          "recovered_jobs": 5,
+          "new_recovery_wakeups": 1
+        },
+        "evidence": [
+          {
+            "path": "/tmp/pg-owned-2ej038fw/final-after-restart.json",
+            "sha256": "a50a2ae3d0fc5e54b34acadbaaf9d61e3512a40ba26ee951d1a9d4d059831441"
+          },
+          {
+            "path": "/tmp/pg-owned-2ej038fw/final-before-restart.json",
+            "sha256": "6da02c0485485607546c046a52f0d861e526a59e8434f256ed2ee718138e1808"
+          },
+          {
+            "path": "/tmp/pg-owned-2ej038fw/recovered-despite-missed-wakes.json",
+            "sha256": "47cac08ccb67b130564dda7c625d39b76e2593bb9fca93f7131caf663a454d23"
+          },
+          {
+            "path": "/tmp/pg-owned-2ej038fw/listener-loss.json",
+            "sha256": "9ef559ab880addab23bb12a40e82f9bc3b65e325db92ee326bd0f85b5b61a230"
+          },
+          {
+            "path": "/tmp/pg-owned-2ej038fw/startup-reconciliation.json",
+            "sha256": "267db39090958279bd8928719694ce397c3aa88d2596351101e3689709b494af"
+          }
+        ],
+        "data_images": [
+          {
+            "directory": "/tmp/pg-owned-2ej038fw/data",
+            "state": "stopped_original",
+            "pg_ctl_status": 3
+          }
+        ]
+      }
+    ]
+  }
+]

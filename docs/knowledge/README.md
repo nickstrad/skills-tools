@@ -24,7 +24,7 @@ otherwise rediscover.
 | [postgres-wal-recovery-evidence.md](postgres-wal-recovery-evidence.md) | WAL interval attribution, transaction outcomes, page-image representation and actual recovery evidence. |
 | [postgres-replication-evidence.md](postgres-replication-evidence.md) | Owned physical topology, receiver lifecycle, replay/domain readiness and the boundary between transport and authority. |
 | [postgres-logical-evidence.md](postgres-logical-evidence.md) | Physical/logical evidence, plugin/schema limits, atomic receiver receipts and source acknowledgement replay after crashes. |
-| [postgres-durable-protocol-evidence.md](postgres-durable-protocol-evidence.md) | Outbox/idempotency, prepared decisions, enforced resource fencing, process loss and verified recovery effects. |
+| [postgres-durable-protocol-evidence.md](postgres-durable-protocol-evidence.md) | Outbox/idempotency, prepared decisions, resource fencing and durable notification reconciliation across actual process loss. |
 | [postgres-lab.md](postgres-lab.md) | The disposable PostgreSQL lab cluster the course validates against and its one maintenance chore. |
 | [postgres-project1-review.md](postgres-project1-review.md) | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections. |
 | [progressive-course-design.md](progressive-course-design.md) | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot. |

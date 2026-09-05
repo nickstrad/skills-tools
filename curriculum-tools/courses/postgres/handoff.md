@@ -1,8 +1,75 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks1–5 and current83–86 outbox/idempotency/2PC/fencing are accepted. There
-are92 active lessons. Next: current87 notification reconciliation, chunk6 integration, chunk7
-incidents and the final whole-course audit. The full active goal is not complete.**
+Updated 2026-09-05. **Chunks1–6 are accepted through current87. There are92 active lessons. Next:
+chunk7's symptom-first incidents/current88–92 and final workload integration, then the full
+whole-course audit. The full active goal is not complete.**
+
+## Notification recovery and chunk6 integration accepted, 2026-09-05
+
+Current87 listen-notify-as-a-bus is revision4 in notification-recovery.ts. The real listener commits
+LISTEN before its fresh durable scan. Core publishes job1/5 before registration commit, variation
+just afterward; both apply it, with actual startup wake counts0/1. An AFTER INSERT row trigger
+queues a generic wake-up in the publisher transaction. Held job99 rollback leaves neither row nor
+wake-up; jobs2/3 in one successful transaction coalesce into one wake-up. Uniquely named committed
+barrier notifications close observation intervals and are excluded from work-signal counts.
+
+The actual listening psql client performs receipt/credit/completion for jobs2/3 inside BEGIN,
+returning tentative totals12/23. Independent data remains jobs2/3 pending, one receipt/credit5.
+SIGKILL removes that listener/backend and rolls the whole batch back. Jobs4/5 commit with no other
+client backend present. The replacement commits LISTEN and sees no historical wake-ups; job6 then
+commits before its initial durable scan. It actually applies all five pending jobs2–6 for cumulative
+credits12/23/36/53/72, despite only one new work wake-up. Redundant wake and bounded poll add no
+effects. Final six full job/receipt payloads match amounts5/7/11/13/17/19 and credit72; failed99 is
+absent. A normal restart/new registered listener preserves all data and finds no pending work or old
+wake-ups. First listener exits-9; the other four clients exit0; all owned processes stop.
+
+Core /tmp/pg-owned-5gboz79r, source variation /tmp/pg-owned-z76_ul88, exact hint2
+/tmp/pg-owned-2ej038fw. Drivers /tmp/pg-notification-recovery-{validate,exact}.ts and independent
+audit /tmp/pg-notification-recovery-audit.py; raw scripts/rendered Markdown, session logs, JSON and
+data remain. Three servers independently report status3/no PID, with no ERROR/FATAL/PANIC. Built
+core matches executed source modulo final-newline trim; exact rendered hint equals the executed
+source variation. Report validation/06-notification-recovery.md and indexed knowledge record
+measured outcomes and limits. The driver coordinates a finite worker sequence, not an always-running
+service; credits are local effects, not independent remote receiver commits.
+
+Chunk6 is accepted across83–87 in validation/06-integration.md and
+validation/06-evidence-manifest.json. /tmp/pg-chunk6-artifact-audit.py freshly renders every hint2
+against the copied catalog, compares all5 current cores/source variations/cached executed hints,
+checks15 retained logs and inspects full recorded domain outcomes/boundaries. All match. Manifest
+hashes scripts/logs/selected JSON and records original stopped directories or unchanged verified
+cold images. Archived image hashes/control/file manifests were rechecked; this is not a restore or a
+rerun of historical experiments. Canonical readings for all5 match the original catalog, and
+first-seven full objects/seven stops remain unchanged. Earlier version-column and replica-readiness
+patterns retain their accepted placement. These are independent fixtures with reviewed assumptions;
+the end-to-end capacity/history capstone remains in chunk7.
+
+Scoped /tmp/pg-notification-recovery-build-3_l8itgz changes only87 among92 generated lessons. Copied
+/tmp/pg-observe-progress-y3cym5jg/progress.sqlite preserves IDs/history/progress, first-seven
+current completions/capacity/seven stops and learner SHA256
+395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty tests and full check pass
+in /tmp/pg-notification-recovery-{tests,check}.log. Current86 080a660 is pushed.
+
+Next: author designs/07-incidents-integration.md from REWORK-PLAN's chunk7 contract and
+knowledge/postgres-project1-review.md, then implement sequentially current88
+abandoned-slot-fills-the-disk as a symptom-first disk-growth diagnosis with slot/archiver/production
+alternatives and consumer-recovery consequences. Then89 corrupt-a-page-and-detect-it (detection,
+preserved damaged copy and validated restore core; salvage optional),90 wraparound-drill (optional
+operational depth or independent diagnosis, not repeated introductory freezing),91
+runaway-query-and-cancel,92 postmortem-from-the-log (combined correctness/recovery/capacity
+operation history and causal account). No chunk7 design/code has been authored yet. Follow all
+explicit scope/identity rules before any retirement or consolidation; keep original first7 and seven
+stops. Finish the final PLAN/ordinal/reading/docs/wrapper and full-course audit, including earlier
+idle insertion/replay and abort-only WAL-flush boundary checks. The full active goal is not
+complete.
+
+Disk about130MB after three87 clusters. /tmp/pg-notify-archive-evidence.py preserved accepted85
+roots aky4t1rw/41p4bhj6/b8q_7tgt data/participant-b: stopped/status3/PG16/clean control, reopened
+archive/original complete path/hash equality and a final stopped/original-hash recheck before
+removing original directories. Compressed images, cold manifests, SQLite decisions and all logs/JSON
+remain. No restore is claimed. Current86 roots cvdhovcz/k5rwaaq0/6tkr6u8y and current87 roots above
+still retain data; preserve explicitly identified stopped owned images before allocating larger
+incident fixtures. No arbitrary tmp cleanup, agents, learner writes or port5440 operations. Preserve
+unrelated storage source/guide/knowledge and root bin/.
 
 ## Restricted resource fencing and commit-order acceptance, 2026-09-05
 

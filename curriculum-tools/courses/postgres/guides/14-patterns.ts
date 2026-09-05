@@ -1,3 +1,4 @@
+import { NOTIFY_VARIATION } from "../curriculum/notification-recovery.ts";
 import { FENCING_VARIATION } from "../curriculum/resource-fencing.ts";
 import { TWOPC_VARIATION } from "../curriculum/two-phase-protocol.ts";
 import { IDEMPOTENCY_VARIATION } from "../curriculum/idempotency-protocol.ts";
@@ -5,6 +6,26 @@ import { OUTBOX_VARIATION } from "../curriculum/outbox-delivery.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "listen-notify-as-a-bus": {
+    brief:
+      "Use real notifications as wake-ups while durable jobs, receipts and credits drive recovery after publisher rollback, listener loss and reconnect.",
+    predict:
+      "Which startup publication produces a notification, how many wake-ups do two identical trigger calls deliver at commit, and what survives a listener killed after processing but before its transaction commits?",
+    inspect:
+      "Compare registered channels, actual psql notification payloads, publisher/listener transaction state and full job/receipt/credit inventories. Separate barrier signals from work wake-ups and match five recovered jobs to the one new wake-up.",
+    explain:
+      "Why must LISTEN commit precede the fresh durable scan? Why do coalesced, missed and redundant wake-ups make neither payload nor notification count a valid work inventory?",
+    vary:
+      "Move only job1's publication from before to after LISTEN commit, keeping it before the initial durable scan. Predict its notification count and whether any final receipt or credit changes.",
+    apply:
+      "Specify startup/reconnect ordering, bounded polling and the local receipt/effect/completion transaction for a worker. Explain which independent commit/acknowledgement boundary must be added when work calls an external service.",
+    hints: [
+      "Commit LISTEN, then scan durable state in a fresh transaction. A notification can refer to work already seen, and absent listeners receive no history. Atomic credit/receipt/completion rolls back when the listener dies before commit, so a replacement scans pending jobs again.",
+      "Run this complete publication-after-LISTEN-commit variation in a shell.\n\n```bash\n" +
+      NOTIFY_VARIATION + "\n```",
+    ],
+  },
+
   "fencing-tokens-with-a-monotonic-counter": {
     brief:
       "Enforce token-bearing writes through restricted worker roles, then race an old token against a new resource fence to locate the actual rejection boundary.",

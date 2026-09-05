@@ -488,8 +488,13 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    direct writes, history/issuance forgery, schema creation, role escalation and temporary-table
    redirection fail. Reconcile full accepted history through restart. The issuer counter represents
    an authorized handoff, not lease expiry or election; same-epoch writes still need idempotency.
-6. `listen-notify-as-a-bus`: `listen`/`notify` across 2 sessions; delivery is at commit; not durable
-   (disconnect misses). Lens: pub/sub inside the database; where it breaks.
+6. `listen-notify-as-a-bus` (privileged, shell). Commit LISTEN before a fresh durable scan; vary
+   publication immediately before/after registration commit. A row trigger ties work and generic
+   wake-ups to publisher commit/rollback; two jobs in one transaction produce one wake-up. Kill the
+   actual listener after local credit/receipt/completion execute but before commit, then publish
+   while it is absent. Reconnect/register and recover all five pending jobs despite only one new
+   wake-up; redundant wake-ups and bounded polls add no effects. Match all six job/receipt payloads
+   and total72 through normal restart. Notifications guide scans; they are not the work inventory.
 
 ## 15 incidents (file: 15-incidents.ts, export INCIDENTS, category "reliability") SERIAL
 

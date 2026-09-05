@@ -279,3 +279,46 @@ When comparing server and verbose client errors, PostgreSQL may append "at chara
 server's ERROR line while placing that cursor information separately in client output. Normalize
 only that positional suffix, then compare the complete message multiset and expected SQLSTATE
 records; do not accept a generic error count as proof all permission tests ran correctly.
+
+## Register first, reconcile durable work, and treat wake-ups as hints (2026-09-05)
+
+### What happened
+
+Current87 holds a real LISTEN registration uncommitted and varies a source job's publication just
+before/after that commit. A fresh scan after registration applies the job in either case, while
+actual startup notifications differ0/1. A row trigger binds generic wake-ups to job insertion;
+publisher rollback discards both, and two jobs in one transaction produce only one work wake-up.
+
+The actual listening psql client applies two pending jobs inside BEGIN, but independent state
+still has credit5 and no new receipts/completion. Killing that client rolls all tentative effects
+back. More jobs commit with no client backend present. A replacement commits LISTEN, sees no replay
+of absent-period signals and scans five pending jobs, including one published after registration
+but before the scan. Only one new wake-up arrives; all five jobs are applied and credit reaches72.
+Redundant wake-up, ordinary bounded poll and post-restart scan add no effects.
+
+### Why it matters
+
+Registration, publisher commit, delivery to a client, the client's read snapshot and business commit
+are different boundaries. Claiming that visibility and notification delivery happen in the same
+instant hides those distinctions. Notification count cannot count jobs, and receiving a signal
+cannot acknowledge a business effect. PostgreSQL's documented sequence is committed registration
+followed by a fresh state inspection; subsequent signals may concern work already seen. Primary
+references: [LISTEN](https://www.postgresql.org/docs/16/sql-listen.html) and
+[NOTIFY](https://www.postgresql.org/docs/16/sql-notify.html).
+
+### How to apply
+
+Use the actual listening connection for subscription and worker SQL, retain raw asynchronous lines,
+and verify full jobs/receipts/business state independently. To bound absence observations, send a
+separately committed, uniquely named barrier after tested actions and service the connection until
+that signal arrives; keep barrier counts separate from generic work wake-ups. Never substitute a
+printed event for receipt of a real PostgreSQL notification. Persistent psql round trips need a
+terminating SQL semicolon before a backslash marker; an echoed marker alone does not submit an
+unfinished query buffer.
+
+Kill the actual listening client with its processing transaction open, wait for backend exit, and
+require receipt/effect/completion rollback together. Commit work while no listener exists, then
+register and reconcile everything pending. Preserve overlap and redundant wake-ups as harmless
+extra scans. State the bounded batch/polling policy and local effect scope; a remote effect needs
+its own independently committed receipt and acknowledgement protocol. Normal restart is not a
+power-failure test, and the finite coordinated driver is not an always-running service benchmark.
