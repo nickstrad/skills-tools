@@ -353,3 +353,33 @@ Primary references: [pg_basebackup](https://www.postgresql.org/docs/16/app-pgbas
 [pg_verifybackup](https://www.postgresql.org/docs/16/app-pgverifybackup.html) and
 [archive recovery](https://www.postgresql.org/docs/16/continuous-archiving.html).
 Actual source/core/exact-hint evidence is in validation/04-backup-restore.md.
+
+## Named PITR targets and timeline allocation (2026-09-05)
+
+### What happened
+
+Two restored copies of one verified backup stop before/after a committed job/receipt deletion.
+Their decoded RESTORE_POINT records, fresh actual recovery logs, complete row outcomes and archived
+history files agree. pg_create_restore_point returns the record end: passing it as a record start
+selects later WAL. Capture an insertion lower bound, decode that interval and match the returned
+end before comparing ancestry. Named-target history fork LSN matches that record end in these runs.
+
+### Why it matters
+
+Both restored copies explicitly select recovery_target_timeline=1. Without that history choice,
+the second restore can discover the first promoted branch through the shared archive. Waiting
+for the first history file to archive also makes its allocated timeline visible when the second
+copy chooses a new timeline number. Restoring the later application state first gives it timeline2;
+restoring the earlier state second gives it timeline3. A larger timeline is not later application
+state, and no timeline/LSN token by itself revokes a different live writer.
+
+### How to apply
+
+Use named points between committed transactions and an additional tail outside both targets.
+Verify backup consistency, required archived hashes, target record boundaries, exact row/receipt
+identities, branch ancestry and actual new timeline-prefixed WAL. Keep both copies and the original
+available for independent comparison before stopping them. Preserve pristine backup and original
+archive bytes. State the parent history explicitly and wait beyond read-only startup readiness
+before application writes. See validation/04-pitr.md for core, reversed order and exact CLI evidence.
+
+Configuration reference: PostgreSQL 16 [recovery targets](https://www.postgresql.org/docs/16/runtime-config-wal.html#RUNTIME-CONFIG-WAL-RECOVERY-TARGET).

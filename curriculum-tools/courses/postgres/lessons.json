@@ -1964,7 +1964,7 @@
   {
     "ordinal": 62,
     "slug": "point-in-time-recovery",
-    "title": "Undo a dropped table by restoring to a moment in time",
+    "title": "Named-target recovery: preserve and compare divergent histories",
     "category": "checkpointing",
     "difficulty": "advanced",
     "tags": [
@@ -1978,54 +1978,22 @@
       59
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
-    "overview": "Now put the pieces together. You have a base backup (a smeared file copy plus two LSNs) and an\narchive holding every WAL segment the cluster has ever sealed. Between them they let you\nreconstruct the database as it was at any instant the archive covers -- including the instant one\nsecond before somebody dropped a table.\n\nYou will drop a table on purpose, having first recorded the timestamp of a moment you know was\nsafe. Then you restore backup1 into a second data directory, tell it to replay the archive up to\nthat timestamp and stop there, and start it on port 5441 alongside the untouched original. The\nrestored server replays forward, announces \"recovery stopping before commit of transaction NNN\",\npromotes itself onto a new timeline, and the table is there. The original on 5440 never notices.",
-    "syntaxBreakdown": "### In plain terms\n\nThis experiment recovers a dropped table by replaying an archived WAL stream only up to a safe time.\nYou create a base backup, record a timestamp before the accident, restore into a second directory,\nand promote the recovered server on port 5441. The original server stays unchanged, making the\ndifference between history reconstruction and ordinary rollback concrete.\n\n### What you are learning\n\n- **Point-in-time recovery:** A backup plus archived WAL can reconstruct an earlier committed state.\n- **Recovery targets:** PostgreSQL stops replay at transaction boundaries, not halfway through SQL.\n- **Timelines:** Promotion creates a new history branch so future writes cannot be confused with the old one.\n\n### Piece by piece\n\n- **clock_timestamp()**, **pg_current_wal_lsn()**, and **timestamptz::text** (SQL functions and cast). What they are: wall-clock, WAL-position, and timestamp-format tools.\n  - What it does here: It records the safe mark and turns one second after it into configuration text.\n  - What it gives us: A target timestamp between the safe mark and DROP's commit.\n- **pg_switch_wal()** (SQL function). What it is: a request to finish the current WAL segment early.\n  - What it does here: It seals the segment containing DROP so archive recovery can fetch it.\n  - What it gives us: A segment that appears in the archive and can be replayed by the second server.\n- **rm -rf**, **cp -a**, **cat >>**, and **touch** (shell file operations). What they are: remove, copy, append, and create-file commands.\n  - What it does here: It clone backup1 into pitr, append recovery settings, and create recovery.signal.\n  - What it gives us: A disposable restored data directory configured independently of port 5440.\n- **pg_ctl -D ... start -w** and **stop -m fast -w** (server-control commands). What they are: start/stop operations with directory, wait, and shutdown-mode flags.\n  - What it does here: It starts the restored server and later stops it cleanly; **-w** waits for completion and **-m fast** asks sessions to finish.\n  - What it gives us: A live port-5441 instance and a clean teardown.\n- **port = 5441** and **cluster_name** (configuration settings). What they are: listener and identity settings.\n  - What it does here: It let the restored server run beside the primary.\n  - What it gives us: **ss -ltn** can show both ports during the comparison.\n- **restore_command** with **%f** and **%p** (recovery setting and placeholders). What they are: a shell fetch command where PostgreSQL substitutes requested filename and destination path.\n  - What it does here: It copies each needed segment from the archive and returns nonzero at archive end.\n  - What it gives us: Log lines naming restored segments and successful replay through the target.\n- **recovery.signal**, **recovery_target_time**, and **recovery_target_action = promote** (recovery controls). What they are: signal file, stopping target, and post-target action.\n  - What it does here: It enables archive replay, stops before the DROP commit, and promotes the recovered server.\n  - What it gives us: Five rescued rows, no dropped table on the primary, and a new timeline.\n- **recovery_target_action = pause**, **recovery_target = immediate**, and **pg_wal_replay_resume()** (challenge controls). What they are: alternative stop behaviors and resume function.\n  - What it does here: It let you inspect a consistent or paused recovery before accepting it.\n  - What it gives us: **pg_is_in_recovery() = true** while paused and a controlled choice before promotion.\n- **psql -h /tmp -p 5441 -d lab -c** (client command and flags). What it is: a one-shot SQL client invocation.\n  - What it does here: **-h**, **-p**, **-d**, and **-c** select socket, port, database, and query on the restored server.\n  - What it gives us: Rescued row count, notebook contents, recovery state, timeline, and current segment.\n- **pg_is_in_recovery()**, **timeline_id**, **to_regclass**, and **pg_walfile_name()** (SQL inspection functions).\n  - What they are: recovery-state, history-ID, relation-existence, and segment-name readers.\n  - What it does here: It compares the promoted copy with the untouched primary.\n  - What it gives us: false/2 on the promoted copy and NULL for the dropped table on the primary.",
-    "setup": "drop table if exists ckpt_pitr_marks;\ncreate table ckpt_pitr_marks(mark text primary key, at timestamptz, lsn pg_lsn);",
-    "code": "-- Session A, on port 5440. Create something valuable, mark a safe moment, then\n-- have the accident. ckpt_pitr_marks is the notebook: it survives the accident\n-- and holds the timestamp you will recover to.\ndrop table if exists ckpt_pitr;\ncreate table ckpt_pitr(id int, note text);\ninsert into ckpt_pitr select g, 'important row ' || g from generate_series(1,5) g;\nselect count(*) as rows_before_accident from ckpt_pitr;\n\n-- The mark. clock_timestamp() is the real wall clock at this instant, and\n-- pg_current_wal_lsn() is the same moment expressed as a log position (which is\n-- what recovery_target_lsn would take instead).\ninsert into ckpt_pitr_marks values ('safe', clock_timestamp(), pg_current_wal_lsn());\n\nselect pg_sleep(3);\n\n-- The accident.\ndrop table ckpt_pitr;\ninsert into ckpt_pitr_marks values ('after_drop', clock_timestamp(), pg_current_wal_lsn());\n\n-- Seal the segment holding the DROP so the archiver ships it. Without this you\n-- would wait up to archive_timeout for a segment that is nowhere near full.\nselect pg_switch_wal();\n\nselect * from ckpt_pitr_marks order by at;\n\n-- This is the string you paste into recovery_target_time: one second after the\n-- safe mark, still two seconds before the DROP committed. Copy the output.\nselect (at + interval '1 second')::text as recovery_target_time\nfrom ckpt_pitr_marks where mark = 'safe';\n\n-- ==========================================================================\n-- SHELL, as the postgres OS user. Run by hand; no lesson runner can start a\n-- second server. Paste the timestamp you just copied as TARGET.\n--\n--   export PATH=/usr/lib/postgresql/16/bin:$PATH\n--   PGLAB=$HOME/pglab\n--   TARGET='2026-09-03 01:39:22.432813+00'\n--\n--   rm -rf \"$PGLAB/pitr\"\n--   cp -a \"$PGLAB/backup1\" \"$PGLAB/pitr\"\n--   rm -f \"$PGLAB/pitr/log/postgresql.log\"   # the copied log is the primary's\n--\n--   cat >> \"$PGLAB/pitr/postgresql.conf\" <<CONF\n--\n--   # --- point-in-time recovery (module 08) ---\n--   port = 5441\n--   cluster_name = 'lab-pitr'\n--   restore_command = 'cp /var/lib/postgresql/pglab/archive/%f %p'\n--   recovery_target_time = '$TARGET'\n--   recovery_target_action = 'promote'\n--   CONF\n--\n--   touch \"$PGLAB/pitr/recovery.signal\"\n--   pg_ctl -D \"$PGLAB/pitr\" -l \"$PGLAB/pitr.log\" start -w\n--\n--   grep -E 'point-in-time|redo (starts|done)|consistent recovery|recovery stopping|last completed transaction|new timeline|ready to accept' \"$PGLAB/pitr/log/postgresql.log\"\n--\n-- ==========================================================================\n\n-- Session A again, still on 5440: the original is untouched, still on timeline\n-- 1, and the table is still gone here.\nselect timeline_id from pg_control_checkpoint();\nselect to_regclass('ckpt_pitr') as ckpt_pitr_on_the_primary;\n\n-- ==========================================================================\n-- SHELL: connect to the RESTORED server on 5441 and collect the evidence.\n--\n--   psql -h /tmp -p 5441 -d lab -c 'select count(*) as rescued_rows from ckpt_pitr'\n--   psql -h /tmp -p 5441 -d lab -c 'select * from ckpt_pitr order by id limit 3'\n--   psql -h /tmp -p 5441 -d lab -c 'select * from ckpt_pitr_marks order by at'\n--   psql -h /tmp -p 5441 -d lab -c 'select pg_is_in_recovery(), timeline_id from pg_control_checkpoint()'\n--   psql -h /tmp -p 5441 -d lab -c 'select pg_walfile_name(pg_current_wal_lsn())'\n--\n-- Then tear it down. backup1 stays; only the restored instance goes away.\n--\n--   pg_ctl -D \"$PGLAB/pitr\" stop -m fast -w\n--   rm -rf \"$PGLAB/pitr\" \"$PGLAB/pitr.log\"\n--   ls \"$PGLAB\"                     # archive, backup1, primary, primary.log\n--   ss -ltn | grep -E '5440|5441'   # only 5440 remains\n--\n-- ==========================================================================\n\n-- Session A, last check: the lab is exactly as it was, one dropped table poorer.\nselect timeline_id, redo_lsn from pg_control_checkpoint();",
-    "expectedResult": "On 5440 the notebook reads:\n\n  mark       |              at               |    lsn\n  safe       | 2026-09-03 01:39:21.432813+00 | 0/A402CE48\n  after_drop | 2026-09-03 01:39:24.453604+00 | 0/A4030698\n\nso the target string is 2026-09-03 01:39:22.432813+00, comfortably between them.\n\nThe restored server starts in about six seconds and its log is the whole story, in order:\n\n  LOG:  starting point-in-time recovery to 2026-09-03 01:39:22.432813+00\n  LOG:  restored log file \"0000000100000000000000A3\" from archive\n  LOG:  redo starts at 0/A30000D8\n  LOG:  restored log file \"0000000100000000000000A4\" from archive\n  LOG:  consistent recovery state reached at 0/A30001B0\n  LOG:  database system is ready to accept read-only connections\n  LOG:  recovery stopping before commit of transaction 88511, time 2026-09-03 01:39:24.451439+00\n  LOG:  redo done at 0/A4030270 system usage: CPU: user: 0.00 s, system: 0.01 s, elapsed: 0.12 s\n  LOG:  last completed transaction was at log time 2026-09-03 01:39:21.433128+00\n  LOG:  restored log file \"0000000100000000000000A4\" from archive\n  LOG:  selected new timeline ID: 2\n  LOG:  database system is ready to accept connections\n\nEvery line is worth a sentence. \"redo starts at 0/A30000D8\" is backup_label's START WAL LOCATION,\nnot pg_control's stale redo point. \"consistent recovery state reached at 0/A30001B0\" is the backup\nend LSN: only there do the smeared files become a database, and only there does it accept\nread-only connections. \"recovery stopping before commit of transaction 88511, time\n2026-09-03 01:39:24.451439+00\" is the DROP TABLE -- replay walked right up to it and refused to\napply it, which is what \"transaction-granular\" means and why your target only has to land in the\ngap, not on a precise instant. \"last completed transaction was at log time 01:39:21.433128\" is the\nINSERT of the 'safe' mark. Then promotion: \"selected new timeline ID: 2\".\n\nConnecting to 5441 shows the rescued table:\n\n  rescued_rows = 5\n\n   id |      note\n    1 | important row 1\n    2 | important row 2\n    3 | important row 3\n\nand a notebook that stops exactly where recovery did -- 'safe' is present, 'after_drop' is not,\nbecause its transaction committed after the target:\n\n  mark | at                            | lsn\n  safe | 2026-09-03 01:39:21.432813+00 | 0/A402CE48\n\n  pg_is_in_recovery | timeline_id           ->  f | 2\n  pg_walfile_name(pg_current_wal_lsn())     ->  0000000200000000000000A4\n\npg_is_in_recovery() is false because recovery_target_action = promote finished the job, the\ncontrol file says timeline 2, and the WAL file names now begin 00000002. Meanwhile on 5440,\ntimeline_id is still 1 and to_regclass('ckpt_pitr') is NULL: the primary was never involved.\n\nTeardown prints \"server stopped\", and afterwards $PGLAB contains archive, backup1, primary and\nprimary.log, with only 5440 in the ss output. The one lasting trace is in the archive, put there\nby the promoted instance before you deleted it -- 00000002.history and one timeline-2 segment.\nThat is the next lesson.",
-    "systemsLens": "Point-in-time recovery is the payoff for treating the log as the system of record. Because every\nchange was written to an ordered, replayable stream before it touched a page, any prefix of that\nstream is a valid database state, and a backup is just a cheap starting point so you do not have\nto replay from the beginning of time. Event-sourced systems sell this as a feature; PostgreSQL has\nit as a side effect of crash safety. The same property is why a stream processor can rebuild a\nstate store from an offset, and why an LSM tree can rebuild a memtable from a WAL prefix.\n\nTwo design details are worth stealing. First, the stopping point is a transaction boundary, not a\nclock reading: replaying half a transaction would produce a state no observer ever saw, so the\nsystem stops before a commit instead. Prefixes of a log are only safe if the log's units are\natomic. Second, promotion allocates a new timeline. The moment you recover to a point in the past\nand start accepting writes, you have created a branch, and the future you branched away from still\nexists in the archive. Giving that branch an identity -- baked into every WAL file name from then\non -- means a server can never accidentally replay records from the wrong history. That is exactly\nthe problem term numbers solve in Raft and epoch numbers solve in a fencing token: a monotonically\nincreasing identity that makes divergent histories detectably different instead of silently\ninterleaved.\n\nAnd the operational moral: this restore took six seconds because the database is 330 MB and the\narchive is on the same disk. Your RTO for a PITR is copy-the-backup plus replay-the-archive, and\nboth scale with size and with how old your newest backup is. That is a number you should measure\nbefore you need it, not during.",
-    "challenge": "Redo the restore twice more with different targets. First recovery_target = 'immediate', which\nstops the moment the backup is consistent: does ckpt_pitr exist? Second, use\nrecovery_target_action = 'pause' instead of 'promote' and connect while the server is still in\nrecovery -- pg_is_in_recovery() is true, writes are rejected, and you can inspect the state before\ncommitting to it, then continue with pg_wal_replay_resume(). Which of the two would you actually\nuse at 3 a.m. during a real incident, and why?",
-    "caution": "### Small-disk archive check\n\nThe lab's archived WAL is intentionally never deleted by PostgreSQL, so check it periodically:\n\n    df -h \"$PGLAB\"\n    du -sh \"$PGLAB/archive\"\n\nOnly prune after you have a base backup you can restore from, and only when no standby or other\nrecovery process still needs older WAL. A replication slot can also make **$PGLAB/primary/pg_wal**\ngrow, although it does not by itself make an archived copy safe to delete. In this course, the\nbackup created by module 08 is **$PGLAB/backup1**. Preview the files that would be removed, using\nthat backup's START WAL file as the cutoff:\n\n    start_file=$(sed -n 's/^START WAL LOCATION:.*(file \\([^)]*\\)).*/\\1/p' \"$PGLAB/backup1/backup_label\")\n    pg_archivecleanup -n \"$PGLAB/archive\" \"$start_file\"\n\nIf **start_file** is empty, stop: the backup label was not found. If the preview names only WAL\nfiles older than the backup (and you have checked standbys or other restore consumers), perform the\ncleanup and measure the result:\n\n    pg_archivecleanup \"$PGLAB/archive\" \"$start_file\"\n    du -sh \"$PGLAB/archive\"\n\nThe **-n** preview is the safety check; **pg_archivecleanup** keeps the cutoff file and newer files.\nNever run it against **$PGLAB/primary/pg_wal**, and do not guess a cutoff when **backup1** does not\nexist. Keep a separate, tested backup if the archive is part of your real recovery plan.\n\nThis lesson drops a table in the lab database on purpose and starts a SECOND PostgreSQL instance\non port 5441. Nothing here touches the 5440 server's data directory. The final block stops and\ndeletes $PGLAB/pitr so the lab is back to its module-01 layout -- do not skip it. $PGLAB/backup1\nstays where it is: module 09 may reuse it. Note that the restored instance inherits\narchive_mode = on from the copied postgresql.conf, so when it promotes it writes 00000002.history\ninto $PGLAB/archive. That is deliberate; the next lesson reads it.",
+    "overview": "Restore an actual backup to named points before and after a destructive committed cleanup. Compare\nboth restored job/receipt histories with their source, verify archived timeline ancestry and write\na different marker on each branch. The variation selects the later target first, showing why timeline\nallocation order is not a ranking of the application states those histories contain.",
+    "syntaxBreakdown": "### In plain terms\n\nRecovery can follow one original history only as far as a selected restore point, then promote the\ncopy into a new writable branch. We restore before and after the same committed deletion and retain\nboth copies, so their data and ancestry can be inspected together rather than inferred from filenames.\n\n### What you are learning\n\n- **Named targets:** a WAL restore-point record identifies the chosen boundary precisely.\n- **Required history:** an intact backup and verified archived WAL are both used by actual recovery.\n- **Branch ancestry:** the history file connects the new timeline to its original parent and fork LSN.\n- **Authority limits:** timeline numbers and bare LSNs are not standalone freshness or fencing tokens.\n\n### Piece by piece\n\n- **python3** runs the supplied driver. The embedded helper uses **PGBIN** or **pg_config --bindir**,\n  **tempfile.mkdtemp**, and root-only **runuser -u ... -- / os.chown** for owned server processes.\n  **initdb -D ... -U postgres --auth-local=trust --auth-host=reject --no-locale --data-checksums\n  --wal-segsize=1** creates the private cluster with checksums and1MB WAL segments. Local trust is\n  protected by the private parent directory; **listen_addresses=''** disables TCP.\n- **fsync**, **synchronous_commit** and **full_page_writes** remain on; **wal_level=replica** supports\n  backup/recovery. **max_wal_size=128MB**, **checkpoint_timeout=1h** and **autovacuum=off** reduce\n  interference for this bounded fixture. **pg_ctl -D ... -l ... -w -t20** bounds lifecycle and\n  retains logs; **-m fast** stops each owned server cleanly.\n- **psql -X -At -v ON_ERROR_STOP=1 -c** ignores startup files and fails on SQL errors. Cleared PG\n  variables and **PGCONNECT_TIMEOUT/statement_timeout/lock_timeout** isolate and bound queries.\n  Restored queries override **PGHOST** with the copy's socket and verify **data_directory**.\n- **archive_mode=on/archive_command** invoke the supplied archive script. **%p/%f** name source\n  path and destination filename; identical existing files succeed and differing bytes fail. A\n  temporary copy, **os.fsync**, rename and parent-directory sync publish each file. One archiver\n  writes at a time in this experiment; this is not a concurrent multi-host archive publication API.\n- **CREATE TABLE**, primary keys, unique receipt job IDs, foreign keys, **NOT NULL** and positive\n  amount/state **CHECK** constraints define20 queued jobs and empty receipts. **recovery_branch**\n  starts empty and later holds a distinct committed marker in each promoted copy.\n- **pg_basebackup -D ... -c fast -X stream --manifest-checksums=SHA256 -v** creates the actual\n  pristine backup. **pg_verifybackup** checks files and required WAL before and after the experiment.\n  **pg_control_system.system_identifier** identifies the source cluster; backup copies retain it.\n- A committed **BEGIN/UPDATE/INSERT SELECT/COMMIT** completes jobs1–10 and creates their receipts\n  after the backup. **pg_create_restore_point('before_cleanup')** records that completed state.\n  One transaction then deletes receipts and jobs1–5, followed by **after_cleanup**. Job999 is\n  committed after both targets and must be absent from both restored histories.\n- **pg_current_wal_insert_lsn** brackets each restore-point insertion. **pg_get_wal_records_info**\n  decodes that range and verifies each target's XLOG RESTORE_POINT type, description and\n  start/end LSN. **pg_create_restore_point** returns the record end, so it is not passed to a\n  decoder as that record's start. The later synchronous tail commit flushes both earlier restore-point records.\n  **pg_walfile_name(pg_switch_wal())** seals their segment for actual archiving.\n- The manifest's **WAL-Ranges** identifies the starting history. The driver converts hexadecimal\n  LSN halves to byte positions and enumerates required1MB segments through the later target, with\n  timeline1 prefixes. **hashlib.sha256** compares each source segment with its archived bytes;\n  **wait_for** polls file existence with a deadline before restoration begins.\n- **shutil.copytree** creates two copies and preserves the pristine backup. Only ordinary WAL\n  segment files in those copies are removed. **recovery.signal**, **restore_command** with\n  **%f/%p**, **recovery_target_name**, **recovery_target_timeline='1'** and\n  **recovery_target_action='promote'** request the selected original history and promote at its\n  named point. Explicit timeline1 prevents the second restore from following the first new branch.\n- The restore script copies available archive files and returns exit1 for absent names. Real\n  restored-from-archive log lines are required. **pg_ctl -w** can return at read-only consistency;\n  a bounded **pg_is_in_recovery=false** poll requires promotion before marker writes.\n- **count**, ordered **json_agg**, **sum**, **NOT EXISTS**, **LEFT JOIN** and **CASE** verify all\n  job/receipt identities, values, expected queued/done states and zero orphans. Separate table\n  counts prevent joins from hiding extra rows. The source additionally retains job999.\n- **pg_control_checkpoint.timeline_id** identifies each promoted copy. Its eight-hex-digit\n  **.history** filename must exist locally and in the shared archive with equal contents. Parsing\n  its parent and fork LSN requires parent1 and the selected restore-point record's end address.\n  Numeric LSN comparison normalizes leading zeroes used by different output formats.\n- Each branch inserts a unique **recovery_branch** label and switches WAL. Its archived segment\n  must use its own timeline prefix and match the local bytes. Waiting for the first history file\n  in the archive lets the second promotion discover it and allocate another timeline number.\n- Fresh logs must show the named PITR request, stopping at that restore point, completed backup\n  recovery, new timeline selection and readiness. **time.monotonic** records sampled recovery and\n  domain/archive-check elapsed time, including helper overhead; this is not a production RTO.\n- Both copies remain running while their rows and marker labels are independently rechecked. The\n  source remains on timeline1 with its original post-cleanup state and no branch marker; original\n  archived hashes and pristine backup verification must still pass. **json.loads/dumps** retain\n  the records, ancestry, source/copy outcomes and evidence paths. Nested finally stops all servers.",
+    "code": "python3 - <<'PY'\n\nimport json, os, pathlib, pwd, shutil, subprocess, tempfile, time\n\nbindir = pathlib.Path(os.environ.get(\"PGBIN\") or subprocess.check_output(\n    [\"pg_config\", \"--bindir\"], text=True).strip())\nfor name in (\"initdb\", \"pg_ctl\", \"psql\"):\n    if not (bindir / name).is_file():\n        raise RuntimeError(\"Missing PostgreSQL server executable: \" + str(bindir / name))\nroot = pathlib.Path(tempfile.mkdtemp(prefix=\"pg-owned-\", dir=\"/tmp\"))\nowner = pwd.getpwnam(\"postgres\") if os.geteuid() == 0 else pwd.getpwuid(os.geteuid())\nif os.geteuid() == 0:\n    os.chown(root, owner.pw_uid, owner.pw_gid)\nprefix = [\"runuser\", \"-u\", owner.pw_name, \"--\"] if os.geteuid() == 0 else []\ndata, sock, log = root / \"data\", root / \"socket\", root / \"server.log\"\nsock.mkdir()\nif os.geteuid() == 0:\n    os.chown(sock, owner.pw_uid, owner.pw_gid)\nenv = {k: v for k, v in os.environ.items() if not k.startswith(\"PG\")}\nenv.update(PGHOST=str(sock), PGPORT=\"6543\", PGUSER=\"postgres\", PGDATABASE=\"postgres\",\n           PGCONNECT_TIMEOUT=\"3\", PGOPTIONS=\"-c statement_timeout=5000 -c lock_timeout=1000\",\n           LC_ALL=\"C\")\nprint(\"owned evidence directory:\", root, flush=True)\n\ndef run(args, timeout=30):\n    result = subprocess.run(args, env=env, text=True, capture_output=True, timeout=timeout)\n    if result.returncode:\n        raise RuntimeError(str(args) + \"\\n\" + result.stdout + result.stderr)\n    return result.stdout.strip()\n\ndef server(name, *args, timeout=30):\n    return run(prefix + [str(bindir / name), *map(str, args)], timeout)\n\ndef sql(query):\n    return run([str(bindir / \"psql\"), \"-X\", \"-At\", \"-v\", \"ON_ERROR_STOP=1\", \"-c\", query], 10)\n\ndef wait_for(label, check, seconds=20):\n    deadline = time.monotonic() + seconds\n    while time.monotonic() < deadline:\n        result = check()\n        if result:\n            return result\n        time.sleep(0.2)\n    raise RuntimeError(\"Timed out waiting for \" + label + \"; inspect \" + str(log))\n\ndef start():\n    server(\"pg_ctl\", \"-D\", data, \"-l\", log, \"-w\", \"-t\", \"20\", \"start\", timeout=25)\n    assert sql(\"select current_setting('data_directory')\") == str(data)\n\ndef stop():\n    # Only the directory allocated above is ever passed to pg_ctl.\n    if (data / \"postmaster.pid\").exists():\n        server(\"pg_ctl\", \"-D\", data, \"-m\", \"fast\", \"-w\", \"-t\", \"20\", \"stop\", timeout=25)\n\nserver(\"initdb\", \"-D\", data, \"-U\", \"postgres\", \"--auth-local=trust\",\n       \"--auth-host=reject\", \"--no-locale\", \"--data-checksums\", \"--wal-segsize=1\")\nwith (data / \"postgresql.conf\").open(\"a\") as config:\n    config.write(\"\\nlisten_addresses=''\\nport=6543\\nunix_socket_directories='\" + str(sock) + \"'\\n\"\n                 \"shared_buffers='16MB'\\nmax_connections=10\\nwal_level=replica\\n\"\n                 \"fsync=on\\nsynchronous_commit=on\\nfull_page_writes=on\\n\"\n                 \"min_wal_size='2MB'\\nmax_wal_size='8MB'\\ncheckpoint_timeout='1h'\\n\"\n                 \"logging_collector=off\\nlog_checkpoints=on\\n\")\n\nselected_target = 'before_cleanup'\n\nimport re, hashlib\narchive, backup = root/'archive',root/'backup'\narchive.mkdir()\nif os.geteuid()==0:\n    os.chown(archive,owner.pw_uid,owner.pw_gid)\nfor name in ('pg_basebackup','pg_verifybackup'):\n    assert (bindir/name).is_file(), 'Missing utility: '+name\narchive_script = root/'archive.py'\narchive_script.write_text(\n    \"import os,pathlib,shutil,sys\\n\"\n    \"source=pathlib.Path(sys.argv[1]); destination=pathlib.Path(\"+repr(str(archive))+\")/sys.argv[2]\\n\"\n    \"if destination.exists(): sys.exit(0 if destination.read_bytes()==source.read_bytes() else 1)\\n\"\n    \"temporary=destination.with_name(destination.name+'.partial')\\n\"\n    \"shutil.copyfile(source,temporary)\\n\"\n    \"with temporary.open('rb') as stream: os.fsync(stream.fileno())\\n\"\n    \"temporary.replace(destination)\\n\"\n    \"fd=os.open(str(destination.parent),os.O_RDONLY); os.fsync(fd); os.close(fd)\\n\")\narchive_script.chmod(0o644)\nrestore_script = root/'restore.py'\nrestore_script.write_text(\n    \"import pathlib,shutil,sys\\nsource=pathlib.Path(\"+repr(str(archive))+\")/sys.argv[1]\\n\"\n    \"if not source.is_file(): sys.exit(1)\\nshutil.copyfile(source,sys.argv[2])\\n\")\nrestore_script.chmod(0o644)\nwith (data/'postgresql.conf').open('a') as config:\n    config.write(\"\\nmax_wal_size='128MB'\\narchive_mode=on\\narchive_command='python3 \"+str(archive_script)+\" %p %f'\\nautovacuum=off\\n\")\ntargets = []\n\ndef emit(label,value):\n    print(label+': '+json.dumps(value,sort_keys=True),flush=True)\n    (root/(label+'.json')).write_text(json.dumps(value,indent=2))\n\ndef lsn(value):\n    high,low=value.split('/')\n    return (int(high,16)<<32)+int(low,16)\n\ndef digest(path):\n    return hashlib.sha256(path.read_bytes()).hexdigest()\n\ndef own_tree(path):\n    if os.geteuid()==0:\n        for current,dirs,files in os.walk(path):\n            os.chown(current,owner.pw_uid,owner.pw_gid)\n            for name in files:\n                os.chown(pathlib.Path(current)/name,owner.pw_uid,owner.pw_gid)\n\ndef target_sql(target,query):\n    result = subprocess.run([str(bindir/'psql'),'-X','-At','-v','ON_ERROR_STOP=1','-c',query],\n        env=dict(env,PGHOST=str(target/'socket')),text=True,capture_output=True,timeout=10)\n    assert result.returncode==0,result.stdout+result.stderr\n    return result.stdout.strip()\n\noutcome_query = (\"select json_build_object('jobs',(select count(*) from pitr_jobs),\"\n    \"'receipts',(select count(*) from pitr_receipts),'job_ids',(select json_agg(id order by id) from pitr_jobs),\"\n    \"'receipt_ids',(select json_agg(job_id order by job_id) from pitr_receipts),\"\n    \"'amount',(select sum(amount) from pitr_receipts),\"\n    \"'correct',not exists(select 1 from pitr_jobs j left join pitr_receipts r on r.job_id=j.id \"\n    \"where j.amount<>j.id or j.state<>case when j.id<=10 then 'done' else 'queued' end \"\n    \"or (j.id<=10 and (r.job_id is null or r.amount<>j.amount or r.request_id<>'request-'||j.id::text)) \"\n    \"or (j.id>10 and r.job_id is not null)),\"\n    \"'orphans',(select count(*) from pitr_receipts r left join pitr_jobs j on j.id=r.job_id where j.id is null))\")\n\ndef expected(name,tail=False):\n    first=1 if name=='before_cleanup' else 6\n    ids=list(range(first,21))+([999] if tail else [])\n    return dict(jobs=len(ids),receipts=11-first,job_ids=ids,receipt_ids=list(range(first,11)),\n        amount=sum(range(first,11)),correct=True,orphans=0)\n\ntry:\n    start()\n    sql('create extension pg_walinspect')\n    sql(\"create table pitr_jobs(id int primary key,amount int not null check(amount>0),state text not null \"\n        \"check(state in ('queued','done')))\")\n    sql(\"create table pitr_receipts(request_id text primary key,job_id int unique not null references pitr_jobs(id),\"\n        \"amount int not null check(amount>0))\")\n    sql('create table recovery_branch(id int primary key,label text not null)')\n    sql(\"insert into pitr_jobs select g,g,'queued' from generate_series(1,20) g\")\n    original_id=sql('select system_identifier from pg_control_system()')\n    original_tli=int(sql('select timeline_id from pg_control_checkpoint()'))\n    assert original_tli==1\n    base = subprocess.run(prefix+[str(bindir/'pg_basebackup'),'-D',str(backup),'-c','fast','-X','stream',\n        '--manifest-checksums=SHA256','-v'],env=env,text=True,capture_output=True,timeout=60)\n    (root/'basebackup.log').write_text(base.stdout+base.stderr)\n    assert base.returncode==0,base.stdout+base.stderr\n    assert 'backup successfully verified' in server('pg_verifybackup',backup,timeout=60)\n    manifest=json.loads((backup/'backup_manifest').read_text())\n    sql(\"begin; update pitr_jobs set state='done' where id<=10; \"\n        \"insert into pitr_receipts select 'request-'||id,id,amount from pitr_jobs where id<=10; commit\")\n    assert json.loads(sql(outcome_query))==expected('before_cleanup')\n    before_lower=sql('select pg_current_wal_insert_lsn()')\n    before_point=sql(\"select pg_create_restore_point('before_cleanup')\")\n    # One destructive transaction removes receipts and their jobs without violating the FK.\n    sql('begin; delete from pitr_receipts where job_id<=5; delete from pitr_jobs where id<=5; commit')\n    assert json.loads(sql(outcome_query))==expected('after_cleanup')\n    after_lower=sql('select pg_current_wal_insert_lsn()')\n    after_point=sql(\"select pg_create_restore_point('after_cleanup')\")\n    # A later committed tail is outside BOTH requested histories.\n    sql(\"insert into pitr_jobs values(999,999,'queued')\")\n    points={}\n    for name,lower,position in [('before_cleanup',before_lower,before_point),('after_cleanup',after_lower,after_point)]:\n        record=json.loads(sql(\"select row_to_json(r) from pg_get_wal_records_info('\"+lower+\"','\"+position+\"') r \"\n            \"where resource_manager='XLOG' and record_type='RESTORE_POINT'\"))\n        assert lsn(record['end_lsn'])==lsn(position)\n        assert record['resource_manager']=='XLOG' and record['record_type']=='RESTORE_POINT' and name in record['description']\n        points[name]=record\n    sealed=sql('select pg_walfile_name(pg_switch_wal())')\n    start_segment=lsn(manifest['WAL-Ranges'][0]['Start-LSN'])//1048576\n    end_segment=lsn(after_point)//1048576\n    required=[f'00000001{i//4096:08X}{i%4096:08X}' for i in range(start_segment,end_segment+1)]\n    hashes={name:digest(data/'pg_wal'/name) for name in required}\n    wait_for('all required history archived',lambda: all((archive/name).is_file() for name in required+[sealed]))\n    assert all(digest(archive/name)==hashes[name] for name in required)\n    source_outcome=json.loads(sql(outcome_query))\n    assert source_outcome==expected('after_cleanup',tail=True)\n    emit('source_history',dict(system_identifier=original_id,timeline=original_tli,selected_target=selected_target,\n        manifest_ranges=manifest['WAL-Ranges'],points=points,required_hashes=hashes,outcome=source_outcome))\n\n    other='before_cleanup' if selected_target=='after_cleanup' else 'after_cleanup'\n    branches={}\n    for name in (selected_target,other):\n        target=root/name\n        shutil.copytree(backup,target)\n        targets.append(target)\n        (target/'socket').mkdir()\n        # Force recovery to fetch actual verified archive files, preserving the pristine backup.\n        for wal in (target/'pg_wal').iterdir():\n            if re.fullmatch(r'[0-9A-F]{24}',wal.name): wal.unlink()\n        with (target/'postgresql.conf').open('a') as config:\n            config.write(\"\\nunix_socket_directories='\"+str(target/'socket')+\"'\\nprimary_conninfo=''\\n\"\n                \"restore_command='python3 \"+str(restore_script)+\" %f %p'\\n\"\n                \"recovery_target_name='\"+name+\"'\\nrecovery_target_timeline='1'\\nrecovery_target_action='promote'\\n\")\n        (target/'recovery.signal').touch()\n        own_tree(target)\n        branch_log=root/(name+'.log')\n        began=time.monotonic()\n        server('pg_ctl','-D',target,'-l',branch_log,'-w','-t','20','start',timeout=25)\n        assert target_sql(target,'show data_directory')==str(target)\n        # Read-only consistency may precede completion/promotion.\n        wait_for(name+' promoted',lambda: target_sql(target,'select pg_is_in_recovery()')=='f')\n        actual=json.loads(target_sql(target,outcome_query))\n        assert actual==expected(name)\n        assert target_sql(target,'select system_identifier from pg_control_system()')==original_id\n        assert target_sql(target,'select count(*) from recovery_branch')=='0'\n        target_sql(target,\"insert into recovery_branch values(1,'\"+name+\"')\")\n        branch_control=json.loads(target_sql(target,'select row_to_json(c) from pg_control_checkpoint() c'))\n        timeline=branch_control['timeline_id']\n        assert timeline>1 and timeline not in [b['timeline'] for b in branches.values()]\n        history_name=f'{timeline:08X}.history'\n        wait_for('branch history archived',lambda: (archive/history_name).is_file())\n        history=(target/'pg_wal'/history_name).read_text()\n        assert (archive/history_name).read_text()==history\n        entries=[line.split(None,2) for line in history.splitlines() if line.strip() and not line.startswith('#')]\n        assert len(entries)==1 and int(entries[0][0])==1\n        assert lsn(entries[0][1])==lsn(points[name]['end_lsn'])\n        segment=target_sql(target,'select pg_walfile_name(pg_switch_wal())')\n        assert segment.startswith(f'{timeline:08X}')\n        wait_for('new branch WAL archived',lambda: (archive/segment).is_file())\n        assert digest(archive/segment)==digest(target/'pg_wal'/segment)\n        text_log=branch_log.read_text()\n        for marker in ('starting point-in-time recovery to \"'+name+'\"','recovery stopping at restore point \"'+name+'\"',\n            'completed backup recovery','selected new timeline ID: '+str(timeline),'ready to accept connections'):\n            assert marker in text_log,'Missing target evidence: '+marker\n        assert any('restored log file \"'+filename+'\" from archive' in text_log for filename in required)\n        branches[name]=dict(directory=str(target),system_identifier=original_id,timeline=timeline,\n            target_record_start=points[name]['start_lsn'],target_record_end=points[name]['end_lsn'],\n            history=history,branch_segment=segment,outcome=actual,marker=name,\n            domain_verified_ms=round(1000*(time.monotonic()-began),2))\n        emit(name+'_branch',branches[name])\n    # Both restored histories and the source remain available during independent comparison.\n    for name in branches:\n        target=root/name\n        assert json.loads(target_sql(target,outcome_query))==expected(name)\n        assert target_sql(target,'select label from recovery_branch where id=1')==name\n    assert json.loads(sql(outcome_query))==source_outcome\n    assert sql('select count(*) from recovery_branch')=='0'\n    assert int(sql('select timeline_id from pg_control_checkpoint()'))==1\n    assert all(digest(archive/name)==hashes[name] for name in required)\n    assert 'backup successfully verified' in server('pg_verifybackup',backup,timeout=60)\n    emit('comparison',dict(selected_target=selected_target,branches=branches,source=source_outcome,\n        original_archive_unchanged=True,pristine_backup_verified=True))\n    print('PASS: named-target PITR, both correct divergent histories, archived branch identities and unchanged source.',flush=True)\nfinally:\n    try:\n        for target in targets:\n            if (target/'postmaster.pid').exists():\n                server('pg_ctl','-D',target,'-m','fast','-w','-t','20','stop',timeout=25)\n    finally:\n        stop()\n    print('Owned source and both restored histories stopped; evidence retained at',root,flush=True)\nPY",
+    "expectedResult": "The source ends with jobs6–20 plus999, five receipts for jobs6–10, receipt amount40, correct values\nand zero orphans. The before_cleanup restore contains jobs1–20, ten receipts for1–10 and amount55;\nafter_cleanup contains jobs6–20, five receipts and amount40. Neither restored copy has job999.\nTheir post-promotion marker labels differ, and the source marker table stays empty.\n\nBoth actual recoveries fetch archived WAL and stop at their selected named restore point. Each\npromotes out of recovery. Its local/archived history file identifies parent timeline1 and the chosen\nrestore-point record's end LSN. Its new archived WAL uses the allocated timeline prefix. The first\nrestored target receives timeline2 and the second timeline3 in this fresh fixture. Original archive\nhashes and pristine backup verification remain intact while all three histories are compared.\n\nThe core selects before_cleanup first. The variation selects after_cleanup first, so the later\napplication state gets timeline2 and the earlier state timeline3. The data still follows the target,\nnot the larger timeline number. Exact LSNs, segment names, hashes and timings vary. Both branches and\nthe source stop; their data, logs, records and history files remain at the printed owned directory.",
+    "systemsLens": "History identity and application freshness answer different questions. A timeline records a branch\nwithin one cluster's recovery history; a larger timeline can represent a recovery to an earlier\napplication state. An LSN comparison needs a known shared history, and a timeline ID alone does not\nfence an old writer or establish replica readiness. Keep lineage and application evidence together.\n\nA named restore point is a WAL boundary, not a promise that every arbitrary byte prefix is a usable\ndatabase. The backup must reach consistency, required history must exist, and transaction decisions\nstill determine visible rows. This fixture places points between committed transactions and tests\nthe resulting states directly; it does not replace authority control for a live failover.",
+    "challenge": "Select after_cleanup first using the complete pgcoach hint2 variation. Predict the selected rows,\nreceipt sum and absence of job999. Then compare the second, earlier-target branch and explain why\nits larger allocated timeline number cannot certify later application data or permission to write.",
+    "caution": "Run in a shell with Python3 and matching PostgreSQL16 server tools, pg_basebackup, pg_verifybackup\nand pg_walinspect; PGBIN may select the binary folder. The script deletes rows only on a fresh owned\nsource and removes WAL only from two new restore copies to force real archive retrieval. It ignores\nexisting PG/PGLAB settings. Each server has a private socket and TCP disabled; root uses runuser as\nthe postgres OS owner. All three stop in finally. Allow a few hundred MB and retain the printed\nbackup, archive, branch data and logs for comparison. Same-disk archiving does not test host loss.",
     "safetyLevel": "dangerous",
-    "runIn": "mixed",
+    "runIn": "shell",
     "sessions": 1,
     "minVersion": "16",
-    "estimatedMinutes": 40,
-    "revision": 2
+    "estimatedMinutes": 35,
+    "revision": 4
   },
   {
     "ordinal": 63,
-    "slug": "timeline-history",
-    "title": "Timelines: the archive remembers both histories",
-    "category": "checkpointing",
-    "difficulty": "intermediate",
-    "tags": [
-      "timelines",
-      "recovery",
-      "pitr",
-      "replicated-log"
-    ],
-    "prerequisites": [
-      62,
-      55
-    ],
-    "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
-    "overview": "The restored server is gone, but it left a fossil. When it promoted it allocated timeline 2 and\nwrote a history file into the shared archive recording exactly where it branched off timeline 1.\nThat eight-hex-digit prefix on every WAL segment name -- the one you have been ignoring since\nmodule 07 -- is what keeps two divergent histories of the same cluster from being mistaken for\neach other.\n\nThis lesson is short and read-only: look at the history file, count the segments per timeline in\nthe archive, and reason out the consequence that sets up the whole replication module. A server\nthat has diverged onto its own timeline cannot follow a server on another one, because their logs\nagree on a prefix and then disagree, and there is no way to apply one on top of the other.",
-    "syntaxBreakdown": "### In plain terms\n\nThe previous recovery created a second history, or timeline, when it promoted. This read-only lesson\nexamines the small history file that records where the branch began and compares segment filenames\nfrom both histories. The timeline prefix is a safety label that prevents replaying the wrong future.\n\n### What you are learning\n\n- **Timeline IDs:** A monotonically increasing prefix distinguishes divergent WAL histories.\n- **History files:** They record the parent timeline and exact branch LSN.\n- **Archive ancestry:** A standby can choose the right files by following those records.\n\n### Piece by piece\n\n- **\\! ls -l**, **cat**, **grep -E**, **cut -c1-8**, **sort**, **uniq -c**, and **du -sh** (psql shell escapes and filters). What they are: filesystem listing, text display, pattern filtering, prefix extraction, sorting, counting, and sizing tools.\n  - What it does here: It inspects history files, counts segment prefixes, and measures the archive.\n  - What it gives us: The 00000001/00000002 split and the branch history file's exact contents.\n- **pg_walfile_name(lsn)** (SQL function). What it is: an LSN-to-segment filename converter.\n  - What it does here: It maps the parsed branch LSN to the last segment shared by both timelines.\n  - What it gives us: A concrete filename such as the shared ...A4 segment.\n- **pg_control_checkpoint()** (SQL function). What it is: a reader of local checkpoint and history metadata.\n  - What it does here: It reports **timeline_id** and **redo_lsn** for the living primary.\n  - What it gives us: Timeline 1 evidence showing the primary was not promoted.\n- **pg_read_file()**, **regexp_split_to_table()**, **split_part()**, **chr(9)**, and **::pg_lsn** (SQL text tools and cast). What they are: file reading, line splitting, tab-field extraction, tab construction, and LSN conversion.\n  - What it does here: It parses the history file's parent timeline, branch position, and reason.\n  - What it gives us: A typed row with **parent_timeline**, **branch_lsn**, **last_shared_segment**, and **reason**.\n- **pg_stat_archiver** (statistics view). What it is: a view of archive attempts and most recent success.\n  - What it does here: It reports archive progress after the previous recovery lessons.\n  - What it gives us: **archived_count**, **last_archived_wal**, **last_archived_time**, and **failed_count**; compare counters with files because counters can reset.\n- **recovery_target_timeline = 'latest'** (challenge setting). What it is: a rule for following the newest timeline during restore.\n  - What it does here: It makes a new standby follow timeline 2 after the branch point.\n  - What it gives us: The precise rule: below the branch LSN read timeline-1 files; at or above it read timeline-2 files.",
-    "code": "-- The fossil left by the promoted PITR instance, straight out of the archive.\n\\! ls -l $PGLAB/archive/*.history\n\\! cat $PGLAB/archive/00000002.history\n\n-- One tab-separated line: parent timeline, branch LSN, reason. Compare that LSN\n-- with the \"redo done at\" line in the previous lesson's recovery log.\n\n-- Both histories sit in the archive side by side, distinguishable only by the\n-- first eight characters of the file name.\n\\! ls -1 $PGLAB/archive | grep -E '^[0-9A-F]{24}$' | cut -c1-8 | sort | uniq -c\n\n-- The living cluster is still on timeline 1 and keeps writing 00000001... files.\nselect timeline_id, redo_lsn from pg_control_checkpoint();\nselect pg_current_wal_lsn() as lsn,\n       pg_walfile_name(pg_current_wal_lsn()) as current_segment;\n\n-- The same history file, parsed, so the branch point becomes a real LSN and the\n-- last segment the two timelines share becomes a real file name. A superuser may\n-- read an absolute path with pg_read_file().\nselect split_part(line, chr(9), 1)::int as parent_timeline,\n       split_part(line, chr(9), 2)::pg_lsn as branch_lsn,\n       pg_walfile_name(split_part(line, chr(9), 2)::pg_lsn) as last_shared_segment,\n       split_part(line, chr(9), 3) as reason\nfrom regexp_split_to_table(\n       pg_read_file('/var/lib/postgresql/pglab/archive/00000002.history'), chr(10)) line\nwhere line <> '';\n\n-- Everything the archiver has shipped, and the fact that nothing ever prunes it.\nselect archived_count, last_archived_wal, last_archived_time, failed_count\nfrom pg_stat_archiver;\n\\! du -sh $PGLAB/archive",
-    "expectedResult": "The history file is 51 bytes and says everything:\n\n  -rw------- 1 postgres postgres 51 Sep  3 01:40 /var/lib/postgresql/pglab/archive/00000002.history\n\n  1\t0/A4030270\tbefore 2026-09-03 01:39:24.451439+00\n\nTimeline 2's parent is timeline 1; the branch is at 0/A4030270, which is precisely the \"redo done\nat 0/A4030270\" from the PITR log; and the reason is \"before\" the commit time of the DROP. Any\nserver that later reads this archive can reconstruct the family tree from these files alone.\n\nSegment counts by timeline prefix:\n\n    171 00000001\n      1 00000002\n\n171 segments of the original history and one segment of the branch -- the promoted server only\nlived long enough to write 0000000200000000000000A4 before you shut it down. Note that the branch\nand its parent both have a segment numbered ...A4: two files covering overlapping LSN ranges with\ndifferent contents, which is exactly the divergence the timeline prefix exists to keep apart.\n(Your timeline-1 count will be larger than mine; nothing in this lab ever deletes an archived\nsegment.)\n\nThe living cluster is unchanged, and still writing timeline-1 files:\n\n  timeline_id |  redo_lsn\n            1 | 0/A94DC030\n\n  lsn        | current_segment\n  0/ACDCDEB8 | 0000000100000000000000AC\n\nParsing the history file turns the fossil into three usable facts:\n\n  parent_timeline | branch_lsn |   last_shared_segment    |          reason\n                1 | 0/A4030270 | 0000000100000000000000A4 | before 2026-09-03 01:39:24.451439+00\n\npg_stat_archiver shows a small archived_count (17) because its counters were reset by the crash in\nlesson 2, failed_count 0, and last_archived_wal keeping pace with the current segment. The\ndirectory itself has never been pruned and is around 2.7 GB.\n\nThe thing to take away: the primary on 5440 and the now-deleted PITR instance both wrote WAL\ncovering LSNs after 0/A4030270, and both sets of files sit in the same directory without\ncolliding, because their names differ in the first eight characters.",
-    "systemsLens": "A timeline ID is a fencing token for history itself. Two servers that both accepted writes after\nthe same LSN have produced logs that are byte-identical up to a point and then irreconcilable, and\nthe only safe thing to do is make that fact loud. PostgreSQL makes it loud by putting the branch\nidentity in every file name, so a replay can never even open the wrong file by accident, and by\nwriting a history file so any newcomer can work out the ancestry without asking anyone.\n\nThis is the same problem Raft solves with terms, ZooKeeper with epochs, and a lease-based system\nwith fencing tokens: a monotonically increasing number attached to every decision, so a\nparticipant that was out of the loop can detect that it was out of the loop. The alternative --\ncomparing contents, or trusting wall-clock timestamps -- fails exactly when you need it most,\nduring a partition or a botched failover.\n\nThe operational consequence is the reason module 09 exists. If you promote a standby to primary\nand the old primary comes back, the old primary is on timeline 1, the new one is on timeline 2,\nand they diverged at some LSN. The old primary cannot simply start streaming: it may hold WAL\nafter the divergence point that the new primary never saw, so applying the new primary's log on\ntop of its files would produce a database that never existed. Your choices are to rebuild it from\na fresh base backup, or to run pg_rewind, which reads the divergence LSN out of the history file\nand copies back only the blocks that changed since then. \"Split brain\" is not mainly about two\nservers accepting writes; it is about what you can prove afterwards, and a timeline is the proof.",
-    "challenge": "Work out how a new standby would find its way here. If you restored backup1 again with\nrecovery_target_timeline = 'latest' and no recovery_target_time, which timeline would it end up\non, and which segments would it need from the archive? Then read 00000002.history once more and\nstate the rule precisely: below 0/A4030270 read timeline 1 files, at or above it read timeline 2.\nThat rule is all pg_rewind and every archive-based standby need to know.",
-    "caution": "### Small-disk archive check\n\nThe lab's archived WAL is intentionally never deleted by PostgreSQL, so check it periodically:\n\n    df -h \"$PGLAB\"\n    du -sh \"$PGLAB/archive\"\n\nOnly prune after you have a base backup you can restore from, and only when no standby or other\nrecovery process still needs older WAL. A replication slot can also make **$PGLAB/primary/pg_wal**\ngrow, although it does not by itself make an archived copy safe to delete. In this course, the\nbackup created by module 08 is **$PGLAB/backup1**. Preview the files that would be removed, using\nthat backup's START WAL file as the cutoff:\n\n    start_file=$(sed -n 's/^START WAL LOCATION:.*(file \\([^)]*\\)).*/\\1/p' \"$PGLAB/backup1/backup_label\")\n    pg_archivecleanup -n \"$PGLAB/archive\" \"$start_file\"\n\nIf **start_file** is empty, stop: the backup label was not found. If the preview names only WAL\nfiles older than the backup (and you have checked standbys or other restore consumers), perform the\ncleanup and measure the result:\n\n    pg_archivecleanup \"$PGLAB/archive\" \"$start_file\"\n    du -sh \"$PGLAB/archive\"\n\nThe **-n** preview is the safety check; **pg_archivecleanup** keeps the cutoff file and newer files.\nNever run it against **$PGLAB/primary/pg_wal**, and do not guess a cutoff when **backup1** does not\nexist. Keep a separate, tested backup if the archive is part of your real recovery plan.",
-    "safetyLevel": "read-only",
-    "runIn": "mixed",
-    "sessions": 1,
-    "minVersion": "16",
-    "estimatedMinutes": 15,
-    "revision": 2
-  },
-  {
-    "ordinal": 64,
     "slug": "wait-events-tell-you-where-time-goes",
     "title": "Diagnose a stalled writer from state, waits and blocker samples",
     "category": "observability",
@@ -2058,7 +2026,7 @@
     "revision": 4
   },
   {
-    "ordinal": 65,
+    "ordinal": 64,
     "slug": "pg-stat-io-by-backend-type",
     "title": "Attribute I/O counters without inventing disk latency",
     "category": "observability",
@@ -2090,7 +2058,7 @@
     "revision": 4
   },
   {
-    "ordinal": 66,
+    "ordinal": 65,
     "slug": "connection-saturation",
     "title": "Measure throughput and waiting as active clients increase",
     "category": "observability",
@@ -2102,7 +2070,7 @@
       "row-locks"
     ],
     "prerequisites": [
-      64,
+      63,
       44,
       30
     ],
@@ -2122,7 +2090,7 @@
     "revision": 4
   },
   {
-    "ordinal": 67,
+    "ordinal": 66,
     "slug": "idle-in-transaction-kills-you",
     "title": "Verify what a deadline cancels, rolls back and disconnects",
     "category": "observability",
@@ -2134,7 +2102,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      64,
+      63,
       33,
       3
     ],
@@ -2155,7 +2123,7 @@
     "revision": 4
   },
   {
-    "ordinal": 68,
+    "ordinal": 67,
     "slug": "table-and-index-usage-counters",
     "title": "Decide whether a zero-scan index still earns its place",
     "category": "observability",
@@ -2168,7 +2136,7 @@
     ],
     "prerequisites": [
       40,
-      65
+      64
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 6 \"Vacuum and Autovacuum\".",
     "overview": "A zero scan count describes an observation window, not an index's full responsibility. Compare query plans and scoped counter deltas, then test a uniqueness constraint whose backing index received no query scans. Add a missing workload before proposing an index removal.",
@@ -2187,7 +2155,7 @@
     "revision": 4
   },
   {
-    "ordinal": 69,
+    "ordinal": 68,
     "slug": "read-the-server-log",
     "title": "Correlate a lock-wait log with the transaction's actual outcome",
     "category": "observability",
@@ -2199,8 +2167,8 @@
       "incident"
     ],
     "prerequisites": [
-      64,
-      67
+      63,
+      66
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Setup\"); Chapter 15 \"Locks on Memory Structures\" (section \"Monitoring Waits\")",
     "readingNotes": "The book connects checkpoint and wait logging to their underlying mechanisms. This exercise adds bounded file access, client identity and an independently read transaction outcome. Read afterward; logging configuration cannot reconstruct events that were never recorded.",
@@ -2220,7 +2188,7 @@
     "revision": 4
   },
   {
-    "ordinal": 70,
+    "ordinal": 69,
     "slug": "build-a-streaming-standby",
     "title": "Build a streaming standby from a base backup",
     "category": "replication",
@@ -2250,7 +2218,7 @@
     "revision": 2
   },
   {
-    "ordinal": 71,
+    "ordinal": 70,
     "slug": "replication-lag-under-load",
     "title": "Four LSNs: the pipeline stages of a replicated log",
     "category": "replication",
@@ -2263,7 +2231,7 @@
       "wal"
     ],
     "prerequisites": [
-      70,
+      69,
       52
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
@@ -2282,7 +2250,7 @@
     "revision": 2
   },
   {
-    "ordinal": 72,
+    "ordinal": 71,
     "slug": "synchronous-replication-blocks-commit",
     "title": "Synchronous replication: pay for durability in commit latency",
     "category": "replication",
@@ -2295,7 +2263,7 @@
       "consistency"
     ],
     "prerequisites": [
-      71,
+      70,
       54
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
@@ -2315,7 +2283,7 @@
     "revision": 2
   },
   {
-    "ordinal": 73,
+    "ordinal": 72,
     "slug": "hot-standby-query-conflict",
     "title": "Recovery conflicts: the replica cancels your query",
     "category": "replication",
@@ -2328,7 +2296,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      71,
+      70,
       15
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
@@ -2347,7 +2315,7 @@
     "revision": 2
   },
   {
-    "ordinal": 74,
+    "ordinal": 73,
     "slug": "replication-slot-retains-wal",
     "title": "A slot is an unbounded promise until you bound it",
     "category": "replication",
@@ -2360,7 +2328,7 @@
       "observability"
     ],
     "prerequisites": [
-      71,
+      70,
       55
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
@@ -2380,7 +2348,7 @@
     "revision": 2
   },
   {
-    "ordinal": 75,
+    "ordinal": 74,
     "slug": "promote-the-standby",
     "title": "Promote the standby, and meet split brain",
     "category": "replication",
@@ -2393,8 +2361,8 @@
       "leader-election"
     ],
     "prerequisites": [
-      70,
-      63
+      69,
+      62
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Failover in PostgreSQL is one command: pg_ctl promote. The standby stops following, finishes\nreplaying what it has, picks a new timeline ID, and starts accepting writes. It takes about a\nsecond and there is no election, no quorum, and -- this is the part that matters -- nothing\nwhatsoever that stops the old primary from carrying on.\n\nSo you will do the failover the way a panicking operator does it, without touching the old primary\nfirst, and then look at both servers. Each is a primary. Each has its own timeline. Each accepts a\nwrite into the same table and stores something the other will never see -- and they do not even\ncollide on the primary key, because the promoted node's copy of the sequence had already jumped\nahead. That is split brain, in about four commands, and the next two lessons are the cost of\ngetting out of it.",
@@ -2412,7 +2380,7 @@
     "revision": 2
   },
   {
-    "ordinal": 76,
+    "ordinal": 75,
     "slug": "rewind-the-old-primary",
     "title": "pg_rewind: rejoin a diverged primary without a new base backup",
     "category": "replication",
@@ -2425,7 +2393,7 @@
       "split-brain"
     ],
     "prerequisites": [
-      75
+      74
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The old primary has a write the new primary never saw. It cannot simply start following the new\nprimary: their histories diverged, and physical replication has no way to un-apply a page change.\nThe safe, slow answer is to throw the old primary away and take a fresh base backup -- 350 MB here,\nterabytes in production.\n\npg_rewind is the fast answer. It asks the new primary \"where did our timelines diverge\", then reads\nthe old primary's WAL from that point forward to find every block it touched afterwards, copies\njust those blocks back from the new primary, and rewinds the control file to the divergence point.\nWhat is left is a data directory that can replay the new primary's history. The doomed row from the\nprevious lesson disappears -- physically, silently, with no error anywhere -- which is what\n\"resolving split brain\" always means: somebody's committed data is chosen for deletion.",
@@ -2443,7 +2411,7 @@
     "revision": 2
   },
   {
-    "ordinal": 77,
+    "ordinal": 76,
     "slug": "cascading-and-failback",
     "title": "Cascade, fail back, and put the lab away",
     "category": "replication",
@@ -2456,7 +2424,7 @@
       "lab"
     ],
     "prerequisites": [
-      76
+      75
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "Two things are left. The first is cascading: a standby is also a WAL sender, so you can chain\nreplicas, and 5440 -- which is currently a standby -- can feed a third node without the primary\nknowing or caring. You will build one on port 5442, watch a write travel 5441 to 5440 to 5442, and\nthen throw it away.\n\nThe second is failback, and it is the whole reason this module can be run twice. The lab must end\nexactly as module 01 built it: one primary on 5440 with its data in $PGLAB/primary, nothing on\n5441, no standby directory, no replication slots, and a postgresql.auto.conf with no settings in\nit. So you will reverse the roles one more time -- stop the primary on 5441 cleanly, confirm 5440\nhas replayed everything, promote it, and delete the rest. The only trace left is the timeline: the\nlab started on timeline 1 and ends on timeline 3, one branch per promotion, which is exactly what\nthe .history files in pg_wal say.",
@@ -2474,7 +2442,7 @@
     "revision": 2
   },
   {
-    "ordinal": 78,
+    "ordinal": 77,
     "slug": "decode-the-log",
     "title": "Decode the WAL into row changes",
     "category": "logical-replication",
@@ -2506,7 +2474,7 @@
     "revision": 2
   },
   {
-    "ordinal": 79,
+    "ordinal": 78,
     "slug": "slot-position-and-acknowledgement",
     "title": "Peek, get, and the consumer offset",
     "category": "logical-replication",
@@ -2519,7 +2487,7 @@
       "gc-horizon"
     ],
     "prerequisites": [
-      78
+      77
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A slot is a durable consumer offset that lives on the server. This lesson makes the acknowledgement\nprotocol concrete: peeking is a repeatable read, getting is a destructive read that advances the\noffset, and there is no way to un-get. That single fact decides the delivery semantics of every\nCDC pipeline built on PostgreSQL, and it is why the slot also holds back WAL removal and catalog\nvacuuming.",
@@ -2537,7 +2505,7 @@
     "revision": 2
   },
   {
-    "ordinal": 80,
+    "ordinal": 79,
     "slug": "publication-and-subscription",
     "title": "Build a logical replica: publication, slot, subscription",
     "category": "logical-replication",
@@ -2549,7 +2517,7 @@
       "streaming-replication"
     ],
     "prerequisites": [
-      79
+      78
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "Built-in logical replication is the same decoding machinery with the pgoutput plugin on one side\nand an apply worker on the other. You will build a working replica inside this one cluster: the lab\ndatabase publishes a table and a second database, lab_sub, subscribes to it. Doing it in a single\ncluster is what makes the moving parts visible -- publisher and subscriber processes, the slot, the\nwalsender, the apply worker -- and it also exposes a real trap that a cross-machine setup hides.",
@@ -2568,7 +2536,7 @@
     "revision": 2
   },
   {
-    "ordinal": 81,
+    "ordinal": 80,
     "slug": "initial-sync-vs-streaming",
     "title": "Backfill and tail: how a new table joins the stream",
     "category": "logical-replication",
@@ -2580,7 +2548,7 @@
       "consistency"
     ],
     "prerequisites": [
-      80
+      79
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 \"Snapshots\".",
     "overview": "Adding a table to a running replication stream is the hard part of every CDC system: you have to\ncopy the rows that already exist and then start the stream at exactly the point the copy's snapshot\nended, with no gap and no duplicate. PostgreSQL does this with a per-table state machine you can\nwatch. In this lesson you add a 50000 row table to the publication and step the state machine\nthrough i -> d -> r by holding the copy hostage with an open transaction on the publisher.",
@@ -2598,7 +2566,7 @@
     "revision": 2
   },
   {
-    "ordinal": 82,
+    "ordinal": 81,
     "slug": "conflicts-stop-the-apply-worker",
     "title": "A conflict stops the apply worker, and nothing else notices",
     "category": "logical-replication",
@@ -2610,7 +2578,7 @@
       "observability"
     ],
     "prerequisites": [
-      81
+      80
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\".",
     "overview": "A logical replica is a writable database that happens to be applying someone else's changes. There\nis no rule that stops you from writing to it, and no conflict resolution when your write collides\nwith an incoming one. In this lesson you plant a row on the subscriber that the publisher is about\nto insert, and watch the apply worker crash, restart, crash again in a five second loop, while the\npublisher keeps accepting writes and reports nothing wrong.",
@@ -2628,7 +2596,7 @@
     "revision": 2
   },
   {
-    "ordinal": 83,
+    "ordinal": 82,
     "slug": "slot-lag-and-disk",
     "title": "A stalled subscriber becomes the publisher's disk problem",
     "category": "logical-replication",
@@ -2641,7 +2609,7 @@
       "observability"
     ],
     "prerequisites": [
-      82
+      81
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "A replication slot is a promise: the publisher will keep every WAL segment the consumer has not\nacknowledged, forever, no matter how much that is. In this lesson you stop the consumer, write on\nthe publisher, and measure the WAL that piles up and the exact file that cannot be recycled. Then\nyou restart the consumer, watch the retention drain, and clean up everything the module created --\nbecause an abandoned slot is the single most common way a PostgreSQL server fills its disk.",
@@ -2660,7 +2628,7 @@
     "revision": 2
   },
   {
-    "ordinal": 84,
+    "ordinal": 83,
     "slug": "transactional-outbox",
     "title": "Transactional outbox: one commit for the row and the message",
     "category": "distributed-patterns",
@@ -2692,7 +2660,7 @@
     "revision": 2
   },
   {
-    "ordinal": 85,
+    "ordinal": 84,
     "slug": "idempotency-keys",
     "title": "Idempotency keys: make the retry a no-op, not a second charge",
     "category": "distributed-patterns",
@@ -2705,7 +2673,7 @@
     ],
     "prerequisites": [
       37,
-      84
+      83
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\".",
     "overview": "A client that does not get an answer must retry, and it cannot tell \"the request never arrived\"\nfrom \"the answer was lost\". So the server has to make the second request harmless. The whole\nmechanism is a unique index on a key the client chooses plus ON CONFLICT DO NOTHING, which turns\n\"this already happened\" from an error into zero rows. You will run the retry three ways - the naive\nINSERT that errors, the idempotent one that no-ops, and the read-back that returns the original\nanswer - and then race two retries concurrently to watch the second one wait on the first\ntransaction's fate before it learns it lost.",
@@ -2723,7 +2691,7 @@
     "revision": 2
   },
   {
-    "ordinal": 86,
+    "ordinal": 85,
     "slug": "two-phase-commit",
     "title": "Two-phase commit: a transaction with no process",
     "category": "distributed-patterns",
@@ -2738,7 +2706,7 @@
     "prerequisites": [
       56,
       15,
-      85
+      84
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 \"Pages and Tuples\".",
     "overview": "PREPARE TRANSACTION splits COMMIT in half. The first half does everything a commit does except\nbecome visible: it writes the changes to WAL, fsyncs them, keeps every lock, and then detaches the\nwhole thing from your session. What is left is a transaction with no backend, no connection and no\ntimeout, sitting in pg_prepared_xacts until somebody says COMMIT PREPARED or ROLLBACK PREPARED.\nThat is exactly the guarantee an external coordinator needs to run 2PC across several databases -\nand exactly the operational hazard, because a coordinator that dies leaves a transaction that holds\nlocks and pins the xmin horizon forever. You will build one, watch it block a writer, watch it\nstall VACUUM, kill the server underneath it, find it still there after recovery, and finally\nresolve it.\n\nThe feature is off by default: max_prepared_transactions is 0 on a stock cluster, and it is a\npostmaster-level setting, so turning it on needs a restart, not a reload. The lab's postgresql.conf\nfrom module 01 already sets it to 10; the first block changes it anyway so you can watch a config\nreload fail to take effect.",
@@ -2757,7 +2725,7 @@
     "revision": 2
   },
   {
-    "ordinal": 87,
+    "ordinal": 86,
     "slug": "fencing-tokens-with-a-monotonic-counter",
     "title": "Fencing tokens: why a lease alone is not mutual exclusion",
     "category": "distributed-patterns",
@@ -2789,7 +2757,7 @@
     "revision": 2
   },
   {
-    "ordinal": 88,
+    "ordinal": 87,
     "slug": "read-your-writes-on-a-replica",
     "title": "Read your writes: carry an LSN from the primary to the replica",
     "category": "distributed-patterns",
@@ -2801,7 +2769,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      80,
+      79,
       24
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
@@ -2821,7 +2789,7 @@
     "revision": 2
   },
   {
-    "ordinal": 89,
+    "ordinal": 88,
     "slug": "listen-notify-as-a-bus",
     "title": "LISTEN/NOTIFY: a bus with no memory",
     "category": "distributed-patterns",
@@ -2834,7 +2802,7 @@
       "distributed-patterns"
     ],
     "prerequisites": [
-      84
+      83
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\".",
     "overview": "LISTEN/NOTIFY is the one piece of pub/sub built into PostgreSQL, and it is genuinely useful: it\nremoves the polling loop from the outbox relay you built in the first lesson. It is also the most\nfrequently misused feature in the database, because it looks like a message queue and is not one.\nIn this lesson you establish the two properties that decide where it belongs: delivery happens at\nCOMMIT, in the same instant the data becomes visible, and delivery reaches only whoever is\nlistening at that instant. Nothing is stored. A listener that is disconnected, restarting, or\nsimply not subscribed yet misses the message permanently, and there is no offset, no\nacknowledgement and no redelivery.",
@@ -2852,7 +2820,7 @@
     "revision": 2
   },
   {
-    "ordinal": 90,
+    "ordinal": 89,
     "slug": "abandoned-slot-fills-the-disk",
     "title": "Incident: an abandoned replication slot eats the disk",
     "category": "reliability",
@@ -2866,8 +2834,8 @@
     ],
     "prerequisites": [
       55,
-      74,
-      83
+      73,
+      82
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "03:07. The page says \"db-primary root filesystem 91% and climbing, 40 minutes to full\". Nobody\ndeployed anything. The database is serving traffic normally. This is the most common way a healthy\nPostgreSQL server kills itself: a replication slot whose consumer went away, holding every WAL\nsegment written since it left.\n\nYou will run the incident end to end. First the three queries that identify it in under a minute.\nThen a controlled reproduction: a slot nobody consumes, and enough writes to walk it through all\nfour values of pg_replication_slots.wal_status -- reserved, extended, unreserved, lost -- with\nsafe_wal_size counting down to a negative number and then the server taking the promise back in\nthe log. Then the recovery (drop the slot), then the revert.\n\nThe reproduction bounds the damage with max_slot_wal_keep_size instead of actually filling the\ndisk, because filling the disk on a PostgreSQL primary is not a drill you can take back: the WAL\nwriter PANICs and the server dies. The real failure text is quoted below so you know it when you\nsee it.",
@@ -2886,7 +2854,7 @@
     "revision": 2
   },
   {
-    "ordinal": 91,
+    "ordinal": 90,
     "slug": "corrupt-a-page-and-detect-it",
     "title": "Incident: a corrupt page, and the difference between detecting and repairing it",
     "category": "reliability",
@@ -2921,7 +2889,7 @@
     "revision": 2
   },
   {
-    "ordinal": 92,
+    "ordinal": 91,
     "slug": "wraparound-drill",
     "title": "Incident: transaction id wraparound, on a schedule you control",
     "category": "reliability",
@@ -2936,7 +2904,7 @@
     "prerequisites": [
       16,
       20,
-      69
+      68
     ],
     "reading": "PostgreSQL 14 Internals, Chapter 7 \"Freezing\" (sections \"Transaction ID Wraparound\", \"Managing Freezing\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Monitoring\")",
     "readingNotes": "Chapter 7 explains transaction-ID wraparound, freezing ages, and aggressive or forced vacuum; Chapter\n6 explains monitoring vacuum progress. This drill compresses the thresholds to a lab-sized table,\nburns real transaction IDs, and watches the anti-wraparound worker and a throttled vacuum. Read the\nchapters before the drill to understand why the server prioritizes advancing relfrozenxid.",
@@ -2956,7 +2924,7 @@
     "revision": 2
   },
   {
-    "ordinal": 93,
+    "ordinal": 92,
     "slug": "runaway-query-and-cancel",
     "title": "Incident: a runaway query, and the difference between cancel and terminate",
     "category": "reliability",
@@ -2970,7 +2938,7 @@
     ],
     "prerequisites": [
       31,
-      67
+      66
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 15 \"Locks on Memory Structures\".",
     "overview": "One query is pinning a CPU, the queue behind it is growing, and somebody in the incident channel\nsays \"just kill it\". There are two ways to do that and they are not interchangeable:\npg_cancel_backend stops the statement and leaves the session, pg_terminate_backend destroys the\nwhole connection. This lesson runs both against the same workload so you can see exactly what the\nclient gets, what pg_stat_activity says afterwards, and what happens to the uncommitted rows the\ntransaction had already written.\n\nThen it installs the guardrail that means nobody has to make this decision at 3 a.m.:\nstatement_timeout, which is the same cancel, applied automatically, by the server, before anyone is\npaged.",
@@ -2988,7 +2956,7 @@
     "revision": 2
   },
   {
-    "ordinal": 94,
+    "ordinal": 93,
     "slug": "postmortem-from-the-log",
     "title": "Postmortem: reconstruct the crash and the failover from the log alone",
     "category": "reliability",
@@ -3002,9 +2970,9 @@
     ],
     "prerequisites": [
       56,
-      63,
-      69,
-      77
+      62,
+      68,
+      76
     ],
     "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\".",
     "overview": "The incident is over. Somebody has to write down what happened, and all you have is what the\nservers wrote down themselves: $PGLAB/primary/log/postgresql.log and the .history files in\n$PGLAB/archive. No metrics, no traces, nobody's memory.\n\nThis lesson turns those two sources into a timeline of timestamp, event, LSN and timeline id --\nfor the crash you caused in module 07 and the promote / rewind / failback you ran in module 09.\nNothing here writes anything. The skill being taught is which twenty lines out of ten thousand are\nthe ones that carry state transitions, and how to read an LSN and a timeline id as the two\ncoordinates that place every event in the cluster's history.\n\nIt also teaches the most uncomfortable lesson in postmortem work: some of your evidence is\ndestroyed by the recovery itself, and you have to notice that rather than conclude nothing\nhappened.",

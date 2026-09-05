@@ -1116,7 +1116,7 @@ what monitoring query you would actually page on -- and why "pg_wal size" is the
       safetyLevel: "dangerous",
       runIn: "shell",
       estimatedMinutes: 25,
-      prerequisites: ["build-a-streaming-standby", "timeline-history"],
+      prerequisites: ["build-a-streaming-standby", "point-in-time-recovery"],
       overview: code`
 Failover in PostgreSQL is one command: pg_ctl promote. The standby stops following, finishes
 replaying what it has, picks a new timeline ID, and starts accepting writes. It takes about a

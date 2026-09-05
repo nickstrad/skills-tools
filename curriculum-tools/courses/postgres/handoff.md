@@ -1,8 +1,37 @@
 # PostgreSQL pivot handoff
 
-Updated 2026-09-05. **Chunks 1–3 are accepted. Chunk 4 is accepted through current 61: WAL,
-checkpoint anatomy, matched recovery cost, WAL pressure and actual backup/restore with
-missing-history failure/repair. Next: current 62 PITR, then timeline consolidation and chunks 5–7.**
+Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline consolidation are
+verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
+chunks6–7 and the final audit. The full active goal is not complete.**
+
+## PITR and timeline consolidation accepted, 2026-09-05
+
+Primary accepted pitr-workload.ts and guide08. Actual backup plus archived original history supports
+both named targets before/after destructive commit. Core and source/exact reversed-order runs each
+keep both branches and source available for comparison:20 jobs/10 receipts/amount55 before, 15
+jobs/5 receipts/amount40 after; source alone retains job999. Complete values, distinct markers,
+source system identity, parent1 history rows, record-end fork LSNs and branch WAL hashes pass.
+Timeline2/3 allocation reverses with restore order; it is not a freshness/fencing guarantee. All
+servers stopped. Report validation/04-pitr.md; source core /tmp/pg-owned-wp_nnpgm, variation
+/tmp/pg-owned-d_0tl_r1; raw /tmp/pg-pitr-{core,variation}.log and
+/tmp/pg-pitr-exact-point-in-time-recovery.log. No agents were spawned.
+
+Retired timeline-history only after its replacement coverage ran. Promotion/postmortem prerequisites
+now reference PITR. Scoped93-lesson build normalizes ordinal/prerequisite changes and proves other
+surviving fields unchanged. Seven stops, first seven/capacity and copied IDs/history/progress remain
+intact; retired identity inactive. Thirty tests/full check pass. Builders
+/tmp/pg-pitr-scoped-build.py, /tmp/pg-pitr-progress.py and updated /tmp/refresh-pg-map.py
+understand93 lessons; use these for the next copied-progress check. Canonical reading map and
+PLAN/REWORK status updated.
+
+Next: design and implement chunk5 sequentially, starting build-a-streaming-standby in09-replication.
+Create owned source/standby topology and actual receive/replay/domain evidence; do not use
+learner5440 or depend on the old shared backup/PGLAB layout. Then bounded replay/read-your-writes,
+synchronous acknowledgement, conflict/feedback, slot retention, fenced promotion/rewind; logical
+snapshot/tail and conflict reconciliation follow. Existing read-your-writes-with-lsn in14 must
+move/consolidate only after physical readiness replacement passes. Preserve unrelated storage
+source/guide/knowledge and root bin/. No learner catalog refresh. Backup acceptance564dd7e is
+pushed.
 
 ## Backup/restore accepted, 2026-09-05
 

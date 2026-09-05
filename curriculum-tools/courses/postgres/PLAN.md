@@ -1,5 +1,11 @@
 # PostgreSQL Systems: module plan
 
+Current acceptance, 2026-09-05: chunks1–4 are implemented. Current62 PITR incorporates the retired
+original51 timeline-history through actual before/after named-target branches and archived ancestry.
+The generated course has93 active lessons and seven reading stops. [REWORK-PLAN](REWORK-PLAN.md) and
+[lesson-map](lesson-map.md) remain authoritative during the remaining replication/protocol/ incident
+work and final outline refresh.
+
 Refactor in progress: [REWORK-PLAN.md](REWORK-PLAN.md) and its bounded designs supersede affected
 sections below. This original module outline remains a reference until final integration. Use
 [lesson-map.md](lesson-map.md) for current numbers, surviving slugs and reading stops.

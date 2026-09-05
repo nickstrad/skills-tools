@@ -2,9 +2,29 @@ import { CHECKPOINT_VARIATION } from "../curriculum/checkpoint-workload.ts";
 import { RECOVERY_COST_VARIATION } from "../curriculum/recovery-cost.ts";
 import { WAL_PRESSURE_VARIATION } from "../curriculum/wal-pressure.ts";
 import { BACKUP_VARIATION } from "../curriculum/backup-workload.ts";
+import { PITR_VARIATION } from "../curriculum/pitr-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "point-in-time-recovery": {
+    brief:
+      "Recover to named points before and after a committed deletion, preserving both writable branches and their actual ancestry.",
+    predict:
+      "Which jobs and receipts should each named target contain, and where should job999 appear? If the earlier target is restored second, must its larger timeline number represent later application data?",
+    inspect:
+      "Match each decoded restore-point end to its history-file fork LSN. Verify both complete job/receipt states, distinct branch markers, parent1, archived timeline-prefixed WAL, unchanged original hashes and unchanged source data.",
+    explain:
+      "Why pin recovery_target_timeline to1 when restoring the second copy? Why does read-only readiness not prove promotion, and why are timeline/LSN values insufficient writer-authority tokens?",
+    vary:
+      "Select after_cleanup first, then recover before_cleanup for comparison. Predict which data follows the target and which timeline IDs follow restoration order.",
+    apply:
+      "An operator needs to undo a bad cleanup while the original primary still accepts writes. Specify the target, domain validation, retained histories and external writer-cutover controls needed before making a recovered branch authoritative.",
+    hints: [
+      "The history file records ancestry and a fork position; it does not revoke an old writer. Both targets precede job999, while only the earlier target precedes the deletion. pg_create_restore_point returns a record end.",
+      "Run this complete later-target-first variation in a shell.\n\n```bash\n" + PITR_VARIATION +
+      "\n```",
+    ],
+  },
   "base-backup": {
     brief:
       "Prove an actual backup restores correct jobs/receipts with its source offline, then remove required WAL from a separate input.",

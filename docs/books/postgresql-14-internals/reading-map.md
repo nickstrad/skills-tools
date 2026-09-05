@@ -193,3 +193,11 @@ the recovery experiment rather than a separate read-only lesson. No learner comp
 The table above remains the original96-lesson research index; current identities/order and all seven
 reading stops are in the course lesson-map.md. No book citation was inferred for the newer
 pg_walinspect interface itself.
+
+## Executed PITR/timeline consolidation (2026-09-05)
+
+Original51 timeline-history is consolidated into point-in-time-recovery after actual named-target
+restores, archived history/segment verification and reversed restoration order passed. Both are
+outside the book. The current identity map now has93 active lessons and seven reading stops;
+match the retained PITR citation by slug. Promotion and the final postmortem depend on the retained
+PITR lesson. No completed lesson or retired completion is transferred to a different task.

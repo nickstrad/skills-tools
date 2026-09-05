@@ -1321,7 +1321,7 @@ for the answer?`,
       estimatedMinutes: 30,
       prerequisites: [
         "crash-and-redo",
-        "timeline-history",
+        "point-in-time-recovery",
         "read-the-server-log",
         "cascading-and-failback",
       ],
