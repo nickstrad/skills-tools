@@ -339,9 +339,12 @@ Tables `lk_*`. Use `pg_locks`, `pg_blocking_pids`, `pg_stat_activity.wait_event`
    the horizon clear, vacuum and verify reusable space plus complete source/copy agreement.
    Variation deletes one quarter instead of half. Sender backend_xmin may remain NULL when the slot
    owns xmin.
-6. `replication-slot-retains-wal` (privileged). Create physical slot, point standby at it, stop
-   standby, generate WAL: `pg_replication_slots.wal_status`, pg_wal grows; `max_slot_wal_keep_size`
-   makes the slot `lost`. Lens: retention is a contract with the slowest consumer.
+6. `replication-slot-retains-wal` (accepted, shell, privileged). Disconnect the actual owned
+   physical consumer;32,000 later receipts retain35 one-MB WAL segments despite an8MB target.
+   Reconnect, verify every receipt and reclaim obsolete segments. Variation caps the oversized
+   inactive slot at4MB, observes lost state/missing segment and actual old-consumer rejection with
+   stale baseline-only rows, then preserves that copy and rebuilds from a verified full backup. Both
+   paths verify a post-return streamed receipt and complete32,002-row result before cleanup.
 7. `promote-the-standby` (dangerous, shell). `pg_ctl promote` on standby: new timeline, it accepts
    writes; old primary still accepting writes = split brain; show both with different data.
 8. `rewind-the-old-primary` (dangerous, shell). `pg_rewind` old primary to follow the new one (needs

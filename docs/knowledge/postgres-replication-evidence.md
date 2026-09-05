@@ -208,3 +208,53 @@ References: PostgreSQL16 [feedback/delay settings](https://www.postgresql.org/do
 [physical tuple inspection](https://www.postgresql.org/docs/16/pgstattuple.html) and
 [slot versus sender horizon handling](https://github.com/postgres/postgres/blob/REL_16_STABLE/src/backend/replication/walsender.c).
 Runtime values above come from the actual owned experiments.
+
+## Disconnected consumer retention and lost-history rebuild (2026-09-05)
+
+### What happened
+
+The owned physical consumer consumes a baseline marker/receipt and then stops. Its slot remains
+inactive at0/A00090. Sixteen2,000-row commits produce32,001 total receipts; checkpoints with an8MB
+max_wal_size and unlimited slot retention leave35 one-MB segment files (36,700,160 bytes), including
+anchor00000001000000000000000A. wal_status is extended. The slot position stays fixed, establishing
+retention by this actual disconnected consumer rather than an unused demonstration slot.
+
+Core reconnection replays all receipts and advances the slot. After a later streamed ID32,001,
+complete source/standby results agree on32,002 distinct IDs0–32,001/sum512,048,001 with every payload
+correct. Final checkpoints remove the anchor filename and leave8 one-MB files (8,388,608 bytes);
+slot is active/reserved. Directory bytes and restart distance differ because of segment allocation,
+recycling and extra WAL. Later inspection/checkpoints can generate additional hint/page/WAL work;
+these are retention samples, not an exact receipt byte charge.
+
+Variation caps the already oversized inactive slot at4MB and checkpoints. It becomes lost with
+NULL restart_lsn/safe_wal_size; the needed anchor segment disappears and the source logs invalidation.
+Actually restarting the old standby returns pg_ctl success, but its receiver reports the requested
+segment has already been removed. A fresh query still sees only ID0 and replay remains behind the
+work marker. Thus successful postmaster startup is demonstrably insufficient for data readiness.
+
+The driver stops and renames the failed data/logs, drops only its lost slot/dedicated role, restores
+unlimited retention for rebuilding and runs a new complete basebackup/manifest verification. That
+new copy returns all32,001 existing receipts and then streams the post-backup ID32,001. All clients,
+servers and owned slots are cleaned up. Source and exact CLI reports: validation/05-slot-retention.md.
+
+### Why it matters
+
+A slot's retention promise outlives its connection. max_wal_size is a soft recycling/checkpoint
+target, while max_slot_wal_keep_size lets checkpoint processing revoke an excessive obligation.
+Neither setting is a strict whole-directory byte ceiling. safe_wal_size=NULL must be interpreted
+with status and configuration: unlimited retention and already-lost history are different states.
+Recreating a slot alone cannot restore the consumer's missing history. The fixture has no alternate
+archive; it executes a full rebuild and verifies later live delivery before declaring readiness.
+
+### How to apply
+
+Save the restart anchor and actual segment inventory before workload, then compare status, files
+and complete domain contents at the relevant boundaries. Treat failed receiver logs separately from
+postmaster startup status. Preserve the old copy before reinitializing, verify the replacement backup
+before configuration edits and commit a new receipt afterward to prove streaming. Use bounded
+workload and cleanup rather than implying an unlimited retained-WAL promise is safe to abandon.
+
+References: PostgreSQL16 [slot view](https://www.postgresql.org/docs/16/view-pg-replication-slots.html),
+[retention settings](https://www.postgresql.org/docs/16/runtime-config-replication.html) and
+[WAL configuration](https://www.postgresql.org/docs/16/runtime-config-wal.html). Numbers above come
+from executed local trials, not forecasts for another workload.

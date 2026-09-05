@@ -3,9 +3,29 @@ import { REPLAY_LAG_VARIATION } from "../curriculum/replay-lag.ts";
 import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts";
 import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgement.ts";
 import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts";
+import { SLOT_RETENTION_VARIATION } from "../curriculum/slot-retention.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {
+  "replication-slot-retains-wal": {
+    brief:
+      "Disconnect a real physical consumer, prove its WAL retention obligation, then distinguish catch-up from lost-history reinitialization.",
+    predict:
+      "Will checkpoint recycling honor max_wal_size=8MB while an unlimited inactive slot needs older WAL? What changes when a4MB slot limit is applied before the consumer returns?",
+    inspect:
+      "Match the inactive restart anchor to an actual retained filename and bytes beyond target. Require complete receipts after catch-up; in the variation inspect lost status, missing anchor, actual old-consumer rejection, verified rebuild and a later streamed receipt.",
+    explain:
+      "Why is required WAL distance different from allocated segment bytes? Why can safe_wal_size be NULL for both an unlimited slot and a lost slot, and why does successful postmaster startup fail to prove replication readiness?",
+    vary:
+      "Before reconnecting, cap the oversized inactive slot at4MB. Execute the failed old-consumer restart, preserve its evidence, rebuild from a verified backup and verify later streaming.",
+    apply:
+      "Choose retained-WAL and recovery-time budgets for a replica with uncertain offline duration. Identify the write-rate, available-space and rebuild-throughput measurements needed, plus the receipt checks required before routing reads again.",
+    hints: [
+      "An inactive slot still owns a retention promise. After invalidation, recreating a slot does not restore missing history; this fixture rebuilds the copy and proves a new post-backup receipt streams before accepting readiness.",
+      "Run this complete invalidation-and-rebuild variation in a shell.\n\n```bash\n" +
+      SLOT_RETENTION_VARIATION + "\n```",
+    ],
+  },
   "hot-standby-query-conflict": {
     brief:
       "Cause a snapshot recovery cancellation, then measure feedback-protected reader survival, retained primary versions and reclamation after release.",

@@ -4,6 +4,35 @@ Updated 2026-09-05. **Chunks1–4 are accepted. Current62 PITR and timeline cons
 verified;93 active lessons remain. Next: chunk5 physical replication/change processing, then
 chunks6–7 and the final audit. The full active goal is not complete.**
 
+## Physical slot retention and rebuild accepted, 2026-09-05
+
+Current74 replication-slot-retains-wal is revision4. The actual owned consumer disconnects after a
+baseline marker/receipt.32,000 later receipts leave the inactive restart anchor fixed and35 one-MB
+segments retained despite an8MB target; status extended. Core reconnects, verifies all receipts and
+advancing slot, then confirms a later streamed receipt and reclamation to8 segments. Variation's4MB
+cap makes the oversized slot lost, removes its needed segment and causes an actual failed consumer
+stream: postmaster startup succeeds but the receiver logs removed WAL and fresh rows remain only
+ID0. Preserve the stopped failed copy, take a new verified full backup and prove post-backup receipt
+streaming. Both paths finish32,002 correct rows/sum512,048,001, active/reserved slot, then cleanup.
+
+Core/source/exact hint2 pass. Report validation/05-slot-retention.md; final roots
+/tmp/pg-owned-e3c0q65i, /tmp/pg-owned-rtekv3mr and /tmp/pg-owned-yv1ysy9p are stopped/slots removed.
+Raw /tmp/pg-slot-retention-{core,variation}.log and
+/tmp/pg-slot-retention-exact-replication-slot-retains-wal.log. Thirty tests/full check pass. Scoped
+builder /tmp/pg-slot-retention-scoped-build.py changes only current74.93 lessons/seven stops, first
+seven/capacity and fresh copied IDs/history/progress preserved. Prior conflict3181613 is pushed. No
+learner writes or agents; preserve unrelated storage source/guide/knowledge and root bin/.
+
+Next: current75 promote-the-standby, following design05. Preserve a bounded deliberate split-brain
+branch as actual failure evidence, then separately execute controlled failover: fence/stop the old
+writer before promotion, inventory acknowledged receipts on both histories and exercise an authority
+gate rejecting the old writer. Promotion alone must not imply election or fencing. Then actual
+rewind/rejoin and controlled failback, logical processing, chunks6–7 and final audit. Full goal
+stays active. Keep lifecycle runs serial, use fresh owned sockets/data and preserve the first seven
+and learner state. Final audit also reviews the idle insertion-boundary finding from current73; see
+durable replication knowledge. Available disk was a few GB before these fixtures; check capacity
+before further retained topologies, preserving the accepted evidence.
+
 ## Standby conflicts and feedback accepted, 2026-09-05
 
 Current73 hot-standby-query-conflict is revision4. Two seeded tables isolate feedback off/on. Actual
