@@ -1,7 +1,7 @@
 {
   "id": "postgres-essentials",
   "name": "PostgreSQL Essentials",
-  "description": "40 focused 20\u201330 minute systems lessons after the completed PostgreSQL storage foundation; first three available",
+  "description": "40 focused 20\u201330 minute systems lessons after the completed PostgreSQL storage foundation; first six available",
   "tool": "psql",
   "minVersion": "16",
   "revision": 1,

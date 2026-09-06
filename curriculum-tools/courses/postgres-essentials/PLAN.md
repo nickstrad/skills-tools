@@ -1,18 +1,19 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, 2026-09-05. **Only lessons 1–3 are authored and available.** The full
-sequence below fixes the intended scope; 4–40 are planned, not placeholder lessons. Nick explicitly
-prefers smaller meaningful chunks over compressing the same work into 24 long sessions. Target
-**20–30 minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings
-remain estimates until learner feedback. Changes to scope must be recorded here, not invented as we
-go. Refine presentation while the learner progresses through this actual course.
+Current learner direction, 2026-09-06. **Lessons 1–6 are authored and available.** The full sequence
+below fixes the intended scope; 7–40 are planned, not placeholder lessons. Nick explicitly prefers
+smaller meaningful chunks over compressing the same work into 24 long sessions. Target **20–30
+minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings remain
+estimates until learner feedback. Changes to scope must be recorded here, not invented as we go.
+Refine presentation while the learner progresses through this actual course.
 
 Assume basic SQL and the eight completed reference lessons: lab, psql, extensions, processes, pages,
 row versions and HOT. No requirement to repeat them or take the old TOAST/cache/XID pilot. Each
 lesson teaches the mechanism and useful terminal diagram before commands in `lesson`; `review`
 interprets evidence, implications and limits. Optional references are not hidden homework. No typed
-guesses, reports or extra coaching stages. Ask about clarity and pacing after lesson 3 while
-preparing lessons 4 onward; feedback improves the course rather than being a UX-only detour.
+guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6.
+Ask about clarity and pacing after lesson 6 while preparing lessons 7 onward; feedback improves the
+course rather than being a UX-only detour.
 
 ## Fixed sequence and intended outcomes
 
@@ -94,16 +95,18 @@ Retain PostgreSQL storage internals already learned; do not repeat them just to 
 ## Identity, implementation and validation
 
 `curriculum/*.ts` is source; `lessons.json` is generated and contains only real available lessons.
-`route.ts` holds the exact ordered titles/slugs for `pgcoach route`; tests check the first three
-against the built catalog. A separate `postgres-essentials` course ID keeps numbering 1–40 and new
-progress separate from the original 92-lesson catalog. `pgcoach` opens essentials by default;
-`pgcoach --reference NUMBER full` preserves old access. Old completion records are never copied to
-new lesson identities. Only explicit `pgcoach NUMBER done` or tutor completion commands write
-status.
+`route.ts` holds the exact ordered titles/slugs for `pgcoach route`; tests check all available
+entries against the built catalog. A separate `postgres-essentials` course ID keeps numbering 1–40
+and new progress separate from the original 92-lesson catalog. `pgcoach` opens essentials by
+default; `pgcoach --reference NUMBER full` preserves old access. Old completion records are never
+copied to new lesson identities. Only explicit `pgcoach NUMBER done` or tutor completion commands
+write status.
 
 Canonical book research remains under `docs/books/postgresql-14-internals/`; no PDF copy is needed.
-The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Validate exact setup
-and session blocks against a private PostgreSQL 16 cluster, check outcomes rather than timeouts
-alone, then remove the cluster. Keep only the small validation log/report and script. Maintain at
-least 2 GB free, budget <200 MB peak for this batch, and verify learner-lab readiness and unchanged
-reference progress before finishing. No backup, replica or archive is needed for lessons 1–3.
+The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Batch two adds storage,
+reclamation, read-committed, lost-update, concurrency, row-locks and concurrency-control. Validate
+exact setup and session blocks against a private PostgreSQL 16 cluster, check outcomes rather than
+timeouts alone, then remove the cluster. Keep only the small validation log/report and script.
+Maintain at least 2 GB free, budget <200 MB peak for this batch, and verify learner-lab readiness
+and unchanged reference progress before finishing. No backup, replica or archive is needed for
+lessons 1–6.

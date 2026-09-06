@@ -1,5 +1,8 @@
 # First three essentials lessons: acceptance evidence
 
+This is the historical first-batch record. Lessons 1–6 are now available; see
+[second-batch acceptance](batch-two.md) for the current checks and cleanup.
+
 Validated 2026-09-06 on local PostgreSQL 16.15. These are lessons 1–3 of the fixed 40-lesson route,
 not reference lessons 9–12. The full plan is in `../PLAN.md`; 4–40 are not yet authored.
 

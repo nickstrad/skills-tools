@@ -10,8 +10,8 @@ lessons, Sol subagents where useful, parent validation/refactoring, and commits 
   mental reflection, optional references, and 20–30 minute total budgets.
 - Parent owns integration, renderer, tests, validation controller, documentation, this handoff,
   final editorial/SQL review, and all commits.
-- Sol authors will own one new curriculum file and one matching diagram export each. They must
-  not edit shared files, generated catalogs, or learner progress. Parent registers/builds them.
+- Sol authors owned one new curriculum file and one matching diagram export each. They did
+  not edit shared files, generated catalogs, or learner progress. All have finished and relinquished ownership.
 - Design and acceptance contract: `curriculum-tools/courses/postgres-essentials/designs/04-06.md`.
 
 ## Initial state and preservation
@@ -35,27 +35,30 @@ Protected progress SHA256 before work:
 ## Checkpoints
 
 1. Preflight and existing course review completed. Baseline/design committed as `b8035f1`.
-2. Sol/high authors `/root/lesson4`, `/root/lesson5`, `/root/lesson6` are active in their assigned
-   files. Parent is implementing shared rendering and a course-local observed-wait validator.
-3. Parent shared renderer now supports one/two terminals and current batch feedback. Three coaching
-   tests pass. New course-local driver uses the shared REPL/splitter and proves each deliberate B
-   lock wait on A before continuing. Exact original lessons 1–3 reran successfully; private root
-   `/tmp/pg-essentials-validation-ol6ss0lw` removed and both learner progress hashes unchanged.
-   New lesson drafts exist; authors retain ownership until their validation reports are complete.
-   Lesson 4 parent final pass is complete and its final prose/build rerun passed: heap 1,826,816
-   bytes throughout; free bytes 76,572 → 1,819,680 → 76,572; visible rows 4,000 → 0 → 4,000.
-   Final run root `/tmp/pg-essentials-validation-_lo5k8ev` removed; progress unchanged.
-   Parent owns all curriculum files now. Authors 4/5 hit pending runtime setup approvals, so
-   parent stopped duplicate setup efforts; they are finishing honest reports and scratch cleanup.
-   Lesson 6 author used static checks only. Parent independently validates every final lesson.
-   Lesson 4 committed as `4c9c427`. Lesson 5 final syntax/cleanup review and exact standalone run
-   passed: stale replacement 120 versus atomic result 130, with B observed on A's transactionid
-   lock. Its private root `/tmp/pg-essentials-validation-d2vhn5tk` is removed; progress unchanged.
-   Lesson 5 committed as `693e2da`. Lesson 6 parent final pass and standalone run passed:
-   stale stock -1/two accepts versus protected stock 0/one accept. B's FOR UPDATE was observed
-   waiting on A before returning 0/decline. Root `/tmp/pg-essentials-validation-4z581ux1` removed.
-4. Six-lesson rendering, command parity and navigation tests pass. Final docs, copied/live catalog
-   refresh, full repository checks, combined run and learner readiness remain pending.
+2. All three Sol/high authors finished. Parent independently reviewed and validated every final
+   lesson. Authors 4/5 abandoned blocked ownership/setup requests before initdb; no author server
+   was started. Their scratch is removed. Lesson 6 used static author checks only.
+3. Reviewed lesson commits:
+   - `4c9c427`: lesson 4; heap 1,826,816 bytes throughout, free bytes 76,572 → 1,819,680 → 76,572.
+   - `693e2da`: lesson 5; stale result 120 versus atomic result 130, B observed waiting on A.
+   - `bf19335`: lesson 6; stale stock -1/two accepts versus protected stock 0/one accept, B waited
+     before receiving 0/decline.
+4. Exact original lessons 1–3 are unchanged. All six final built lessons passed together;
+   source hashes, outcomes and the combined log are under `validation/lessons-1-2-3-4-5-6-*`.
+   Full repository format/lint/type checks and all 37 tests passed. The extra logical-history
+   assertion for WAL-mode SQLite passed the affected coaching tests afterward.
+5. Copied-catalog refresh and all 18 views passed. Live supported-CLI catalog refresh then preserved
+   all three progress rows and three attempts. Default `pgcoach` opens lesson 4; lesson 7 remains
+   planned. Main file hashes stayed unchanged, but Essentials has a WAL: logical row comparison
+   is the evidence for history preservation. See `validation/batch-two-progress.json`.
+6. All owned PostgreSQL roots stopped/removed. Parent also removed the confirmed 372 KB author-4
+   source copy. Original learner PID 348739 remains ready; other course progress hashes are
+   unchanged. Disk ~16 GB free, memory ~6.8 GiB available. Only ~160 KB small course evidence is
+   retained; there are no retained database/backup images or outstanding evidence obligations.
+7. Final documentation/integration commit and a source-only checkout smoke test are pending.
+   Stage only Essentials support: preserve unrelated original pilot edits and gRPC work unstaged.
+   Root/docs index changes were selectively staged to exclude prior gRPC additions. The reference
+   renderer's explicit --reference output routing alone is staged; its other prior edits remain.
 
 ## Resume and completion rules
 

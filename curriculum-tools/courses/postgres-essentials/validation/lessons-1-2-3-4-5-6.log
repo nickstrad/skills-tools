@@ -1,0 +1,201 @@
+
+=== #1 committed-row-visibility ===
+  [A] NOTICE:  table "pe_visibility" does not exist, skipping
+  -- Session A --
+  [A]  a_private
+  [A] -----------
+  [A]        120
+  [A] (1 row)
+  -- Session B --
+  [B]  b_before_commit
+  [B] -----------------
+  [B]              100
+  [B] (1 row)
+  -- Session A --
+  -- Session B --
+  [B]  b_after_commit
+  [B] ----------------
+  [B]             120
+  [B] (1 row)
+  -- Session A --
+  [A]  a_aborted
+  [A] -----------
+  [A]        999
+  [A] (1 row)
+  -- Session B --
+  [B]  b_after_rollback
+  [B] ------------------
+  [B]               120
+  [B] (1 row)
+
+=== #2 statement-versus-transaction-snapshot ===
+  [A] NOTICE:  table "pe_snapshot" does not exist, skipping
+  -- Session A --
+  [A]  rc_before
+  [A] -----------
+  [A]        100
+  [A] (1 row)
+  -- Session B --
+  -- Session A --
+  [A]  rc_after
+  [A] ----------
+  [A]       120
+  [A] (1 row)
+  -- Session B --
+  -- Session A --
+  [A]  rr_before
+  [A] -----------
+  [A]        100
+  [A] (1 row)
+  -- Session B --
+  -- Session A --
+  [A]  rr_after
+  [A] ----------
+  [A]       100
+  [A] (1 row)
+  [A]  fresh_after_end
+  [A] -----------------
+  [A]              120
+  [A] (1 row)
+
+=== #3 old-reader-retains-history ===
+  [A] NOTICE:  table "pe_history" does not exist, skipping
+  -- Session A --
+  [A]  reader_before
+  [A] ---------------
+  [A]           1000
+  [A] (1 row)
+  -- Session B --
+  [B]  fresh_rows
+  [B] ------------
+  [B]           0
+  [B] (1 row)
+  [B]         state        | backend_xmin
+  [B] ---------------------+--------------
+  [B]  idle in transaction |          744
+  [B] (1 row)
+  [B]  retained_dead | retained_free
+  [B] ---------------+---------------
+  [B]           1000 |          4.71
+  [B] (1 row)
+  -- Session A --
+  [A]  reader_after_delete
+  [A] ---------------------
+  [A]                 1000
+  [A] (1 row)
+  -- Session B --
+  [B]  released_dead | released_free
+  [B] ---------------+---------------
+  [B]              0 |         99.61
+  [B] (1 row)
+  [B]  final_rows
+  [B] ------------
+  [B]           0
+  [B] (1 row)
+
+=== #4 reusable-space-versus-file-size ===
+  [A] NOTICE:  extension "pgstattuple" already exists, skipping
+  [A] NOTICE:  table "pe_reuse" does not exist, skipping
+  -- Session A --
+  [A]  phase  | visible_rows | heap_bytes | dead_tuple_count | free_space
+  [A] --------+--------------+------------+------------------+------------
+  [A]  loaded |         4000 |    1826816 |                0 |      76572
+  [A] (1 row)
+  -- Session A --
+  [A]   phase  | visible_rows | heap_bytes | dead_tuple_count | free_space
+  [A] ---------+--------------+------------+------------------+------------
+  [A]  deleted |            0 |    1826816 |             4000 |      76572
+  [A] (1 row)
+  -- Session A --
+  [A]   phase   | visible_rows | heap_bytes | dead_tuple_count | free_space
+  [A] ----------+--------------+------------+------------------+------------
+  [A]  vacuumed |            0 |    1826816 |                0 |    1819680
+  [A] (1 row)
+  -- Session A --
+  [A]   phase   | visible_rows | heap_bytes | dead_tuple_count | free_space
+  [A] ----------+--------------+------------+------------------+------------
+  [A]  refilled |         4000 |    1826816 |                0 |      76572
+  [A] (1 row)
+
+=== #5 lost-update-and-atomic-write ===
+  [A] NOTICE:  table "pe_atomic_write" does not exist, skipping
+  -- Session A --
+  [A] A read 100 and computed replacement 110
+  -- Session B --
+  [B] B read 100 and computed replacement 120
+  -- Session A --
+  [A]  a_replacement_written
+  [A] -----------------------
+  [A]                    110
+  [A] (1 row)
+  -- Session B --
+  [B]  b_replacement_written
+  [B] -----------------------
+  [B]                    120
+  [B] (1 row)
+  -- Session A --
+  [A]  after_stale_replacement
+  [A] -------------------------
+  [A]                      120
+  [A] (1 row)
+  [A]  a_atomic_written
+  [A] ------------------
+  [A]               110
+  [A] (1 row)
+  -- Session B (blocks) --
+WAIT_EVIDENCE {"lesson" : 5, "session" : "B", "wait_type" : "Lock", "wait_event" : "transactionid", "blocker" : "essentials-5-A", "query" : "update pe_atomic_write set balance = balance + 20 where id = 1\nreturning balance as b_atomic_written;"}
+  -- Session A --
+  -- Session B --
+  [B]  b_atomic_written
+  [B] ------------------
+  [B]               130
+  [B] (1 row)
+  -- Session A --
+  [A]  after_atomic_arithmetic
+  [A] -------------------------
+  [A]                      130
+  [A] (1 row)
+
+=== #6 row-lock-protects-decision ===
+  [A] NOTICE:  table "pe_stock" does not exist, skipping
+  -- Session A --
+  [A]  a_stale_read | a_stale_decision
+  [A] --------------+------------------
+  [A]             1 | accept
+  [A] (1 row)
+  -- Session B --
+  [B]  b_stale_read | b_stale_decision
+  [B] --------------+------------------
+  [B]             1 | accept
+  [B] (1 row)
+  -- Session A --
+  -- Session B --
+  -- Session A --
+  [A]  stale_remaining | stale_accepted
+  [A] -----------------+----------------
+  [A]               -1 |              2
+  [A] (1 row)
+  -- Session A --
+  [A]  a_locked_read | a_locked_decision
+  [A] ---------------+-------------------
+  [A]              1 | accept
+  [A] (1 row)
+  -- Session B (blocks) --
+WAIT_EVIDENCE {"lesson" : 6, "session" : "B", "wait_type" : "Lock", "wait_event" : "transactionid", "blocker" : "essentials-6-A", "query" : "select remaining as b_locked_read,\n       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision\nfrom pe_stock where sku = 'widget' for update;"}
+  -- Session A --
+  -- Session B --
+  [B]  b_locked_read | b_locked_decision
+  [B] ---------------+-------------------
+  [B]              0 | decline
+  [B] (1 row)
+  [B]        b_locked_action
+  [B] ------------------------------
+  [B]  no write: stock is exhausted
+  [B] (1 row)
+  -- Session A --
+  [A]  locked_remaining | locked_accepted
+  [A] ------------------+-----------------
+  [A]                 0 |               1
+  [A] (1 row)
+
+6/6 lessons completed; deliberate waits observed

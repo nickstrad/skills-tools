@@ -1,113 +1,88 @@
 ---
 name: postgres-tutor
-description: "Guide a user through the hands-on PostgreSQL Systems curriculum with the tutor CLI: serve the next or a numbered lesson, find lessons by concept, list modules, and record progress only when the user explicitly asks. Use for PostgreSQL Systems curriculum, lesson, module, search, note, and progress requests; not for unrelated PostgreSQL Systems troubleshooting."
+description: "Guide PostgreSQL Essentials lessons, the fixed 40-lesson route, and its progress through pgcoach; access the original PostgreSQL Systems reference when requested. Use for PostgreSQL curriculum, lesson, search, module and progress requests, not unrelated database troubleshooting."
 ---
 
-# PostgreSQL Systems Tutor
+# PostgreSQL tutor
 
-Use `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach` to guide a lesson
-and `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres` for course navigation and
-explicit progress actions. Never read or edit `courses/postgres/lessons.json`, the curriculum
-source, or the SQLite progress database directly. Neither CLI runs lesson code; the user runs it in
-`psql` or a shell.
+The current learner course is **PostgreSQL Essentials: 40 further lessons of 20–30 minutes**. The
+first **six** are authored and available. They are the actual first six entries in
+`/root/Software/skills-tools/curriculum-tools/courses/postgres-essentials/PLAN.md`, not a UX pilot.
+The old reference lessons 9–12 are no longer the entry path. Nick has completed reference 1–8; those
+are background, not completions of these new lesson identities.
 
-## Route the request
+Use `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach` (COACH below). The
+existing installed command opens essentials by default. For other navigation use
+`/root/Software/skills-tools/curriculum-tools/bin/tutor postgres-essentials` (TUTOR below). Use the
+CLI for learner requests; do not read or edit generated lessons or SQLite progress directly. Neither
+CLI executes lesson SQL; the learner runs the supplied commands in their terminals.
 
-- Next unfinished lesson:
-  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start`
-- A specific lesson:
-  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER start`
-- Find lessons by concept:
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres search TEXT`, then
-  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach NUMBER start` if one is
-  wanted.
-- Next lesson on a topic the user is studying ("I'm reading about the buffer cache", "give me
-  something on deadlocks"): run
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres topics` once to see the tag
-  vocabulary with progress, pick the tags that fit what they described (map their words onto the
-  vocabulary; a book chapter title usually maps to one tag), then
-  `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start --topic "TAG"`.
-  If the first choice reports no match or is complete, try the next closest tag, then fall back to
-  `search`. Tell the user which topic you matched.
-- Module overview: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres modules`
-- List or filter:
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres list [--todo|--done] [--category NAME] [--topic TEXT] [--limit N]`
-- Topic vocabulary with progress:
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres topics`
-- Progress summary: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres status --json`
-- Record completion (explicit request only):
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres done NUMBER`
-- Reverse completion:
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres undone NUMBER`
-- Save a note: `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres note NUMBER TEXT`
-- Skip (explicit request only):
-  `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres skip NUMBER`
+## Route requests
 
-If a command reports the progress database is not initialized, run
-`/root/Software/skills-tools/curriculum-tools/bin/tutor postgres init` once and retry. If it reports
-`lessons.json` is missing, run `deno task build postgres` in the tool directory, then `init`, then
-retry.
+- Next unfinished available lesson: `COACH` or `COACH start`.
+- Numbered lesson: `COACH NUMBER lesson`; results and insights: `COACH NUMBER review`.
+- Complete view and optional references: `COACH NUMBER full`.
+- Full intended course sequence, including planned entries: `COACH route`.
+- Search, available modules, topics or status: `TUTOR search TEXT`, `TUTOR modules`, `TUTOR topics`,
+  `TUTOR status --json`. Search returns authored lessons only.
+- Next available lesson on a topic: `COACH --topic TEXT`; explain when the matching topic is planned
+  but not yet authored rather than silently redirecting to the reference course.
+- Completion, **only on explicit request**: `COACH NUMBER done` or `TUTOR done NUMBER`.
+- Explicit progress correction/note/skip: `TUTOR undone NUMBER`, `TUTOR note NUMBER TEXT`,
+  `TUTOR skip NUMBER`. Pass note text as one argument. No lesson requires a note.
+- An uninitialized essentials catalog: `TUTOR init`, then retry. If the built artifact is missing,
+  run `deno task build postgres-essentials` from curriculum-tools before init.
 
-## Guide one lesson
+COACH and TUTOR above are abbreviations for the absolute commands, not literal executable names.
+`--db PATH` selects isolated progress for author checks. Do not use legacy `pgtutor done` for the
+new course: that wrapper may address reference ordinals. Never infer which course a completion
+refers to if recent context is ambiguous; identify the lesson before writing progress.
 
-The active coaching pilot is lessons **9–12**. Start it explicitly with `pgcoach 9 start`; the
-learner has already done lesson 8 using the old coach, though its older completion revision may make
-the generic next selector offer it again. Do not require a repeat or alter that completion. Follow
-the current rendered stages, not an assumed universal ordering. For the pilot the path is
-`start → run → inspect → explain → reveal → apply`, with `vary` optional and `syntax` available for
-reference. Supply the rendered terminal instructions before the commands.
+## Teach the current batch
 
-Ask the authored prediction at the relevant moment, but a mental guess is enough. Never require a
-typed response, notes or an evidence worksheet before continuing. Invite comparison with the actual
-output and explain using the later coach stages. The learner executes the supplied commands in psql;
-do not turn this into syntax recall. If output is confusing, give targeted help rather than
-requiring a polished explanation. Reveal is available sooner whenever requested.
+1. **An uncommitted write is private to its transaction.**
+2. **Choose a fresh statement view or a stable transaction view.**
+3. **An old reader can prevent vacuum from removing history.**
+4. **Reusable space is different from a smaller file.**
+5. **Lose an update, then keep arithmetic in the database.**
+6. **Protect a read-modify-write decision with a row lock.**
 
-Use the core time range and wrap-up cue from start. Optional depth is separate. At apply, show any
-core reading stop verbatim, including all excerpt locators; it remains required before the next
-lesson. Ordinary references and optional depth are elective. No stage marks completion.
+Use two substantial views. `lesson` gives the mechanism, terminology, diagram and purpose before
+commands, including the terminal setup. Essential teaching must not be postponed until `review`.
+`review` explains what the actual evidence showed, its implications and its limits. Follow the brief
+mental reflection and clarity/time cues naturally; do not require typed predictions, written
+answers, reports or per-stage acknowledgements. Give targeted help if the result is confusing.
 
-After lesson 12, **stop for the batch review before serving lesson 13**. Its start view repeats the
-review reminder. Ask briefly whether pgcoach supplied enough context, where outside help was needed,
-and whether the pacing worked. Discuss what to keep/change, record agreed design decisions in
-`designs/09-coach-pilot-batches.md` as author work, then prepare only the next small batch. Do not
-require the learner to write a report or use an acknowledgement command. Do not roll the new flow
-out to the whole course before this feedback. Per-lesson feedback is welcome but not mandatory.
+The 20–30 minute target includes all core work, with no required book-reading detour. Estimates
+remain provisional until learner feedback. At 30 minutes follow the safe cleanup instructions; there
+is no saved pause/resume system. The next session can rerun the idempotent setup.
 
-For a complete lesson request, use `pgcoach NUMBER full`. It preserves the full experiment and
-reference material; the pilot presents its complete optional variation too. For lessons without a
-guide, use the explicitly offered full fallback. Preserve complete syntax and reading excerpts.
-Other guided lessons retain their earlier flow until their batch is revised.
+Nick enjoyed the flow in lessons 1–3. After lesson 6, discuss whether the concepts and diagrams were
+sufficient upfront, whether review added insight, and whether the pacing worked. Use that feedback
+while preparing the next actual course lessons, starting with row 7 of the fixed plan. Do not insert
+an unrelated UX-only batch. Only 1–6 currently exist: do not invent commands for a planned lesson or
+say all 40 are complete when the available batch is finished. Record agreed scope changes in the
+plan before authoring.
 
-Warn if the user's tool version is below `minVersion` (`show NUMBER --json`). Use `--json` only when
-structured fields are needed.
+## Original reference course
 
-## Incident ownership and VM resources
+For explicit original-course requests, use `COACH --reference NUMBER full` and
+`/root/Software/skills-tools/curriculum-tools/bin/tutor postgres ...` for its navigation/progress.
+It preserves the 92 original lessons, their identities and progress. Reference numbers are not new
+essentials numbers. Do not require the old lesson-12 pilot review on the essentials path.
 
-Before allocating a lab, read the repository's `docs/knowledge/vm-resource-cleanup.md` and verify
-current resources; `/root/disk-usage-report.md` is a historical inventory to check, not a deletion
-allowlist. The learner's current VM lab is `/labs/pglab/primary`, port 5440/socket `/tmp`, database
-lab. Confirm current paths rather than recreating an obsolete validation lab. Preserve learner data.
+## Lab and progress invariants
 
-For independent incidents, start with the authored symptom and prediction. When the learner
-explicitly asks you to prepare a fixture, obtain the supplied run/full commands and execute only the
-named preparation/survey stage before showing its symptom. Honor explicit requests for full source
-or a worked solution. Saved incident PIDs are historical when a phase stopped; use the supplied
-fresh trial/interface instead of signalling a remembered PID.
+The learner lab is `/labs/pglab/primary`, PostgreSQL 16, socket `/tmp`, port 5440, role postgres,
+database lab. Use the rendered instructions; never recreate obsolete `/var/lib/postgresql/pglab`
+fixtures. The new lessons reset only their named `pe_*` tables. Lesson 4 uses one experiment
+session; the others use two. If interrupted, ROLLBACK in each open session, then drop the exact
+lesson table as instructed. Preserve unrelated learner work.
 
-Keep agent-created trials bounded, stop their processes in failure cleanup and reclaim their owned
-files after findings are recorded. Use the printed cleanup action where supplied. Retain only the
-evidence needed for a named unfinished check, and remove bulky audit inputs before declaring that
-task finished. Do not remove `/labs/pglab`, learner progress or unrelated work as scratch cleanup.
-The course [README](../../README.md) and knowledge base explain preparation, catalog refresh and
-resource ownership. Reading or cleanup never implies learner completion.
+Reading, showing, explaining or successfully author-validating a lesson never completes it for Nick.
+Only an explicit completion request does. Resolve “done” to the most recently discussed course and
+lesson when unambiguous, and report errors instead of assuming success.
 
-## Progress invariants
-
-- The lesson `ordinal` is the number the user sees.
-- Never mark completion because a lesson was shown, copied, or explained. Mark it only after an
-  explicit request such as "done", "I ran it", or "mark 12 complete"; resolve "it" to the last
-  lesson shown only when unambiguous.
-- Prefer `/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach start` over
-  computing the next lesson yourself; it handles skipped and stale lessons through the tutor CLI.
-- Pass note text as one argument and report command errors instead of assuming success.
+Before author labs, read the repository VM cleanup guidance and verify current resources. Budget
+owned fixtures, stop and remove them after validation, and check learner readiness and unchanged
+reference progress. Preserve existing learner progress and active unrelated sessions.

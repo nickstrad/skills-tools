@@ -303,4 +303,17 @@ export async function runCoach(args: string[], io: Output = console): Promise<nu
     return 1;
   }
 }
-if (import.meta.main) Deno.exit(await runCoach(Deno.args));
+if (import.meta.main) {
+  // The launcher now defaults to essentials; reference navigation must retain its explicit route.
+  const reference = (value: string) =>
+    value.replace(
+      /\bpgcoach (?=\d|start\b|lesson\b|review\b|run\b|full\b|syntax\b|--topic\b)/g,
+      "pgcoach --reference ",
+    );
+  Deno.exit(
+    await runCoach(Deno.args, {
+      log: (value) => console.log(reference(value)),
+      error: (value) => console.error(reference(value)),
+    }),
+  );
+}

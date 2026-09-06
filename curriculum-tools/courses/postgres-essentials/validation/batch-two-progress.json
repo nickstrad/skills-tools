@@ -1,0 +1,13 @@
+{
+  "copied_refresh_and_18_views": "passed",
+  "next_lesson": 4,
+  "available": 6,
+  "progress_rows_preserved": 3,
+  "attempt_rows_preserved": 3,
+  "essentials_before_sha256": "532af6e82f94ee7dbc05ad05050234c6d14d0f1b3eb0faa3a83ef6865309c87c",
+  "essentials_after_sha256": "532af6e82f94ee7dbc05ad05050234c6d14d0f1b3eb0faa3a83ef6865309c87c",
+  "reference_progress_sha256": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+  "temporary_copy_removed": true,
+  "hash_scope": "SHA256 fields name the main SQLite files only; Essentials uses WAL. Progress and attempt preservation was checked by row comparison.",
+  "essentials_wal_sha256_after_refresh": "6572a73b5d4fa2703567609f736beb40a63d3783ad5d9a8feed370af37d0c9c7"
+}

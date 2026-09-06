@@ -23,19 +23,26 @@ archive hashes before removing raw evidence needed for an unfinished audit. Give
 explicit end point. Finish that audit, reclaim bulky inputs and recheck learner readiness before
 declaring the goal done.
 
-## Use the course
+## Use the current essentials course
 
-The current coaching pilot is **lessons 9–12**. Start with `bin/pgcoach 9 start`; follow the printed
-next command through run, inspect, explain, reveal and apply. Make guesses mentally; no notes or
-typed answers are required. The start view budgets core time, optional variation and any required
-reading separately. After lesson 12, stop for a brief conversation about the flow before we prepare
-another small batch; opening lesson 13's start repeats that reminder. See the
-[batch plan](designs/09-coach-pilot-batches.md). Other guides retain their existing flow for now.
+The learner path is now [PostgreSQL Essentials](../postgres-essentials/README.md), with a fixed
+[40-lesson sequence](../postgres-essentials/PLAN.md) of 20–30 minute chunks. Its actual first six
+lessons are ready; there is no requirement to take the old 9–12 coaching pilot.
 
-From this directory, start the next unfinished lesson with `bin/pgcoach start`, or open lesson 9
-with `bin/pgcoach 9 start`. After predicting, use `bin/pgcoach 9 run`; continue through inspect,
-explain, vary and apply. hint1/hint2 and reveal/full remain available when wanted. Neither rendering
-nor reading marks progress. Record completion only when the learner explicitly requests it.
+```sh
+bin/pgcoach route
+bin/pgcoach 1 lesson
+bin/pgcoach 1 review
+bin/pgcoach 1 done
+```
+
+`pgcoach` defaults to the new course. Its numbering and progress are separate from this original
+92-lesson reference. `pgcoach --reference NUMBER full` opens reference material; use
+`tutor postgres ...` for reference progress/navigation. Do not use old completion numbers for new
+lessons. The new flow teaches concepts and terminal diagrams before running; review explains the
+observations. The next feedback point is after essentials lesson 6.
+
+## Original reference experiments
 
 The actual experiment commands run in the shell or psql context stated by each lesson. SQL lessons
 can share the learner lab; private lifecycle fixtures initialize their own state. Some incident run

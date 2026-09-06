@@ -1,0 +1,83 @@
+{
+  "a_private": 120,
+  "b_before_commit": 100,
+  "b_after_commit": 120,
+  "a_aborted": 999,
+  "b_after_rollback": 120,
+  "rc_before": 100,
+  "rc_after": 120,
+  "rr_before": 100,
+  "rr_after": 100,
+  "fresh_after_end": 120,
+  "reader_before": 1000,
+  "fresh_rows": 0,
+  "reader_after_delete": 1000,
+  "retained_dead": 1000,
+  "released_dead": 0,
+  "final_rows": 0,
+  "a_replacement_written": 110,
+  "b_replacement_written": 120,
+  "after_stale_replacement": 120,
+  "a_atomic_written": 110,
+  "b_atomic_written": 130,
+  "after_atomic_arithmetic": 130,
+  "a_stale_read": 1,
+  "b_stale_read": 1,
+  "stale_remaining": -1,
+  "stale_accepted": 2,
+  "a_locked_read": 1,
+  "b_locked_read": 0,
+  "locked_remaining": 0,
+  "locked_accepted": 1,
+  "a_stale_decision": "accept",
+  "b_stale_decision": "accept",
+  "a_locked_decision": "accept",
+  "b_locked_decision": "decline",
+  "b_locked_action": "no write: stock is exhausted",
+  "reuse_phases": {
+    "loaded": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    },
+    "deleted": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 4000,
+      "free_space": 76572
+    },
+    "vacuumed": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 1819680
+    },
+    "refilled": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    }
+  },
+  "retained_free": 4.71,
+  "released_free": 99.61,
+  "waits": [
+    {
+      "lesson": 5,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-5-A",
+      "query": "update pe_atomic_write set balance = balance + 20 where id = 1\nreturning balance as b_atomic_written;"
+    },
+    {
+      "lesson": 6,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-6-A",
+      "query": "select remaining as b_locked_read,\n       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision\nfrom pe_stock where sku = 'widget' for update;"
+    }
+  ]
+}

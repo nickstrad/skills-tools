@@ -239,3 +239,20 @@ combines Chapter4 "Snapshots" and Chapter 11 "WAL Modes" as closest background, 
 book coverage of the synchronization protocol or its diagnostic catalogs. The original 96-row index
 remains; use lesson-map.md for current 92-lesson order and seven reading stops. Retired completion
 is not transferred, and the conflict lesson now depends on the surviving bootstrap identity.
+
+## PostgreSQL Essentials: new course identities (2026-09-06)
+
+The [40-lesson essentials route](../../../curriculum-tools/courses/postgres-essentials/PLAN.md)
+has separate course identity and numbering; its first six are authored. These references are
+optional after the experiment and do not inherit the original course's required reading stops.
+The original 92-lesson map above remains intact. Canonical chapter research is reused without
+copying or re-extracting the book.
+
+| Essentials # | Stable slug | Book mapping |
+|---|---|---|
+| 1 | `committed-row-visibility` | Chapter 2 "Isolation", "Read Committed"; Chapter 4 "Snapshots", "Row Version Visibility" |
+| 2 | `statement-versus-transaction-snapshot` | Chapter 2 "Isolation", "Read Committed" and "Repeatable Read"; Chapter 4 "Snapshots", "Row Version Visibility" |
+| 3 | `old-reader-retains-history` | Chapter 4 "Snapshots", "Transaction Horizon"; Chapter 6 "Vacuum and Autovacuum", "Database Horizon Revisited" |
+| 4 | `reusable-space-versus-file-size` | Chapter 1 "Introduction", "Files and Forks"; Chapter 6 "Vacuum and Autovacuum", "Vacuum" and "Vacuum Phases"; Chapter 8 "Rebuilding Tables and Indexes", "Full Vacuuming" |
+| 5 | `lost-update-and-atomic-write` | Chapter 2 "Isolation", "Isolation Levels and Anomalies in SQL Standard" and "Read Committed" |
+| 6 | `row-lock-protects-decision` | Chapter 2 "Isolation", "Read Committed"; Chapter 13 "Row-Level Locks", "Lock Design" and "Row-Level Locking Modes" |

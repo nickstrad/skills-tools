@@ -180,11 +180,19 @@ the mechanism and lesson outcome add no meaningful contrast.
 
 ## Track 1: Databases, data, and storage
 
-### 1. PostgreSQL — deep project
+### 1. PostgreSQL — essentials route with a deep reference
 
-PostgreSQL should remain one of the deepest projects. Use its full client/server
-architecture to understand the machinery behind transactions, concurrency,
-durability, and performance.
+**Current direction, 2026-09-06:** a fixed **40-lesson essentials route**, each lesson targeting
+20–30 minutes, after Nick’s eight completed reference lessons. He prefers smaller meaningful
+chunks over 24 dense lessons and wants the goal specified before authoring. The
+[full route and intended outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) is now
+written down. Its first six lessons are authored: visibility, snapshot lifetime, retention, space
+reuse, atomic arithmetic and row-locked decisions. Nick enjoyed the first batch and requested the
+next three; the next feedback point is essentials lesson 6; the old 9–12 pilot is not required.
+
+`pgcoach` opens essentials by default. Its `lesson` view explains the concepts and diagrams before
+execution; `review` interprets results and gives insights. Lessons 7–40 remain planned. Preserve
+original progress and the 92-lesson course as optional reference via `pgcoach --reference`.
 
 Possible architecture reference: [On building scalable control planes](articles/scalable-control-planes.md)
 connects this project's replication, freshness, write-capacity, and recovery questions to service

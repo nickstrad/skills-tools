@@ -66,6 +66,20 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- PostgreSQL current path (2026-09-06): **40 further essentials lessons of 20–30 minutes**,
+  following the eight completed reference lessons. Nick explicitly chose smaller meaningful chunks
+  over 24 longer lessons, requested the full sequence in advance, and rejected using old lessons
+  solely to test UX. Nick enjoyed the flow of lessons 1–3 and requested the next three on 2026-09-06.
+  Lessons 1–6 now cover visibility, retention, space reuse, atomic writes and row-locked decisions. The fixed
+  [route and outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) governs subsequent
+  work; 7–40 are planned, not yet authored. `pgcoach` defaults to this new course and separate
+  progress. The original 92-lesson course is reference material via `pgcoach --reference`.
+  Use two substantial views: **lesson** teaches the mechanism, terminology and purpose, with
+  useful terminal diagrams before commands; **review** interprets results and adds insights and
+  limits. Budget setup, explanation, execution, reflection and cleanup together. Invite brief
+  mental reflection after the experiment and a light clarity/time check after review. Discuss
+  feedback after essentials lesson 6 while preparing the next course batch; no unrelated pilot,
+  written answers or reports. Timings remain estimates pending learner experience.
 - PostgreSQL coaching clarification (2026-09-05): lessons 1–7 were completed with the old
   non-pgcoach flow; only lesson 8 was completed with the old pgcoach flow, with ChatGPT help.
   Learning happens outside work alongside marriage and children. Show realistic core lesson estimates and a simple time cap; keep optional depth

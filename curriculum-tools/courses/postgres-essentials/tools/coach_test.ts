@@ -2,6 +2,7 @@ import { run as runTutor } from "../../../src/main.ts";
 import type { Lesson } from "../../../src/types.ts";
 import { ROUTE } from "../route.ts";
 import { render, runEssentials } from "./coach.ts";
+import { DatabaseSync } from "node:sqlite";
 
 const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
@@ -14,9 +15,21 @@ function capture() {
   return { out, err, io: { log: (s: string) => out.push(s), error: (s: string) => err.push(s) } };
 }
 
+function history(path: string): string {
+  const db = new DatabaseSync(path, { readOnly: true });
+  try {
+    return JSON.stringify([
+      db.prepare("SELECT * FROM progress ORDER BY lesson_id").all(),
+      db.prepare("SELECT * FROM attempts ORDER BY id").all(),
+    ]);
+  } finally {
+    db.close();
+  }
+}
+
 Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
   assert(
-    ROUTE.length === 40 && catalog.length >= 3 && catalog.length <= 6,
+    ROUTE.length === 40 && catalog.length === 6,
     "route or authored batch drifted",
   );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
@@ -72,6 +85,7 @@ Deno.test("selection, completion and batch boundary use only essentials progress
       "init failed",
     );
     const before = await Deno.readFile(db);
+    const historyBefore = history(db);
     assert((await call([])).includes("Essentials 1/40"), "default selected wrong route");
     assert(await call(["1", "start"]) === await call(["1", "lesson"]), "start alias changed");
     for (let n = 1; n <= catalog.length; n++) {
@@ -85,6 +99,7 @@ Deno.test("selection, completion and batch boundary use only essentials progress
       "pending lesson served",
     );
     const after = await Deno.readFile(db);
+    assert(history(db) === historyBefore, "view changed history, possibly through SQLite WAL");
     assert(
       before.length === after.length && before.every((b, i) => b === after[i]),
       "view wrote progress",
@@ -140,12 +155,12 @@ Deno.test("installed launcher opens essentials and explicitly preserves referenc
         new TextDecoder().decode(old.stdout).includes("Build a disposable lab cluster"),
       "reference access lost",
     );
-    const oldPilot = await new Deno.Command(launcher, {
-      args: ["--reference", "9", "lesson", "--db", reference],
+    const oldNavigation = await new Deno.Command(launcher, {
+      args: ["--reference", "8", "start", "--db", reference],
     }).output();
     assert(
-      oldPilot.success &&
-        new TextDecoder().decode(oldPilot.stdout).includes("pgcoach --reference 9 review"),
+      oldNavigation.success &&
+        new TextDecoder().decode(oldNavigation.stdout).includes("pgcoach --reference 8 run"),
       "reference footer switches back to essentials",
     );
   } finally {

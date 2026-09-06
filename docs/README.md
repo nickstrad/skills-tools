@@ -13,6 +13,11 @@ start. The September 2026 report is a historical inventory, not a deletion allow
 
 ## Learning roadmap
 
+The current [PostgreSQL Essentials route](../curriculum-tools/courses/postgres-essentials/PLAN.md)
+lists 40 lessons of 20–30 minutes with specific outcomes. Its first six are authored; `pgcoach`
+opens this course. [Implementation findings](knowledge/postgres-essentials.md) explain separate
+progress, reference access and validation. The old 9–12 coaching pilot is no longer the entry path.
+
 [`learner-profile.md`](learner-profile.md) records Nick's stated experience and preferences. Read it
 before choosing course depth. The [prior-project review](knowledge/prior-project-experience.md) uses
 his repositories to identify familiar material to omit or compress; it is not a request to copy

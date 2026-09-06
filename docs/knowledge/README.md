@@ -8,6 +8,9 @@ otherwise rediscover.
 
 ## Files
 
+The current PostgreSQL path and its identity/validation rules are in
+[postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first six available.
+
 | File                                                                           | What it covers                                                                                                                                                             |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |

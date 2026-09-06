@@ -22,7 +22,9 @@ courses.
 - One CLI for multiple courses: `bin/tutor <course> <command>`
 - Course authoring skill, reusable course template, build tooling, validation
   harness, and tests
-- Bundled PostgreSQL course (96 lessons in 15 modules), complete SQLite course,
+- [PostgreSQL Essentials](curriculum-tools/courses/postgres-essentials/PLAN.md): a fixed 40-lesson
+  route of 20–30 minute experiments, with the first six available through `pgcoach`
+- Original PostgreSQL reference (92 lessons in 15 modules), complete SQLite course,
   and complete Linux Systems course (72 lessons in 12 modules)
 - Per-course wrapper skills under `courses/<course>/skill/`
 
@@ -44,8 +46,9 @@ cd ~/Software/skills-tools
 
 # Generalized engine
 ./curriculum-tools/bin/tutor courses
-./curriculum-tools/bin/tutor postgres init
-./curriculum-tools/bin/tutor postgres pretty
+./curriculum-tools/bin/tutor postgres-essentials init
+./curriculum-tools/courses/postgres/bin/pgcoach route
+./curriculum-tools/courses/postgres/bin/pgcoach 1 lesson
 ./curriculum-tools/bin/tutor linux init
 ./curriculum-tools/bin/tutor linux modules
 ./curriculum-tools/bin/tutor linux pretty 1

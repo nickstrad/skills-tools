@@ -1,0 +1,11 @@
+{
+  "catalog_sha256": "1025b68af22b5e1d906375c97f1eac2028f9c3fba3c2143a03ca86e9fac7325a",
+  "lessons": {
+    "committed-row-visibility": "76104da8f9185c27e0b42742dccca9b354c43e3943adec16a9d42e62ed0702b6",
+    "statement-versus-transaction-snapshot": "d8e985ba9bdad4680274270a6326a0fdbf1a72a2b38f5f8321960fc1c530b633",
+    "old-reader-retains-history": "23b789f596e3922e44fd3c08527cfd90d3aaed8780795b19020552cebd87dfc2",
+    "reusable-space-versus-file-size": "e05b987784eb1096353a9ffdeb3f18ffd02164d0761d76b74c3d0f9dfa000d7c",
+    "lost-update-and-atomic-write": "de554455f9b832a13f0866e3513b16c6c67fef91f37e200c8bbf18628b3b70dc",
+    "row-lock-protects-decision": "48646c29d252857e6505465a30aad803210aeef31cd3b4134c41e39b401c9d14"
+  }
+}
