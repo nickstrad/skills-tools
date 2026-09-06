@@ -1,0 +1,18 @@
+{
+  "a_replacement_written": 110,
+  "b_replacement_written": 120,
+  "after_stale_replacement": 120,
+  "a_atomic_written": 110,
+  "b_atomic_written": 130,
+  "after_atomic_arithmetic": 130,
+  "waits": [
+    {
+      "lesson": 5,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-5-A",
+      "query": "update pe_atomic_write set balance = balance + 20 where id = 1\nreturning balance as b_atomic_written;"
+    }
+  ]
+}

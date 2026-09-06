@@ -48,6 +48,9 @@ Protected progress SHA256 before work:
    Parent owns all curriculum files now. Authors 4/5 hit pending runtime setup approvals, so
    parent stopped duplicate setup efforts; they are finishing honest reports and scratch cleanup.
    Lesson 6 author used static checks only. Parent independently validates every final lesson.
+   Lesson 4 committed as `4c9c427`. Lesson 5 final syntax/cleanup review and exact standalone run
+   passed: stale replacement 120 versus atomic result 130, with B observed on A's transactionid
+   lock. Its private root `/tmp/pg-essentials-validation-d2vhn5tk` is removed; progress unchanged.
 4. Six-lesson navigation/progress checks, durable findings, cleanup and learner readiness; pending.
 
 ## Resume and completion rules
