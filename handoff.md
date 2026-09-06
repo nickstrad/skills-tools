@@ -37,7 +37,12 @@ Protected progress SHA256 before work:
 1. Preflight and existing course review completed. Baseline/design committed as `b8035f1`.
 2. Sol/high authors `/root/lesson4`, `/root/lesson5`, `/root/lesson6` are active in their assigned
    files. Parent is implementing shared rendering and a course-local observed-wait validator.
-3. Parent review, real PostgreSQL runs and per-lesson commits; pending.
+3. Parent shared renderer now supports one/two terminals and current batch feedback. Three coaching
+   tests pass. New course-local driver uses the shared REPL/splitter and proves each deliberate B
+   lock wait on A before continuing. Exact original lessons 1–3 reran successfully; private root
+   `/tmp/pg-essentials-validation-ol6ss0lw` removed and both learner progress hashes unchanged.
+   New lesson drafts exist; authors retain ownership until their validation reports are complete.
+   Per-lesson parent final passes and commits remain pending.
 4. Six-lesson navigation/progress checks, durable findings, cleanup and learner readiness; pending.
 
 ## Resume and completion rules

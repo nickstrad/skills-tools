@@ -1,0 +1,9 @@
+{
+  "owned_root": "/tmp/pg-essentials-validation-ol6ss0lw",
+  "removed": true,
+  "progress_sha256": {
+    "/root/Software/skills-tools/curriculum-tools/courses/postgres/progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "/root/Software/skills-tools/curriculum-tools/courses/postgres-essentials/progress.sqlite": "532af6e82f94ee7dbc05ad05050234c6d14d0f1b3eb0faa3a83ef6865309c87c"
+  },
+  "free_bytes": 16768778240
+}

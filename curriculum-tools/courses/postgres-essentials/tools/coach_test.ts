@@ -14,8 +14,11 @@ function capture() {
   return { out, err, io: { log: (s: string) => out.push(s), error: (s: string) => err.push(s) } };
 }
 
-Deno.test("fixed 40-lesson route starts with the three actual lessons and complete commands", () => {
-  assert(ROUTE.length === 40 && catalog.length === 3, "route or authored batch drifted");
+Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
+  assert(
+    ROUTE.length === 40 && catalog.length >= 3 && catalog.length <= 6,
+    "route or authored batch drifted",
+  );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
   for (const [i, lesson] of catalog.entries()) {
     assert(
@@ -32,6 +35,12 @@ Deno.test("fixed 40-lesson route starts with the three actual lessons and comple
       blocks.length > 2 && blocks[0] === lesson.setup &&
         blocks.slice(1).join("\n\n") === lesson.code,
       "render changed SQL/session blocks",
+    );
+    assert(
+      shown.includes(
+        lesson.sessions === 1 ? "Open one experiment terminal" : "Open two experiment terminals",
+      ),
+      "terminal instructions disagree with session count",
     );
     assert(shown.indexOf("```text") < shown.indexOf("## Setup"), "visual introduced too late");
     assert(
@@ -65,14 +74,14 @@ Deno.test("selection, completion and batch boundary use only essentials progress
     const before = await Deno.readFile(db);
     assert((await call([])).includes("Essentials 1/40"), "default selected wrong route");
     assert(await call(["1", "start"]) === await call(["1", "lesson"]), "start alias changed");
-    for (let n = 1; n <= 3; n++) {
+    for (let n = 1; n <= catalog.length; n++) {
       for (const stage of ["lesson", "review", "full"]) {
         const text = await call([String(n), stage]);
         assert(text.includes("--db '/tmp/"), "footer lost copied progress argument");
       }
     }
     assert(
-      (await call(["4", "lesson"])).includes("planned, not yet available"),
+      (await call([String(catalog.length + 1), "lesson"])).includes("planned, not yet available"),
       "pending lesson served",
     );
     const after = await Deno.readFile(db);
@@ -80,18 +89,27 @@ Deno.test("selection, completion and batch boundary use only essentials progress
       before.length === after.length && before.every((b, i) => b === after[i]),
       "view wrote progress",
     );
-    for (const args of [["done"], ["4", "done"], ["41", "lesson"], ["1", "--topic", "mvcc"]]) {
+    for (
+      const args of [["done"], [String(catalog.length + 1), "done"], ["41", "lesson"], [
+        "1",
+        "--topic",
+        "mvcc",
+      ]]
+    ) {
       assert(
         await runEssentials([...args, "--db", db], capture().io) !== 0,
         "invalid input accepted",
       );
     }
-    for (let n = 1; n <= 3; n++) await call([String(n), "done"]);
+    for (let n = 1; n <= catalog.length; n++) await call([String(n), "done"]);
     assert(
-      (await call([])).includes("remaining 37 are planned"),
+      (await call([])).includes(`remaining ${40 - catalog.length} are planned`),
       "batch incorrectly completed the whole course",
     );
-    assert((await call([])).includes("Before we prepare lesson 4"), "feedback boundary missing");
+    assert(
+      (await call([])).includes(`Before we prepare lesson ${catalog.length + 1}`),
+      "feedback boundary missing",
+    );
     assert(
       (await call(["--topic", "nonexistent"])).includes("No available lesson"),
       "topic miss broken",

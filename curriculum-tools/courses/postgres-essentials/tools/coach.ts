@@ -50,7 +50,7 @@ function command(n: number, stage: string, db?: string) {
   return `pgcoach ${n} ${stage}` + (db ? " --db " + shellQuote(db) : "");
 }
 export function batchCheck(): string {
-  return "**First batch complete enough to discuss:** Before we prepare lesson 4, briefly tell me " +
+  return `**Batch check:** Before we prepare lesson ${catalog.length + 1}, briefly tell me ` +
     "whether the first view and diagrams gave enough context, whether review added insight, and " +
     "whether each lesson fit 20–30 minutes. A quick chat is enough. We will adjust the UX while " +
     "continuing this 40-lesson route; there is no separate practice batch or required report.";
@@ -61,6 +61,8 @@ export function render(lesson: Selected, stage: string, db?: string): string {
     `# PostgreSQL Essentials ${lesson.ordinal}/${ROUTE.length}: ${lesson.title}`,
     `**Core:** 20–30 min (estimate ${lesson.estimatedMinutes} min) · **Sessions:** ${lesson.sessions} · **PostgreSQL:** ${lesson.minVersion}+`,
   ];
+  const twoSessions = lesson.sessions === 2;
+  const terminals = twoSessions ? "both sessions" : "session A";
   const first = stage === "lesson" || stage === "full";
   const second = stage === "review" || stage === "full";
   if (first) {
@@ -75,16 +77,21 @@ export function render(lesson: Selected, stage: string, db?: string): string {
     );
     if (lesson.caution) parts.push(lesson.caution);
     parts.push(
-      "## Open two experiment terminals\n\nKeep this coaching terminal open. Label two other terminals A and B and connect both:",
+      twoSessions
+        ? "## Open two experiment terminals\n\nKeep this coaching terminal open. Label two other terminals A and B and connect both:"
+        : "## Open one experiment terminal\n\nKeep this coaching terminal open. Label another terminal A and connect:",
       fence("psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off", "sh"),
       "Here `-X` skips personal psql startup settings; `-h` names the socket directory, `-p` the port, " +
         "`-U` the role, `-d` the database, and `-P pager=off` keeps output in the terminal. " +
-        "Use the existing learner lab. Finish any earlier transaction with ROLLBACK in both sessions before setup. " +
-        "Run setup once in A, then follow each labelled A/B block in order. A block that says to leave a transaction open is intentional.",
+        `Use the existing learner lab. Finish any earlier transaction with ROLLBACK in ${terminals} before setup. ` +
+        "Run setup once in A, then follow each labelled block in order. " +
+        (twoSessions
+          ? "A block that says to leave a transaction open is intentional. If B waits, switch to A and run its next block; do not wait for B to return first."
+          : "All commands run in A with no explicit open transaction."),
       "## Setup — A\n\n" + fence(lesson.setup ?? ""),
       "## Experiment\n\n" + experiment(lesson.code),
       "**Reflect briefly:** Connect one changed result to the diagram. Then open review to compare with the explanation; no written answer is needed.",
-      "If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in both sessions, " +
+      `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
         "then drop only this lesson's pe_* table named in its final command. Rerun setup next time.",
     );
   }

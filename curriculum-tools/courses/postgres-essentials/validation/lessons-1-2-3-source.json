@@ -1,0 +1,8 @@
+{
+  "catalog_sha256": "29f6b6c69fce3b0425c06fb670b82056f6b560df191d9f1c16b36567d00d0881",
+  "lessons": {
+    "committed-row-visibility": "76104da8f9185c27e0b42742dccca9b354c43e3943adec16a9d42e62ed0702b6",
+    "statement-versus-transaction-snapshot": "d8e985ba9bdad4680274270a6326a0fdbf1a72a2b38f5f8321960fc1c530b633",
+    "old-reader-retains-history": "23b789f596e3922e44fd3c08527cfd90d3aaed8780795b19020552cebd87dfc2"
+  }
+}

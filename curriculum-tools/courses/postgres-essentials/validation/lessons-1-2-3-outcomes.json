@@ -1,0 +1,20 @@
+{
+  "a_private": 120,
+  "b_before_commit": 100,
+  "b_after_commit": 120,
+  "a_aborted": 999,
+  "b_after_rollback": 120,
+  "rc_before": 100,
+  "rc_after": 120,
+  "rr_before": 100,
+  "rr_after": 100,
+  "fresh_after_end": 120,
+  "reader_before": 1000,
+  "fresh_rows": 0,
+  "reader_after_delete": 1000,
+  "retained_dead": 1000,
+  "released_dead": 0,
+  "final_rows": 0,
+  "retained_free": 4.71,
+  "released_free": 99.61
+}
