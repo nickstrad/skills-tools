@@ -42,7 +42,12 @@ Protected progress SHA256 before work:
    lock wait on A before continuing. Exact original lessons 1–3 reran successfully; private root
    `/tmp/pg-essentials-validation-ol6ss0lw` removed and both learner progress hashes unchanged.
    New lesson drafts exist; authors retain ownership until their validation reports are complete.
-   Per-lesson parent final passes and commits remain pending.
+   Lesson 4 parent final pass is complete and its final prose/build rerun passed: heap 1,826,816
+   bytes throughout; free bytes 76,572 → 1,819,680 → 76,572; visible rows 4,000 → 0 → 4,000.
+   Final run root `/tmp/pg-essentials-validation-_lo5k8ev` removed; progress unchanged.
+   Parent owns all curriculum files now. Authors 4/5 hit pending runtime setup approvals, so
+   parent stopped duplicate setup efforts; they are finishing honest reports and scratch cleanup.
+   Lesson 6 author used static checks only. Parent independently validates every final lesson.
 4. Six-lesson navigation/progress checks, durable findings, cleanup and learner readiness; pending.
 
 ## Resume and completion rules

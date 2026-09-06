@@ -2,6 +2,7 @@ import { run as runTutor } from "../../../src/main.ts";
 import type { Lesson } from "../../../src/types.ts";
 import { ROUTE } from "../route.ts";
 import { shellQuote } from "../../postgres/tools/coach_commands.ts";
+import { REUSE_VISUAL } from "../curriculum/02-reuse.ts";
 
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
@@ -10,6 +11,7 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "reusable-space-versus-file-size": REUSE_VISUAL,
   "committed-row-visibility": `One logical row, different visible versions
 
 Session A: BEGIN --> UPDATE --> own SELECT --> COMMIT

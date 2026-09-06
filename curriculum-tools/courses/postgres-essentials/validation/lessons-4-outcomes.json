@@ -1,0 +1,28 @@
+{
+  "reuse_phases": {
+    "loaded": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    },
+    "deleted": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 4000,
+      "free_space": 76572
+    },
+    "vacuumed": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 1819680
+    },
+    "refilled": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    }
+  }
+}

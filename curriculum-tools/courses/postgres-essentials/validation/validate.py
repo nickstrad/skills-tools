@@ -80,13 +80,50 @@ try:
               'fresh_after_end': 120},
         '3': {'reader_before': 1000, 'fresh_rows': 0, 'reader_after_delete': 1000,
               'retained_dead': 1000, 'released_dead': 0, 'final_rows': 0},
+        '4': {},
+        '5': {'a_replacement_written': 110, 'b_replacement_written': 120,
+              'after_stale_replacement': 120, 'a_atomic_written': 110,
+              'b_atomic_written': 130, 'after_atomic_arithmetic': 130},
+        '6': {'a_stale_read': 1, 'b_stale_read': 1, 'stale_remaining': -1,
+              'stale_accepted': 2, 'a_locked_read': 1, 'b_locked_read': 0,
+              'locked_remaining': 0, 'locked_accepted': 1,
+              'a_stale_decision': 'accept', 'b_stale_decision': 'accept',
+              'a_locked_decision': 'accept', 'b_locked_decision': 'decline',
+              'b_locked_action': 'no write: stock is exhausted'},
     }
+    # Read the labelled table column, including second columns and signed numbers.
+    lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
+
+    def cell(label):
+        for i, line in enumerate(lines[:-2]):
+            columns = [c.strip() for c in line.split('|')]
+            if label in columns and re.fullmatch(r'[-+ ]+', lines[i + 1]):
+                return lines[i + 2].split('|')[columns.index(label)].strip()
+        raise AssertionError('Missing output column: ' + label)
+
     measured = {}
     for n in selected:
         for label, value in expected[n].items():
-            match = re.search(re.escape(label) + r'[^\n]*\n\s*\[[AB]\][-\s+]+\n\s*\[[AB]\]\s*(\d+)', output)
-            assert match and int(match[1]) == value, (label, value, output)
-            measured[label] = int(match[1])
+            actual = cell(label)
+            assert actual == str(value), (label, value, actual)
+            measured[label] = int(actual) if isinstance(value, int) else actual
+    if '4' in selected:
+        phases = {}
+        for phase in ('loaded', 'deleted', 'vacuumed', 'refilled'):
+            row = next((line for line in lines if re.match(phase + r'\s*\|', line)), None)
+            assert row, 'Missing phase ' + phase
+            phases[phase] = dict(zip(('visible_rows', 'heap_bytes', 'dead_tuple_count', 'free_space'),
+                                     map(int, row.split('|')[1:])))
+        assert [p['visible_rows'] for p in phases.values()] == [4000, 0, 0, 4000], phases
+        assert [p['dead_tuple_count'] for p in phases.values()] == [0, 4000, 0, 0], phases
+        assert len({p['heap_bytes'] for p in phases.values()}) == 1, phases
+        assert phases['vacuumed']['free_space'] > phases['deleted']['free_space'], phases
+        assert phases['refilled']['free_space'] < phases['vacuumed']['free_space'], phases
+        assert abs(phases['refilled']['free_space'] - phases['loaded']['free_space']) < 8192, phases
+        measured['reuse_phases'] = phases
+    if '5' in selected:
+        assert 'A read 100 and computed replacement 110' in output
+        assert 'B read 100 and computed replacement 120' in output
     if '3' in selected:
         assert re.search(r'idle in transaction\s*\|\s*\d+', output), 'Snapshot horizon missing'
         retained = re.search(r'retained_dead[^\n]*\n[^\n]*\n[^\n]*\|\s*([\d.]+)', output)
@@ -108,7 +145,7 @@ try:
     (evidence / (logname + '-outcomes.json')).write_text(json.dumps(measured, indent=2) + '\n')
     leftovers = run([bindir / 'psql', '-X', '-Atqc',
                      "select count(*) from pg_class where relname in "
-                     "('pe_visibility','pe_snapshot','pe_history')"])
+                     "('pe_visibility','pe_snapshot','pe_history','pe_reuse','pe_atomic_write','pe_stock')"])
     assert leftovers.strip() == '0', leftovers
     print(output[-2500:], flush=True)
 finally:
