@@ -34,8 +34,9 @@ Protected progress SHA256 before work:
 
 ## Checkpoints
 
-1. Preflight and existing course review completed; baseline/design preparation in progress.
-2. Author lessons 4, 5, 6 in separate owned files; pending.
+1. Preflight and existing course review completed. Baseline/design committed as `b8035f1`.
+2. Sol/high authors `/root/lesson4`, `/root/lesson5`, `/root/lesson6` are active in their assigned
+   files. Parent is implementing shared rendering and a course-local observed-wait validator.
 3. Parent review, real PostgreSQL runs and per-lesson commits; pending.
 4. Six-lesson navigation/progress checks, durable findings, cleanup and learner readiness; pending.
 
@@ -47,3 +48,8 @@ Inspect git status and agent messages before editing owned files. Use `/root/.de
 outcomes and expected waiting, not just trust harness PASS. Use only uniquely owned private labs,
 stop/remove them in finally, and preserve both progress databases. Before final completion,
 recheck learner identity, progress hashes, disk headroom and absence of owned processes.
+
+Catalog delivery: test `tutor postgres-essentials init` on a copy of the learner database first.
+Then refresh the live lesson catalog through that supported CLI so lessons 4–6 can be opened;
+compare progress/attempt rows before and after (catalog refresh changes file bytes legitimately).
+Never record completion for the user. Reference database must remain byte-identical.
