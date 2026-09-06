@@ -55,10 +55,16 @@ Protected progress SHA256 before work:
    source copy. Original learner PID 348739 remains ready; other course progress hashes are
    unchanged. Disk ~16 GB free, memory ~6.8 GiB available. Only ~160 KB small course evidence is
    retained; there are no retained database/backup images or outstanding evidence obligations.
-7. Final documentation/integration commit and a source-only checkout smoke test are pending.
-   Stage only Essentials support: preserve unrelated original pilot edits and gRPC work unstaged.
-   Root/docs index changes were selectively staged to exclude prior gRPC additions. The reference
-   renderer's explicit --reference output routing alone is staged; its other prior edits remain.
+7. Complete. Integration/documentation committed as `9251b1a`. A fresh archive of that commit
+   rebuilt the identical six-lesson catalog, passed the full format/lint/type check, and passed
+   all 37 tests. Its source snapshot/test progress were removed. Final cleanup is recorded in
+   `validation/batch-two-cleanup.json`; no outstanding acceptance or resource work remains.
+   Root/docs index changes excluded prior gRPC additions. Only the required --reference output
+   routing was committed from the old renderer; unrelated pilot edits and gRPC work remain intact
+   and unstaged. Start with `pgcoach 4 lesson` (or just `pgcoach`).
+
+Next session: do not rerun this completed acceptance. Learner can take lessons 4–6 and discuss
+clarity/time after 6 before authoring 7–9. No completion of the new lessons was recorded.
 
 ## Resume and completion rules
 

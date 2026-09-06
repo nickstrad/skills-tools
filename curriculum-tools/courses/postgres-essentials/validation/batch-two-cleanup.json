@@ -1,0 +1,12 @@
+{
+  "owned_scratch_remaining": [],
+  "free_bytes": 16762576896,
+  "owned_postgres_servers_remaining": 0,
+  "learner_postmaster_pid": 348739,
+  "learner_data_directory": "/labs/pglab/primary",
+  "committed_checkout": "9251b1a",
+  "committed_catalog_rebuild_identical": true,
+  "committed_check_passed": true,
+  "committed_tests_passed": 37,
+  "evidence_policy": "Retain small reports, source hashes, outcomes and transcript. No database, backup, archive or temporary progress copies retained."
+}

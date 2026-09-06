@@ -60,3 +60,8 @@ Mechanism checks used the canonical book digests and PostgreSQL 16 documentation
 [vacuum reclamation and rewriting](https://www.postgresql.org/docs/16/routine-vacuuming.html),
 [Read Committed row rechecking](https://www.postgresql.org/docs/16/transaction-iso.html), and
 [row locks](https://www.postgresql.org/docs/16/explicit-locking.html).
+
+Final committed-source check: an archive of `9251b1a`, excluding all unrelated working-tree files,
+rebuilt the identical catalog and passed format/lint/types and all 37 tests. The archive extraction
+and copied progress were removed. [Final cleanup](batch-two-cleanup.json) records no remaining owned
+scratch or PostgreSQL server. The completed root handoff records the delivery boundary.
