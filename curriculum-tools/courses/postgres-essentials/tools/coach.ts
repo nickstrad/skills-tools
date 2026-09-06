@@ -4,6 +4,7 @@ import { ROUTE } from "../route.ts";
 import { shellQuote } from "../../postgres/tools/coach_commands.ts";
 import { REUSE_VISUAL } from "../curriculum/02-reuse.ts";
 import { ATOMIC_WRITE_VISUAL } from "../curriculum/03-atomic-write.ts";
+import { ROW_LOCK_VISUAL } from "../curriculum/04-row-lock.ts";
 
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
@@ -14,6 +15,7 @@ const catalog: Lesson[] = JSON.parse(
 const VISUALS: Record<string, string> = {
   "reusable-space-versus-file-size": REUSE_VISUAL,
   "lost-update-and-atomic-write": ATOMIC_WRITE_VISUAL,
+  "row-lock-protects-decision": ROW_LOCK_VISUAL,
   "committed-row-visibility": `One logical row, different visible versions
 
 Session A: BEGIN --> UPDATE --> own SELECT --> COMMIT

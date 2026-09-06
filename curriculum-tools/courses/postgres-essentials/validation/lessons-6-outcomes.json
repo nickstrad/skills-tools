@@ -1,0 +1,25 @@
+{
+  "a_stale_read": 1,
+  "b_stale_read": 1,
+  "stale_remaining": -1,
+  "stale_accepted": 2,
+  "a_locked_read": 1,
+  "b_locked_read": 0,
+  "locked_remaining": 0,
+  "locked_accepted": 1,
+  "a_stale_decision": "accept",
+  "b_stale_decision": "accept",
+  "a_locked_decision": "accept",
+  "b_locked_decision": "decline",
+  "b_locked_action": "no write: stock is exhausted",
+  "waits": [
+    {
+      "lesson": 6,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-6-A",
+      "query": "select remaining as b_locked_read,\n       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision\nfrom pe_stock where sku = 'widget' for update;"
+    }
+  ]
+}

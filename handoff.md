@@ -51,7 +51,11 @@ Protected progress SHA256 before work:
    Lesson 4 committed as `4c9c427`. Lesson 5 final syntax/cleanup review and exact standalone run
    passed: stale replacement 120 versus atomic result 130, with B observed on A's transactionid
    lock. Its private root `/tmp/pg-essentials-validation-d2vhn5tk` is removed; progress unchanged.
-4. Six-lesson navigation/progress checks, durable findings, cleanup and learner readiness; pending.
+   Lesson 5 committed as `693e2da`. Lesson 6 parent final pass and standalone run passed:
+   stale stock -1/two accepts versus protected stock 0/one accept. B's FOR UPDATE was observed
+   waiting on A before returning 0/decline. Root `/tmp/pg-essentials-validation-4z581ux1` removed.
+4. Six-lesson rendering, command parity and navigation tests pass. Final docs, copied/live catalog
+   refresh, full repository checks, combined run and learner readiness remain pending.
 
 ## Resume and completion rules
 
