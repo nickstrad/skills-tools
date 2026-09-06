@@ -1,0 +1,23 @@
+[
+  {
+    "ordinal": 1,
+    "slug": "committed-row-visibility",
+    "setup_sha256": "765dc9983f4982ba0b8ffb2de6337cdc7360e48ad12a8c10b2c5c3b5a02ab546",
+    "code_sha256": "45a68b5344af0888dbb652d1b61dba7e31fbf681354ac3ffed9033641c22a4d6",
+    "evidence": "first-three.log"
+  },
+  {
+    "ordinal": 2,
+    "slug": "statement-versus-transaction-snapshot",
+    "setup_sha256": "5c16c56a3a818031a87c7d9d9cd631d7be716164f4bc4691c42a08e01b0ee0ca",
+    "code_sha256": "13ee7ec4a1899837aa43e37621188fb525260b7f36fcdaaff3520c1dc7aeadac",
+    "evidence": "first-three.log"
+  },
+  {
+    "ordinal": 3,
+    "slug": "old-reader-retains-history",
+    "setup_sha256": "db9ac83b750e3f1d97fbfbb79c4015157a2054e971884595730dd64edf8f3cc9",
+    "code_sha256": "d07a66edd61712e2f2628e231b9d7fd57b68daf101e59c175671f9726837c433",
+    "evidence": "lessons-3.log"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "a_private": 120,
+  "b_before_commit": 100,
+  "b_after_commit": 120,
+  "a_aborted": 999,
+  "b_after_rollback": 120,
+  "rc_before": 100,
+  "rc_after": 120,
+  "rr_before": 100,
+  "rr_after": 100,
+  "fresh_after_end": 120
+}

@@ -1,0 +1,88 @@
+[
+  {
+    "ordinal": 1,
+    "slug": "committed-row-visibility",
+    "title": "An uncommitted write is private to its transaction",
+    "category": "visibility-and-retention",
+    "difficulty": "intermediate",
+    "tags": [
+      "mvcc",
+      "isolation"
+    ],
+    "prerequisites": [],
+    "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Read Committed\"); Chapter 4 \"Snapshots\" (section \"Row Version Visibility\")",
+    "readingNotes": "Optional after the experiment: the book explains how row versions and transaction outcomes implement these views. This lesson uses PostgreSQL 16 and deliberately avoids inspecting numeric snapshot internals; they are unnecessary for the visibility decision here.",
+    "overview": "Change one account balance while another connection reads it. Observe the writer's own view, a different reader's view, and what commit or rollback makes visible. This is the starting point for reasoning about concurrent application requests.",
+    "syntaxBreakdown": "### In plain terms\nYou already saw that UPDATE creates a new row version. PostgreSQL's multiversion concurrency\ncontrol (MVCC) chooses which version a read may use. A transaction sees its own writes, but another\ntransaction cannot see those writes before they commit. An ordinary SELECT can read the older\ncommitted version while the writer is still open; it does not need to wait for this row update.\n\n### What you are learning\n- A transaction groups work between BEGIN and COMMIT or ROLLBACK. COMMIT accepts its changes;\n  ROLLBACK discards their logical effects.\n- Under Read Committed, a SELECT gets a snapshot of committed data as of that statement's start,\n  plus its transaction's own changes. “Snapshot” means visibility rules, not a copy of the table.\n\n### Piece by piece\n- **SET default_transaction_isolation = 'read committed'** establishes the isolation level for\n  subsequent transactions in each session, so a previous lesson's settings cannot change this one.\n- **SET lock_timeout = '3s'** bounds time waiting for a conflicting lock. If it fires, finish an\n  earlier open transaction before retrying setup; that error is not the intended result.\n- **DROP TABLE IF EXISTS / CREATE TABLE / INSERT** reset only pe_visibility with one balance of 100.\n  Setup runs once, in A, while neither session has an open transaction.\n- **BEGIN / COMMIT / ROLLBACK** start, accept or abandon the writer's transaction. psql normally\n  commits each standalone statement automatically, so B's separate SELECTs get fresh views.\n- **AS a_private, b_before_commit, b_after_commit, a_aborted, b_after_rollback** label the output\n  cells to compare. They are column aliases, not saved variables. Keep the A/B blocks in order.",
+    "setup": "set lock_timeout = '3s';\nset default_transaction_isolation = 'read committed';\ndrop table if exists pe_visibility;\ncreate table pe_visibility (id int primary key, balance int not null);\ninsert into pe_visibility values (1, 100);",
+    "code": "-- Session A: write, then inspect your own uncommitted version. Leave A open.\nbegin;\nupdate pe_visibility set balance = 120 where id = 1;\nselect balance as a_private from pe_visibility where id = 1;\n\n-- Session B: read from a separate connection while A is still open.\nset default_transaction_isolation = 'read committed';\nset lock_timeout = '3s';\nselect balance as b_before_commit from pe_visibility where id = 1;\n\n-- Session A: make the first change committed.\ncommit;\n\n-- Session B: take a fresh statement view after A's commit.\nselect balance as b_after_commit from pe_visibility where id = 1;\n\n-- Session A: try a different value, but abandon this transaction.\nbegin;\nupdate pe_visibility set balance = 999 where id = 1;\nselect balance as a_aborted from pe_visibility where id = 1;\nrollback;\n\n-- Session B: check which value survived, then remove this lesson's table.\nselect balance as b_after_rollback from pe_visibility where id = 1;\ndrop table pe_visibility;",
+    "expectedResult": "The labelled cells are a_private = 120, b_before_commit = 100, b_after_commit = 120,\na_aborted = 999 and b_after_rollback = 120. B's first SELECT returns while A is still open.\n\nA's ability to read 999 did not mean another request could read it, nor that it would survive\nROLLBACK. The final SELECT proves the committed value remained 120. All transactions are finished\nand the last command removes the experiment table.",
+    "systemsLens": "Commit changes which versions later statements may see; it does not cause every existing reader to adopt a new view. This run used fresh Read Committed statements. The next lesson tests an already-established stable snapshot. Ordinary SELECT behavior here does not imply that competing writes or DDL never wait.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 2,
+    "slug": "statement-versus-transaction-snapshot",
+    "title": "Choose a fresh statement view or a stable transaction view",
+    "category": "visibility-and-retention",
+    "difficulty": "intermediate",
+    "tags": [
+      "mvcc",
+      "snapshots",
+      "isolation"
+    ],
+    "prerequisites": [
+      1
+    ],
+    "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (sections \"Read Committed\", \"Repeatable Read\"); Chapter 4 \"Snapshots\" (section \"Row Version Visibility\")",
+    "readingNotes": "Optional after the experiment: the book gives the implementation behind snapshot lifetime. The PostgreSQL 16 behavior tested here matches the stable-view distinction. Write conflicts and serialization anomalies are separate lessons later in this route.",
+    "overview": "Run the same read–writer commit–read schedule twice, changing only the reader's isolation level. Decide whether a multi-query operation needs fresh data at each statement or a view that stays consistent across its reads.",
+    "syntaxBreakdown": "### In plain terms\nA snapshot defines which committed row versions a read can use. Read Committed takes a fresh\nsnapshot for each statement. Repeatable Read keeps the snapshot established by its first ordinary\nquery for the rest of that transaction. Merely typing BEGIN is not when this snapshot is established.\nAnother session can commit meanwhile; the stable reader continues using an older version.\n\n### What you are learning\n- Two SELECTs inside one Read Committed transaction can see different committed values.\n- Repeatable Read keeps this read-only transaction's view fixed until it ends. Stable does not mean\n  latest, and it does not mean every multi-row application invariant is protected from other writers.\n\n### Piece by piece\n- **SET lock_timeout = '3s'** bounds accidental lock waits during setup; **SET\n  default_transaction_isolation** makes standalone reset/update statements use a known default.\n- **DROP TABLE IF EXISTS / CREATE TABLE / INSERT** prepare pe_snapshot with balance 100. The\n  between-round UPDATE restores 100, giving both rounds the same initial data.\n- **BEGIN ISOLATION LEVEL READ COMMITTED / REPEATABLE READ** choose the reader's snapshot lifetime\n  for that one transaction. A's first SELECT establishes the starting observation.\n- **B's UPDATE without BEGIN** is an automatically committed statement. Finish that block before\n  returning to A; both rounds test visibility after a successful writer commit.\n- **AS rc_before, rc_after, rr_before, rr_after, fresh_after_end** name the five cells to compare.\n  **COMMIT** ends each read transaction; the final standalone SELECT gets a fresh view.",
+    "setup": "set lock_timeout = '3s';\nset default_transaction_isolation = 'read committed';\ndrop table if exists pe_snapshot;\ncreate table pe_snapshot (id int primary key, balance int not null);\ninsert into pe_snapshot values (1, 100);",
+    "code": "-- Session A: first round, Read Committed. Leave the reader transaction open.\nbegin isolation level read committed;\nselect balance as rc_before from pe_snapshot where id = 1;\n\n-- Session B: commit a change between A's reads.\nset default_transaction_isolation = 'read committed';\nset lock_timeout = '3s';\nupdate pe_snapshot set balance = 120 where id = 1;\n\n-- Session A: read again inside the SAME transaction, then end it.\nselect balance as rc_after from pe_snapshot where id = 1;\ncommit;\n\n-- Session B: restore the starting value before the second round.\nupdate pe_snapshot set balance = 100 where id = 1;\n\n-- Session A: second round, Repeatable Read. The SELECT establishes its snapshot.\nbegin isolation level repeatable read;\nselect balance as rr_before from pe_snapshot where id = 1;\n\n-- Session B: make the same committed change.\nupdate pe_snapshot set balance = 120 where id = 1;\n\n-- Session A: read in the stable view, then finish and take a fresh view.\nselect balance as rr_after from pe_snapshot where id = 1;\ncommit;\nselect balance as fresh_after_end from pe_snapshot where id = 1;\ndrop table pe_snapshot;",
+    "expectedResult": "Read Committed reports rc_before = 100 and rc_after = 120 within one transaction.\nRepeatable Read reports rr_before = 100 and rr_after = 100 despite B committing 120.\nAfter A commits, fresh_after_end = 120. Both runs allowed B's update to finish.\n\nThe controlled difference was A's isolation level. BEGIN alone did not give Read Committed a\nstable transaction-wide view. In the second round, an unchanged value did not mean B's commit\nfailed: the final fresh read proves it was accepted. The final DROP removes the experiment table.",
+    "systemsLens": "For a report whose separate reads must reconcile, a stable snapshot can be useful. For a request that should observe recent commits at each statement, fresh views may be appropriate. Both have a freshness tradeoff; neither demonstration establishes serializable execution. Holding the stable view also creates a retention obligation, which the next lesson measures.",
+    "safetyLevel": "writes-data",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 25,
+    "revision": 1
+  },
+  {
+    "ordinal": 3,
+    "slug": "old-reader-retains-history",
+    "title": "An old reader can prevent vacuum from removing history",
+    "category": "visibility-and-retention",
+    "difficulty": "intermediate",
+    "tags": [
+      "mvcc",
+      "snapshots",
+      "vacuum",
+      "retention"
+    ],
+    "prerequisites": [
+      2
+    ],
+    "reading": "PostgreSQL 14 Internals, Chapter 4 \"Snapshots\" (section \"Transaction Horizon\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Database Horizon Revisited\")",
+    "readingNotes": "Optional after the experiment: the book explains the horizons that bound safe reclamation. Here a tiny table and one known reader isolate the cause; real systems may have several readers or other retention obligations. pgstattuple supplies physical evidence in PostgreSQL 16.",
+    "overview": "Keep a stable reader open while another session deletes all rows and runs vacuum. Release the reader and repeat the same vacuum. Use physical tuple counts to see why a successful maintenance command can leave history behind.",
+    "syntaxBreakdown": "### In plain terms\nDELETE makes a row disappear from new snapshots but leaves a physical version an older snapshot\nmay still need. VACUUM reclaims versions only when no relevant transaction needs them. The oldest\nneeded history sets a cleanup horizon: finishing the command cannot override that boundary.\n\n### What you are learning\n- Logical row count and physical dead-version count answer different questions. A fresh reader\n  can see zero rows while an older reader still sees all of them.\n- Release the old reader, then repeat the same maintenance. That controlled change tests whether\n  the snapshot was preventing cleanup; a completed VACUUM alone does not prove reclamation.\n\n### Piece by piece\n- **CREATE EXTENSION IF NOT EXISTS pgstattuple** enables a physical table inspection function in\n  the lab database. It stays installed for later labs. **SET lock_timeout = '3s'** bounds lock waits.\n- **WITH (autovacuum_enabled = false)** disables automatic vacuum on this one table so it cannot\n  perform the comparison between our samples. The final DROP removes this setting with the table.\n- **generate_series(1, 1000)** supplies 1,000 integers; **repeat('x', 100)** creates a short payload\n  for each row. These functions populate a small controlled table rather than a production workload.\n- **BEGIN ISOLATION LEVEL REPEATABLE READ** and the first **count(*)** establish A's old snapshot.\n  **SET application_name** labels A so B can find it in **pg_stat_activity**. The view's **state**\n  and **backend_xmin** show the open transaction and its advertised snapshot horizon. The numeric\n  xid varies; its presence while A holds the snapshot matters here.\n- **VACUUM (TRUNCATE FALSE)** reclaims what is safe and leaves allocated\n  file pages in place. Run it outside BEGIN: VACUUM cannot run inside a transaction block.\n- **pgstattuple('pe_history')** scans physical storage. **dead_tuple_count** counts dead versions,\n  and **free_percent** measures free space. It does not apply A's old SELECT snapshot to its counts.\n  We keep writers still during each sample. The two calls differ only in whether A remains open.\n- **COMMIT** releases A's snapshot. **DROP TABLE** then removes the small lab table after B has\n  repeated vacuum and inspected the result. Physical file-size tradeoffs belong to lesson 4.",
+    "setup": "set lock_timeout = '3s';\nset default_transaction_isolation = 'read committed';\ncreate extension if not exists pgstattuple;\ndrop table if exists pe_history;\ncreate table pe_history (id int primary key, payload text not null)\n  with (autovacuum_enabled = false);\ninsert into pe_history select g, repeat('x', 100) from generate_series(1, 1000) g;\nvacuum pe_history;",
+    "code": "-- Session A: establish the reader that still needs the original rows. Leave it open.\nset application_name = 'pe-history-reader';\nbegin isolation level repeatable read;\nselect count(*) as reader_before from pe_history;\n\n-- Session B: delete in a committed statement, then try to reclaim the old versions.\nset default_transaction_isolation = 'read committed';\nset lock_timeout = '3s';\ndelete from pe_history;\nselect count(*) as fresh_rows from pe_history;\nselect state, backend_xmin from pg_stat_activity\nwhere application_name = 'pe-history-reader' and datname = current_database();\nvacuum (truncate false) pe_history;\nselect dead_tuple_count as retained_dead, free_percent as retained_free\nfrom pgstattuple('pe_history');\n\n-- Session A: prove the retained versions are still readable, then release the snapshot.\nselect count(*) as reader_after_delete from pe_history;\ncommit;\nreset application_name;\n\n-- Session B: repeat the same vacuum with that reader gone, then clean up.\nvacuum (truncate false) pe_history;\nselect dead_tuple_count as released_dead, free_percent as released_free\nfrom pgstattuple('pe_history');\nselect count(*) as final_rows from pe_history;\ndrop table pe_history;",
+    "expectedResult": "reader_before = 1000. After DELETE commits, B sees fresh_rows = 0 while A still reports\nreader_after_delete = 1000. The labelled reader is idle in transaction with a non-NULL backend_xmin.\n\nAfter the first VACUUM, pgstattuple still reports retained_dead = 1000. After A commits, the same VACUUM removes those versions: released_dead = 0, released_free\nrises, and final_rows remains 0. Exact free-space percentages and xid values vary. If released_dead\nstays nonzero, investigate another old transaction rather than assuming vacuum failed.\n\nAll transactions finish and pe_history is dropped, leaving no disabled-autovacuum table behind.",
+    "systemsLens": "An observer can impose storage costs without writing. Repeating vacuum or increasing its frequency cannot reclaim a version still required by a snapshot. Before changing maintenance settings, identify the retention obligation and decide whether the reader must finish or can be stopped. This lab isolates one reader; it does not show every cause of retained history or establish a production vacuum policy.",
+    "caution": "Use the supplied disposable learner lab and its postgres role. This experiment disables autovacuum only on pe_history and removes that table at the end. It does not change server-wide maintenance. If interrupted, ROLLBACK in both sessions, then DROP TABLE IF EXISTS pe_history in either session; this releases the retained snapshot and removes the table-specific setting.",
+    "safetyLevel": "privileged",
+    "runIn": "tool",
+    "sessions": 2,
+    "minVersion": "16",
+    "estimatedMinutes": 30,
+    "revision": 1
+  }
+]
