@@ -9,6 +9,9 @@ import shutil
 import subprocess
 import tempfile
 import sys
+import sqlite3
+
+sys.dont_write_bytecode = True
 
 course = Path(__file__).resolve().parents[1]
 engine = course.parents[1]
@@ -17,6 +20,15 @@ reference_progress = engine / "courses/postgres/progress.sqlite"
 essentials_progress = course / 'progress.sqlite'
 protected = [reference_progress, essentials_progress]
 before = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}
+
+
+def history(path):
+    with sqlite3.connect(f'file:{path}?mode=ro', uri=True) as db:
+        return {table: db.execute(f'SELECT * FROM {table} ORDER BY 1').fetchall()
+                for table in ('progress', 'attempts')}
+
+
+history_before = {str(p): history(p) for p in protected}
 catalog = json.loads((course / 'lessons.json').read_text())
 available = [str(l['ordinal']) for l in catalog]
 selectors = sys.argv[1:]
@@ -72,7 +84,16 @@ try:
     output = result.stdout + result.stderr
     (evidence / (logname + '.log')).write_text(output)
     assert result.returncode == 0, output
-    assert 'ERROR:' not in output and 'FATAL:' not in output, output
+    sections = {m[1]: m[2] for m in re.finditer(
+        r'=== #(\d+) [^\n]+ ===\n(.*?)(?=\n=== #|\Z)', output, re.S)}
+    error_inventory = {}
+    for n in selected:
+        errors = re.findall(r'\[([AB])\]\s+(ERROR:.*)', sections[n])
+        wanted = [('B', 'ERROR:  40001')] if n == '9' else []
+        assert [(s, ' '.join(e.split())) for s, e in errors] == [
+            (s, ' '.join(e.split())) for s, e in wanted], (n, errors)
+        assert not re.search(r'FATAL:|PANIC:|invalid command|unrecognized value|Traceback', sections[n])
+        error_inventory[n] = errors
     expected = {
         '1': {'a_private': 120, 'b_before_commit': 100, 'b_after_commit': 120,
               'a_aborted': 999, 'b_after_rollback': 120},
@@ -90,6 +111,13 @@ try:
               'a_stale_decision': 'accept', 'b_stale_decision': 'accept',
               'a_locked_decision': 'accept', 'b_locked_decision': 'decline',
               'b_locked_action': 'no write: stock is exhausted'},
+        '7': {'a_original_body': 'Draft', 'a_original_version': 1,
+              'b_original_body': 'Draft', 'b_original_version': 1,
+              'b_current_body': 'A: corrected title', 'b_current_version': 2,
+              'final_body': 'A: corrected title + B: reviewed note', 'final_version': 3},
+        '8': {'rr_final_on_call': 0},
+        '9': {'serializable_final_on_call': 1},
+        '10': {},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
@@ -124,6 +152,30 @@ try:
     if '5' in selected:
         assert 'A read 100 and computed replacement 110' in output
         assert 'B read 100 and computed replacement 120' in output
+    if '7' in selected:
+        for label in ('a_save_rows=1', 'b_stale_save_rows=0', 'b_merged_save_rows=1'):
+            assert label in sections['7'], label
+    for n in ('8', '9'):
+        if n in selected:
+            for label in ('A read 2 doctors; can Alice leave? t',
+                          'B read 2 doctors; can Bob leave? t',
+                          'A UPDATE ROW_COUNT 1', 'B UPDATE ROW_COUNT 1',
+                          'A COMMIT SQLSTATE 00000',
+                          'B COMMIT SQLSTATE ' + ('40001' if n == '9' else '00000')):
+                assert label in sections[n], (n, label)
+            assert re.search(r'Alice\s*\|\s*f', sections[n])
+            assert re.search(r'Bob\s*\|\s*' + ('t' if n == '9' else 'f'), sections[n])
+    if '10' in selected:
+        events = [json.loads(line) for line in lines if line.startswith('{')]
+        decisions = [(e['attempt'], e['read'], e['decision']) for e in events if e.get('actor') == 'B' and 'read' in e]
+        commits = [(e['attempt'], e['phase'], e['sqlstate'], e['committed']) for e in events if e.get('actor') == 'B' and 'sqlstate' in e]
+        assert decisions == [(1, 2, 'leave'), (2, 1, 'stay')], decisions
+        assert commits == [(1, 'commit', '40001', False), (2, 'commit', '00000', True)], commits
+        final = next(e for e in events if 'final_rows' in e)
+        assert final == {'final_rows': ['Alice|f', 'Bob|t'], 'on_call': 1, 'completed': True}, final
+        assert any(e.get('cleanup') == 'schema removed' for e in events)
+        measured['retry'] = events
+    measured['expected_errors'] = error_inventory
     if '3' in selected:
         assert re.search(r'idle in transaction\s*\|\s*\d+', output), 'Snapshot horizon missing'
         retained = re.search(r'retained_dead[^\n]*\n[^\n]*\n[^\n]*\|\s*([\d.]+)', output)
@@ -137,16 +189,42 @@ try:
             assert any(w['lesson'] == int(n) for w in waits), 'Missing actual wait for ' + n
     if waits:
         measured['waits'] = waits
+    variation_numbers = [n for n in selected if n in ('7', '8', '9')]
+    if variation_numbers:
+        variation_output = run(['/root/.deno/bin/deno', 'run', '-A', evidence / 'run.ts',
+                                '--variations', *variation_numbers])
+        (evidence / (logname + '-variations.log')).write_text(variation_output)
+        assert not re.search(r'ERROR:|FATAL:|invalid command|unrecognized value', variation_output), variation_output
+        checks = {}
+        if '7' in variation_numbers:
+            assert 'variation_stale_rows=0' in variation_output, variation_output
+            assert re.search(r'A: corrected title \+ B: reviewed note\s*\|\s*3', variation_output)
+            checks['7'] = {'stale_rows': 0, 'preserved_version': 3}
+        for n, label in (('8', 'rr_serial_final_on_call'), ('9', 'serializable_serial_final_on_call')):
+            if n in variation_numbers:
+                assert re.search(re.escape(label) + r'\s*\n[^\n]*\n[^\n]*\b1\b', variation_output), variation_output
+                assert 'B read 1 doctors; can Bob leave? f' in variation_output, variation_output
+                checks[n] = {'second_read': 1, 'second_can_leave': False, 'final_on_call': 1}
+        measured['variations'] = checks
+    if '10' in selected:
+        from check_retry import check_retry
+        measured['retry_variations'] = check_retry(course, env, next(l for l in catalog if l['ordinal'] == 10))
     (evidence / (logname + '-source.json')).write_text(json.dumps({
         'catalog_sha256': hashlib.sha256((course / 'lessons.json').read_bytes()).hexdigest(),
         'lessons': {l['slug']: hashlib.sha256(json.dumps(l, sort_keys=True).encode()).hexdigest()
                     for l in catalog if str(l['ordinal']) in selected},
+        'support_files': {'lab/retry.py': hashlib.sha256((course / 'lab/retry.py').read_bytes()).hexdigest()}
+                         if '10' in selected else {},
     }, indent=2) + '\n')
     (evidence / (logname + '-outcomes.json')).write_text(json.dumps(measured, indent=2) + '\n')
     leftovers = run([bindir / 'psql', '-X', '-Atqc',
                      "select count(*) from pg_class where relname in "
-                     "('pe_visibility','pe_snapshot','pe_history','pe_reuse','pe_atomic_write','pe_stock')"])
+                     "('pe_visibility','pe_snapshot','pe_history','pe_reuse','pe_atomic_write','pe_stock',"
+                     "'pe_edit','pe_on_call_rr','pe_on_call_serial')"])
     assert leftovers.strip() == '0', leftovers
+    retry_leftovers = run([bindir / 'psql', '-X', '-Atqc',
+                           "select count(*) from pg_namespace where nspname like 'pe_retry_%'"])
+    assert retry_leftovers.strip() == '0', retry_leftovers
     print(output[-2500:], flush=True)
 finally:
     if (data / 'postmaster.pid').exists():
@@ -156,8 +234,10 @@ finally:
     shutil.rmtree(root)
     after = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in protected}
     assert after == before, 'Learner progress changed'
+    assert {str(p): history(p) for p in protected} == history_before, 'Learner history changed in WAL'
     (evidence / (logname + '-cleanup.json')).write_text(json.dumps({
         'owned_root': str(root), 'removed': not root.exists(),
-        'progress_sha256': after, 'free_bytes': shutil.disk_usage('/tmp').free,
+        'progress_sha256': after, 'logical_history_unchanged': True,
+        'free_bytes': shutil.disk_usage('/tmp').free,
     }, indent=2) + '\n')
     print('Owned cluster removed; both progress databases unchanged.', flush=True)

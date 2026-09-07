@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-06. The active route is 40 small lessons, with its first six implemented. The
+Updated 2026-09-07. The active route is 40 small lessons, with its first ten implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -15,7 +15,7 @@ published route exactly. No TOAST/cache/numeric-XID detour is required.
 `pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
 renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
 and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Six real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
+Ten real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
 finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
 addresses essentials; legacy pgtutor commands still belong to the original course.
 
@@ -56,7 +56,7 @@ records the measured results and limits. All timing estimates still await learne
 Nick enjoyed the two-view flow in lessons 1–3 and requested the next three of this same route.
 Lessons 4–6 add heap-space reuse, lost-update versus atomic arithmetic, and a row-locked stock
 reservation decision. See the [second-batch acceptance](../../curriculum-tools/courses/postgres-essentials/validation/batch-two.md)
-and [root handoff](../../handoff.md). The next feedback point is lesson 6; lessons 7–40 remain planned.
+and [root handoff](../../handoff.md). At that checkpoint the feedback point was lesson 6; the third batch below supersedes availability.
 
 A shared validator's asynchronous `(blocks ...)` send does not itself prove the second backend
 actually waited before the first committed. The course-local `validation/run.ts` reuses the shared
@@ -78,7 +78,7 @@ learner history unchanged, and reference progress must stay untouched.
 
 ## General authoring checks from the third batch
 
-Added 2026-09-07 during implementation; acceptance remains pending at this checkpoint.
+Added during the 2026-09-07 batch and verified by its final acceptance.
 
 - Follow [the durable batch workflow](../lesson-batch-workflow.md) for primary design, bounded
   Sol assignments, primary review and per-chunk commits. Resolve prerequisite names against
@@ -114,3 +114,24 @@ those same variables and use them for the proposed merge. A diagnostic SELECT fo
 second SELECT for the write token can observe different versions under Read Committed. The
 conditional write still detects a later conflict, but the evidence should represent the exact
 body/token used by the decision. Primary lesson-7 validation now checks that correspondence.
+
+
+## Third batch accepted
+
+Lessons 7–10 are available, with primary designs, Sol implementations for 7–9 and primary review
+and refinement. The [batch-three report](../../curriculum-tools/courses/postgres-essentials/validation/batch-three.md)
+records standalone and full-catalog PostgreSQL 16.15 evidence, optional variations, bounded client
+failure cases, 37 passing tests and resource cleanup. The full-run source manifest also hashes the
+supplied retry client. The next availability boundary is lesson 11; previous lessons and revisions
+are unchanged.
+
+Use persistent psql sessions for client-variable experiments: one-shot psql calls discard values
+saved by `\gset`. Execute displayed variation blocks through the same session splitter and check
+their outcomes independently. A variation is not accepted merely because its core lesson passed.
+
+When the learner is studying during authoring, compare history immediately around each catalog
+refresh or render check. A legitimate new completion can appear between validation checkpoints.
+Preserve that current history; do not restore the start-of-run snapshot or treat a larger completion
+count as an author migration failure. SQLite backup copies include WAL state, unlike a raw file copy.
+The batch-three live refresh preserved all four completion/attempt rows present at its start,
+including learner progress made since the earlier three-row copied-refresh checkpoint.

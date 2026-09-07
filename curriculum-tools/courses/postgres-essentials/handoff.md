@@ -1,31 +1,20 @@
 # PostgreSQL Essentials batch 7–10 handoff
 
-Fresh run, 2026-09-07. Scope: fixed route lessons 7–10. Workflow recorded and committed first as
-56aaace; CLAUDE.md already symlinks AGENTS.md. No prior course handoff existed.
+Final integration checkpoint, 2026-09-07. Workflow first committed as 56aaace; batch design 51b42f1;
+knowledge checkpoint 35e56e4; primary retry chunk 252704d; reviewed lesson 7 chunk 72eacfa; reviewed
+lessons 8–9 chunk 550846a. Primary owns all files; both Sol agents finished and cleaned up.
 
-- Design: designs/07-10.md. Primary owns lesson 10, shared integration, validation and commits.
-- Sol A: lesson 7, curriculum/05-version-check.ts.
-- Sol B: lessons 8–9, curriculum/06-write-skew.ts and 07-serializable.ts.
-- Status: both Sol drafts exist and have received primary review requests. Primary implemented the
-  supplied Python/psql retry client, lesson 10 and shell-aware renderer/validator dispatch.
-  Registration caught and corrected an invented lesson-7 prerequisite in the lesson-8 draft. Ten
-  lessons build and the three coach tests pass. Primary lesson-10 core and all three client cases
-  pass against PostgreSQL 16: actual COMMIT 40001 then fresh read 1/stay; no-conflict success,
-  budget exhaustion with status 2, and nonretryable 42P01 with status 1. All client schemas and both
-  primary test clusters were removed. Primary took ownership of the Sol modules after review; agents
-  are now limited to reporting and cleanup. Lessons 7 and 8 pass independent core and exact
-  displayed variation checks. Lesson 9 also passes: A commits, B returns 40001, one doctor remains;
-  its serial variation needs no abort. The full ten-lesson run is in progress. All 37 repository
-  tests pass; copied-catalog refresh and 30 views preserve learner history.
-- Knowledge checkpoint: docs/knowledge/postgres-essentials.md now records generalized lessons about
-  stable prerequisites, shell dispatch, immediate psql evidence, scoped expected errors and
-  raw-template/variation formatting. Update it again with measured acceptance findings.
-- Resources: about 16 GB free, 6.9 GB available memory, 8% inodes used. Read-only learner query
-  verified PostgreSQL 16.15 and /labs/pglab/primary. Sandbox socket access requires an escalated
-  PostgreSQL command. Budget one private cluster below 200 MB, remove in finally.
-- Preserve unrelated dirty files, both learner progress stores and root/unrelated handoffs.
-- Open checks: authored evidence, variations, shell retry failure paths, renderer/build/tests,
-  copied-progress refresh, live catalog availability, final cleanup and readiness.
+All four new lessons passed standalone real PostgreSQL 16.15 checks, then the ten-lesson catalog
+passed together with new variations and retry failure paths. Full build/check and all 37 tests pass.
+Lessons 1–6 retain their original objects/revisions. Copied progress refresh and all 30 views
+passed; live catalog refresh preserved the current four completion/attempt rows and reference
+progress.
 
-Primary updates and commits this file at each checkpoint, then deletes and commits removal after
-acceptance. Durable findings go in docs/knowledge/postgres-essentials.md.
+All named primary and Sol cluster roots are removed. Final host processes show only learner lab and
+learner clients; /labs/pglab/primary is healthy with no author-client labels. About 16 GB free, 6.8
+GiB available memory. Retain only small repository validation records; no bulky evidence remains.
+
+Reusable findings have been updated throughout in docs/knowledge/postgres-essentials.md. Durable
+acceptance is validation/batch-three.md and the full-run source/outcome/cleanup JSON records.
+Remaining work: commit integration and availability documentation, remove this temporary handoff,
+commit its removal, and check final scoped Git state. Preserve all unrelated initial dirty work.

@@ -1,19 +1,19 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, 2026-09-06. **Lessons 1–6 are authored and available.** The full sequence
-below fixes the intended scope; 7–40 are planned, not placeholder lessons. Nick explicitly prefers
-smaller meaningful chunks over compressing the same work into 24 long sessions. Target **20–30
-minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings remain
-estimates until learner feedback. Changes to scope must be recorded here, not invented as we go.
-Refine presentation while the learner progresses through this actual course.
+Current learner direction, updated 2026-09-07. **Lessons 1–10 are authored and available.** The full
+sequence below fixes the intended scope; 11–40 are planned, not placeholder lessons. Nick explicitly
+prefers smaller meaningful chunks over compressing the same work into 24 long sessions. Target
+**20–30 minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings
+remain estimates until learner feedback. Changes to scope must be recorded here, not invented as we
+go. Refine presentation while the learner progresses through this actual course.
 
 Assume basic SQL and the eight completed reference lessons: lab, psql, extensions, processes, pages,
 row versions and HOT. No requirement to repeat them or take the old TOAST/cache/XID pilot. Each
 lesson teaches the mechanism and useful terminal diagram before commands in `lesson`; `review`
 interprets evidence, implications and limits. Optional references are not hidden homework. No typed
-guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6.
-Ask about clarity and pacing after lesson 6 while preparing lessons 7 onward; feedback improves the
-course rather than being a UX-only detour.
+guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6. A
+brief clarity and pacing check follows the latest available lesson, currently 10. Feedback improves
+the course while the fixed route continues.
 
 ## Fixed sequence and intended outcomes
 
@@ -109,4 +109,18 @@ exact setup and session blocks against a private PostgreSQL 16 cluster, check ou
 timeouts alone, then remove the cluster. Keep only the small validation log/report and script.
 Maintain at least 2 GB free, budget <200 MB peak for this batch, and verify learner-lab readiness
 and unchanged reference progress before finishing. No backup, replica or archive is needed for
-lessons 1–6.
+lessons 1–10.
+
+## Third batch: detect conflicts and reconsider the decision
+
+Lessons 7–10 follow [the committed batch design](designs/07-10.md). Lesson 7 adds a conditional
+version-token save and an explicit reviewed merge. Lessons 8–9 compare the same two-doctor invariant
+under Repeatable Read and Serializable. Lesson 10 runs a supplied Python/psql client whose
+known-aborted attempt is retried from BEGIN; the fresh read changes its decision. Tags add
+optimistic-concurrency, conflict-detection, repeatable-read, serializable, retries and transactions.
+The next batch starts at 11, the unknown-commit-outcome boundary.
+
+The core uses two psql terminals for 7–9 and one shell terminal for 10. Optional variations are
+shown in review and remain outside the 20–30 minute core budget. Exact commands and supplied client
+failure paths are validated on a private server; standalone runs establish setup isolation. No
+required writing or application scaffolding is added.

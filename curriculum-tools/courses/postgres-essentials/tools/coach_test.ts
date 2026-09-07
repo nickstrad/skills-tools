@@ -29,7 +29,7 @@ function history(path: string): string {
 
 Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
   assert(
-    ROUTE.length === 40 && catalog.length === 6,
+    ROUTE.length === 40 && catalog.length === 10,
     "route or authored batch drifted",
   );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
@@ -43,11 +43,13 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
       "timing outside chosen scope",
     );
     const shown = render(lesson, "lesson", "/tmp/a learner's progress.sqlite");
-    const blocks = [...shown.matchAll(/```sql\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+    const language = lesson.runIn === "shell" ? "sh" : "sql";
+    const blocks = [...shown.matchAll(new RegExp("```" + language + "\\n([\\s\\S]*?)\\n```", "g"))]
+      .map((m) => m[1]);
     assert(
-      blocks.length > 2 && blocks[0] === lesson.setup &&
+      blocks.length >= 2 && blocks[0] === lesson.setup &&
         blocks.slice(1).join("\n\n") === lesson.code,
-      "render changed SQL/session blocks",
+      "render changed experiment/session blocks",
     );
     assert(
       shown.includes(
@@ -67,6 +69,13 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
     );
     assert(!review.includes(lesson.setup!), "review repeats setup");
     assert(!shown.includes("Core reading"), "unbudgeted reading introduced");
+    if (lesson.runIn === "shell") {
+      assert(
+        !shown.includes("psql -X -h") && !shown.includes("ROLLBACK in"),
+        "shell lesson sent learner into psql",
+      );
+    }
+    if (lesson.challenge) assert(review.includes(lesson.challenge), "optional variation hidden");
   }
 });
 

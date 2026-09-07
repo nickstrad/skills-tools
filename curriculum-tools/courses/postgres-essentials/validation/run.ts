@@ -10,8 +10,19 @@ const env = Deno.env.toObject();
 if (!env.PGHOST?.startsWith("/tmp/pg-essentials-validation-")) {
   throw new Error("Use validate.py to allocate a private validation cluster");
 }
-const selected = catalog.filter((l) => !Deno.args.length || Deno.args.includes(String(l.ordinal)));
+const variations = Deno.args.includes("--variations");
+const selectors = Deno.args.filter((arg) => arg !== "--variations");
+const selected = catalog.filter((l) => !selectors.length || selectors.includes(String(l.ordinal)));
 if (!selected.length) throw new Error("No lessons selected");
+
+function variationCode(lesson: Lesson): string {
+  const blocks = [
+    ...(lesson.challenge ?? "").matchAll(/```sql\n([\s\S]*?)\n```|(?:^[ ]{4}.*\n?)+/gm),
+  ];
+  const code = blocks.map((m) => m[1] ?? m[0].replace(/^[ ]{4}/gm, "")).join("\n\n");
+  if (!code.trim()) throw new Error(`Lesson ${lesson.ordinal}: no runnable variation blocks`);
+  return code;
+}
 
 async function observeWait(ordinal: number, session: string): Promise<void> {
   const app = `essentials-${ordinal}-${session}`;
@@ -52,24 +63,40 @@ for (const lesson of selected) {
     if (!sessions.has(name)) {
       sessions.set(
         name,
-        new Session(name, course.repl, {
-          ...env,
-          PGAPPNAME: `essentials-${lesson.ordinal}-${name}`,
-        }, console.log),
+        new Session(
+          name,
+          lesson.runIn === "shell"
+            ? {
+              command: ["bash", "--noprofile", "--norc"],
+              echo: "",
+              quit: "exit",
+              mode: "shell",
+            }
+            : course.repl,
+          {
+            ...env,
+            PGAPPNAME: `essentials-${lesson.ordinal}-${name}`,
+          },
+          console.log,
+        ),
       );
     }
     return sessions.get(name)!;
   };
   let step = 0;
   try {
-    if (lesson.setup) {
+    if (lesson.setup && !variations) {
       const result = await get("A").send(lesson.setup, true, ++step);
-      if (!result.completed) throw new Error("Setup timed out");
+      if (!result.completed || (result.status !== undefined && result.status !== 0)) {
+        throw new Error("Setup failed");
+      }
     }
-    for (const block of splitSteps(lesson.code)) {
+    for (const block of splitSteps(variations ? variationCode(lesson) : lesson.code)) {
       console.log(`  -- Session ${block.session}${block.blocks ? " (blocks)" : ""} --`);
       const result = await get(block.session).send(block.text, !block.blocks, ++step);
-      if (!result.completed) throw new Error(`Lesson ${lesson.ordinal}: step ${step} timed out`);
+      if (!result.completed || (result.status !== undefined && result.status !== 0)) {
+        throw new Error(`Lesson ${lesson.ordinal}: step ${step} failed`);
+      }
       if (block.blocks) await observeWait(lesson.ordinal, block.session);
     }
   } finally {

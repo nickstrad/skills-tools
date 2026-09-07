@@ -9,7 +9,7 @@ otherwise rediscover.
 ## Files
 
 The current PostgreSQL path and its identity/validation rules are in
-[postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first six available.
+[postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first ten available.
 
 | File                                                                           | What it covers                                                                                                                                                             |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

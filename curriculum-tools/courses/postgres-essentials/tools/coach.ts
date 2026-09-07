@@ -5,6 +5,10 @@ import { shellQuote } from "../../postgres/tools/coach_commands.ts";
 import { REUSE_VISUAL } from "../curriculum/02-reuse.ts";
 import { ATOMIC_WRITE_VISUAL } from "../curriculum/03-atomic-write.ts";
 import { ROW_LOCK_VISUAL } from "../curriculum/04-row-lock.ts";
+import { VERSION_CHECK_VISUAL } from "../curriculum/05-version-check.ts";
+import { WRITE_SKEW_VISUAL } from "../curriculum/06-write-skew.ts";
+import { SERIALIZABLE_VISUAL } from "../curriculum/07-serializable.ts";
+import { RETRY_VISUAL } from "../curriculum/08-retry.ts";
 
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
@@ -13,6 +17,10 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "reject-stale-edit": VERSION_CHECK_VISUAL,
+  "multi-row-write-skew": WRITE_SKEW_VISUAL,
+  "serializable-protects-invariant": SERIALIZABLE_VISUAL,
+  "whole-transaction-retry": RETRY_VISUAL,
   "reusable-space-versus-file-size": REUSE_VISUAL,
   "lost-update-and-atomic-write": ATOMIC_WRITE_VISUAL,
   "row-lock-protects-decision": ROW_LOCK_VISUAL,
@@ -46,10 +54,10 @@ Logical disappearance and physical reclamation are separate events.`,
 function fence(text: string, language = "sql") {
   return "```" + language + "\n" + text + "\n```";
 }
-function experiment(code: string): string {
+function experiment(code: string, language = "sql"): string {
   // Keep each terminal switch copyable on its own while preserving the exact SQL and labels.
   return code.split(/(?=^-- Session [A-Z])/m).filter((block) => block.trim()).map((block) =>
-    fence(block.trim())
+    fence(block.trim(), language)
   ).join("\n\n");
 }
 function command(n: number, stage: string, db?: string) {
@@ -68,6 +76,8 @@ export function render(lesson: Selected, stage: string, db?: string): string {
     `**Core:** 20–30 min (estimate ${lesson.estimatedMinutes} min) · **Sessions:** ${lesson.sessions} · **PostgreSQL:** ${lesson.minVersion}+`,
   ];
   const twoSessions = lesson.sessions === 2;
+  const shell = lesson.runIn === "shell";
+  const language = shell ? "sh" : "sql";
   const terminals = twoSessions ? "both sessions" : "session A";
   const first = stage === "lesson" || stage === "full";
   const second = stage === "review" || stage === "full";
@@ -83,22 +93,28 @@ export function render(lesson: Selected, stage: string, db?: string): string {
     );
     if (lesson.caution) parts.push(lesson.caution);
     parts.push(
-      twoSessions
+      shell
+        ? "## Open one experiment terminal\n\nKeep this coaching terminal open. Use a shell in another terminal; the supplied client opens its own database connections."
+        : twoSessions
         ? "## Open two experiment terminals\n\nKeep this coaching terminal open. Label two other terminals A and B and connect both:"
         : "## Open one experiment terminal\n\nKeep this coaching terminal open. Label another terminal A and connect:",
-      fence("psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off", "sh"),
-      "Here `-X` skips personal psql startup settings; `-h` names the socket directory, `-p` the port, " +
-        "`-U` the role, `-d` the database, and `-P pager=off` keeps output in the terminal. " +
-        `Use the existing learner lab. Finish any earlier transaction with ROLLBACK in ${terminals} before setup. ` +
-        "Run setup once in A, then follow each labelled block in order. " +
-        (twoSessions
-          ? "A block that says to leave a transaction open is intentional. If B waits, switch to A and run its next block; do not wait for B to return first."
-          : "All commands run in A with no explicit open transaction."),
-      "## Setup — A\n\n" + fence(lesson.setup ?? ""),
-      "## Experiment\n\n" + experiment(lesson.code),
+      shell ? "" : fence("psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off", "sh"),
+      shell
+        ? "Run setup and the experiment in that same shell. The client handles connection and fixture cleanup."
+        : "Here `-X` skips personal psql startup settings; `-h` names the socket directory, `-p` the port, " +
+          "`-U` the role, `-d` the database, and `-P pager=off` keeps output in the terminal. " +
+          `Use the existing learner lab. Finish any earlier transaction with ROLLBACK in ${terminals} before setup. ` +
+          "Run setup once in A, then follow each labelled block in order. " +
+          (twoSessions
+            ? "A block that says to leave a transaction open is intentional. If B waits, switch to A and run its next block; do not wait for B to return first."
+            : "All commands run in A with no explicit open transaction."),
+      "## Setup — A\n\n" + fence(lesson.setup ?? "", language),
+      "## Experiment\n\n" + experiment(lesson.code, language),
       "**Reflect briefly:** Connect one changed result to the diagram. Then open review to compare with the explanation; no written answer is needed.",
-      `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
-        "then drop only this lesson's pe_* table named in its final command. Rerun setup next time.",
+      shell
+        ? "If you reach 30 minutes or get stuck, stop and ask for help. Ctrl-C interrupts the supplied client and runs its cleanup; check for the schema removal record."
+        : `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
+          "then drop only this lesson's pe_* table named in its final command. Rerun setup next time.",
     );
   }
   if (second) {
@@ -106,6 +122,7 @@ export function render(lesson: Selected, stage: string, db?: string): string {
       "## What the experiment showed\n\n" + lesson.expectedResult,
       "## What to take from it\n\n" + lesson.systemsLens,
     );
+    if (lesson.challenge) parts.push("## Optional variation\n\n" + lesson.challenge);
     if (lesson.ordinal === catalog.length) parts.push(batchCheck());
     else {parts.push(
         "**Quick check:** Does the result make sense, and did this fit your time budget? Mention any friction in our chat; otherwise continue.",

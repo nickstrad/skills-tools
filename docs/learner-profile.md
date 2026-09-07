@@ -72,7 +72,8 @@ this roadmap at the learner's request.
   solely to test UX. Nick enjoyed the flow of lessons 1–3 and requested the next three on 2026-09-06.
   Lessons 1–6 now cover visibility, retention, space reuse, atomic writes and row-locked decisions. The fixed
   [route and outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) governs subsequent
-  work; 7–40 are planned, not yet authored. `pgcoach` defaults to this new course and separate
+  work. The 2026-09-07 batch adds lessons 7–10 on version checks, write skew, Serializable
+  and whole-transaction retry; 11–40 remain planned. `pgcoach` defaults to this new course and separate
   progress. The original 92-lesson course is reference material via `pgcoach --reference`.
   Use two substantial views: **lesson** teaches the mechanism, terminology and purpose, with
   useful terminal diagrams before commands; **review** interprets results and adds insights and

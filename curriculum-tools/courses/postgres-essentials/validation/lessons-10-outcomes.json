@@ -1,0 +1,173 @@
+{
+  "retry": [
+    {
+      "fixture": "pe_retry_73162585c9244cb797e0a2c2cd33c28c",
+      "max_attempts": 3,
+      "mode": "conflict"
+    },
+    {
+      "actor": "A",
+      "committed": false,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "A",
+      "committed": true
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "committed": false,
+      "phase": "commit",
+      "sqlstate": "40001"
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "decision": "stay",
+      "read": 1
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "committed": true,
+      "phase": "commit",
+      "sqlstate": "00000"
+    },
+    {
+      "completed": true,
+      "final_rows": [
+        "Alice|f",
+        "Bob|t"
+      ],
+      "on_call": 1
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_retry_73162585c9244cb797e0a2c2cd33c28c"
+    }
+  ],
+  "expected_errors": {
+    "10": []
+  },
+  "retry_variations": {
+    "no_conflict": {
+      "exit_status": 0,
+      "events": [
+        {
+          "fixture": "pe_retry_7036deba8cd4419f80693f914fbec6b9",
+          "max_attempts": 3,
+          "mode": "no-conflict"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": true,
+          "phase": "commit",
+          "sqlstate": "00000"
+        },
+        {
+          "completed": true,
+          "final_rows": [
+            "Alice|t",
+            "Bob|f"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_7036deba8cd4419f80693f914fbec6b9"
+        }
+      ]
+    },
+    "exhausted": {
+      "exit_status": 2,
+      "events": [
+        {
+          "fixture": "pe_retry_802da0a6862d44ec98c09d4e09059466",
+          "max_attempts": 1,
+          "mode": "conflict"
+        },
+        {
+          "actor": "A",
+          "committed": false,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "A",
+          "committed": true
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "commit",
+          "sqlstate": "40001"
+        },
+        {
+          "attempts": 1,
+          "stop": "retry budget exhausted"
+        },
+        {
+          "completed": false,
+          "final_rows": [
+            "Alice|f",
+            "Bob|t"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_802da0a6862d44ec98c09d4e09059466"
+        }
+      ]
+    },
+    "nonretryable": {
+      "exit_status": 1,
+      "events": [
+        {
+          "fixture": "pe_retry_c7e4f8a38f6742d7bfcc434514eb890e",
+          "max_attempts": 3,
+          "mode": "sql-error"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "write",
+          "sqlstate": "42P01"
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_c7e4f8a38f6742d7bfcc434514eb890e"
+        }
+      ]
+    }
+  }
+}
