@@ -99,3 +99,12 @@ Added 2026-09-07 during implementation; acceptance remains pending at this check
 - `code` is a raw template tag: write one literal backslash for psql commands in both SQL and
   prose. Optional runnable variations need Markdown code blocks too; unformatted SQL may
   collapse into prose even when it looks readable in the source file.
+
+The supplied retry client passed its first real acceptance checkpoint on 2026-09-07. A useful
+teaching distinction is **request completion versus the originally requested mutation**: after
+40001, the fresh read changes the decision from leaving to staying. Test that changed decision,
+the independent committed state, and error/attempt limits; a second successful COMMIT alone
+would also accept a client that blindly reused the stale decision. Keep controlled scheduling
+separate from retry policy. Completed command responses establish overlap here; elapsed sleeps
+do not. A short delay only spaces retries. Include supplied client source hashes alongside
+lesson hashes because a short launcher command can remain unchanged while its behavior changes.
