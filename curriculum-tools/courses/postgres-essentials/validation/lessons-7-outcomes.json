@@ -1,0 +1,19 @@
+{
+  "a_original_body": "Draft",
+  "a_original_version": 1,
+  "b_original_body": "Draft",
+  "b_original_version": 1,
+  "b_current_body": "A: corrected title",
+  "b_current_version": 2,
+  "final_body": "A: corrected title + B: reviewed note",
+  "final_version": 3,
+  "expected_errors": {
+    "7": []
+  },
+  "variations": {
+    "7": {
+      "stale_rows": 0,
+      "preserved_version": 3
+    }
+  }
+}

@@ -12,8 +12,10 @@ Fresh run, 2026-09-07. Scope: fixed route lessons 7–10. Workflow recorded and 
   lessons build and the three coach tests pass. Primary lesson-10 core and all three client cases
   pass against PostgreSQL 16: actual COMMIT 40001 then fresh read 1/stay; no-conflict success,
   budget exhaustion with status 2, and nonretryable 42P01 with status 1. All client schemas and both
-  primary test clusters were removed. Sol final handover and primary validation of lessons 7–9
-  remain pending.
+  primary test clusters were removed. Primary took ownership of the Sol modules after review; agents
+  are now limited to reporting and cleanup. Lessons 7 and 8 pass independent core and exact
+  displayed variation checks. Lesson 9 and the full ten-lesson run remain pending. All 37 repository
+  tests pass; copied-catalog refresh and 30 views preserve learner history.
 - Knowledge checkpoint: docs/knowledge/postgres-essentials.md now records generalized lessons about
   stable prerequisites, shell dispatch, immediate psql evidence, scoped expected errors and
   raw-template/variation formatting. Update it again with measured acceptance findings.

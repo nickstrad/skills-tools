@@ -108,3 +108,9 @@ would also accept a client that blindly reused the stale decision. Keep controll
 separate from retry policy. Completed command responses establish overlap here; elapsed sleeps
 do not. A short delay only spaces retries. Include supplied client source hashes alongside
 lesson hashes because a short launcher command can remain unchanged while its behavior changes.
+
+For optimistic-edit demonstrations, capture the reread into client variables first, then print
+those same variables and use them for the proposed merge. A diagnostic SELECT followed by a
+second SELECT for the write token can observe different versions under Read Committed. The
+conditional write still detects a later conflict, but the evidence should represent the exact
+body/token used by the decision. Primary lesson-7 validation now checks that correspondence.
