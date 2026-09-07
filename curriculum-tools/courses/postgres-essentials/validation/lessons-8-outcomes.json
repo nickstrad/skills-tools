@@ -1,0 +1,13 @@
+{
+  "rr_final_on_call": 0,
+  "expected_errors": {
+    "8": []
+  },
+  "variations": {
+    "8": {
+      "second_read": 1,
+      "second_can_leave": false,
+      "final_on_call": 1
+    }
+  }
+}
