@@ -23,7 +23,7 @@ courses.
 - Course authoring skill, reusable course template, build tooling, validation
   harness, and tests
 - [PostgreSQL Essentials](curriculum-tools/courses/postgres-essentials/PLAN.md): a fixed 40-lesson
-  route of 20–30 minute experiments, with the first ten available through `pgcoach`
+  route of 20–30 minute experiments, with the first fifteen available through `pgcoach`
 - Original PostgreSQL reference (92 lessons in 15 modules), complete SQLite course,
   and complete Linux Systems course (72 lessons in 12 modules)
 - Per-course wrapper skills under `courses/<course>/skill/`

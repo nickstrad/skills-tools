@@ -1,0 +1,29 @@
+{
+  "accepted_source_hashes_match": true,
+  "primary_roots_removed": [
+    "/tmp/pg-essentials-validation-y7y1_ynj",
+    "/tmp/pg-essentials-validation-8e5_y5lz",
+    "/tmp/pg-essentials-validation-i1dv3mcz",
+    "/tmp/pg-essentials-validation-2m3uolub",
+    "/tmp/pg-essentials-validation-kmffmpmf",
+    "/tmp/pg-essentials-validation-riryntih",
+    "/tmp/pg-essentials-validation-o56d4jdz",
+    "/tmp/pg-essentials-validation-pgpwn9ox"
+  ],
+  "remaining_essentials_roots": [],
+  "learner_readiness": "/labs/pglab/primary|16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)|f|t",
+  "postgres_processes": [
+    "348739 /usr/lib/postgresql/16/bin/postgres -D /labs/pglab/primary",
+    " 348740 postgres: lab-primary: logger ",
+    " 348741 postgres: lab-primary: checkpointer ",
+    " 348742 postgres: lab-primary: background writer ",
+    " 348744 postgres: lab-primary: walwriter ",
+    " 348745 postgres: lab-primary: autovacuum launcher ",
+    " 348746 postgres: lab-primary: archiver last was 000000010000000000000002",
+    " 348747 postgres: lab-primary: logical replication launcher ",
+    " 745185 postgres: lab-primary: postgres lab [local] idle in transaction",
+    " 750617 postgres: lab-primary: postgres lab [local] idle in transaction"
+  ],
+  "free_bytes": 16736047104,
+  "retained_evidence": "Small checked-in scripts, source/outcome JSON and ignored logs; no database images, backups or archives; no pending bulky retention obligation."
+}

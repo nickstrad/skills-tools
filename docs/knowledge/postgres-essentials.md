@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-07. The active route is 40 small lessons, with its first ten implemented. The
+Updated 2026-09-07. The active route is 40 small lessons, with its first fifteen implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -15,7 +15,7 @@ published route exactly. No TOAST/cache/numeric-XID detour is required.
 `pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
 renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
 and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Ten real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
+Fifteen real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
 finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
 addresses essentials; legacy pgtutor commands still belong to the original course.
 
@@ -135,3 +135,32 @@ Preserve that current history; do not restore the start-of-run snapshot or treat
 count as an author migration failure. SQLite backup copies include WAL state, unlike a raw file copy.
 The batch-three live refresh preserved all four completion/attempt rows present at its start,
 including learner progress made since the earlier three-row copied-refresh checkpoint.
+
+## Fourth-batch design and validation findings
+
+Lessons 11–15 extend the same route through uncertain outcomes, request identity and transaction
+lifetime. The [design](../../curriculum-tools/courses/postgres-essentials/designs/11-15.md) fixes the
+boundary of each experiment. See the [acceptance report](../../curriculum-tools/courses/postgres-essentials/validation/batch-four.md)
+for measured evidence and resource closure.
+
+- Name the response boundary explicitly. Withholding an application's reply after the service
+  receives COMMIT is a useful unknown-outcome experiment for its caller. It does not test lost
+  PostgreSQL protocol packets or crash recovery. Keep caller evidence separate from the
+  investigator's fresh connection, and compare before-COMMIT closure to show that identical
+  caller silence can accompany different committed states.
+- Keep the request-identity effect small enough to prove. In lesson 12 the uniquely keyed ledger
+  row is both the credit and receipt. This avoids an unexamined gap between separate effects.
+  A duplicate INSERT returning no row still requires a fresh Read Committed query and payload
+  comparison. Reconnect with `\connect - - - -` to inherit the private or learner connection
+  parameters; never hard-code the learner socket inside a reusable validation experiment.
+- Different contributions from the two deadlock participants make final state diagnostic:
+  `{10,10}` versus `{1,1}` identifies the whole surviving attempt. Correlate it with the actual
+  ERROR session and immediate 40P01/00000 statuses; do not assume a fixed victim. A same-order
+  comparison should still exhibit a real wait while allowing both contributions to commit.
+- Scope output labels and expected errors by lesson and phase. Both a blocker and a timeout
+  lesson can legitimately print `final_balance`; a whole-log search can read the earlier lesson's
+  value. SQLSTATE inventories must permit only the intentional deadlock/timeout errors, including
+  the separate autocommit variation, while rejecting unexpected errors elsewhere.
+- Optional multi-session variations need complete fenced, labelled blocks with their own setup,
+  guards and cleanup. Prose terminal switches disappear when extracting runnable evidence, and
+  the variation runner intentionally skips the core setup. Verify the actual displayed commands.
