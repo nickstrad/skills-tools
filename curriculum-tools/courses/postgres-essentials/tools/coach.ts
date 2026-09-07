@@ -14,6 +14,10 @@ import { UNKNOWN_OUTCOME_VISUAL } from "../curriculum/09-unknown-outcome.ts";
 
 import { REQUEST_IDENTITY_VISUAL } from "../curriculum/10-request-identity.ts";
 
+import { BLOCKER_VISUAL } from "../curriculum/11-blocker.ts";
+import { DEADLOCK_VISUAL } from "../curriculum/12-deadlock.ts";
+import { TIMEOUT_VISUAL } from "../curriculum/13-timeout.ts";
+
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
 const COURSE = "postgres-essentials";
@@ -21,6 +25,9 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "find-the-blocker": BLOCKER_VISUAL,
+  "deadlock-cycle": DEADLOCK_VISUAL,
+  "timeout-and-transaction-state": TIMEOUT_VISUAL,
   "durable-request-identity": REQUEST_IDENTITY_VISUAL,
   "unknown-commit-outcome": UNKNOWN_OUTCOME_VISUAL,
   "reject-stale-edit": VERSION_CHECK_VISUAL,
@@ -120,7 +127,7 @@ export function render(lesson: Selected, stage: string, db?: string): string {
       shell
         ? "If you reach 30 minutes or get stuck, stop and ask for help. Ctrl-C interrupts the supplied client and runs its cleanup; check for the schema removal record."
         : `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
-          "then drop only this lesson's pe_* table named in its final command. Rerun setup next time.",
+          "then follow this lesson's cleanup commands to restore settings and drop its named pe_* table. Rerun setup next time.",
     );
   }
   if (second) {

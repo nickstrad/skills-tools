@@ -29,7 +29,7 @@ function history(path: string): string {
 
 Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
   assert(
-    ROUTE.length === 40 && catalog.length === 10,
+    ROUTE.length === 40 && catalog.length === 15,
     "route or authored batch drifted",
   );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
@@ -67,7 +67,9 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
       review.includes(lesson.expectedResult) && review.includes(lesson.systemsLens),
       "review lost evidence",
     );
-    assert(!review.includes(lesson.setup!), "review repeats setup");
+    // An independent optional variation must be able to recreate its fixture.
+    const coreReview = review.split("## Optional variation")[0];
+    assert(!coreReview.includes(lesson.setup!), "core review repeats setup");
     assert(!shown.includes("Core reading"), "unbudgeted reading introduced");
     if (lesson.runIn === "shell") {
       assert(

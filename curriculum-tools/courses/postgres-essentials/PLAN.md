@@ -1,7 +1,7 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, updated 2026-09-07. **Lessons 1–10 are authored and available.** The full
-sequence below fixes the intended scope; 11–40 are planned, not placeholder lessons. Nick explicitly
+Current learner direction, updated 2026-09-07. **Lessons 1–15 are authored and available.** The full
+sequence below fixes the intended scope; 16–40 are planned, not placeholder lessons. Nick explicitly
 prefers smaller meaningful chunks over compressing the same work into 24 long sessions. Target
 **20–30 minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings
 remain estimates until learner feedback. Changes to scope must be recorded here, not invented as we
@@ -12,7 +12,7 @@ row versions and HOT. No requirement to repeat them or take the old TOAST/cache/
 lesson teaches the mechanism and useful terminal diagram before commands in `lesson`; `review`
 interprets evidence, implications and limits. Optional references are not hidden homework. No typed
 guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6. A
-brief clarity and pacing check follows the latest available lesson, currently 10. Feedback improves
+brief clarity and pacing check follows the latest available lesson, currently 15. Feedback improves
 the course while the fixed route continues.
 
 ## Fixed sequence and intended outcomes
@@ -109,7 +109,7 @@ exact setup and session blocks against a private PostgreSQL 16 cluster, check ou
 timeouts alone, then remove the cluster. Keep only the small validation log/report and script.
 Maintain at least 2 GB free, budget <200 MB peak for this batch, and verify learner-lab readiness
 and unchanged reference progress before finishing. No backup, replica or archive is needed for
-lessons 1–10.
+lessons 1–15.
 
 ## Third batch: detect conflicts and reconsider the decision
 
@@ -124,3 +124,18 @@ The core uses two psql terminals for 7–9 and one shell terminal for 10. Option
 shown in review and remain outside the 20–30 minute core budget. Exact commands and supplied client
 failure paths are validated on a private server; standalone runs establish setup isolation. No
 required writing or application scaffolding is added.
+
+## Fourth batch: reconcile uncertainty and finish transaction lifetimes
+
+Lessons 11–15 follow [the batch design](designs/11-15.md). Lesson 11 withholds an application
+response after a real commit, then compares a fresh inspection and an explicitly unsafe repeat.
+Lesson 12 races and reconciles a durable credit-ledger identity, including a fresh connection and
+payload mismatch. Lessons 13–15 trace a blocking transaction, cause a deadlock and inspect the
+transaction state after server timeouts. The next availability boundary is lesson 16.
+
+Lesson 11 uses one shell and a supplied Python/psql client; 12–15 use two psql terminals. Tags add
+unknown-outcome, uniqueness, idempotency, reconciliation, locks, wait-events, observability,
+deadlocks, timeouts and cancellation. Variations are optional and independently validated. The
+response experiment tests a service/caller boundary on a live server, not crash recovery. The ledger
+row itself is the one specified database effect; external effects are outside its guarantee. Keep
+timing estimates separate from automated experiment runtime.

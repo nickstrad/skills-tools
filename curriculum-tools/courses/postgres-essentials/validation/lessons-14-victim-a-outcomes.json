@@ -1,0 +1,38 @@
+{
+  "transaction_lifetime": {
+    "14": {
+      "second_update_states": {
+        "A": "40P01",
+        "B": "00000"
+      },
+      "victim": "A",
+      "final_values": "{1,1}",
+      "total_committed_increment": 2
+    }
+  },
+  "expected_errors": {
+    "14": [
+      [
+        "A",
+        "ERROR:  deadlock detected"
+      ]
+    ]
+  },
+  "waits": [
+    {
+      "lesson": 14,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_deadlock_a",
+      "query": "update pe_deadlock_item set value = value + 1 where id = 1;"
+    }
+  ],
+  "variations": {
+    "14": {
+      "final_values": "{11,11}",
+      "both_committed": true,
+      "actual_wait": true
+    }
+  }
+}

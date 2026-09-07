@@ -1,0 +1,35 @@
+{
+  "13:final_balance": 130,
+  "transaction_lifetime": {
+    "13": {
+      "waiting_pid": "755275",
+      "blocker_pid": "755272",
+      "wait_event_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker_state": "active",
+      "xact_start": "2026-09-07 01:27:30.77223+00",
+      "blocker_xact_age": "00:00:00.04025",
+      "final_balance": "130"
+    }
+  },
+  "expected_errors": {
+    "13": []
+  },
+  "waits": [
+    {
+      "lesson": 13,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_blocker_a",
+      "query": "update pe_blocker_account set balance = balance + 20 where id = 1;"
+    }
+  ],
+  "variations": {
+    "13": {
+      "holder_rolled_back": true,
+      "final_balance": 120,
+      "actual_wait": true
+    }
+  }
+}

@@ -49,6 +49,8 @@ def inspect(path, available):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--report', default='batch-four-progress.json',
+                        help='Report basename under the validation directory')
     args = parser.parse_args()
     before = history(progress)
     original_hashes = fingerprints(progress)
@@ -74,7 +76,8 @@ def main():
               'progress_rows': len(before['progress']), 'attempt_rows': len(before['attempts']),
               'next_view': next_lesson, 'temporary_copy_removed': not Path(scratch).exists(),
               'reference_fingerprints_unchanged': ref_hashes}
-    (course/'validation/batch-three-progress.json').write_text(json.dumps(report, indent=2)+'\n')
+    assert Path(args.report).name == args.report and args.report.endswith('.json')
+    (course/'validation'/args.report).write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
 
 

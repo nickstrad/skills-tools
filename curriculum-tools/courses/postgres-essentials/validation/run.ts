@@ -11,6 +11,8 @@ if (!env.PGHOST?.startsWith("/tmp/pg-essentials-validation-")) {
   throw new Error("Use validate.py to allocate a private validation cluster");
 }
 const variations = Deno.args.includes("--variations");
+const victim = env.PE_DEADLOCK_VICTIM;
+if (victim && !["A", "B"].includes(victim)) throw new Error("Invalid requested detector probe");
 const selectors = Deno.args.filter((arg) => arg !== "--variations");
 const selected = catalog.filter((l) => !selectors.length || selectors.includes(String(l.ordinal)));
 if (!selected.length) throw new Error("No lessons selected");
@@ -25,7 +27,11 @@ function variationCode(lesson: Lesson): string {
 }
 
 async function observeWait(ordinal: number, session: string): Promise<void> {
-  const app = `essentials-${ordinal}-${session}`;
+  const names: Record<number, string> = { 13: "pe_blocker", 14: "pe_deadlock", 15: "pe_timeout" };
+  const app = names[ordinal]
+    ? `${names[ordinal]}_${session.toLowerCase()}`
+    : `essentials-${ordinal}-${session}`;
+  const holder = names[ordinal] ? `${names[ordinal]}_a` : `essentials-${ordinal}-A`;
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     const query = new Deno.Command("psql", {
@@ -39,7 +45,7 @@ async function observeWait(ordinal: number, session: string): Promise<void> {
         from pg_stat_activity a
         join pg_stat_activity b on b.pid = any(pg_blocking_pids(a.pid))
         where a.application_name = '${app}' and a.wait_event_type = 'Lock'
-          and b.application_name = 'essentials-${ordinal}-A'
+          and b.application_name = '${holder}'
       `,
       ],
       env,
@@ -76,6 +82,11 @@ for (const lesson of selected) {
           {
             ...env,
             PGAPPNAME: `essentials-${lesson.ordinal}-${name}`,
+            // Private acceptance probe only: make either participant detect the cycle first.
+            // The exact authored SQL and its lock order still run unchanged.
+            ...(lesson.ordinal === 14 && victim && !variations
+              ? { PGOPTIONS: `-c deadlock_timeout=${name === victim ? "500ms" : "5s"}` }
+              : {}),
           },
           console.log,
         ),

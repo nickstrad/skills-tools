@@ -1,0 +1,488 @@
+{
+  "a_private": 120,
+  "b_before_commit": 100,
+  "b_after_commit": 120,
+  "a_aborted": 999,
+  "b_after_rollback": 120,
+  "rc_before": 100,
+  "rc_after": 120,
+  "rr_before": 100,
+  "rr_after": 100,
+  "fresh_after_end": 120,
+  "reader_before": 1000,
+  "fresh_rows": 0,
+  "reader_after_delete": 1000,
+  "retained_dead": 1000,
+  "released_dead": 0,
+  "final_rows": 0,
+  "a_replacement_written": 110,
+  "b_replacement_written": 120,
+  "after_stale_replacement": 120,
+  "a_atomic_written": 110,
+  "b_atomic_written": 130,
+  "after_atomic_arithmetic": 130,
+  "a_stale_read": 1,
+  "b_stale_read": 1,
+  "stale_remaining": -1,
+  "stale_accepted": 2,
+  "a_locked_read": 1,
+  "b_locked_read": 0,
+  "locked_remaining": 0,
+  "locked_accepted": 1,
+  "a_stale_decision": "accept",
+  "b_stale_decision": "accept",
+  "a_locked_decision": "accept",
+  "b_locked_decision": "decline",
+  "b_locked_action": "no write: stock is exhausted",
+  "a_original_body": "Draft",
+  "a_original_version": 1,
+  "b_original_body": "Draft",
+  "b_original_version": 1,
+  "b_current_body": "A: corrected title",
+  "b_current_version": 2,
+  "final_body": "A: corrected title + B: reviewed note",
+  "final_version": 3,
+  "rr_final_on_call": 0,
+  "serializable_final_on_call": 1,
+  "request_rows": 1,
+  "credited_total": 40,
+  "stored_amount": 40,
+  "supplied_amount": 55,
+  "13:final_balance": 130,
+  "15:final_balance": 100,
+  "reuse_phases": {
+    "loaded": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    },
+    "deleted": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 4000,
+      "free_space": 76572
+    },
+    "vacuumed": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 1819680
+    },
+    "refilled": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    }
+  },
+  "retry": [
+    {
+      "fixture": "pe_retry_9e4d3e6ec46e450bb4d0126ce6306f7c",
+      "max_attempts": 3,
+      "mode": "conflict"
+    },
+    {
+      "actor": "A",
+      "committed": false,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "A",
+      "committed": true
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "committed": false,
+      "phase": "commit",
+      "sqlstate": "40001"
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "decision": "stay",
+      "read": 1
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "committed": true,
+      "phase": "commit",
+      "sqlstate": "00000"
+    },
+    {
+      "completed": true,
+      "final_rows": [
+        "Alice|f",
+        "Bob|t"
+      ],
+      "on_call": 1
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_retry_9e4d3e6ec46e450bb4d0126ce6306f7c"
+    }
+  ],
+  "transaction_lifetime": {
+    "13": {
+      "waiting_pid": "756073",
+      "blocker_pid": "756070",
+      "wait_event_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker_state": "active",
+      "xact_start": "2026-09-07 01:28:46.029492+00",
+      "blocker_xact_age": "00:00:00.029083",
+      "final_balance": "130"
+    },
+    "14": {
+      "second_update_states": {
+        "A": "00000",
+        "B": "40P01"
+      },
+      "victim": "B",
+      "final_values": "{10,10}",
+      "total_committed_increment": 20
+    },
+    "15": {
+      "states": {
+        "lock_update_sqlstate": "55P03",
+        "after_lock_timeout_sqlstate": "25P02",
+        "sleep_sqlstate": "57014",
+        "after_statement_timeout_sqlstate": "25P02"
+      },
+      "final_balance": 100
+    }
+  },
+  "unknown_outcome": [
+    {
+      "fixture": "pe_unknown_dc0ed481db7946eb965191c1aa42afdb",
+      "initial_balance": 100
+    },
+    {
+      "automatic_retry": false,
+      "observer": "caller",
+      "outcome": "UNKNOWN",
+      "response": "missing"
+    },
+    {
+      "balance": 110,
+      "first_effect_committed": true,
+      "observer": "reconnected inspector"
+    },
+    {
+      "action": "deliberate unsafe repeat",
+      "requested_increment": 10
+    },
+    {
+      "applied_increments": 2,
+      "balance": 120,
+      "observer": "independent final query",
+      "submitted_requests": 2
+    },
+    {
+      "boundary": "application response; no database crash or packet loss",
+      "injection": "after-commit"
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_unknown_dc0ed481db7946eb965191c1aa42afdb"
+    }
+  ],
+  "unknown_variations": {
+    "before_commit": [
+      {
+        "fixture": "pe_unknown_ef539d370ef64d1f83df910daac423f5",
+        "initial_balance": 100
+      },
+      {
+        "automatic_retry": false,
+        "observer": "caller",
+        "outcome": "UNKNOWN",
+        "response": "missing"
+      },
+      {
+        "balance": 100,
+        "first_effect_committed": false,
+        "observer": "reconnected inspector"
+      },
+      {
+        "action": "deliberate unsafe repeat",
+        "requested_increment": 10
+      },
+      {
+        "applied_increments": 1,
+        "balance": 110,
+        "observer": "independent final query",
+        "submitted_requests": 2
+      },
+      {
+        "boundary": "application response; no database crash or packet loss",
+        "injection": "before-commit"
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_ef539d370ef64d1f83df910daac423f5"
+      }
+    ],
+    "sql_failure": [
+      {
+        "fixture": "pe_unknown_adc94e74a1fe44a9bc19b11d5accc846",
+        "initial_balance": 100
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_adc94e74a1fe44a9bc19b11d5accc846"
+      },
+      {
+        "expected_error": "42P01",
+        "write_attempts": 1
+      }
+    ]
+  },
+  "expected_errors": {
+    "1": [],
+    "2": [],
+    "3": [],
+    "4": [],
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": [
+      [
+        "B",
+        "ERROR:  40001"
+      ]
+    ],
+    "10": [],
+    "11": [],
+    "12": [],
+    "13": [],
+    "14": [
+      [
+        "B",
+        "ERROR:  deadlock detected"
+      ]
+    ],
+    "15": [
+      [
+        "B",
+        "ERROR:  canceling statement due to lock timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ],
+      [
+        "B",
+        "ERROR:  canceling statement due to statement timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ]
+    ]
+  },
+  "retained_free": 4.71,
+  "released_free": 99.61,
+  "waits": [
+    {
+      "lesson": 5,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-5-A",
+      "query": "update pe_atomic_write set balance = balance + 20 where id = 1\nreturning balance as b_atomic_written;"
+    },
+    {
+      "lesson": 6,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-6-A",
+      "query": "select remaining as b_locked_read,\n       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision\nfrom pe_stock where sku = 'widget' for update;"
+    },
+    {
+      "lesson": 12,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-12-A",
+      "query": "insert into pe_credit_ledger (request_id, account_id, amount, receipt)\nvalues ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')\non conflict (request_id) do nothing\nreturning request_id, account_id, amount, receipt;"
+    },
+    {
+      "lesson": 13,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_blocker_a",
+      "query": "update pe_blocker_account set balance = balance + 20 where id = 1;"
+    },
+    {
+      "lesson": 14,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_deadlock_a",
+      "query": "update pe_deadlock_item set value = value + 1 where id = 1;"
+    }
+  ],
+  "variations": {
+    "7": {
+      "stale_rows": 0,
+      "preserved_version": 3
+    },
+    "8": {
+      "second_read": 1,
+      "second_can_leave": false,
+      "final_on_call": 1
+    },
+    "9": {
+      "second_read": 1,
+      "second_can_leave": false,
+      "final_on_call": 1
+    },
+    "12": {
+      "b_inserted": 1,
+      "request_rows": 1,
+      "credited_total": 40,
+      "actual_wait": true
+    },
+    "13": {
+      "holder_rolled_back": true,
+      "final_balance": 120,
+      "actual_wait": true
+    },
+    "14": {
+      "final_values": "{11,11}",
+      "both_committed": true,
+      "actual_wait": true
+    },
+    "15": {
+      "sleep_sqlstate": "57014",
+      "next_sqlstate": "00000",
+      "connection_reusable": 1
+    }
+  },
+  "retry_variations": {
+    "no_conflict": {
+      "exit_status": 0,
+      "events": [
+        {
+          "fixture": "pe_retry_4a7ebfa89b9741dbb51df44fcc84855a",
+          "max_attempts": 3,
+          "mode": "no-conflict"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": true,
+          "phase": "commit",
+          "sqlstate": "00000"
+        },
+        {
+          "completed": true,
+          "final_rows": [
+            "Alice|t",
+            "Bob|f"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_4a7ebfa89b9741dbb51df44fcc84855a"
+        }
+      ]
+    },
+    "exhausted": {
+      "exit_status": 2,
+      "events": [
+        {
+          "fixture": "pe_retry_47e7431d4d2a42d6885713352ae2f049",
+          "max_attempts": 1,
+          "mode": "conflict"
+        },
+        {
+          "actor": "A",
+          "committed": false,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "A",
+          "committed": true
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "commit",
+          "sqlstate": "40001"
+        },
+        {
+          "attempts": 1,
+          "stop": "retry budget exhausted"
+        },
+        {
+          "completed": false,
+          "final_rows": [
+            "Alice|f",
+            "Bob|t"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_47e7431d4d2a42d6885713352ae2f049"
+        }
+      ]
+    },
+    "nonretryable": {
+      "exit_status": 1,
+      "events": [
+        {
+          "fixture": "pe_retry_6bca11a2b05d436197278252a47e966b",
+          "max_attempts": 3,
+          "mode": "sql-error"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "write",
+          "sqlstate": "42P01"
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_6bca11a2b05d436197278252a47e966b"
+        }
+      ]
+    }
+  }
+}

@@ -21,3 +21,18 @@ Evidence: validation/lessons-12-{outcomes,source,cleanup}.json plus author repor
 author and primary private labs removed. Catalog built through 12; no live refresh yet. Lessons
 13–15 review feedback is with Sol B: complete variation labels, immediate SQLSTATE, explicit
 survivor identity, reset semantics and pool handling. Availability docs drafted for final.
+
+Checkpoint: lessons 13–15 primary-reviewed, corrected and accepted on exact built source. L13
+core/rollback variation observed PID edges and balances 130/120. L14 corrected contribution
+assignment identifies whole survivors; standalone detector probes validated both A victim ({1,1})
+and B victim ({10,10}); consistent order still waits and finishes {11,11}. L15 exact
+55P03/25P02/57014/25P02 sequence leaves balance 100; autocommit variation recovers immediately.
+
+All 15 available lessons and runnable variations passed the full private-cluster run. Eight primary
+validation roots have been retired, with no learner-history change; small JSON/log evidence remains.
+Full source manifest includes both supplied clients. First ten lesson objects remain byte-for-byte
+identical after JSON parsing. Deno checks and all 37 tests pass; a renderer assertion was narrowed
+to core review so self-contained optional variations may legitimately recreate their fixture.
+
+Remaining: live catalog refresh after copied refresh gate, final rendering/readiness/resource audit,
+acceptance documentation, and removal of this handoff in the completion commit.

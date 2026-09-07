@@ -1,0 +1,41 @@
+{
+  "15:final_balance": 100,
+  "transaction_lifetime": {
+    "15": {
+      "states": {
+        "lock_update_sqlstate": "55P03",
+        "after_lock_timeout_sqlstate": "25P02",
+        "sleep_sqlstate": "57014",
+        "after_statement_timeout_sqlstate": "25P02"
+      },
+      "final_balance": 100
+    }
+  },
+  "expected_errors": {
+    "15": [
+      [
+        "B",
+        "ERROR:  canceling statement due to lock timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ],
+      [
+        "B",
+        "ERROR:  canceling statement due to statement timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ]
+    ]
+  },
+  "variations": {
+    "15": {
+      "sleep_sqlstate": "57014",
+      "next_sqlstate": "00000",
+      "connection_reusable": 1
+    }
+  }
+}

@@ -35,6 +35,10 @@ selectors = sys.argv[1:]
 assert all(x in available for x in selectors), 'Use only available lesson numbers'
 selected = selectors or available
 logname = 'lessons-' + '-'.join(selected)
+probe_victim = os.environ.get('PE_DEADLOCK_VICTIM')
+if probe_victim:
+    assert probe_victim in ('A', 'B') and selected == ['14']
+    logname += '-victim-' + probe_victim.lower()
 assert shutil.disk_usage('/tmp').free > 2 * 1024**3, 'Less than 2 GB free'
 bindir = Path(subprocess.check_output(['pg_config', '--bindir'], text=True).strip())
 owner = pwd.getpwnam('postgres') if os.geteuid() == 0 else pwd.getpwuid(os.geteuid())
@@ -90,6 +94,15 @@ try:
     for n in selected:
         errors = re.findall(r'\[([AB])\]\s+(ERROR:.*)', sections[n])
         wanted = [('B', 'ERROR:  40001')] if n == '9' else []
+        if n == '14':
+            assert len(errors) == 1 and errors[0][0] in ('A', 'B'), errors
+            wanted = [(errors[0][0], 'ERROR:  deadlock detected')]
+        elif n == '15':
+            wanted = [('B', 'ERROR:  ' + message) for message in (
+                'canceling statement due to lock timeout',
+                'current transaction is aborted, commands ignored until end of transaction block',
+                'canceling statement due to statement timeout',
+                'current transaction is aborted, commands ignored until end of transaction block')]
         assert [(s, ' '.join(e.split())) for s, e in errors] == [
             (s, ' '.join(e.split())) for s, e in wanted], (n, errors)
         assert not re.search(r'FATAL:|PANIC:|invalid command|unrecognized value|Traceback', sections[n])
@@ -120,23 +133,28 @@ try:
         '10': {},
         '11': {},
         '12': {'request_rows': 1, 'credited_total': 40, 'stored_amount': 40, 'supplied_amount': 55},
+        '13': {'final_balance': 130},
+        '14': {},
+        '15': {'final_balance': 100},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
 
-    def cell(label):
-        for i, line in enumerate(lines[:-2]):
+    def cell(label, number=None):
+        scoped = lines if number is None else [re.sub(r'^\s*\[[AB]\] ?', '', line).strip()
+                                               for line in sections[number].splitlines()]
+        for i, line in enumerate(scoped[:-2]):
             columns = [c.strip() for c in line.split('|')]
-            if label in columns and re.fullmatch(r'[-+ ]+', lines[i + 1]):
-                return lines[i + 2].split('|')[columns.index(label)].strip()
+            if label in columns and re.fullmatch(r'[-+ ]+', scoped[i + 1]):
+                return scoped[i + 2].split('|')[columns.index(label)].strip()
         raise AssertionError('Missing output column: ' + label)
 
     measured = {}
     for n in selected:
         for label, value in expected[n].items():
-            actual = cell(label)
+            actual = cell(label, n)
             assert actual == str(value), (label, value, actual)
-            measured[label] = int(actual) if isinstance(value, int) else actual
+            measured[f'{n}:{label}' if n in ('13', '15') else label] = int(actual) if isinstance(value, int) else actual
     if '4' in selected:
         phases = {}
         for phase in ('loaded', 'deleted', 'vacuumed', 'refilled'):
@@ -168,7 +186,8 @@ try:
             assert re.search(r'Alice\s*\|\s*f', sections[n])
             assert re.search(r'Bob\s*\|\s*' + ('t' if n == '9' else 'f'), sections[n])
     if '10' in selected:
-        events = [json.loads(line) for line in lines if line.startswith('{')]
+        event_lines = [re.sub(r'^\s*\[A\] ?', '', line).strip() for line in sections['10'].splitlines()]
+        events = [json.loads(line) for line in event_lines if line.startswith('{')]
         decisions = [(e['attempt'], e['read'], e['decision']) for e in events if e.get('actor') == 'B' and 'read' in e]
         commits = [(e['attempt'], e['phase'], e['sqlstate'], e['committed']) for e in events if e.get('actor') == 'B' and 'sqlstate' in e]
         assert decisions == [(1, 2, 'leave'), (2, 1, 'stay')], decisions
@@ -177,6 +196,11 @@ try:
         assert final == {'final_rows': ['Alice|f', 'Bob|t'], 'on_call': 1, 'completed': True}, final
         assert any(e.get('cleanup') == 'schema removed' for e in events)
         measured['retry'] = events
+    if any(n in selected for n in ('13', '14', '15')):
+        from check_lifetime import check_lifetime
+        measured['transaction_lifetime'] = check_lifetime(sections, selected, cell)
+        if probe_victim:
+            assert measured['transaction_lifetime']['14']['victim'] == probe_victim
     if '12' in selected:
         for label in ('a_inserted=1', 'b_inserted=0', 'replay_inserted=0',
                       'MATCH: return stored receipt', 'REJECT: request key reused with different payload',
@@ -197,17 +221,24 @@ try:
         measured.update(retained_free=float(retained[1]), released_free=float(released[1]))
     waits = [json.loads(line.removeprefix('WAIT_EVIDENCE ')) for line in output.splitlines()
              if line.startswith('WAIT_EVIDENCE ')]
-    for n in ('5', '6', '12'):
+    for n in ('5', '6', '12', '13', '14'):
         if n in selected:
             assert any(w['lesson'] == int(n) for w in waits), 'Missing actual wait for ' + n
     if waits:
         measured['waits'] = waits
-    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12')]
+    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12', '13', '14', '15')]
     if variation_numbers:
         variation_output = run(['/root/.deno/bin/deno', 'run', '-A', evidence / 'run.ts',
                                 '--variations', *variation_numbers])
         (evidence / (logname + '-variations.log')).write_text(variation_output)
-        assert not re.search(r'ERROR:|FATAL:|invalid command|unrecognized value', variation_output), variation_output
+        variation_sections = {m[1]: m[2] for m in re.finditer(
+            r'=== #(\d+) [^\n]+ ===\n(.*?)(?=\n=== #|\Z)', variation_output, re.S)}
+        for n, section in variation_sections.items():
+            errors = re.findall(r'\[([AB])\]\s+(ERROR:.*)', section)
+            wanted = [('A', 'ERROR:  canceling statement due to statement timeout')] if n == '15' else []
+            assert [(s, ' '.join(e.split())) for s, e in errors] == [
+                (s, ' '.join(e.split())) for s, e in wanted], (n, errors)
+            assert not re.search(r'FATAL:|invalid command|unrecognized value', section), section
         checks = {}
         if '7' in variation_numbers:
             assert 'variation_stale_rows=0' in variation_output, variation_output
@@ -224,6 +255,9 @@ try:
             assert any(json.loads(line.removeprefix('WAIT_EVIDENCE '))['lesson'] == 12
                        for line in variation_output.splitlines() if line.startswith('WAIT_EVIDENCE '))
             checks['12'] = {'b_inserted': 1, 'request_rows': 1, 'credited_total': 40, 'actual_wait': True}
+        if any(n in variation_numbers for n in ('13', '14', '15')):
+            from check_lifetime import check_lifetime_variations
+            checks.update(check_lifetime_variations(variation_sections, variation_output))
         measured['variations'] = checks
     if '10' in selected:
         from check_retry import check_retry
@@ -240,7 +274,7 @@ try:
     leftovers = run([bindir / 'psql', '-X', '-Atqc',
                      "select count(*) from pg_class where relname in "
                      "('pe_visibility','pe_snapshot','pe_history','pe_reuse','pe_atomic_write','pe_stock',"
-                     "'pe_edit','pe_on_call_rr','pe_on_call_serial','pe_credit_ledger')"])
+                     "'pe_edit','pe_on_call_rr','pe_on_call_serial','pe_credit_ledger','pe_blocker_account','pe_deadlock_item','pe_timeout_account')"])
     assert leftovers.strip() == '0', leftovers
     retry_leftovers = run([bindir / 'psql', '-X', '-Atqc',
                            "select count(*) from pg_namespace where nspname like 'pe_retry_%' or nspname like 'pe_unknown_%'"])

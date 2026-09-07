@@ -8,6 +8,9 @@ import { SERIALIZABLE } from "./07-serializable.ts";
 import { RETRY } from "./08-retry.ts";
 import { UNKNOWN_OUTCOME } from "./09-unknown-outcome.ts";
 import { REQUEST_IDENTITY } from "./10-request-identity.ts";
+import { BLOCKER } from "./11-blocker.ts";
+import { DEADLOCK } from "./12-deadlock.ts";
+import { TIMEOUT } from "./13-timeout.ts";
 export const MODULES = [
   VISIBILITY,
   REUSE,
@@ -19,4 +22,7 @@ export const MODULES = [
   RETRY,
   UNKNOWN_OUTCOME,
   REQUEST_IDENTITY,
+  BLOCKER,
+  DEADLOCK,
+  TIMEOUT,
 ];
