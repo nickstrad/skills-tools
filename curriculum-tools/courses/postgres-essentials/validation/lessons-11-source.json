@@ -1,0 +1,10 @@
+{
+  "catalog_sha256": "6f19c44f80248b79c97cce2cafbbb11c7c58d0c3267a3e13e97bc33545e4b86f",
+  "lessons": {
+    "unknown-commit-outcome": "36f798d14f3d685cc596636fe5dda458ed47b8c85193521c596d3da32f3c8020"
+  },
+  "support_files": {
+    "lab/retry.py": "f6a11c00cb88e6bcbf793261ceb107b0718d69fde6b2daae6dfbcfabd230fcb2",
+    "lab/unknown_outcome.py": "642ccc95139439a794d5994930b1f7ceef7fc5594b3193e62567579c963914d4"
+  }
+}

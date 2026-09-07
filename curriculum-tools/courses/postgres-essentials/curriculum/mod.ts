@@ -6,6 +6,7 @@ import { VERSION_CHECK } from "./05-version-check.ts";
 import { WRITE_SKEW } from "./06-write-skew.ts";
 import { SERIALIZABLE } from "./07-serializable.ts";
 import { RETRY } from "./08-retry.ts";
+import { UNKNOWN_OUTCOME } from "./09-unknown-outcome.ts";
 export const MODULES = [
   VISIBILITY,
   REUSE,
@@ -15,4 +16,5 @@ export const MODULES = [
   WRITE_SKEW,
   SERIALIZABLE,
   RETRY,
+  UNKNOWN_OUTCOME,
 ];

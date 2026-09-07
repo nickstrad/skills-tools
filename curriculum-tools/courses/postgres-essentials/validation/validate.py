@@ -118,6 +118,7 @@ try:
         '8': {'rr_final_on_call': 0},
         '9': {'serializable_final_on_call': 1},
         '10': {},
+        '11': {},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
@@ -175,6 +176,12 @@ try:
         assert final == {'final_rows': ['Alice|f', 'Bob|t'], 'on_call': 1, 'completed': True}, final
         assert any(e.get('cleanup') == 'schema removed' for e in events)
         measured['retry'] = events
+    if '11' in selected:
+        from check_unknown import check_unknown, check_unknown_events
+        event_lines = [re.sub(r'^\s*\[A\] ?', '', line).strip() for line in sections['11'].splitlines()]
+        events = [json.loads(line) for line in event_lines if line.startswith('{')]
+        measured['unknown_outcome'] = check_unknown_events(events, 'after-commit')
+        measured['unknown_variations'] = check_unknown(course, env, next(l for l in catalog if l['ordinal'] == 11))
     measured['expected_errors'] = error_inventory
     if '3' in selected:
         assert re.search(r'idle in transaction\s*\|\s*\d+', output), 'Snapshot horizon missing'
@@ -213,8 +220,9 @@ try:
         'catalog_sha256': hashlib.sha256((course / 'lessons.json').read_bytes()).hexdigest(),
         'lessons': {l['slug']: hashlib.sha256(json.dumps(l, sort_keys=True).encode()).hexdigest()
                     for l in catalog if str(l['ordinal']) in selected},
-        'support_files': {'lab/retry.py': hashlib.sha256((course / 'lab/retry.py').read_bytes()).hexdigest()}
-                         if '10' in selected else {},
+        'support_files': {name: hashlib.sha256((course / name).read_bytes()).hexdigest()
+                          for name in (['lab/retry.py'] if {'10', '11'} & set(selected) else []) +
+                          (['lab/unknown_outcome.py'] if '11' in selected else [])},
     }, indent=2) + '\n')
     (evidence / (logname + '-outcomes.json')).write_text(json.dumps(measured, indent=2) + '\n')
     leftovers = run([bindir / 'psql', '-X', '-Atqc',
@@ -223,7 +231,7 @@ try:
                      "'pe_edit','pe_on_call_rr','pe_on_call_serial')"])
     assert leftovers.strip() == '0', leftovers
     retry_leftovers = run([bindir / 'psql', '-X', '-Atqc',
-                           "select count(*) from pg_namespace where nspname like 'pe_retry_%'"])
+                           "select count(*) from pg_namespace where nspname like 'pe_retry_%' or nspname like 'pe_unknown_%'"])
     assert retry_leftovers.strip() == '0', retry_leftovers
     print(output[-2500:], flush=True)
 finally:

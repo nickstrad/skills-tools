@@ -10,6 +10,8 @@ import { WRITE_SKEW_VISUAL } from "../curriculum/06-write-skew.ts";
 import { SERIALIZABLE_VISUAL } from "../curriculum/07-serializable.ts";
 import { RETRY_VISUAL } from "../curriculum/08-retry.ts";
 
+import { UNKNOWN_OUTCOME_VISUAL } from "../curriculum/09-unknown-outcome.ts";
+
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
 const COURSE = "postgres-essentials";
@@ -17,6 +19,7 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "unknown-commit-outcome": UNKNOWN_OUTCOME_VISUAL,
   "reject-stale-edit": VERSION_CHECK_VISUAL,
   "multi-row-write-skew": WRITE_SKEW_VISUAL,
   "serializable-protects-invariant": SERIALIZABLE_VISUAL,

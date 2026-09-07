@@ -1,0 +1,91 @@
+{
+  "unknown_outcome": [
+    {
+      "fixture": "pe_unknown_7c5fc3b4c8ee414fb42892ba16bf188f",
+      "initial_balance": 100
+    },
+    {
+      "automatic_retry": false,
+      "observer": "caller",
+      "outcome": "UNKNOWN",
+      "response": "missing"
+    },
+    {
+      "balance": 110,
+      "first_effect_committed": true,
+      "observer": "reconnected inspector"
+    },
+    {
+      "action": "deliberate unsafe repeat",
+      "requested_increment": 10
+    },
+    {
+      "applied_increments": 2,
+      "balance": 120,
+      "observer": "independent final query",
+      "submitted_requests": 2
+    },
+    {
+      "boundary": "application response; no database crash or packet loss",
+      "injection": "after-commit"
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_unknown_7c5fc3b4c8ee414fb42892ba16bf188f"
+    }
+  ],
+  "unknown_variations": {
+    "before_commit": [
+      {
+        "fixture": "pe_unknown_97999ba93aa34359944f86e6cf8a8371",
+        "initial_balance": 100
+      },
+      {
+        "automatic_retry": false,
+        "observer": "caller",
+        "outcome": "UNKNOWN",
+        "response": "missing"
+      },
+      {
+        "balance": 100,
+        "first_effect_committed": false,
+        "observer": "reconnected inspector"
+      },
+      {
+        "action": "deliberate unsafe repeat",
+        "requested_increment": 10
+      },
+      {
+        "applied_increments": 1,
+        "balance": 110,
+        "observer": "independent final query",
+        "submitted_requests": 2
+      },
+      {
+        "boundary": "application response; no database crash or packet loss",
+        "injection": "before-commit"
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_97999ba93aa34359944f86e6cf8a8371"
+      }
+    ],
+    "sql_failure": [
+      {
+        "fixture": "pe_unknown_0686e5ba2f7d4389a8e947cc214f5750",
+        "initial_balance": 100
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_0686e5ba2f7d4389a8e947cc214f5750"
+      },
+      {
+        "expected_error": "42P01",
+        "write_attempts": 1
+      }
+    ]
+  },
+  "expected_errors": {
+    "11": []
+  }
+}
