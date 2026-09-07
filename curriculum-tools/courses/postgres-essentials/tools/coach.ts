@@ -12,6 +12,8 @@ import { RETRY_VISUAL } from "../curriculum/08-retry.ts";
 
 import { UNKNOWN_OUTCOME_VISUAL } from "../curriculum/09-unknown-outcome.ts";
 
+import { REQUEST_IDENTITY_VISUAL } from "../curriculum/10-request-identity.ts";
+
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
 const COURSE = "postgres-essentials";
@@ -19,6 +21,7 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "durable-request-identity": REQUEST_IDENTITY_VISUAL,
   "unknown-commit-outcome": UNKNOWN_OUTCOME_VISUAL,
   "reject-stale-edit": VERSION_CHECK_VISUAL,
   "multi-row-write-skew": WRITE_SKEW_VISUAL,

@@ -1,0 +1,27 @@
+{
+  "request_rows": 1,
+  "credited_total": 40,
+  "stored_amount": 40,
+  "supplied_amount": 55,
+  "expected_errors": {
+    "12": []
+  },
+  "waits": [
+    {
+      "lesson": 12,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-12-A",
+      "query": "insert into pe_credit_ledger (request_id, account_id, amount, receipt)\nvalues ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')\non conflict (request_id) do nothing\nreturning request_id, account_id, amount, receipt;"
+    }
+  ],
+  "variations": {
+    "12": {
+      "b_inserted": 1,
+      "request_rows": 1,
+      "credited_total": 40,
+      "actual_wait": true
+    }
+  }
+}

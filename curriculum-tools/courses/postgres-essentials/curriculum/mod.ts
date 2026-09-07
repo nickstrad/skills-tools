@@ -7,6 +7,7 @@ import { WRITE_SKEW } from "./06-write-skew.ts";
 import { SERIALIZABLE } from "./07-serializable.ts";
 import { RETRY } from "./08-retry.ts";
 import { UNKNOWN_OUTCOME } from "./09-unknown-outcome.ts";
+import { REQUEST_IDENTITY } from "./10-request-identity.ts";
 export const MODULES = [
   VISIBILITY,
   REUSE,
@@ -17,4 +18,5 @@ export const MODULES = [
   SERIALIZABLE,
   RETRY,
   UNKNOWN_OUTCOME,
+  REQUEST_IDENTITY,
 ];

@@ -13,3 +13,11 @@ undefined-table service failure: exactly one attempted write, no replay, schema 
 validation/lessons-11-{outcomes,source,cleanup}.json. Owned validation root removed; both progress
 databases unchanged. Lessons 12–15 remain with their assigned Sol authors. Catalog currently built
 through 11 for this acceptance checkpoint; live catalog not refreshed yet.
+
+Checkpoint: Sol A's lesson 12 reviewed and independently accepted with the shared runner. Core
+observed transactionid wait, inserted counts 1/0/0, matched receipt, rejected amount 55,
+request_rows=1 and credited_total=40. Self-contained rollback variation observed wait then B=1.
+Evidence: validation/lessons-12-{outcomes,source,cleanup}.json plus author report/controllers. Both
+author and primary private labs removed. Catalog built through 12; no live refresh yet. Lessons
+13–15 review feedback is with Sol B: complete variation labels, immediate SQLSTATE, explicit
+survivor identity, reset semantics and pool handling. Availability docs drafted for final.

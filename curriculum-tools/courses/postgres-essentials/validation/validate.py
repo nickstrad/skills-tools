@@ -119,6 +119,7 @@ try:
         '9': {'serializable_final_on_call': 1},
         '10': {},
         '11': {},
+        '12': {'request_rows': 1, 'credited_total': 40, 'stored_amount': 40, 'supplied_amount': 55},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
@@ -176,6 +177,11 @@ try:
         assert final == {'final_rows': ['Alice|f', 'Bob|t'], 'on_call': 1, 'completed': True}, final
         assert any(e.get('cleanup') == 'schema removed' for e in events)
         measured['retry'] = events
+    if '12' in selected:
+        for label in ('a_inserted=1', 'b_inserted=0', 'replay_inserted=0',
+                      'MATCH: return stored receipt', 'REJECT: request key reused with different payload',
+                      'credit accepted: acct-7 +40'):
+            assert label in sections['12'], label
     if '11' in selected:
         from check_unknown import check_unknown, check_unknown_events
         event_lines = [re.sub(r'^\s*\[A\] ?', '', line).strip() for line in sections['11'].splitlines()]
@@ -191,12 +197,12 @@ try:
         measured.update(retained_free=float(retained[1]), released_free=float(released[1]))
     waits = [json.loads(line.removeprefix('WAIT_EVIDENCE ')) for line in output.splitlines()
              if line.startswith('WAIT_EVIDENCE ')]
-    for n in ('5', '6'):
+    for n in ('5', '6', '12'):
         if n in selected:
             assert any(w['lesson'] == int(n) for w in waits), 'Missing actual wait for ' + n
     if waits:
         measured['waits'] = waits
-    variation_numbers = [n for n in selected if n in ('7', '8', '9')]
+    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12')]
     if variation_numbers:
         variation_output = run(['/root/.deno/bin/deno', 'run', '-A', evidence / 'run.ts',
                                 '--variations', *variation_numbers])
@@ -212,6 +218,12 @@ try:
                 assert re.search(re.escape(label) + r'\s*\n[^\n]*\n[^\n]*\b1\b', variation_output), variation_output
                 assert 'B read 1 doctors; can Bob leave? f' in variation_output, variation_output
                 checks[n] = {'second_read': 1, 'second_can_leave': False, 'final_on_call': 1}
+        if '12' in variation_numbers:
+            assert 'b_inserted=1' in variation_output
+            assert re.search(r'request_rows\s*\|\s*credited_total.*?\n[^\n]*\n[^\n]*\b1\s*\|\s*40', variation_output, re.S)
+            assert any(json.loads(line.removeprefix('WAIT_EVIDENCE '))['lesson'] == 12
+                       for line in variation_output.splitlines() if line.startswith('WAIT_EVIDENCE '))
+            checks['12'] = {'b_inserted': 1, 'request_rows': 1, 'credited_total': 40, 'actual_wait': True}
         measured['variations'] = checks
     if '10' in selected:
         from check_retry import check_retry
@@ -228,7 +240,7 @@ try:
     leftovers = run([bindir / 'psql', '-X', '-Atqc',
                      "select count(*) from pg_class where relname in "
                      "('pe_visibility','pe_snapshot','pe_history','pe_reuse','pe_atomic_write','pe_stock',"
-                     "'pe_edit','pe_on_call_rr','pe_on_call_serial')"])
+                     "'pe_edit','pe_on_call_rr','pe_on_call_serial','pe_credit_ledger')"])
     assert leftovers.strip() == '0', leftovers
     retry_leftovers = run([bindir / 'psql', '-X', '-Atqc',
                            "select count(*) from pg_namespace where nspname like 'pe_retry_%' or nspname like 'pe_unknown_%'"])
