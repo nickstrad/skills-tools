@@ -75,3 +75,27 @@ checking a copy. Compare progress and attempt rows, not whole-file bytes across 
 catalog update. Check logical progress/attempt rows as well as file bytes: WAL-mode updates can leave the main
 SQLite file hash unchanged while the WAL contains the refreshed catalog. Views must still leave
 learner history unchanged, and reference progress must stay untouched.
+
+## General authoring checks from the third batch
+
+Added 2026-09-07 during implementation; acceptance remains pending at this checkpoint.
+
+- Follow [the durable batch workflow](../lesson-batch-workflow.md) for primary design, bounded
+  Sol assignments, primary review and per-chunk commits. Resolve prerequisite names against
+  `route.ts`, even when the prerequisite is being authored concurrently. A plausible invented
+  slug breaks integration despite an otherwise type-correct module.
+- A course gaining its first shell lesson needs both renderer and validator dispatch by
+  `runIn`. SQL fencing, a psql connection command and ROLLBACK instructions are incorrect for
+  a supplied shell client. Verify rendered commands against source in the correct language,
+  and check shell exit status as well as completion markers.
+- Quiet psql suppresses command tags. Capture `ROW_COUNT` immediately after a conditional
+  write and `SQLSTATE` immediately after COMMIT when those values establish acceptance.
+  A later query overwrites those variables. Do not infer a committed write merely from a
+  client's earlier success message.
+- Expected failures need an exact per-lesson error inventory. A blanket rejection of ERROR
+  prevents teaching serialization failures; globally allowing 40001 could hide a failure in
+  another lesson. Check the expected session/phase, count, immediate SQLSTATE and final
+  committed state together, and reject all other errors.
+- `code` is a raw template tag: write one literal backslash for psql commands in both SQL and
+  prose. Optional runnable variations need Markdown code blocks too; unformatted SQL may
+  collapse into prose even when it looks readable in the source file.

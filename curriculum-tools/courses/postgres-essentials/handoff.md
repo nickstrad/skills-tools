@@ -6,7 +6,13 @@ first as 56aaace; CLAUDE.md already symlinks AGENTS.md. No prior course handoff 
 - Design: designs/07-10.md. Primary owns lesson 10, shared integration, validation and commits.
 - Sol A: lesson 7, curriculum/05-version-check.ts.
 - Sol B: lessons 8–9, curriculum/06-write-skew.ts and 07-serializable.ts.
-- Status: design ready; implementation and real acceptance pending.
+- Status: both Sol drafts exist and have received primary review requests. Primary implemented
+  the supplied Python/psql retry client, lesson 10 and shell-aware renderer/validator dispatch.
+  Registration caught and corrected an invented lesson-7 prerequisite in the lesson-8 draft.
+  Integrated build and real primary acceptance remain pending while authors finish refinements.
+- Knowledge checkpoint: docs/knowledge/postgres-essentials.md now records generalized lessons
+  about stable prerequisites, shell dispatch, immediate psql evidence, scoped expected errors
+  and raw-template/variation formatting. Update it again with measured acceptance findings.
 - Resources: about 16 GB free, 6.9 GB available memory, 8% inodes used. Read-only learner
   query verified PostgreSQL 16.15 and /labs/pglab/primary. Sandbox socket access requires
   an escalated PostgreSQL command. Budget one private cluster below 200 MB, remove in finally.
