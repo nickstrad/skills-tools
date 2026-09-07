@@ -51,6 +51,11 @@ the canonical book folder above. Do not duplicate the PDF or research files in t
 
 ## Course editing rules
 
+- For requests to create the next lesson batch, follow
+  [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary-agent design,
+  bounded Sol implementation where useful, primary review and real validation, chunked
+  commits, and a temporary course handoff committed throughout and removed at completion.
+- Keep `CLAUDE.md` symlinked to this file so both agents share this guidance.
 - Read `curriculum-tools/docs/AUTHORING.md` and the `curriculum-author` skill before changing lesson
   content.
 - Edit `curriculum/*.ts`; never hand-edit generated `lessons.json` or learner `progress.sqlite`.
