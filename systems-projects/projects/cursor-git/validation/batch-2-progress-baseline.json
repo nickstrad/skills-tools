@@ -1,0 +1,9 @@
+{
+  "curriculum-tools/courses/postgres-essentials/progress.sqlite": "e8f78836617203fe2adf13d1b45a775d1b031d228d3008640d1c5f86e53ab405",
+  "curriculum-tools/courses/grpc/progress.sqlite": "2e6f5f10224d9f51cd364b77803df085dbdcfbf57a9a776fd39b356134f65109",
+  "curriculum-tools/courses/linux/progress.sqlite": "e56a2dc1fca2d1d9470567b69154f7f3b14957e7efb1f32b147c597a707ca29d",
+  "curriculum-tools/courses/postgres/progress.sqlite-shm": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+  "curriculum-tools/courses/postgres/progress.sqlite-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "curriculum-tools/courses/postgres/progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+  "curriculum-tools/courses/sqlite/progress.sqlite": "c714b24935a8f888c991474fdc11f536c6470d1703c290b31b428206a4e86ffc"
+}

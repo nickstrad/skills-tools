@@ -6,6 +6,31 @@ Primary owns this design, teaching pages, metadata, harness, evidence and knowle
 Bounded Sol implementation owns only `lab/cursor/*.go`, including tests. Primary reviews and
 independently validates every important boundary against the real pinned SeaweedFS and Git.
 
+## Learner coding clarification and resume checkpoint
+
+Nick asked which lessons include coding and confirmed he expects to implement the useful part.
+The primary committed to **lesson 6: replay recovery decisions** and **lesson 7: read admission
+decisions** as focused Go edits. Lessons 1–3 are CLI-only; 4, 5 and 8 remain guided experiments.
+Supply transport, processes, fixtures and cleanup. Keep each coding edit small enough for the
+existing 20-minute lesson budget, with graduated hints and a worked solution.
+
+Implementation still required: factor the real client's state classification and read-admission
+policy into short named functions. Copy the client into an owned learner workspace under LAB;
+the starter functions should fail closed until implemented. Build an exercise binary from that
+copy so the edit actually controls the real replay/read experiment. Do not substitute a detached
+toy function or merely ask the learner to inspect a supplied solution. Use the worked client for
+initial fixtures, then run the exercise binary through the same external evidence checks.
+
+Suitable replay edit: classify current ref as expected-old (apply), intended-new for the single
+pending entry (resume safely), or other (reject divergence). Suitable read edit: given successful
+authority observation and local applied/target state, choose catch-up, serve or fail; an unknown
+authority must not admit a stale read. Keep local locking, HTTP and Git plumbing supplied. Review
+the actual helper shape before finalizing signatures; ensure the functions are wired into its core.
+Test the starter's bounded failure and the worked solution through real lessons before publication.
+
+Nick then requested a clear-context-ready checkpoint. Current source drafts are intentionally
+unpublished. Read `handoff.md` for exact saved status, ownership and next actions before resuming.
+
 ## Experiments
 
 4. Reconcile unknown outcomes (20 min): prepare/upload op-a with existing scripts. A supplied Go
