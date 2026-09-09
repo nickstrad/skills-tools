@@ -65,4 +65,26 @@ empty even while the live learner database is reachable: query its actual data_d
 
 At the initial preflight / had approximately 16 GB free and 6.8 GiB memory available. The learner's
 PostgreSQL lab answered at /tmp port 5440, database lab, data_directory /labs/pglab/primary, primary
-role. Final checks and installed-path verification are recorded below at builder completion.
+role. Final checks and installed-path verification are recorded below.
+
+
+## Final builder acceptance (2026-09-09)
+
+- Installed `/usr/local/bin/systemscoach` and `/root/.codex/skills/systemscoach` resolve to this
+  checkout. `systemscoach topics` and `--help` work from /tmp, outside the repository. The installed
+  skill passes its validator; local Markdown links resolve and all 15 supplied candidates are saved.
+- All eight Go test groups pass with the race detector, including 30 concurrent receipt writes;
+  go vet and shell syntax checks pass. Installer tests prove idempotent links and preservation of
+  a conflicting pre-existing skill without a partial second installation.
+- No actual systems course has been selected, approved or authored; project experiment validation
+  belongs to future batches. No learner completion/selection state was created during this task.
+- Final filesystem has about 16 GB free; memory available is about 6.8 GiB. The builder occupies
+  about 150 KB of source/docs. Go tests removed their temporary fixtures. The one temporary staged
+  documentation patch was removed; no service/lab/volume was allocated or retained. Useful Go build
+  caches remain; there is no outstanding evidence-retention obligation.
+- A read-only query confirmed `lab|/labs/pglab/primary|f|1`. The final query needed the already allowed
+  psql escalation because the sandbox denied the Unix socket; no learner-cluster mutation was needed.
+  SHA256s of all five learner progress databases and the existing PostgreSQL WAL/SHM files exactly
+  match preflight. The unrelated root handoff and working-tree changes are preserved.
+- Temporary systems-projects/handoff.md was committed at checkpoints 524e4a1 and 0798c04, then removed
+  in the completion commit as requested. Those commits retain the resumable work history.
