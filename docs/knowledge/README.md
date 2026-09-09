@@ -51,3 +51,8 @@ The current PostgreSQL path and its identity/validation rules are in
    note the date of the change at the top.
 4. Do not record what the repository already shows (code structure, git history, lesson text) or
    what only mattered to one session. Record the non-obvious part.
+
+## Systems project track
+
+[Systemscoach builder](systemscoach.md) — interview and agenda boundaries, Go/Markdown project
+format, stable completion identities, read-only coaching views, installation and resource validation.

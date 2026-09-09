@@ -114,3 +114,12 @@ skills-tools/
 ├── .gitignore              excludes runtime state, secrets, logs, and editor files
 └── README.md
 ```
+
+## Systems projects
+
+[Systemscoach](systems-projects/README.md) is a separate project track: interview around an engineering
+write-up, agree a minimum full agenda, then author small batches of 15–25 minute local systems
+experiments. Use `systemscoach <topic> route`, then `systemscoach <topic> 1 lesson`, `review` and
+`done`. Native CLIs and supplied scaffolding keep learning focused on mechanisms; necessary core
+logic uses Go first. [Saved project ideas](systems-projects/docs/project-ideas.md) preserve the
+learner’s 15 examples. No project is preselected.

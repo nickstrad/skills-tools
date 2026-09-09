@@ -1,6 +1,6 @@
 # Systemscoach builder handoff
 
-Updated 2026-09-09. Initial implementation in progress; not a chosen project's lesson batch.
+Updated 2026-09-09. Implementation and installation complete; final audit/cleanup remains. Not a chosen project's lesson batch.
 
 ## User intent and constraints
 
@@ -14,24 +14,29 @@ Go first and Deno second. Save all supplied project ideas. No topic is selected 
 Latest steering: inherit resource/cleanup guidance and useful repository knowledge; keep this
 handoff committed/updated throughout and delete after completion. Root handoff.md is unrelated.
 
-## Implemented, not yet fully validated
+## Completed checkpoints
 
-- systems-projects Go stdlib CLI; project JSON + authored lesson/review Markdown format.
-- Explicit topic selection, full draft/approved route, authored availability, per-topic/slug/revision
-  completion receipts. Reads do not mutate progress; done requires an explicit number.
-- Skill, interview/design, authoring/validation docs, templates, local AGENTS + CLAUDE symlink.
-- docs/project-ideas.md preserves all 15 user-supplied examples in condensed Markdown with provenance;
-  source claims have not been independently reverified, no services or lessons authored.
+- Initial builder and handoff committed as 524e4a1.
+- Go stdlib CLI, full draft/approved routes, explicit selection, lesson/review rendering and
+  isolated stable completion receipts implemented. No topic selected or lessons authored.
+- Skill, design/authoring/format docs, templates, all 15 condensed project examples, local
+  AGENTS/CLAUDE inheritance and selective knowledge pointers complete.
+- go test -race ./... and go vet ./... passed, including read-only views, explicit completion,
+  multi-topic isolation, revisions/reorder, planned/draft boundaries, concurrent writes and
+  installer collision/idempotence. Skill validator passed; all local Markdown links resolve.
+- Safe installer approved and run: /usr/local/bin/systemscoach and
+  /root/.codex/skills/systemscoach link to this checkout.
+- Additive links written to root README, docs/README and knowledge index; only our additions
+  must be staged from /tmp/systemscoach-index.patch, preserving unrelated edits in those files.
+- Durable docs/knowledge/systemscoach.md prepared; final resource subsection still pending.
 
 ## Remaining
 
-1. Add/run meaningful CLI tests (read-only views, multi-topic isolation, completion idempotence,
-   revisions/reorder, planned boundary, draft/invalid inputs, concurrent completion).
-2. Review/fix CLI and docs; validate skill and links; implement/review safe installer.
-3. Install launcher and skill through appropriate permission flow after concrete validation.
-4. Update repository documentation indexes with narrow additive edits; record durable findings.
-5. Final resource/progress/readiness checks; cleanup owned scratch; commit tested implementation
-   and remove this handoff in completion commit.
+1. Smoke installed launcher from outside checkout and installed skill.
+2. Final disk/memory, read-only learner DB readiness and progress hash checks; remove owned
+   /tmp/systemscoach-index.patch after its staged-only index additions are committed.
+3. Record final validation/resource state in knowledge note.
+4. Commit tested checkpoint, then remove this handoff and commit completion. Preserve root handoff.
 
 ## Environment and preservation
 

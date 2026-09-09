@@ -74,3 +74,11 @@ Selective SQLite source research and the course-order checkpoint design live in
 
 Do not repeatedly extract or scan the whole PDF. Improve the reusable research notes when new
 verification changes a conclusion.
+
+## Systems project builder
+
+[Systemscoach](../systems-projects/README.md) turns a selected engineering write-up into a minimum
+approved project agenda and short lesson batches. It is separate from the tool-internals courses.
+[Project ideas](../systems-projects/docs/project-ideas.md) preserve the learner’s supplied shortlist;
+[builder findings](knowledge/systemscoach.md) explain its CLI, progress identities and validation.
+The repository resource/cleanup rules apply to every project and batch.
