@@ -4,6 +4,35 @@ Created 2026-09-09. [Entry point](../../systems-projects/README.md),
 [skill](../../systems-projects/skills/systemscoach/SKILL.md),
 [format](../../systems-projects/docs/format.md).
 
+## Ongoing systems knowledge
+
+The dedicated [systems knowledge store](../../systems-projects/docs/knowledge/README.md) is the
+cross-project entry point for measured systems-course findings. Read it before new systems work;
+after each completed task/batch, update the relevant note and index with evidence, limits and
+cleanup implications. Source research stays beside its project, per-batch validation stays in the
+project's validation folder, and reusable lessons link those records from the store. Root knowledge
+continues to hold guidance shared with the tool tutors. Nick explicitly requested this ongoing
+knowledge practice on 2026-09-09.
+
+## Course discovery and Bash entry point (2026-09-09)
+
+Bare `systemscoach` and its `courses`, `list`, and `topics` commands list systems-project courses,
+their draft/approved status, available/total counts and route/start commands without writing state.
+`systemscoach lesson` retains explicit selected-course behavior. Keep valid lesson actions separate
+from reserved top-level command names: using one expanded predicate for both accidentally admitted
+top-level words as Markdown view names; a regression test now rejects that form.
+
+The launcher can find the repository's existing Go toolchain when `go` is absent from PATH. The
+user's Bash configuration includes idempotent PATH entries for the launcher and toolchain; fresh
+interactive Bash and direct launcher calls work from `/tmp` with a minimal initial PATH. This does
+not require an alias or alter course selection/progress. Go remains a prerequisite on other hosts.
+
+During this task, PostgreSQL Essentials progress changed with a manual lesson-13 completion at
+2026-09-09T03:35:32Z. Systems tests used isolated state; the other progress hashes matched.
+Preserve concurrent learner activity: inspect changed timestamps/status read-only rather than
+restoring a baseline or claiming every file stayed byte-identical. Record the exception and whether
+any task command wrote that database.
+
 ## What changed and why
 
 The learner requested a separate systems-project track inspired by engineering write-ups. It borrows

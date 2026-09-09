@@ -2,7 +2,8 @@
 
 Reviewed 2026-09-09. Start with the existing
 [learner interest and article note](../../../../docs/articles/cursor-git-at-any-scale.md).
-The selected topic is approved for planning; neither the lesson sequence nor lab results are approved.
+Nick approved the eight-step agenda and requested lessons 1–3 on 2026-09-09.
+Batch 1 measured results and remaining limits are recorded in [validation](../validation/batch-1.md).
 
 ## Primary write-up: attributed claims
 
@@ -56,5 +57,8 @@ deduplication or reconstruction during these experiments.
   publication. Reading a captured current prefix is compatible with a later overlapping write.
 - Dependency download time, storage preallocation, total lesson time and resource cleanup.
 
-These are implementation acceptance checks for future batches. No experiment has run in this
-roadmap task; structural validation is recorded separately.
+The roadmap originally listed these as open checks. Batch 1 validates the exact conditional-write
+primitive, normal-restart persistence, fixtures, resource allocation and first three rendered lessons.
+Replay, operation-ID reconciliation, read guards and prepared-transaction integration remain later
+implementation work. The first batch uses trusted full-pack fixtures and JSON ref preconditions; it
+does not claim a complete Git push acceptance protocol.

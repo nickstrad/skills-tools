@@ -20,6 +20,14 @@ A real conditional index race returned HTTP 200 for one client and 412 for the o
 only the winning body. Uploaded candidate objects can both exist while the authoritative index
 selects only one. Current documentation alone would not establish this behavior in a pinned release.
 
+On normal restart, an existing bucket's PUT returned 409, and root/bucket listing could become ready
+before stored object data was readable. The launcher now checks for the existing bucket before
+creating one, then waits for the index read to return 200 (existing data) or 404 (fresh fixture).
+It tolerates transient data-read failures within a 45-second startup budget. A later exact-byte
+comparison verified that the published index and pack survived restart. Shutdown needed more than
+the initial 10-second allowance; the supplied stop path waits up to 30 seconds without deleting
+state under a live process.
+
 ## Why it matters
 
 Command-line switches may disable a UI without disabling its service. Inspect actual TCP and Unix
@@ -51,3 +59,6 @@ tokens; use a separate checksum to verify payload bytes.
   Run the whole validation inside one tracked parent process; retain its session handle and poll
   that handle instead of starting a second fixture. Ordinary interactive learner commands still
   use the supplied launcher and explicit cleanup. Confirm actual process state when diagnosing.
+- Keep executable lab scripts stable while a tracked run is using them. Bash may read later portions
+  after a wait; editing the file during execution caused an EOF parse error after one trial's cleanup.
+  Validate the final unchanged source again, rather than treating that mixed-source run as acceptance.

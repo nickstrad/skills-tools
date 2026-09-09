@@ -1,5 +1,9 @@
 # Author a systems project lesson
 
+Before authoring, consult the [systems knowledge store](knowledge/README.md). At batch completion,
+record reusable findings there with measured evidence, limits and cleanup implications, and update
+its index. Link project validation records; do not retain bulky lab state as documentation.
+
 Read the repository [authoring contract](../../curriculum-tools/docs/AUTHORING.md) and
 [resource lifecycle](../../docs/knowledge/vm-resource-cleanup.md). Use its pedagogy, not its
 TypeScript data model: systemscoach has its own [small file format](format.md).

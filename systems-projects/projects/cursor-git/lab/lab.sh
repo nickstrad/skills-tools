@@ -56,13 +56,23 @@ start_store() {
     > "$root/store.log" 2>&1 < /dev/null) &
   pid=$!
   printf '%s\n' "$pid" > "$root/weed.pid"
-  for _ in {1..450}; do
+  deadline=$((SECONDS + 45))
+  while (( SECONDS < deadline )); do
     if ! kill -0 "$pid" 2>/dev/null; then
       tail -n 15 "$root/store.log" >&2; return 1
     fi
     if curl -fsS --max-time 1 http://127.0.0.1:18333/ >/dev/null 2>&1; then
-      curl -fsS --max-time 5 -X PUT http://127.0.0.1:18333/cursor-lab >/dev/null
-      return 0
+      bucket_code=$(curl -sS --max-time 1 -o /dev/null -w '%{http_code}' \
+        http://127.0.0.1:18333/cursor-lab || true)
+      if [[ "$bucket_code" == 404 ]]; then
+        curl -fsS --max-time 5 -X PUT http://127.0.0.1:18333/cursor-lab >/dev/null || return 1
+      elif [[ "$bucket_code" != 200 ]]; then
+        sleep .1; continue
+      fi
+      # On a restart metadata listing can be ready before volume data is readable.
+      index_code=$(curl -sS --max-time 1 -o /dev/null -w '%{http_code}' \
+        http://127.0.0.1:18333/cursor-lab/index.json || true)
+      [[ "$index_code" != 200 && "$index_code" != 404 ]] || return 0
     fi
     sleep .1
   done

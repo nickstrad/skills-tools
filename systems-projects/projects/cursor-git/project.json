@@ -10,7 +10,7 @@
       "minutes": 20,
       "revision": 1,
       "outcome": "Import a supplied pack without moving a branch; compare cat-file with show-ref, then conditionally move the ref. Identify the separate payload and visibility boundaries.",
-      "available": false
+      "available": true
     },
     {
       "slug": "publish-the-index",
@@ -21,7 +21,7 @@
       "prerequisites": [
         "objects-before-refs"
       ],
-      "available": false
+      "available": true
     },
     {
       "slug": "race-the-publishers",
@@ -32,7 +32,7 @@
       "prerequisites": [
         "publish-the-index"
       ],
-      "available": false
+      "available": true
     },
     {
       "slug": "reconcile-unknown-outcomes",

@@ -1,0 +1,78 @@
+/root/.local/share/systemscoach/tools/seaweedfs-4.46/weed: OK
+
+For enterprise users, please visit https://seaweedfs.com for the SeaweedFS Enterprise Edition,
+which has advanced features, including data recovery, self-healing storage, customizable erasure coding, EC vacuum and repair, etc.
+version 30GB 4.46 d997fba1575583a89cf0cc50dc0150642286c86d linux amd64
+Your disposable lab: /tmp/systems-cursor-git-FKfsbX
+{
+  "generation": 0,
+  "entries": [
+    "records/base.json"
+  ],
+  "refs": {
+    "refs/heads/main": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+Prepared op-a from generation 0 for refs/heads/main
+{
+  "repository": "tiny",
+  "operation": "op-a",
+  "pack": "packs/a.pack",
+  "sha256": "813a0a0603d7eabe6dc8e2bf35b308c71ba91f414b791fbd56232f6b9f64f984",
+  "updates": [
+    {
+      "ref": "refs/heads/main",
+      "old": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+      "new": "af073e00db03de2c46604ea4d9a60d271c7f5adf"
+    }
+  ]
+}
+pack HTTP 200
+record HTTP 200
+813a0a0603d7eabe6dc8e2bf35b308c71ba91f414b791fbd56232f6b9f64f984  /tmp/systems-cursor-git-FKfsbX/a.pack
+813a0a0603d7eabe6dc8e2bf35b308c71ba91f414b791fbd56232f6b9f64f984  /tmp/systems-cursor-git-FKfsbX/downloaded.pack
+{
+  "generation": 0,
+  "entries": [
+    "records/base.json"
+  ],
+  "refs": {
+    "refs/heads/main": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+{
+  "generation": 1,
+  "entries": [
+    "records/base.json",
+    "records/a.json"
+  ],
+  "refs": {
+    "refs/heads/main": "af073e00db03de2c46604ea4d9a60d271c7f5adf",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+publish HTTP 200
+{
+  "generation": 1,
+  "entries": [
+    "records/base.json",
+    "records/a.json"
+  ],
+  "refs": {
+    "refs/heads/main": "af073e00db03de2c46604ea4d9a60d271c7f5adf",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+old token HTTP 412
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions you specified did not hold</Message><Resource>/cursor-lab/index.json</Resource><RequestId>18D38AA745CA2D9797EC9F22</RequestId><Key>index.json</Key><BucketName>cursor-lab</BucketName></Error>1
+[
+  "records/base.json",
+  "records/a.json"
+]
+Removed /tmp/systems-cursor-git-FKfsbX
+real 16.32
+user 1.74
+sys 1.49

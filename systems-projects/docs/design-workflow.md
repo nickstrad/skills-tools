@@ -1,5 +1,9 @@
 # From an engineering write-up to a bounded project
 
+Start with the [systems knowledge store](knowledge/README.md) and reuse relevant prior findings.
+After completing planning or course work, update the store when new reusable evidence or decisions
+emerge; source-specific research stays beside the project and is linked from shared notes.
+
 This builder is a separate project track. Tool courses develop internals knowledge; systemscoach
 composes tools into a small architecture and investigates its guarantees. It borrows the current
 [PostgreSQL Essentials flow](../../curriculum-tools/courses/postgres-essentials/PLAN.md), with the

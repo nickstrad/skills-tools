@@ -1,0 +1,41 @@
+{
+  "generation": 0,
+  "entries": [
+    "records/base.json"
+  ],
+  "refs": {
+    "refs/heads/main": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+create existing HTTP 412
+unchanged GET HTTP 304
+Prepared op-a from generation 0 for refs/heads/main
+packs/a.pack HTTP 200
+records/a.json HTTP 200
+true
+changed GET HTTP 200
+race 1 order=a b a=200 b=412 stored=a
+race 2 order=b a a=200 b=412 stored=a
+race 3 order=a b a=200 b=412 stored=a
+race 4 order=b a a=200 b=412 stored=a
+race 5 order=a b a=200 b=412 stored=a
+race 6 order=b a a=200 b=412 stored=a
+Port 18333 is occupied; clean up your earlier cursor-git lab or retry later.
+collision refused; existing store unchanged
+normal restart: exact published index and pack bytes preserved
+178412
+121412	/tmp/systems-cursor-git-TnzlOK
+776	/tmp/systems-cursor-git-TnzlOK
+LISTEN 0      4096       127.0.0.1:28888      0.0.0.0:*    users:(("weed",pid=812496,fd=71))                       
+LISTEN 0      4096       127.0.0.1:29333      0.0.0.0:*    users:(("weed",pid=812496,fd=9))                        
+LISTEN 0      4096       127.0.0.1:18080      0.0.0.0:*    users:(("weed",pid=812496,fd=64))                       
+LISTEN 0      4096       127.0.0.1:18333      0.0.0.0:*    users:(("weed",pid=812496,fd=81))                       
+LISTEN 0      4096       127.0.0.1:18888      0.0.0.0:*    users:(("weed",pid=812496,fd=70))                       
+LISTEN 0      4096       127.0.0.1:19333      0.0.0.0:*    users:(("weed",pid=812496,fd=7))                        
+LISTEN 0      4096       127.0.0.1:28080      0.0.0.0:*    users:(("weed",pid=812496,fd=62))                       
+LISTEN 0      4096       127.0.0.1:28333      0.0.0.0:*    users:(("weed",pid=812496,fd=83))                       
+Removed /tmp/systems-cursor-git-TnzlOK
+real 49.19
+user 2.16
+sys 4.68

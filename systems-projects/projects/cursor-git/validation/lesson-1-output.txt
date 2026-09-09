@@ -1,0 +1,20 @@
+lab:  /tmp/systems-cursor-git-E15iBi
+base: e620faabc0b2fa21512bf0be43e53561a0dfe845
+A:    af073e00db03de2c46604ea4d9a60d271c7f5adf
+B:    36a3830268c2f25ee88bc550182593a1a4111f61
+no refs in the fresh replica
+pack	b1740e51d34b228f65960f779c4de4febdd58b0f
+commit
+subject=change a
+parent=e620faabc0b2fa21512bf0be43e53561a0dfe845
+objects present; refs still empty
+af073e00db03de2c46604ea4d9a60d271c7f5adf refs/heads/main
+pack	794d642954f305c0dee4b8981e8533d9347a19d3
+commit
+fatal: update_ref failed for ref 'refs/heads/main': cannot lock ref 'refs/heads/main': is at af073e00db03de2c46604ea4d9a60d271c7f5adf but expected e620faabc0b2fa21512bf0be43e53561a0dfe845
+expected: stale update rejected
+af073e00db03de2c46604ea4d9a60d271c7f5adf refs/heads/main
+Removed /tmp/systems-cursor-git-E15iBi
+real 0.21
+user 0.04
+sys 0.15

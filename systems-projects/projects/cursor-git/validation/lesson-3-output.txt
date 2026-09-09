@@ -1,0 +1,117 @@
+Your disposable lab: /tmp/systems-cursor-git-dl4Jgu
+{
+  "generation": 0,
+  "entries": [
+    "records/base.json"
+  ],
+  "refs": {
+    "refs/heads/main": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+Prepared op-a from generation 0 for refs/heads/main
+Prepared op-b from generation 0 for refs/heads/main
+packs/a.pack HTTP 200
+records/a.json HTTP 200
+packs/b.pack HTTP 200
+records/b.json HTTP 200
+"9761d41c10a018f38987c489a56f26b8"
+"9761d41c10a018f38987c489a56f26b8"
+[
+  {
+    "ref": "refs/heads/main",
+    "old": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "new": "af073e00db03de2c46604ea4d9a60d271c7f5adf"
+  }
+]
+[
+  {
+    "ref": "refs/heads/main",
+    "old": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "new": "36a3830268c2f25ee88bc550182593a1a4111f61"
+  }
+]
+a HTTP 412
+b HTTP 200
+Winner: b; loser: a
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions you specified did not hold</Message><Resource>/cursor-lab/index.json</Resource><RequestId>18D38AABEF7C2EEB83C38CCA</RequestId><Key>index.json</Key><BucketName>cursor-lab</BucketName></Error>{
+  "generation": 1,
+  "entries": [
+    "records/base.json",
+    "records/b.json"
+  ],
+  "refs": {
+    "refs/heads/main": "36a3830268c2f25ee88bc550182593a1a4111f61",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+1
+null
+ref-conflict: refs/heads/main expected e620faabc0b2fa21512bf0be43e53561a0dfe845, current 36a3830268c2f25ee88bc550182593a1a4111f61; reject original operation
+retry preparation exit: 3
+1
+[
+  "records/base.json",
+  "records/b.json"
+]
+Removed /tmp/systems-cursor-git-dl4Jgu
+{
+  "generation": 0,
+  "entries": [
+    "records/base.json"
+  ],
+  "refs": {
+    "refs/heads/main": "e620faabc0b2fa21512bf0be43e53561a0dfe845",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+Prepared op-a from generation 0 for refs/heads/main
+Prepared op-b from generation 0 for refs/heads/feature
+packs/a.pack HTTP 200
+records/a.json HTTP 200
+packs/b.pack HTTP 200
+records/b.json HTTP 200
+a HTTP 200
+b HTTP 412
+{
+  "generation": 1,
+  "entries": [
+    "records/base.json",
+    "records/a.json"
+  ],
+  "refs": {
+    "refs/heads/main": "af073e00db03de2c46604ea4d9a60d271c7f5adf",
+    "refs/heads/feature": "e620faabc0b2fa21512bf0be43e53561a0dfe845"
+  }
+}
+Prepared op-b from generation 1 for refs/heads/feature
+{
+  "generation": 2,
+  "entries": [
+    "records/base.json",
+    "records/a.json",
+    "records/b.json"
+  ],
+  "refs": {
+    "refs/heads/main": "af073e00db03de2c46604ea4d9a60d271c7f5adf",
+    "refs/heads/feature": "36a3830268c2f25ee88bc550182593a1a4111f61"
+  }
+}
+retry HTTP 200
+{
+  "generation": 2,
+  "entries": [
+    "records/base.json",
+    "records/a.json",
+    "records/b.json"
+  ],
+  "refs": {
+    "refs/heads/main": "af073e00db03de2c46604ea4d9a60d271c7f5adf",
+    "refs/heads/feature": "36a3830268c2f25ee88bc550182593a1a4111f61"
+  }
+}
+Removed /tmp/systems-cursor-git-wTKXJ6
+real 35.41
+user 1.29
+sys 2.96

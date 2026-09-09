@@ -1,7 +1,7 @@
 # Cursor: Git at any scale — project roadmap
 
 Status: **approved** on 2026-09-09. Nick accepted the agenda by requesting the first three lessons.
-Batch 1 (lessons 1–3) is being authored; availability follows real validation.
+Batch 1 (lessons 1–3) is available after real validation.
 
 ## Question and scope
 
@@ -55,10 +55,10 @@ the concurrency fixture may add a second branch to contrast independent updates 
 conflict. No service accepts ordinary network `git push`: a supplied adapter exposes the relevant
 pack/ref operation directly so the lesson stays focused.
 
-SeaweedFS is the proposed local object store, matching the broader roadmap. Its official
+SeaweedFS 4.46 is the selected local object store, matching the broader roadmap. Its official
 [conditional-operations documentation](https://github.com/seaweedfs/seaweedfs/wiki/S3-Conditional-Operations)
-describes atomic conditional writes and conditional reads. The first authoring batch must pin a
-release and verify those capabilities on the exact lab configuration. Do not substitute a local
+describes atomic conditional writes and conditional reads. The first authoring batch checks those capabilities
+on the exact lab configuration; see [validation](validation/batch-1.md). Do not substitute a local
 `flock` for object-store CAS. If backend validation fails, revise the backend choice explicitly;
 PostgreSQL publication would change the authority and requires a stated design revision.
 
@@ -126,16 +126,18 @@ Planning preflight on 2026-09-09: about 16 GB filesystem space and 6.8 GiB memor
 8% used. Git 2.43.0, Go 1.26.8, curl and jq are installed. `weed` is not on PATH. No dependencies
 were installed and no project service was started to create this roadmap.
 
-Future lab: one local SeaweedFS deployment (S3 plus its supporting components), two short-lived Go
-clients/replayers, and two bare Git directories. Prefer the documented single-binary local launch;
-pin its version and verify flags before publishing commands. Bind to loopback with project-specific
-ports, tentatively S3 18333 and supporting HTTP endpoints 19333/18888/18080; inspect all HTTP/gRPC
-listeners and reserve actual ports in the supplied launcher.
+Batch 1 lab: SeaweedFS 4.46 in one process using `weed server -filer -s3`, plus tiny bare Git
+fixtures and independent curl clients. All eight TCP listeners are bound to loopback: HTTP
+18333/19333/18888/18080 and gRPC 28333/29333/28888/28080. The launcher refuses occupied ports.
+The documented `mini` mode was trialed but its admin listener behavior did not fit this lab;
+[shared findings](../../docs/knowledge/object-store-git-labs.md) record the measured reason.
+Native CLIs suffice for these three lessons; supplied shell scripts handle fixtures and lifecycle.
+Go remains the default when later replay/coordination logic needs code.
 
 Limit the fixture to at most 20 small commits, 30 publication attempts and 10 MiB source payloads.
 Budget **2 GB peak disk and 1.5 GiB memory** for installation/download copies, store metadata and
 volume allocation, retained WAL/packs, both replicas, a temporary rebuild and logs. This is a
-planning ceiling, not a measurement: verify SeaweedFS volume/preallocation settings before launch.
+planning ceiling: the launcher sets 16 MiB volumes, at most eight, with preallocation disabled.
 Keep at least 2 GB free and more than twice the expected fixture footprint; current headroom permits
 this proposal. Avoid retaining both an image and redundant extracted installations.
 
@@ -171,3 +173,7 @@ A brief mental or spoken reflection is enough; no report, quiz or completion gat
   lessons 1–3. He also requested top-level course discovery and Bash command availability.
   Lessons 4–8 remain planned.
 - Roadmap checks and final resource state: [planning validation](docs/planning-validation.md).
+
+- Batch 1 completed 2026-09-09: lessons 1–3 published after rendered-command and independent
+  backend checks. [Evidence and cleanup](validation/batch-1.md). Feedback on clarity, time and
+  learning value is invited when Nick tries the batch; lessons 4–8 remain planned.

@@ -11,8 +11,9 @@ available lesson counts and the commands to open them. `list` and `topics` are a
 Start in chat: **“Use systemscoach to help me choose a project”** or **“Use systemscoach with this
 write-up: URL.”** The skill conducts a short interview and proposes a complete minimum agenda.
 Once you agree, request a small batch. The first selected topic has a
-[draft Cursor Git roadmap](projects/cursor-git/PLAN.md): eight lessons on publication and rebuildable
-replicas, visible with `systemscoach cursor-git route`. No lessons are authored yet.
+[approved Cursor Git roadmap](projects/cursor-git/PLAN.md): eight lessons on publication and
+rebuildable replicas, with **lessons 1–3 available**. Start with `systemscoach cursor-git 1 lesson`
+or see the full sequence with `systemscoach cursor-git route`.
 The [saved ideas](docs/project-ideas.md) include all 15 examples from your supplied doc.
 
 ```sh
