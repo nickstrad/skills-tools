@@ -7,8 +7,10 @@ focused on core logic, with Go first and Deno second.
 
 Start in chat: **“Use systemscoach to help me choose a project”** or **“Use systemscoach with this
 write-up: URL.”** The skill conducts a short interview and proposes a complete minimum agenda.
-Once you agree, request a small batch. There are intentionally no preselected projects or authored
-lessons yet. The [saved ideas](docs/project-ideas.md) include all 15 examples from your supplied doc.
+Once you agree, request a small batch. The first selected topic has a
+[draft Cursor Git roadmap](projects/cursor-git/PLAN.md): eight lessons on publication and rebuildable
+replicas, visible with `systemscoach cursor-git route`. No lessons are authored yet.
+The [saved ideas](docs/project-ideas.md) include all 15 examples from your supplied doc.
 
 ```sh
 systemscoach topics

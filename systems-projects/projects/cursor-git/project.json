@@ -1,0 +1,93 @@
+{
+  "id": "cursor-git",
+  "title": "Cursor: Git at any scale \u2014 publication and rebuildable replicas",
+  "status": "approved",
+  "objective": "Make Git updates authoritative through an object-store publication index, recover interrupted operations, and serve reads from verifiably caught-up, rebuildable replicas.",
+  "lessons": [
+    {
+      "slug": "objects-before-refs",
+      "title": "Having the objects is not having the update",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Import a supplied pack without moving a branch; compare cat-file with show-ref, then conditionally move the ref. Identify the separate payload and visibility boundaries.",
+      "available": false
+    },
+    {
+      "slug": "publish-the-index",
+      "title": "Upload first, publish second",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Stop after uploading a payload but before publishing its index entry. Observe an unreferenced object and an unchanged authoritative head; publish it and identify the acknowledgement boundary.",
+      "prerequisites": [
+        "objects-before-refs"
+      ],
+      "available": false
+    },
+    {
+      "slug": "race-the-publishers",
+      "title": "Two writers, one publication order",
+      "minutes": 25,
+      "revision": 1,
+      "outcome": "Race two writers using the same index ETag. Observe one winner and one conditional failure; refresh and revalidate the loser, distinguishing a retryable index conflict from a rejected stale branch update.",
+      "prerequisites": [
+        "publish-the-index"
+      ],
+      "available": false
+    },
+    {
+      "slug": "reconcile-unknown-outcomes",
+      "title": "The publish succeeded; the reply disappeared",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Suppress the publisher's success reply after index publication. Reconcile a stable operation ID against the published history and retry without adding a second logical update; compare with an unpublished upload.",
+      "prerequisites": [
+        "race-the-publishers"
+      ],
+      "available": false
+    },
+    {
+      "slug": "replay-published-history",
+      "title": "Turn published history into a Git replica",
+      "minutes": 25,
+      "revision": 1,
+      "outcome": "Materialize an empty bare repository from the ordered published entries. Compare refs and reachable objects with the expected head; deliberately omit a required pack and observe replay stop before advancing its applied position.",
+      "prerequisites": [
+        "reconcile-unknown-outcomes"
+      ],
+      "available": false
+    },
+    {
+      "slug": "resume-interrupted-replay",
+      "title": "Crash between applying a ref and recording progress",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Stop the replayer after a ref update but before its applied marker. Restart and inspect the old/new ref comparison: the repeated entry is recognized, a divergent ref is rejected, and progress never runs ahead of Git state.",
+      "prerequisites": [
+        "replay-published-history"
+      ],
+      "available": false
+    },
+    {
+      "slug": "verify-before-serving",
+      "title": "Lose a notification without serving a stale read",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Pause replica catch-up and drop its wake-up, then compare a direct stale read with a read guarded by an index check. Observe catch-up before serving and a bounded failure when the authority cannot be checked.",
+      "prerequisites": [
+        "resume-interrupted-replay"
+      ],
+      "available": false
+    },
+    {
+      "slug": "evict-and-rebuild",
+      "title": "Scale a repository down to zero warm copies",
+      "minutes": 25,
+      "revision": 1,
+      "outcome": "Remove all disposable local Git copies while retaining the object store, then reconstruct two replicas from published history. Verify refs, reachable content and fsck; measure cold versus warm work and show that a missing published object prevents a complete rebuild.",
+      "prerequisites": [
+        "verify-before-serving"
+      ],
+      "available": false
+    }
+  ]
+}
