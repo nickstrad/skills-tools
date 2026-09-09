@@ -5,6 +5,10 @@ engineering write-ups. Each lesson takes 15–25 minutes: understand, predict, m
 explain and clean up. Existing CLIs carry the data path; supplied scaffolding keeps learner coding
 focused on core logic, with Go first and Deno second.
 
+Every lesson reserves meaningful work for you: construct or adapt a command, change a consequential
+setting, implement a core decision, or investigate a failure. Setup is supplied; hints and worked
+answers are available separately. See the [learner work standard](docs/knowledge/learner-work.md).
+
 Run **`systemscoach`** or **`systemscoach courses`** to discover existing systems courses, their
 available lesson counts and the commands to open them. `list` and `topics` are aliases.
 

@@ -9,6 +9,7 @@ for shared tutor, shell and VM guidance; link it instead of copying it here.
 
 | Note | When to use it |
 | --- | --- |
+| [Meaningful learner work](learner-work.md) | Required for every systemscoach course: learner-owned tasks, scaffolding boundaries, hints, validation and lesson sizing. |
 | [Object-store and Git labs](object-store-git-labs.md) | Selecting SeaweedFS launch mode, checking conditional publication, validating Git fixtures and cleaning a local lab. |
 | [Systemscoach engine and installation](../../../docs/knowledge/systemscoach.md) | CLI/progress behavior, discovery, shell availability and installation. |
 | [VM resources and cleanup](../../../docs/knowledge/vm-resource-cleanup.md) | Before allocations and at task completion; preserve learner labs and progress. |

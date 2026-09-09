@@ -20,9 +20,23 @@ Use the **current 40-lesson PostgreSQL Essentials course's lesson/review flow** 
 reference, never its lesson count or the old 92-lesson reference's scope. Each systems lesson
 has **15–25 minutes total** for explanation, setup, prediction, experiment, reflection and cleanup.
 Choose the minimum sequence that makes the chosen mechanism and its important failure concrete.
-Teach unfamiliar terms before asking predictions. Supply usable commands and small terminal diagrams.
+Teach unfamiliar terms before asking predictions. Supply usable setup and small terminal diagrams.
 No mandatory written answers, reports, notes, quizzes or progress gates. A brief mental/verbal
 postmortem is enough. The saved ideas' one-page postmortem is optional.
+
+**Every systemscoach lesson must leave meaningful work for the learner.** Have them construct or
+adapt a mechanism-bearing command, change configuration with a causal effect, implement a small
+core decision, or choose and run diagnostic commands to resolve a concrete uncertainty. Merely
+launching supplied code, copying a complete solution, predicting or reading output is insufficient.
+This is Nick's explicit course-wide preference; apply it to new courses and revisions of existing
+ones. Read `$SYSTEMS/docs/knowledge/learner-work.md` for the contract and its provenance.
+
+Explain enough to begin, optionally demonstrate a related case, then state the learner's task,
+edit/command boundary and observable success criteria before giving its solution. Supply graduated
+hints; put the worked answer in review or a clearly separate reference, available on request without
+a forced attempt or quiz. Keep infrastructure supplied. Meaningful native commands count; not every
+lesson needs Go. Budget time for the learner's attempt and debugging inside 15–25 minutes. Shorten
+demonstrations first; split a lesson only when its useful work still will not fit.
 
 Use local services and their CLIs for the real data path and observation. Supply launch/configuration,
 HTTP/RPC/CLI plumbing, fixtures and cleanup. When code is essential, prefer Go, then Deno with a
@@ -59,8 +73,10 @@ it does not use the tutor engine's generated lessons.json or progress.sqlite.
 
 Default to proposing **2–3 lessons per batch**, adapting to the learner's request and mechanism.
 Do not expand the approved route or fill future lessons without a request. Keep future steps planned.
-Design first, validate real rendered commands in owned local fixtures, review evidence and cleanup,
-then publish the batch (`available: true`). `systemscoach check <topic>` checks structure only.
+Design first: name the learner action, supplied boundary and evidence for each lesson. Before
+publication, review that the learner controls the target mechanism or investigation. Validate the
+starter and worked completion against real external evidence in owned local fixtures, review evidence
+and cleanup, then publish the batch (`available: true`). `systemscoach check <topic>` checks structure only.
 Use stable slugs and revisions. Keep a concise temporary HANDOFF.md during multi-turn batch work,
 record measured validation durably, and remove the handoff at completion. Respect the repository's
 batch/commit workflow where applicable; do not commit unrelated work.
@@ -81,7 +97,7 @@ Execute `$SYSTEMS/bin/systemscoach` with the learner's requested arguments (or i
   interview, not invent a course.
 - `use <topic>`: select topic explicitly for short commands.
 - `<topic> route`: complete roadmap, including planned steps and completion.
-- `[<topic>] <n> lesson`: concepts, diagram, prediction, commands, observation prompts and cleanup.
+- `[<topic>] <n> lesson`: concepts, diagram, learner task, hints, evidence checks and cleanup.
 - `[<topic>] <n> review`: evidence interpretation, invariant, tradeoff and optional depth.
 - `[<topic>] <n> done`: record completion **only when explicitly requested**.
 - `[<topic>] lesson`: first unfinished step; planned steps stop at the authoring boundary.
@@ -90,3 +106,5 @@ Reads do not update progress or selection. Never infer completion from command s
 review or conversation. Tests must set SYSTEMSCOACH_STATE to a fresh scratch directory. Use explicit
 lesson numbers for review after done so the learner sees the lesson they just finished. The coach
 renders commands; it does not execute experiments. Do not run a learner exercise for them unless asked.
+When coaching, help with the next useful step and offer hints before volunteering the full answer;
+provide the full answer when requested. Do not silently fill the learner's reserved edits.

@@ -11,7 +11,7 @@ TypeScript data model: systemscoach has its own [small file format](format.md).
 ## One causal experiment, two useful views
 
 `curriculum/<slug>/lesson.md` introduces the question, unfamiliar terms, invariant and terminal
-state/sequence diagram **before commands**. Supply setup, session labels, prediction, manipulation,
+state/sequence diagram **before commands**. Supply setup, session labels, prediction, a meaningful learner task,
 inspection and cleanup. Explain unfamiliar flags and where output/PIDs/version tokens come from.
 State precisely what blocks and which other terminal unblocks it. Observations should let the
 learner assess success; reserve the fuller causal interpretation for review. Both views together,
@@ -25,14 +25,27 @@ If the learner stops at 25 minutes, give a bounded safe-stop/resume path.
 
 Use the [lesson](../templates/lesson.md) and [review](../templates/review.md) templates as prompts,
 not mandatory padding. No pure installation lesson, command tour, line-count target, or coding-only
-milestone. Learner ownership should increase through predicting, inspecting, diagnosing and choosing;
-provide runnable hints and a worked core-logic solution when code is assigned. Keep plumbing supplied.
+milestone. Apply the [learner work contract](knowledge/learner-work.md) to every lesson. Name a
+specific command to construct/adapt, causal configuration change, core edit or diagnostic question
+whose investigation the learner controls. Prediction and running a completed helper alone are not
+sufficient. Supply plumbing and unfamiliar syntax; leave the meaningful decision for the learner.
+
+The default page explains the mechanism, gives the starting state and task boundary, then provides
+observable acceptance checks. A short worked example may precede a related learner task. Keep the
+exact task solution in review or a separate reference, clearly linked and available on request;
+provide graduated hints without requiring a quiz, written submission or permission to see answers.
+Code tasks use an isolated editable workspace and must control the real experiment. Command tasks
+must require a relevant choice or adaptation, not transcription of the entire answer. Include time
+for learner attempts and debugging in the total budget; split only when shortening cannot make it fit.
 
 ## Real validation before availability
 
 For every published lesson, record in `validation/batch-N.md`:
 
 - Source paths/revisions and exact versions of tools/images tested; commands actually executed.
+- The exact learner-owned action, supplied boundary and observed effect. Validate the starter and
+  worked completion, including a relevant wrong choice or failure. Confirm the exercise affects the
+  mechanism or resolves the stated uncertainty; a heading or helper PASS is insufficient.
 - Resource preflight and peak estimate including images, volumes, backups, replica/restore copies,
   retained log history and logs. Keep repository headroom; use a unique owned lab root and ports.
 - Measured observation that proves the claim: IDs, counters, operation history, rows, byte hashes,

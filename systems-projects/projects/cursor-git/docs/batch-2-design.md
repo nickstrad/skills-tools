@@ -1,18 +1,22 @@
 # Final five lessons: design and implementation contract
 
 2026-09-09: Nick explicitly requested “do the final 5 lessons too.” This authorizes lessons 4–8
-on the existing route in one delivery. Preserve slugs, revisions, durations and lessons 1–3.
+on the existing route in one delivery. The subsequent learner-work correction also requires a
+retrofit of lessons 1–3. Preserve slugs and progress; follow normal revision rules for changed lessons.
+Keep current duration targets unless a concrete overload requires a proposed split.
 Primary owns this design, teaching pages, metadata, harness, evidence and knowledge integration.
 Bounded Sol implementation owns only `lab/cursor/*.go`, including tests. Primary reviews and
 independently validates every important boundary against the real pinned SeaweedFS and Git.
 
 ## Learner coding clarification and resume checkpoint
 
-Nick asked which lessons include coding and confirmed he expects to implement the useful part.
-The primary committed to **lesson 6: replay recovery decisions** and **lesson 7: read admission
-decisions** as focused Go edits. Lessons 1–3 are CLI-only; 4, 5 and 8 remain guided experiments.
-Supply transport, processes, fixtures and cleanup. Keep each coding edit small enough for the
-existing 20-minute lesson budget, with graduated hints and a worked solution.
+Nick explicitly requires meaningful learner work in **every lesson**, and made this a norm for all
+systemscoach courses. The earlier plan that only6/7 need learner edits is superseded. Follow
+[the all-eight task plan](learner-work-plan.md): meaningful native command construction or diagnostic
+investigation in1–5/8, focused Go decisions in6/7. Supply transport, processes, fixtures and cleanup;
+explain unfamiliar syntax and leave the mechanism-bearing task to the learner, with graduated hints
+and a separate worked solution. Include attempts and debugging in the existing lesson time budgets.
+The protocol experiments below still apply, but their fully supplied draft pages need this retrofit.
 
 Implementation still required: factor the real client's state classification and read-admission
 policy into short named functions. Copy the client into an owned learner workspace under LAB;

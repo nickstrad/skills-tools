@@ -21,6 +21,15 @@ Explain dependency choices and the smallest sequence that supports the final evi
 Budget 15–25 minutes per lesson including setup, interpretation and cleanup. Estimate one-time
 installation separately. Describe the first proposed batch; keep future lessons unimplemented.
 
+For every lesson, record the concrete learner-owned task, supplied scaffolding, evidence and time
+for the attempt. A finished helper invocation, prediction or reading alone is insufficient.
+
+| Lesson | Learner constructs, changes or investigates | Supplied boundary | Observable evidence | Total / attempt minutes |
+| --- | --- | --- | --- | --- |
+
+Shorten demonstrations before adding lessons. Split only when meaningful work still exceeds the
+time budget or needs a separate conceptual step; explain any proposed route expansion.
+
 ## Lab budget and lifecycle
 
 Name versions/capabilities to verify, service count, ports, bounded dataset, peak disk/memory estimate

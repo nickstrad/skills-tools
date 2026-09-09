@@ -3,6 +3,12 @@
 Interpret the actual tested output. Compare the competing outcome and explain the causal ordering.
 Distinguish measured behavior, documented guarantees and inference.
 
+## Worked solution
+
+Provide the completed learner command, configuration, core edit or diagnostic sequence. Explain why
+its key choice matters and connect it to the acceptance evidence, including a plausible wrong choice.
+Keep this available on request; do not impose a quiz or mandatory attempt before showing it.
+
 ## The systems decision
 
 Explain the invariant, the failure boundary, recovery and a concrete engineering tradeoff.

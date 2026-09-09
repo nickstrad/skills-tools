@@ -1,7 +1,9 @@
 # Cursor: Git at any scale — project roadmap
 
 Status: **approved** on 2026-09-09. Nick accepted the agenda by requesting the first three lessons.
-Batch 1 (lessons 1–3) is available after real validation.
+Batch 1 (lessons 1–3) is available after real validation of its original walkthroughs.
+2026-09-09 learner-work correction: all eight lessons need the
+[task retrofit](docs/learner-work-plan.md); revised pages are not yet published.
 
 ## Question and scope
 
@@ -68,11 +70,13 @@ generation and ordered record keys. Generation changes prevent identical index b
 reused as an old logical state. The index is deliberately bounded and rewritten in full for this
 tiny workload. ETags are opaque conditional tokens, not payload integrity checksums.
 
-Supply fixture generation, Git pack/ref commands, object-store launch/configuration, request signing,
-barriers, crash hooks, notification suppression, inspection and teardown. Start with `git`, `curl`,
-`jq` and checksum commands. Introduce a small supplied Go helper for retry/replay coordination when
-manual steps become distracting. Learner choices concern publication order, retry classification,
-`Apply(entry)` and read admission; code edits are optional with hints and worked solutions.
+Supply fixture generation, object-store launch/configuration, request signing, barriers, crash hooks,
+notification suppression and teardown. Teach `git`, `curl`, `jq` and checksum syntax as needed, then
+reserve meaningful command construction or diagnostic investigation for the learner in each CLI
+lesson. Supply Go transport and orchestration, leaving replay classification and read admission as
+small learner edits. The [all-eight task plan](docs/learner-work-plan.md) names each task, supplied
+boundary, evidence and attempt budget. Offer graduated hints and separate worked solutions; simply
+running a completed helper no longer satisfies the course's learner-work requirement.
 
 Go is the default for essential code. JSON makes the application log directly inspectable. Real
 gRPC and protobuf add no necessary failure boundary here, so they remain optional comparisons.
@@ -87,7 +91,7 @@ systemscoach cursor-git route
 ```
 
 Eight lessons, **175 minutes total** (2 hours 55 minutes), each 20–25 minutes including explanation,
-setup, prediction, execution, review and cleanup. Allow roughly four evenings of two lessons, or
+setup, prediction, learner attempts and debugging, review and cleanup. Allow roughly four evenings of two lessons, or
 eight short sessions. One-time dependency installation adds an estimated 10–20 minutes, depending
 on download speed; it is not a lesson. These are design estimates pending real validation and feedback.
 
@@ -97,7 +101,8 @@ Replay establishes derived state; interrupted replay adds the separate local-pro
 Read admission then uses that state safely, and eviction/rebuild closes the architecture's recovery
 claim. None is an installation-only or boilerplate-writing slot.
 
-Proposed batches: **1–3**, then **4–6**, then **7–8**, only as requested. The first batch ends with
+Original proposed batches: **1–3**, then **4–6**, then **7–8**. Nick subsequently requested
+all final five lessons together, then the all-eight learner-work correction. The first batch ends with
 the real publication race. Later steps stay planned. Each lesson gets a deterministic starting
 fixture so prior lesson data or shell variables are not prerequisites. After a batch, briefly check
 clarity, actual time and learning value before the next requested batch.

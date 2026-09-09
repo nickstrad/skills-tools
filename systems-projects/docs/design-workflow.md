@@ -31,8 +31,9 @@ survey counts are the learner's supplied planning material, not research indepen
 Propose one minimum core path and a small optional extension list. For each candidate lesson answer:
 
 - What systems question does it answer, and why would a working engineer care?
-- What does the learner change/predict, what evidence distinguishes the outcomes, and what decision
-  becomes possible? Installation or writing a handler alone cannot earn a lesson slot.
+- What meaningful command, configuration, core edit or diagnostic investigation does the learner
+  own? What is supplied, what evidence distinguishes outcomes, and what decision becomes possible?
+  Prediction, installation or launching a finished helper alone cannot earn a lesson slot.
 - What new insight does it add beyond earlier lessons? Combine redundant steps; split overlong ones.
 
 Often a narrow mechanism fits 4–8 lessons; a more involved project may need 8–12. These are planning
@@ -66,8 +67,15 @@ mechanism better. This is a teaching progression, not six mandatory stage-lesson
 Provide connection handling, transport, generated stubs, configuration, fixtures, bounded workloads
 and cleanup. Mark the learner's edit boundary: e.g. `Apply(event)`, `ChooseOwner(key, members)`,
 `NextState(observation)`, or a WAL record struct plus replay ordering. Define behavior and provide
-observable acceptance commands. The learner may choose a measurement or explain an ordering
-without writing any code. Go is preferred for code; Deno is the second choice when justified.
+observable acceptance commands. Every lesson needs a meaningful learner action under the
+[learner work contract](knowledge/learner-work.md). Native commands that the learner constructs or
+adapts, or diagnostic commands they choose to resolve an uncertainty, count without writing Go;
+explaining an ordering alone does not. Go is preferred for code; Deno is second when justified.
+
+Plan time for an attempt, evidence inspection and a small correction. First shorten supplied
+demonstrations and remove redundant cases. Add intermediate lessons only when useful work still
+exceeds 25 minutes or combines distinct concepts that need separate practice; each added lesson
+must have its own learner action and observable result. Do not inflate course length by default.
 
 For a Cursor-inspired project, evaluate a local S3-compatible object store, Git plumbing, an explicit
 publication index, optional PostgreSQL metadata, and inspectable protobuf records. Include real gRPC
