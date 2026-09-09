@@ -1,0 +1,16 @@
+{
+  "id": "chosen-topic",
+  "title": "Chosen systems question",
+  "status": "draft",
+  "objective": "Explain one invariant, force its important failure and demonstrate recovery.",
+  "lessons": [
+    {
+      "slug": "observe-the-boundary",
+      "title": "Observe the chosen state boundary",
+      "minutes": 20,
+      "revision": 1,
+      "outcome": "Replace with the concrete manipulation, evidence and resulting decision.",
+      "available": false
+    }
+  ]
+}

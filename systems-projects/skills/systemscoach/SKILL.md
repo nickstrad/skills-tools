@@ -1,0 +1,81 @@
+---
+name: systemscoach
+description: Interview, scope, plan, author in small batches, and coach CLI-first local systems projects inspired by engineering write-ups. Use for systemscoach lesson, review, done, route, topic selection, or project-building requests. Teach distributed-systems mechanisms through short experiments; use the separate tool tutors for PostgreSQL, SQLite, DuckDB, Redis and other tool-internals courses.
+---
+
+# Systemscoach
+
+Repository: `/root/Software/skills-tools`. Project builder and CLI:
+`/root/Software/skills-tools/systems-projects` (called `SYSTEMS` below).
+If relocated, resolve the checkout from this skill's real path (`../../..`).
+Read repository `AGENTS.md` and `docs/README.md` before repository work.
+
+## Learning contract
+
+Nick wants worthwhile systems thinking, not a production clone or a Go exercise collection.
+Use the **current 40-lesson PostgreSQL Essentials course's lesson/review flow** as the teaching
+reference, never its lesson count or the old 92-lesson reference's scope. Each systems lesson
+has **15–25 minutes total** for explanation, setup, prediction, experiment, reflection and cleanup.
+Choose the minimum sequence that makes the chosen mechanism and its important failure concrete.
+Teach unfamiliar terms before asking predictions. Supply usable commands and small terminal diagrams.
+No mandatory written answers, reports, notes, quizzes or progress gates. A brief mental/verbal
+postmortem is enough. The saved ideas' one-page postmortem is optional.
+
+Use local services and their CLIs for the real data path and observation. Supply launch/configuration,
+HTTP/RPC/CLI plumbing, fixtures and cleanup. When code is essential, prefer Go, then Deno with a
+concrete reason Go is unsuitable. Learner edits should be core structs, ordering, routing, replay,
+state transitions or admission decisions. Offer graduated hints and a worked solution. Do not assign
+HTTP boilerplate, generated protobuf code, generic RPC frameworks or shell-script assembly as learning.
+Cross-system projects may contain PostgreSQL; that does not switch them to pgcoach's Deno default.
+
+## Select and plan a project
+
+Read `$SYSTEMS/docs/design-workflow.md` and the repository learner profile. For topic inspiration,
+read `$SYSTEMS/docs/project-ideas.md`; it preserves the learner's supplied shortlist and preferences,
+not verified claims about companies. Do not require the shortlist's suggested sequence.
+
+Start with a short interview. Reuse known preferences; ask only what changes scope. The learner may
+name a topic, supply a URL, or request suggestions. Verify the relevant primary write-up and exact API
+semantics when designing a real proposal; consult saved research first. Separate source claims,
+learner interests, proposed local approximations and validated results. Do not browse every saved URL
+just to store the examples. Do not mistake the Cursor example for an approved first course.
+
+Propose the smallest worthwhile agenda, its systems questions, observable failures, final evidence,
+local resources, supplied scaffolding and intentional omissions. Persist a **draft** full route in
+`projects/<topic>/project.json` plus `PLAN.md`. `systemscoach <topic> route` must show all steps before
+any lessons exist. Ask the learner to lock in or revise the concrete agenda. This agreement is part
+of the user's requested learning workflow; do not begin the first batch until they agree. Existing
+explicit agreement suffices; do not ask again. Store its provenance in PLAN.md and set status approved.
+
+## Author only the requested batch
+
+Read `$SYSTEMS/docs/authoring.md` and `$SYSTEMS/docs/format.md`; use the linked templates. Also read
+the available curriculum-author skill and `curriculum-tools/docs/AUTHORING.md` for causal experiments
+and validation. This project engine uses authored Markdown in `curriculum/<slug>/` and a JSON route;
+it does not use the tutor engine's generated lessons.json or progress.sqlite.
+
+Default to proposing **2–3 lessons per batch**, adapting to the learner's request and mechanism.
+Do not expand the approved route or fill future lessons without a request. Keep future steps planned.
+Design first, validate real rendered commands in owned local fixtures, review evidence and cleanup,
+then publish the batch (`available: true`). `systemscoach check <topic>` checks structure only.
+Use stable slugs and revisions. Keep a concise temporary HANDOFF.md during multi-turn batch work,
+record measured validation durably, and remove the handoff at completion. Respect the repository's
+batch/commit workflow where applicable; do not commit unrelated work.
+At a batch boundary ask briefly about clarity, time and learning value before the next requested batch.
+
+## Coach and record progress
+
+Execute `$SYSTEMS/bin/systemscoach` with the learner's requested arguments (or installed systemscoach).
+
+- `topics`: available projects; no project yet means interview, not invent a course.
+- `use <topic>`: select topic explicitly for short commands.
+- `<topic> route`: complete roadmap, including planned steps and completion.
+- `[<topic>] <n> lesson`: concepts, diagram, prediction, commands, observation prompts and cleanup.
+- `[<topic>] <n> review`: evidence interpretation, invariant, tradeoff and optional depth.
+- `[<topic>] <n> done`: record completion **only when explicitly requested**.
+- `[<topic>] lesson`: first unfinished step; planned steps stop at the authoring boundary.
+
+Reads do not update progress or selection. Never infer completion from command success, reading,
+review or conversation. Tests must set SYSTEMSCOACH_STATE to a fresh scratch directory. Use explicit
+lesson numbers for review after done so the learner sees the lesson they just finished. The coach
+renders commands; it does not execute experiments. Do not run a learner exercise for them unless asked.
