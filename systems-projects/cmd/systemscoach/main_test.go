@@ -187,7 +187,7 @@ func TestDraftAndInvalidRoutes(t *testing.T) {
 
 func TestInvalidCommandsAndNoProjects(t *testing.T) {
 	c, out := fixture(t)
-	for _, args := range [][]string{{"use"}, {"topics", "extra"}, {"alpha", "0", "lesson"}, {"alpha", "-1", "done"}, {"alpha", "3", "lesson"}, {"alpha", "1", "oops"}, {"alpha", "1", "lesson", "extra"}, {"use", "../alpha"}, {"alpha", "--db", "file"}} {
+	for _, args := range [][]string{{"use"}, {"topics", "extra"}, {"courses", "extra"}, {"list", "extra"}, {"alpha", "0", "lesson"}, {"alpha", "-1", "done"}, {"alpha", "3", "lesson"}, {"alpha", "1", "oops"}, {"alpha", "1", "courses"}, {"alpha", "1", "lesson", "extra"}, {"use", "../alpha"}, {"alpha", "--db", "file"}} {
 		rejected(t, c, args...)
 	}
 	empty := Coach{t.TempDir(), t.TempDir(), out}
@@ -195,9 +195,57 @@ func TestInvalidCommandsAndNoProjects(t *testing.T) {
 		t.Fatal(err)
 	}
 	out.Reset()
-	call(t, empty, "topics")
-	if !strings.Contains(out.String(), "No projects yet") {
+	call(t, empty)
+	if !strings.Contains(out.String(), "No systems project courses yet") {
 		t.Fatal(out.String())
+	}
+}
+
+func TestCourseDiscoveryAliasesCountsCommandsAndStateImmutability(t *testing.T) {
+	c, out := fixture(t)
+	p, _ := c.load("beta")
+	p.Status = "draft"
+	p.Lessons[0].Available = false
+	saveProject(t, c, p)
+
+	var canonical string
+	for _, args := range [][]string{nil, {"courses"}, {"list"}, {"topics"}} {
+		out.Reset()
+		call(t, c, args...)
+		got := out.String()
+		if canonical == "" {
+			canonical = got
+		} else if got != canonical {
+			t.Fatalf("discovery aliases differ:\n%s\n---\n%s", canonical, got)
+		}
+	}
+	for _, want := range []string{
+		"alpha — alpha experiment (approved, 1/2 lessons available)",
+		"Route: systemscoach alpha route",
+		"Start/continue: systemscoach alpha lesson",
+		"beta — beta experiment (draft, 0/2 lessons available)",
+		"Route: systemscoach beta route",
+	} {
+		if !strings.Contains(canonical, want) {
+			t.Fatalf("missing %q in:\n%s", want, canonical)
+		}
+	}
+	if strings.Contains(canonical, "systemscoach beta lesson") {
+		t.Fatal("draft course advertised an unavailable lesson")
+	}
+	if _, err := os.Stat(c.state); !os.IsNotExist(err) {
+		t.Fatal("discovery created selection or progress state")
+	}
+}
+
+func TestDiscoveryCommandNamesAreReservedTopics(t *testing.T) {
+	c, _ := fixture(t)
+	for _, id := range []string{"courses", "list", "topics"} {
+		p := Project{ID: id, Title: "Reserved", Status: "approved", Objective: "Reserved", Lessons: []Lesson{{Slug: "first", Title: "First", Minutes: 20, Revision: 1, Outcome: "Observe", Available: false}}}
+		saveProject(t, c, p)
+		if _, err := c.load(id); err == nil {
+			t.Fatalf("reserved topic %q loaded", id)
+		}
 	}
 }
 

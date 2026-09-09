@@ -5,6 +5,9 @@ engineering write-ups. Each lesson takes 15–25 minutes: understand, predict, m
 explain and clean up. Existing CLIs carry the data path; supplied scaffolding keeps learner coding
 focused on core logic, with Go first and Deno second.
 
+Run **`systemscoach`** or **`systemscoach courses`** to discover existing systems courses, their
+available lesson counts and the commands to open them. `list` and `topics` are aliases.
+
 Start in chat: **“Use systemscoach to help me choose a project”** or **“Use systemscoach with this
 write-up: URL.”** The skill conducts a short interview and proposes a complete minimum agenda.
 Once you agree, request a small batch. The first selected topic has a
@@ -13,7 +16,7 @@ replicas, visible with `systemscoach cursor-git route`. No lessons are authored 
 The [saved ideas](docs/project-ideas.md) include all 15 examples from your supplied doc.
 
 ```sh
-systemscoach topics
+systemscoach courses
 systemscoach <topic> route
 systemscoach use <topic>
 systemscoach 1 lesson
@@ -34,6 +37,7 @@ including when invoked through a symlink. The initial `go run` may compile the s
 - [Authoring and validation](docs/authoring.md)
 - [Project/progress format](docs/format.md)
 - [Skill](skills/systemscoach/SKILL.md)
+- [Systems knowledge store](docs/knowledge/README.md) — reusable findings updated after systems tasks
 
 Development: `go test ./...`, `go vet ./...`, `go build ./cmd/systemscoach` (choose an output path
 outside the source tree). Tests use isolated temporary progress. Other courses and their learner

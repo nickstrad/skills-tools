@@ -13,6 +13,9 @@ Use [design-workflow](docs/design-workflow.md), [authoring](docs/authoring.md) a
 skill for this project track. The current 40-lesson PostgreSQL course provides the lesson/review
 teaching reference, not a length target. Keep lessons 15–25 minutes and author only agreed batches.
 Read the [learner profile](../docs/learner-profile.md) and [saved interests](../docs/articles/README.md).
+Read the dedicated [systems knowledge store](docs/knowledge/README.md) before systems work and
+update it with reusable, evidence-backed findings after each completed task or course batch.
+Keep project source research and validation records beside the project; link them from shared notes.
 
 Useful knowledge to consult selectively:
 

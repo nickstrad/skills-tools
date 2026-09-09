@@ -6,6 +6,13 @@ if [ -n "${SYSTEMSCOACH_BIN:-}" ]; then
   exec "$SYSTEMSCOACH_BIN" "$@"
 fi
 if ! command -v go >/dev/null 2>&1; then
+  bundled_go="$SYSTEMS_ROOT/../curriculum-tools/courses/grpc/.tools/go/bin/go"
+  if [ -x "$bundled_go" ]; then
+    PATH=$(dirname "$bundled_go"):$PATH
+    export PATH
+  fi
+fi
+if ! command -v go >/dev/null 2>&1; then
   echo 'systemscoach: Go is required; install Go or set SYSTEMSCOACH_BIN to a built binary.' >&2
   exit 127
 fi

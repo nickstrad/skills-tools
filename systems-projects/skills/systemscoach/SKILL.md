@@ -9,6 +9,9 @@ Repository: `/root/Software/skills-tools`. Project builder and CLI:
 `/root/Software/skills-tools/systems-projects` (called `SYSTEMS` below).
 If relocated, resolve the checkout from this skill's real path (`../../..`).
 Read repository `AGENTS.md` and `docs/README.md` before repository work.
+Before systems project work, also read `$SYSTEMS/docs/knowledge/README.md`; it indexes reusable
+systems-project findings. Use the repository-wide `docs/knowledge/` index for findings shared with
+other curricula and the dedicated systems store for project-builder and systems-course knowledge.
 
 ## Learning contract
 
@@ -63,11 +66,19 @@ record measured validation durably, and remove the handoff at completion. Respec
 batch/commit workflow where applicable; do not commit unrelated work.
 At a batch boundary ask briefly about clarity, time and learning value before the next requested batch.
 
+After each completed systems task or lesson batch, update the appropriate durable knowledge note with
+the evidence observed, known limits and final cleanup state, and add or update its entry in
+`$SYSTEMS/docs/knowledge/README.md`. Put cross-cutting repository findings in root `docs/knowledge/`
+as well when they apply beyond systems projects. Do not replace durable evidence with a temporary
+handoff.
+
 ## Coach and record progress
 
 Execute `$SYSTEMS/bin/systemscoach` with the learner's requested arguments (or installed systemscoach).
 
-- `topics`: available projects; no project yet means interview, not invent a course.
+- Bare invocation, `courses`, `list`, or `topics`: discover systems project courses, their agenda
+  status, available/total lesson count, and actionable route/lesson commands. No project yet means
+  interview, not invent a course.
 - `use <topic>`: select topic explicitly for short commands.
 - `<topic> route`: complete roadmap, including planned steps and completion.
 - `[<topic>] <n> lesson`: concepts, diagram, prediction, commands, observation prompts and cleanup.

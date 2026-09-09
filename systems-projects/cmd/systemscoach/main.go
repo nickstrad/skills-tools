@@ -39,7 +39,7 @@ type Coach struct {
 
 var slugPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 
-const help = `systemscoach topics
+const help = `systemscoach courses                 list systems project courses (aliases: list, topics)
 systemscoach use TOPIC                  select a project for short commands
 systemscoach [TOPIC] route              full agenda, availability and completion
 systemscoach [TOPIC] [N] lesson         next unfinished lesson when N is omitted
@@ -53,6 +53,41 @@ Ask the systemscoach skill to interview you about a topic/write-up, propose an a
 and author a small batch after you approve it. The CLI does not generate lessons.
 Environment: SYSTEMSCOACH_ROOT (project folder), SYSTEMSCOACH_STATE (isolated progress folder).
 `
+
+func (c Coach) listCourses() error {
+	entries, err := os.ReadDir(filepath.Join(c.root, "projects"))
+	if errors.Is(err, os.ErrNotExist) {
+		entries = nil
+	} else if err != nil {
+		return err
+	}
+	count := 0
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		p, err := c.load(e.Name())
+		if err != nil {
+			return err
+		}
+		available := 0
+		for _, lesson := range p.Lessons {
+			if lesson.Available {
+				available++
+			}
+		}
+		fmt.Fprintf(c.out, "%s — %s (%s, %d/%d lessons available)\n", p.ID, p.Title, p.Status, available, len(p.Lessons))
+		fmt.Fprintf(c.out, "  Route: systemscoach %s route\n", p.ID)
+		if available > 0 && p.Status == "approved" {
+			fmt.Fprintf(c.out, "  Start/continue: systemscoach %s lesson\n", p.ID)
+		}
+		count++
+	}
+	if count == 0 {
+		fmt.Fprintln(c.out, "No systems project courses yet. Ask the systemscoach skill to interview you about a topic or write-up. Ideas: docs/project-ideas.md")
+	}
+	return nil
+}
 
 func decode(path string, value any) error {
 	f, err := os.Open(path)
@@ -74,7 +109,7 @@ func decode(path string, value any) error {
 
 func (c Coach) load(id string) (Project, error) {
 	var p Project
-	if !slugPattern.MatchString(id) || isAction(id) || id == "topics" || id == "use" || id == "check" || id == "help" {
+	if !slugPattern.MatchString(id) || isReserved(id) {
 		return p, errors.New("topic must be a lowercase kebab-case identifier")
 	}
 	if err := decode(filepath.Join(c.root, "projects", id, "project.json"), &p); err != nil {
@@ -183,36 +218,20 @@ func (c Coach) selectTopic(id string) error {
 }
 
 func (c Coach) run(args []string) error {
+	if len(args) == 0 {
+		return c.listCourses()
+	}
 	if len(args) == 1 && (args[0] == "help" || args[0] == "--help" || args[0] == "-h") {
 		fmt.Fprint(c.out, help)
 		return nil
 	}
 	if len(args) > 0 {
 		switch args[0] {
-		case "topics":
+		case "courses", "list", "topics":
 			if len(args) != 1 {
-				return errors.New("usage: systemscoach topics")
+				return fmt.Errorf("usage: systemscoach %s", args[0])
 			}
-			entries, err := os.ReadDir(filepath.Join(c.root, "projects"))
-			if err != nil {
-				return err
-			}
-			count := 0
-			for _, e := range entries {
-				if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
-					continue
-				}
-				p, err := c.load(e.Name())
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(c.out, "%s — %s (%s)\n", p.ID, p.Title, p.Status)
-				count++
-			}
-			if count == 0 {
-				fmt.Fprintln(c.out, "No projects yet. Ask the systemscoach skill to interview you about a topic or write-up. Ideas: docs/project-ideas.md")
-			}
-			return nil
+			return c.listCourses()
 		case "use", "check":
 			if len(args) != 2 {
 				return fmt.Errorf("usage: systemscoach %s TOPIC", args[0])
@@ -229,7 +248,7 @@ func (c Coach) run(args []string) error {
 		}
 	}
 	var topic string
-	if len(args) > 0 && slugPattern.MatchString(args[0]) && !isAction(args[0]) {
+	if len(args) > 0 && slugPattern.MatchString(args[0]) && !isReserved(args[0]) {
 		topic, args = args[0], args[1:]
 	}
 	if topic == "" {
@@ -341,7 +360,14 @@ func (c Coach) run(args []string) error {
 	return nil
 }
 
-func isAction(s string) bool { return s == "lesson" || s == "review" || s == "done" || s == "route" }
+func isAction(s string) bool {
+	return s == "lesson" || s == "review" || s == "done" || s == "route"
+}
+
+func isReserved(s string) bool {
+	return isAction(s) || s == "courses" || s == "list" || s == "topics" ||
+		s == "use" || s == "check" || s == "help"
+}
 
 func main() {
 	root := os.Getenv("SYSTEMSCOACH_ROOT")

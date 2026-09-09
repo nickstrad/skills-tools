@@ -31,11 +31,13 @@ An available lesson needs both nonempty Markdown files and an approved agenda. `
 these properties; the author still must inspect real experiment evidence. Planned lessons need no
 empty Markdown scaffolds. The CLI stops at the first unfinished planned lesson instead of skipping
 ahead. Prerequisites describe learning dependencies; they do not impose completion/quiz gates.
-Do not use command words (`topics`, `use`, `check`, `help`, `lesson`, `review`, `done`, `route`) as topic IDs.
+Do not use command words (`courses`, `list`, `topics`, `use`, `check`, `help`, `lesson`, `review`, `done`, `route`) as topic IDs.
 
 ## Commands
 
 ```sh
+systemscoach                         # discover systems project courses
+systemscoach courses                 # aliases: list, topics
 systemscoach topics
 systemscoach wal-git route
 systemscoach use wal-git
@@ -51,6 +53,10 @@ systemscoach check wal-git
 A compiled binary invoked directly needs this variable set (otherwise it uses the working directory).
 `SYSTEMSCOACH_STATE` selects the progress directory; default is `<root>/.state`.
 `SYSTEMSCOACH_BIN` lets the launcher use a prebuilt binary instead of `go run`.
+
+Course discovery reports each agenda's approved/draft status and available/total lesson count, then
+prints a route command and, when an approved lesson is available, a start/continue command. Bare
+invocation and all three listing names are read-only and do not require or change topic selection.
 
 `use` changes only the selected topic. `done` requires an explicit lesson number and an available
 lesson. It creates an atomic completion receipt at `.state/done/<topic>/<slug>/<revision>.json`.
