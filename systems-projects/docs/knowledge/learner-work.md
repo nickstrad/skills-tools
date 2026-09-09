@@ -31,7 +31,10 @@ a relevant choice, construction or adaptation to the learner.
 Plan the attempt, a small debugging allowance, explanation and cleanup within 15–25 minutes total.
 Shorten demonstrations and redundant cases first. Add an intermediate lesson only when the useful
 task still cannot fit or needs its own conceptual step. Each added lesson must earn its place with
-a separate learner action and evidence. There is no required longer course or fixed coding ratio.
+a separate learner action and evidence. There is no fixed coding ratio. Nick subsequently clarified that he prefers a couple of short
+sessions over lessons running long, and explicitly requested splitting original Cursor Git lessons
+5 and 8. Honor that ten-lesson target without waiting for an overrun; in future planning, favor a
+clean short stopping point over squeezing multiple useful tasks into one session.
 
 ## Applying and checking the norm
 
@@ -46,8 +49,8 @@ Apply this to new courses and existing-course revisions. Preserve learner work a
 the normal revision and real-validation rules when changing an available lesson. Existing validation
 records remain historical evidence, not proof of a redesigned task's acceptance.
 
-The [Cursor Git revision plan](../../projects/cursor-git/docs/learner-work-plan.md) applies this to all
-eight lessons. The temporary project handoff tracks pending implementation while the batch is open.
+The [Cursor Git revision plan](../../projects/cursor-git/docs/learner-work-plan.md) applies this to the
+ten-lesson target route (splitting original lessons 5 and 8). The temporary project handoff tracks pending implementation while the batch is open.
 At this policy checkpoint, existing lesson pages have not yet been retrofitted; lessons 1–3 remain
 available in their earlier form and 4–8 remain unpublished drafts.
 
