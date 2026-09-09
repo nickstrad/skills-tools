@@ -27,6 +27,7 @@ Use `bin/systemscoach` directly from this folder, or install the launcher and sk
 `./install.sh`. Go 1.24+ is required (standard library only). The launcher resolves this checkout,
 including when invoked through a symlink. The initial `go run` may compile the small CLI.
 
+- [Ranked project ideas and teaching focus](docs/project-ranking.md)
 - [Design and interview workflow](docs/design-workflow.md)
 - [Authoring and validation](docs/authoring.md)
 - [Project/progress format](docs/format.md)
