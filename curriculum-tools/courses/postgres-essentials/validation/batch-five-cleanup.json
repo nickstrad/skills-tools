@@ -1,0 +1,35 @@
+{
+  "date": "2026-09-10",
+  "remaining_author_roots": [],
+  "free_bytes": 16524025856,
+  "memory_available": "7109224 kB",
+  "reference_fingerprints": {
+    "progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "progress.sqlite-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "progress_rows": 13,
+  "attempt_rows": 13,
+  "live_lesson_16_rendered": true,
+  "render_preserved_history_and_fingerprints": true,
+  "early_author_root": "/tmp/pg-essentials-validation-indexes-20260910",
+  "early_author_root_removed": true,
+  "early_author_root_reclaimed": "47MiB allocated",
+  "evidence_retention": "Compact reports/scripts/outcomes/source manifests and ignored logs only; no database image obligation.",
+  "learner_readiness": {
+    "version": "PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit",
+    "data_directory": "/labs/pglab/primary",
+    "in_recovery": false,
+    "database": "lab",
+    "can_create": true
+  },
+  "postgres_processes": [
+    "348739 /usr/lib/postgresql/16/bin/postgres -D /labs/pglab/primary",
+    "348740 postgres: lab-primary: logger ",
+    "348741 postgres: lab-primary: checkpointer ",
+    "348742 postgres: lab-primary: background writer ",
+    "348744 postgres: lab-primary: walwriter ",
+    "348745 postgres: lab-primary: autovacuum launcher ",
+    "348746 postgres: lab-primary: archiver last was 000000010000000000000002",
+    "348747 postgres: lab-primary: logical replication launcher"
+  ]
+}

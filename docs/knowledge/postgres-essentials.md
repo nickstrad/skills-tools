@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-07. The active route is 40 small lessons, with its first fifteen implemented. The
+Updated 2026-09-10. The active route is 40 small lessons, with its first 21 implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -15,7 +15,7 @@ published route exactly. No TOAST/cache/numeric-XID detour is required.
 `pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
 renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
 and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Fifteen real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
+Twenty-one real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
 finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
 addresses essentials; legacy pgtutor commands still belong to the original course.
 
@@ -164,3 +164,46 @@ for measured evidence and resource closure.
 - Optional multi-session variations need complete fenced, labelled blocks with their own setup,
   guards and cleanup. Prose terminal switches disappear when extracting runnable evidence, and
   the variation runner intentionally skips the core setup. Verify the actual displayed commands.
+
+
+## Query-work batch: review and validation rules
+
+Lessons 16–21 follow [the fifth-batch design](../../curriculum-tools/courses/postgres-essentials/designs/16-21.md).
+The following distinctions guided primary review:
+
+- An EXPLAIN node's row estimate describes output, not every row examined. Actual rows and filtered
+  rows are reported per loop; parent buffer counts include child work, so summing the tree double
+  counts. Costs are model units, and a shared-buffer read does not establish physical disk I/O.
+  See [PostgreSQL 16 EXPLAIN](https://www.postgresql.org/docs/16/using-explain.html).
+- A trailing B-tree equality condition can appear as Index Cond even when it does not bound the
+  leading-column range. Thus both index orders can avoid a sort and heap-level filtering while
+  examining very different index ranges. Compare buffer work, not an invented Rows Removed count.
+  This batch targets PostgreSQL 16; do not silently import later planner features into its claims.
+  See [multicolumn indexes](https://www.postgresql.org/docs/16/indexes-multicolumn.html).
+- After UPDATE grows a heap, PostgreSQL can scale the old cardinality using the current relation
+  size. A stale estimate therefore need not remain the original equality count. Verify a material
+  error and its repair, keeping live data unchanged across the ANALYZE comparison.
+  See [planner statistics](https://www.postgresql.org/docs/16/planner-stats.html).
+- A covering index needs visibility-map evidence to skip heap checks. The middle Heap Fetches
+  count can exceed the final output row count because index entries for obsolete versions can
+  also lead to checks. Accept zero/positive/zero with equal query output counts, rather than a
+  fixed middle count. See [index-only scans](https://www.postgresql.org/docs/16/indexes-index-only-scans.html).
+- A sort's work_mem allowance is not a connection-wide or server-wide cap. Keep the comparison
+  local to the transaction and account for simultaneous operations and workers. The LIMIT
+  variation keeps the small budget unchanged so the bounded retained set is the changed condition.
+  See [resource settings](https://www.postgresql.org/docs/16/runtime-config-resource.html#GUC-WORK-MEM).
+- Hand-copied SQL can establish prototype behavior but cannot establish exact-source acceptance.
+  A hash captured after such a run does not close that gap. Import the authored setup/code or
+  drive the built catalog and extract the displayed variation fences. This catches raw-template
+  backticks and doubled psql backslashes that a manually copied SQL script can conceal.
+
+The final resource inventory must cover failed author attempts as well as the accepted run. In this
+batch it found an earlier index prototype still running after the accepted suffix-c root had been
+retired. A report that one root was removed does not close every allocation. Put ownership setup
+(including mkdir/chown) inside the validator's cleanup scope, and independently check actual data
+directories and processes before final completion.
+
+The [fifth-batch acceptance](../../curriculum-tools/courses/postgres-essentials/validation/batch-five.md)
+records all six standalone core/variation checks and the final21-lesson run,37 passing tests,
+unchanged first15 lesson objects, preserved13 learner history/attempt rows during catalog refresh,
+and final cleanup with only the learner server remaining. Lesson22 is the next planned entry.

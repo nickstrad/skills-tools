@@ -40,3 +40,7 @@ not traverse `/root`; its owned root was nevertheless stopped/removed, and the a
 readable temporary SQL copy. Sandbox policy prevented the author process from connecting to the
 protected learner socket for a final read-only readiness query; primary acceptance should make that
 global check. No learner table, cluster, or progress database was written.
+
+Primary cleanup correction: the earlier unsuffixed prototype root remained live despite retirement
+of the suffix-c run. Final primary inventory verified it idle, stopped it normally and removed it,
+reclaiming47 MiB. See batch-five-cleanup.json; all attempts are now retired.
