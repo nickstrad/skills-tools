@@ -29,7 +29,7 @@ function history(path: string): string {
 
 Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
   assert(
-    ROUTE.length === 40 && catalog.length === 15,
+    ROUTE.length === 40 && catalog.length === 21,
     "route or authored batch drifted",
   );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");

@@ -1,0 +1,60 @@
+{
+  "query_work": {
+    "18": [
+      {
+        "nodes": [
+          {
+            "node": "Index Scan using pe_index_crossover_id_idx on pe_index_crossover",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 3,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_index_crossover",
+            "estimate": 95175,
+            "actual": 95000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 6667,
+        "heap_fetches": [],
+        "removed": [
+          5000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "18": []
+  },
+  "variations": {
+    "18": [
+      {
+        "nodes": [
+          {
+            "node": "Index Scan using pe_index_crossover_id_idx on pe_index_crossover",
+            "estimate": 20036,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 1390,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  }
+}

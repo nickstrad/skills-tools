@@ -1,0 +1,14 @@
+{
+  "available": 21,
+  "copied_refresh_and_views": "passed",
+  "live_refresh": true,
+  "logical_history_unchanged": true,
+  "progress_rows": 13,
+  "attempt_rows": 13,
+  "next_view": "# PostgreSQL Essentials 14/40: Cause a deadlock and explain the cycle",
+  "temporary_copy_removed": true,
+  "reference_fingerprints_unchanged": {
+    "progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "progress.sqlite-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

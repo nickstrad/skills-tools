@@ -1,0 +1,30 @@
+{
+  "catalog_sha256": "891d8ebf770f63c8a2856df0e41e2fbea966fe68f5122586bd942e482331063f",
+  "lessons": {
+    "committed-row-visibility": "76104da8f9185c27e0b42742dccca9b354c43e3943adec16a9d42e62ed0702b6",
+    "statement-versus-transaction-snapshot": "d8e985ba9bdad4680274270a6326a0fdbf1a72a2b38f5f8321960fc1c530b633",
+    "old-reader-retains-history": "23b789f596e3922e44fd3c08527cfd90d3aaed8780795b19020552cebd87dfc2",
+    "reusable-space-versus-file-size": "e05b987784eb1096353a9ffdeb3f18ffd02164d0761d76b74c3d0f9dfa000d7c",
+    "lost-update-and-atomic-write": "de554455f9b832a13f0866e3513b16c6c67fef91f37e200c8bbf18628b3b70dc",
+    "row-lock-protects-decision": "48646c29d252857e6505465a30aad803210aeef31cd3b4134c41e39b401c9d14",
+    "reject-stale-edit": "7977c1040b7c14d97c78a73c8c8d377236ae85e3321b119dc214cf33b78d7bab",
+    "multi-row-write-skew": "6cc2e2da29ff19a6d62ab9d12119e3b5e2b4e665489bbc93c739f1fdb0b10794",
+    "serializable-protects-invariant": "007f2f870693a64a0e7436799546226900cc02d27b17db68d205378eed69cb75",
+    "whole-transaction-retry": "3e35fcce6e59861155ce31091735505124ff87ae7bb3094f9ad3864b8b70944a",
+    "unknown-commit-outcome": "36f798d14f3d685cc596636fe5dda458ed47b8c85193521c596d3da32f3c8020",
+    "durable-request-identity": "c4d5ef4c706f62cafa59dcf83b6372f3128404573ff83e16f734942d74ca7c5a",
+    "find-the-blocker": "43bc7a20c272fd945232794c9224f32af6957581fb0e669a0e4c497bdf8b1dbf",
+    "deadlock-cycle": "25c93bc33e2075ae550f083945731949ba2a8e53785db67af5c0a6e48a24eff4",
+    "timeout-and-transaction-state": "19a8163012b11643159a81c37026d20ba92b69294343e995c5ae3e920e212a0a",
+    "read-a-plan-as-evidence": "a2e08e0fcb98c18743dd9241b5b24bce6b4fa060b5e9d63bf3b328f49af6597c",
+    "statistics-and-estimates": "8c92bf28521b7d2306b3d9993fb60c3a73655f525df9a14ccfcefcf874b53c1a",
+    "index-crossover": "1e4f1a4686f110e039a7b7a5b57cace8fd2ae1365d517ecd9a0b5cbf59063c5f",
+    "composite-index-order": "1cc28925645efd6168d177afbb16387339cf660a671674732db8bc19c9f98b3b",
+    "index-only-needs-visibility": "844550e8cfdc00f2e1b04cebeb641386854d83a35656903dfeb645e5883ac773",
+    "sort-spill": "92c54dc253a62a8c18bf9dce54ba5108cd82323e40e64fa0b645669a359f9b75"
+  },
+  "support_files": {
+    "lab/retry.py": "f6a11c00cb88e6bcbf793261ceb107b0718d69fde6b2daae6dfbcfabd230fcb2",
+    "lab/unknown_outcome.py": "642ccc95139439a794d5994930b1f7ceef7fc5594b3193e62567579c963914d4"
+  }
+}

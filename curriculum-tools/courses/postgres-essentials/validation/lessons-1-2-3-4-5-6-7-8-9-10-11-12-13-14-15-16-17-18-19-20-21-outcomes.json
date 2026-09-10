@@ -1,0 +1,959 @@
+{
+  "a_private": 120,
+  "b_before_commit": 100,
+  "b_after_commit": 120,
+  "a_aborted": 999,
+  "b_after_rollback": 120,
+  "rc_before": 100,
+  "rc_after": 120,
+  "rr_before": 100,
+  "rr_after": 100,
+  "fresh_after_end": 120,
+  "reader_before": 1000,
+  "fresh_rows": 0,
+  "reader_after_delete": 1000,
+  "retained_dead": 1000,
+  "released_dead": 0,
+  "final_rows": 0,
+  "a_replacement_written": 110,
+  "b_replacement_written": 120,
+  "after_stale_replacement": 120,
+  "a_atomic_written": 110,
+  "b_atomic_written": 130,
+  "after_atomic_arithmetic": 130,
+  "a_stale_read": 1,
+  "b_stale_read": 1,
+  "stale_remaining": -1,
+  "stale_accepted": 2,
+  "a_locked_read": 1,
+  "b_locked_read": 0,
+  "locked_remaining": 0,
+  "locked_accepted": 1,
+  "a_stale_decision": "accept",
+  "b_stale_decision": "accept",
+  "a_locked_decision": "accept",
+  "b_locked_decision": "decline",
+  "b_locked_action": "no write: stock is exhausted",
+  "a_original_body": "Draft",
+  "a_original_version": 1,
+  "b_original_body": "Draft",
+  "b_original_version": 1,
+  "b_current_body": "A: corrected title",
+  "b_current_version": 2,
+  "final_body": "A: corrected title + B: reviewed note",
+  "final_version": 3,
+  "rr_final_on_call": 0,
+  "serializable_final_on_call": 1,
+  "request_rows": 1,
+  "credited_total": 40,
+  "stored_amount": 40,
+  "supplied_amount": 55,
+  "13:final_balance": 130,
+  "15:final_balance": 100,
+  "reuse_phases": {
+    "loaded": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    },
+    "deleted": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 4000,
+      "free_space": 76572
+    },
+    "vacuumed": {
+      "visible_rows": 0,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 1819680
+    },
+    "refilled": {
+      "visible_rows": 4000,
+      "heap_bytes": 1826816,
+      "dead_tuple_count": 0,
+      "free_space": 76572
+    }
+  },
+  "retry": [
+    {
+      "fixture": "pe_retry_8923fa4ca4584b3cb315afbfd0bbe7e7",
+      "max_attempts": 3,
+      "mode": "conflict"
+    },
+    {
+      "actor": "A",
+      "committed": false,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "decision": "leave",
+      "read": 2
+    },
+    {
+      "actor": "A",
+      "committed": true
+    },
+    {
+      "actor": "B",
+      "attempt": 1,
+      "committed": false,
+      "phase": "commit",
+      "sqlstate": "40001"
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "decision": "stay",
+      "read": 1
+    },
+    {
+      "actor": "B",
+      "attempt": 2,
+      "committed": true,
+      "phase": "commit",
+      "sqlstate": "00000"
+    },
+    {
+      "completed": true,
+      "final_rows": [
+        "Alice|f",
+        "Bob|t"
+      ],
+      "on_call": 1
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_retry_8923fa4ca4584b3cb315afbfd0bbe7e7"
+    }
+  ],
+  "transaction_lifetime": {
+    "13": {
+      "waiting_pid": "876037",
+      "blocker_pid": "876034",
+      "wait_event_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker_state": "active",
+      "xact_start": "2026-09-10 03:16:53.838691+00",
+      "blocker_xact_age": "00:00:00.031729",
+      "final_balance": "130"
+    },
+    "14": {
+      "second_update_states": {
+        "A": "00000",
+        "B": "40P01"
+      },
+      "victim": "B",
+      "final_values": "{10,10}",
+      "total_committed_increment": 20
+    },
+    "15": {
+      "states": {
+        "lock_update_sqlstate": "55P03",
+        "after_lock_timeout_sqlstate": "25P02",
+        "sleep_sqlstate": "57014",
+        "after_statement_timeout_sqlstate": "25P02"
+      },
+      "final_balance": 100
+    }
+  },
+  "unknown_outcome": [
+    {
+      "fixture": "pe_unknown_2b3385d6d1d24d419913557a3665432c",
+      "initial_balance": 100
+    },
+    {
+      "automatic_retry": false,
+      "observer": "caller",
+      "outcome": "UNKNOWN",
+      "response": "missing"
+    },
+    {
+      "balance": 110,
+      "first_effect_committed": true,
+      "observer": "reconnected inspector"
+    },
+    {
+      "action": "deliberate unsafe repeat",
+      "requested_increment": 10
+    },
+    {
+      "applied_increments": 2,
+      "balance": 120,
+      "observer": "independent final query",
+      "submitted_requests": 2
+    },
+    {
+      "boundary": "application response; no database crash or packet loss",
+      "injection": "after-commit"
+    },
+    {
+      "cleanup": "schema removed",
+      "schema": "pe_unknown_2b3385d6d1d24d419913557a3665432c"
+    }
+  ],
+  "unknown_variations": {
+    "before_commit": [
+      {
+        "fixture": "pe_unknown_365b9f7462b94b47a5d69f4a78e1b11e",
+        "initial_balance": 100
+      },
+      {
+        "automatic_retry": false,
+        "observer": "caller",
+        "outcome": "UNKNOWN",
+        "response": "missing"
+      },
+      {
+        "balance": 100,
+        "first_effect_committed": false,
+        "observer": "reconnected inspector"
+      },
+      {
+        "action": "deliberate unsafe repeat",
+        "requested_increment": 10
+      },
+      {
+        "applied_increments": 1,
+        "balance": 110,
+        "observer": "independent final query",
+        "submitted_requests": 2
+      },
+      {
+        "boundary": "application response; no database crash or packet loss",
+        "injection": "before-commit"
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_365b9f7462b94b47a5d69f4a78e1b11e"
+      }
+    ],
+    "sql_failure": [
+      {
+        "fixture": "pe_unknown_69b9fed7fe45414f8b4802a8cb78323c",
+        "initial_balance": 100
+      },
+      {
+        "cleanup": "schema removed",
+        "schema": "pe_unknown_69b9fed7fe45414f8b4802a8cb78323c"
+      },
+      {
+        "expected_error": "42P01",
+        "write_attempts": 1
+      }
+    ]
+  },
+  "query_work": {
+    "16": [
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": null,
+            "loops": null
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": null,
+            "loops": null
+          }
+        ],
+        "shared_accesses": 0,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9900
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9900
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "17": [
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats",
+            "estimate": 1798,
+            "actual": 9000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 169,
+        "heap_fetches": [],
+        "removed": [
+          1000
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats",
+            "estimate": 9000,
+            "actual": 9000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 169,
+        "heap_fetches": [],
+        "removed": [
+          1000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "18": [
+      {
+        "nodes": [
+          {
+            "node": "Index Scan using pe_index_crossover_id_idx on pe_index_crossover",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 3,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_index_crossover",
+            "estimate": 94962,
+            "actual": 95000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 6667,
+        "heap_fetches": [],
+        "removed": [
+          5000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "19": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan Backward using pe_event_time_tenant_idx on pe_event",
+            "estimate": 953,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 384,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan Backward using pe_event_tenant_time_idx on pe_event",
+            "estimate": 1067,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 4,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "20": [
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 7,
+        "heap_fetches": [
+          0
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 211,
+        "heap_fetches": [
+          200
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 11,
+        "heap_fetches": [
+          0
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "21": [
+      {
+        "nodes": [
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_budget",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 9774,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "external merge  Disk: 15584kB"
+        ],
+        "temp_io": [
+          7774,
+          8165
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_budget",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 2000,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "quicksort  Memory: 16550kB"
+        ],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "1": [],
+    "2": [],
+    "3": [],
+    "4": [],
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": [
+      [
+        "B",
+        "ERROR:  40001"
+      ]
+    ],
+    "10": [],
+    "11": [],
+    "12": [],
+    "13": [],
+    "14": [
+      [
+        "B",
+        "ERROR:  deadlock detected"
+      ]
+    ],
+    "15": [
+      [
+        "B",
+        "ERROR:  canceling statement due to lock timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ],
+      [
+        "B",
+        "ERROR:  canceling statement due to statement timeout"
+      ],
+      [
+        "B",
+        "ERROR:  current transaction is aborted, commands ignored until end of transaction block"
+      ]
+    ],
+    "16": [],
+    "17": [],
+    "18": [],
+    "19": [],
+    "20": [],
+    "21": []
+  },
+  "retained_free": 4.71,
+  "released_free": 99.61,
+  "waits": [
+    {
+      "lesson": 5,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-5-A",
+      "query": "update pe_atomic_write set balance = balance + 20 where id = 1\nreturning balance as b_atomic_written;"
+    },
+    {
+      "lesson": 6,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-6-A",
+      "query": "select remaining as b_locked_read,\n       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision\nfrom pe_stock where sku = 'widget' for update;"
+    },
+    {
+      "lesson": 12,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "essentials-12-A",
+      "query": "insert into pe_credit_ledger (request_id, account_id, amount, receipt)\nvalues ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')\non conflict (request_id) do nothing\nreturning request_id, account_id, amount, receipt;"
+    },
+    {
+      "lesson": 13,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_blocker_a",
+      "query": "update pe_blocker_account set balance = balance + 20 where id = 1;"
+    },
+    {
+      "lesson": 14,
+      "session": "B",
+      "wait_type": "Lock",
+      "wait_event": "transactionid",
+      "blocker": "pe_deadlock_a",
+      "query": "update pe_deadlock_item set value = value + 1 where id = 1;"
+    }
+  ],
+  "variations": {
+    "7": {
+      "stale_rows": 0,
+      "preserved_version": 3
+    },
+    "8": {
+      "second_read": 1,
+      "second_can_leave": false,
+      "final_on_call": 1
+    },
+    "9": {
+      "second_read": 1,
+      "second_can_leave": false,
+      "final_on_call": 1
+    },
+    "12": {
+      "b_inserted": 1,
+      "request_rows": 1,
+      "credited_total": 40,
+      "actual_wait": true
+    },
+    "13": {
+      "holder_rolled_back": true,
+      "final_balance": 120,
+      "actual_wait": true
+    },
+    "14": {
+      "final_values": "{11,11}",
+      "both_committed": true,
+      "actual_wait": true
+    },
+    "15": {
+      "sleep_sqlstate": "57014",
+      "next_sqlstate": "00000",
+      "connection_reusable": 1
+    },
+    "16": [
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read_variation",
+            "estimate": 50,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "17": [
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats_variation",
+            "estimate": 16036,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 98,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats_variation",
+            "estimate": 1000,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 98,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "18": [
+      {
+        "nodes": [
+          {
+            "node": "Index Scan using pe_index_crossover_id_idx on pe_index_crossover",
+            "estimate": 19869,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 1390,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "19": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan using pe_event_time_tenant_idx on pe_event",
+            "estimate": 943,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 383,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan using pe_event_tenant_time_idx on pe_event",
+            "estimate": 973,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 4,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "20": [
+      {
+        "nodes": [
+          {
+            "node": "Bitmap Heap Scan on pe_visibility_variation",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          },
+          {
+            "node": "Bitmap Index Scan on pe_visibility_variation_lookup",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 103,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ],
+    "21": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 20,
+            "actual": 20,
+            "loops": 1
+          },
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_variation",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 2000,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "top-N heapsort  Memory: 65kB"
+        ],
+        "temp_io": []
+      }
+    ]
+  },
+  "retry_variations": {
+    "no_conflict": {
+      "exit_status": 0,
+      "events": [
+        {
+          "fixture": "pe_retry_3214b89202304015bb5c6a5d9df146b5",
+          "max_attempts": 3,
+          "mode": "no-conflict"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": true,
+          "phase": "commit",
+          "sqlstate": "00000"
+        },
+        {
+          "completed": true,
+          "final_rows": [
+            "Alice|t",
+            "Bob|f"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_3214b89202304015bb5c6a5d9df146b5"
+        }
+      ]
+    },
+    "exhausted": {
+      "exit_status": 2,
+      "events": [
+        {
+          "fixture": "pe_retry_afe73b06ba58401db1fc83354ae15866",
+          "max_attempts": 1,
+          "mode": "conflict"
+        },
+        {
+          "actor": "A",
+          "committed": false,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "A",
+          "committed": true
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "commit",
+          "sqlstate": "40001"
+        },
+        {
+          "attempts": 1,
+          "stop": "retry budget exhausted"
+        },
+        {
+          "completed": false,
+          "final_rows": [
+            "Alice|f",
+            "Bob|t"
+          ],
+          "on_call": 1
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_afe73b06ba58401db1fc83354ae15866"
+        }
+      ]
+    },
+    "nonretryable": {
+      "exit_status": 1,
+      "events": [
+        {
+          "fixture": "pe_retry_0b03673f5f78497286edd5341c43f5d7",
+          "max_attempts": 3,
+          "mode": "sql-error"
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "decision": "leave",
+          "read": 2
+        },
+        {
+          "actor": "B",
+          "attempt": 1,
+          "committed": false,
+          "phase": "write",
+          "sqlstate": "42P01"
+        },
+        {
+          "cleanup": "schema removed",
+          "schema": "pe_retry_0b03673f5f78497286edd5341c43f5d7"
+        }
+      ]
+    }
+  }
+}

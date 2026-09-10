@@ -1,0 +1,97 @@
+{
+  "query_work": {
+    "19": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan Backward using pe_event_time_tenant_idx on pe_event",
+            "estimate": 1027,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 384,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan Backward using pe_event_tenant_time_idx on pe_event",
+            "estimate": 993,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 4,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "19": []
+  },
+  "variations": {
+    "19": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan using pe_event_time_tenant_idx on pe_event",
+            "estimate": 1050,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 383,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 10,
+            "actual": 10,
+            "loops": 1
+          },
+          {
+            "node": "Index Scan using pe_event_tenant_time_idx on pe_event",
+            "estimate": 1007,
+            "actual": 10,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 4,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  }
+}

@@ -45,10 +45,6 @@ owner = pwd.getpwnam('postgres') if os.geteuid() == 0 else pwd.getpwuid(os.geteu
 prefix = ['runuser', '-u', owner.pw_name, '--'] if os.geteuid() == 0 else []
 root = Path(tempfile.mkdtemp(prefix='pg-essentials-validation-', dir='/tmp'))
 data, sock = root / 'data', root / 'socket'
-sock.mkdir()
-if os.geteuid() == 0:
-    for p in [root, sock]:
-        os.chown(p, owner.pw_uid, owner.pw_gid)
 env = {k: v for k, v in os.environ.items() if not k.startswith('PG')}
 env.update(PGHOST=str(sock), PGPORT='6543', PGUSER='postgres', PGDATABASE='postgres',
            PGCONNECT_TIMEOUT='3', LC_ALL='C')
@@ -67,6 +63,10 @@ def server(name, *args):
 
 
 try:
+    sock.mkdir()
+    if os.geteuid() == 0:
+        for p in [root, sock]:
+            os.chown(p, owner.pw_uid, owner.pw_gid)
     # Read-only learner identity check; never use that directory in pg_ctl.
     learner = run([bindir / 'psql', '-X', '-h', '/tmp', '-p', '5440', '-U', 'postgres',
                    '-d', 'lab', '-Atqc', "select current_setting('data_directory')"])
@@ -136,6 +136,7 @@ try:
         '13': {'final_balance': 130},
         '14': {},
         '15': {'final_balance': 100},
+        '16': {}, '17': {}, '18': {}, '19': {}, '20': {}, '21': {},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
@@ -212,6 +213,9 @@ try:
         events = [json.loads(line) for line in event_lines if line.startswith('{')]
         measured['unknown_outcome'] = check_unknown_events(events, 'after-commit')
         measured['unknown_variations'] = check_unknown(course, env, next(l for l in catalog if l['ordinal'] == 11))
+    if any(int(n) >= 16 for n in selected):
+        from check_plans import check_plans
+        measured['query_work'] = check_plans(sections)
     measured['expected_errors'] = error_inventory
     if '3' in selected:
         assert re.search(r'idle in transaction\s*\|\s*\d+', output), 'Snapshot horizon missing'
@@ -226,7 +230,7 @@ try:
             assert any(w['lesson'] == int(n) for w in waits), 'Missing actual wait for ' + n
     if waits:
         measured['waits'] = waits
-    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12', '13', '14', '15')]
+    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21')]
     if variation_numbers:
         variation_output = run(['/root/.deno/bin/deno', 'run', '-A', evidence / 'run.ts',
                                 '--variations', *variation_numbers])
@@ -258,6 +262,9 @@ try:
         if any(n in variation_numbers for n in ('13', '14', '15')):
             from check_lifetime import check_lifetime_variations
             checks.update(check_lifetime_variations(variation_sections, variation_output))
+        if any(int(n) >= 16 for n in variation_numbers):
+            from check_plans import check_plan_variations
+            checks.update(check_plan_variations(variation_sections))
         measured['variations'] = checks
     if '10' in selected:
         from check_retry import check_retry
@@ -279,6 +286,10 @@ try:
     retry_leftovers = run([bindir / 'psql', '-X', '-Atqc',
                            "select count(*) from pg_namespace where nspname like 'pe_retry_%' or nspname like 'pe_unknown_%'"])
     assert retry_leftovers.strip() == '0', retry_leftovers
+    query_leftovers = run([bindir / 'psql', '-X', '-Atqc',
+                           "select count(*) from pg_class where relnamespace = 'public'::regnamespace "
+                           "and relname like 'pe_%'"])
+    assert query_leftovers.strip() == '0', query_leftovers
     print(output[-2500:], flush=True)
 finally:
     if (data / 'postmaster.pid').exists():

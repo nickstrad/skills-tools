@@ -17,6 +17,9 @@ import { REQUEST_IDENTITY_VISUAL } from "../curriculum/10-request-identity.ts";
 import { BLOCKER_VISUAL } from "../curriculum/11-blocker.ts";
 import { DEADLOCK_VISUAL } from "../curriculum/12-deadlock.ts";
 import { TIMEOUT_VISUAL } from "../curriculum/13-timeout.ts";
+import { READ_PLAN_VISUAL, STATISTICS_VISUAL } from "../curriculum/14-plans.ts";
+import { COMPOSITE_INDEX_VISUAL, INDEX_CROSSOVER_VISUAL } from "../curriculum/15-index-choice.ts";
+import { INDEX_ONLY_VISUAL, SORT_SPILL_VISUAL } from "../curriculum/16-visibility-sort.ts";
 
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
@@ -25,6 +28,12 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "read-a-plan-as-evidence": READ_PLAN_VISUAL,
+  "statistics-and-estimates": STATISTICS_VISUAL,
+  "index-crossover": INDEX_CROSSOVER_VISUAL,
+  "composite-index-order": COMPOSITE_INDEX_VISUAL,
+  "index-only-needs-visibility": INDEX_ONLY_VISUAL,
+  "sort-spill": SORT_SPILL_VISUAL,
   "find-the-blocker": BLOCKER_VISUAL,
   "deadlock-cycle": DEADLOCK_VISUAL,
   "timeout-and-transaction-state": TIMEOUT_VISUAL,
@@ -120,7 +129,7 @@ export function render(lesson: Selected, stage: string, db?: string): string {
           "Run setup once in A, then follow each labelled block in order. " +
           (twoSessions
             ? "A block that says to leave a transaction open is intentional. If B waits, switch to A and run its next block; do not wait for B to return first."
-            : "All commands run in A with no explicit open transaction."),
+            : "All commands run in A. Begin with no open transaction, then follow any BEGIN, COMMIT or ROLLBACK commands as shown."),
       "## Setup — A\n\n" + fence(lesson.setup ?? "", language),
       "## Experiment\n\n" + experiment(lesson.code, language),
       "**Reflect briefly:** Connect one changed result to the diagram. Then open review to compare with the explanation; no written answer is needed.",
