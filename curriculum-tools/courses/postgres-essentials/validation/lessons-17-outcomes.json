@@ -1,0 +1,81 @@
+{
+  "query_work": {
+    "17": [
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats",
+            "estimate": 1798,
+            "actual": 9000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 169,
+        "heap_fetches": [],
+        "removed": [
+          1000
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats",
+            "estimate": 9000,
+            "actual": 9000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 169,
+        "heap_fetches": [],
+        "removed": [
+          1000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "17": []
+  },
+  "variations": {
+    "17": [
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats_variation",
+            "estimate": 16036,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 98,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Seq Scan on pe_plan_stats_variation",
+            "estimate": 1000,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 98,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "query_work": {
+    "21": [
+      {
+        "nodes": [
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_budget",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 9774,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "external merge  Disk: 15584kB"
+        ],
+        "temp_io": [
+          7774,
+          8165
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_budget",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 2000,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "quicksort  Memory: 16550kB"
+        ],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "21": []
+  },
+  "variations": {
+    "21": [
+      {
+        "nodes": [
+          {
+            "node": "Limit",
+            "estimate": 20,
+            "actual": 20,
+            "loops": 1
+          },
+          {
+            "node": "Sort",
+            "estimate": 20000,
+            "actual": 20,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_sort_variation",
+            "estimate": 20000,
+            "actual": 20000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 2000,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [
+          "top-N heapsort  Memory: 65kB"
+        ],
+        "temp_io": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "accepted_at": "2026-09-10",
+  "postgres": "16",
+  "source_sha256": "5d7797c4b23254801f6207c9dfa94a1efde06d6e8bb87b537dc7a397454f5ff3",
+  "runner_sha256": "37454760d9b9a2e754000c7c89b1e47c9c5d89e528d3667aa1c4293c86d330f5",
+  "lesson_16": {
+    "labels": ["plan_prediction", "measured_execution", "repeated_execution"],
+    "prediction": { "aggregate_rows": 1, "scan_rows": 50 },
+    "measured": {
+      "aggregate_actual_rows": 1,
+      "scan_actual_rows": 100,
+      "rows_removed": 9900,
+      "scan_loops": 1,
+      "shared_hits": 84
+    },
+    "repeated": {
+      "aggregate_actual_rows": 1,
+      "scan_actual_rows": 100,
+      "rows_removed": 9900,
+      "scan_loops": 1,
+      "shared_hits": 84
+    },
+    "variation": {
+      "label": "variation_broader_predicate",
+      "scan_actual_rows": 1000,
+      "rows_removed": 9000,
+      "scan_loops": 1,
+      "shared_hits": 84
+    }
+  },
+  "lesson_17": {
+    "labels": ["stale_statistics", "refreshed_statistics"],
+    "initial_mcv": { "values": ["common", "rare"], "frequencies": [0.9, 0.1] },
+    "live_counts": { "common": 1000, "rare": 9000 },
+    "stale": { "estimated_rows": 1798, "actual_rows": 9000, "rows_removed": 1000, "scan_loops": 1 },
+    "refreshed_mcv": { "values": ["rare", "common"], "frequencies": [0.9, 0.1] },
+    "refreshed": {
+      "estimated_rows": 9000,
+      "actual_rows": 9000,
+      "rows_removed": 1000,
+      "scan_loops": 1
+    },
+    "variation_live_counts": { "common": 9000, "rare": 1000 },
+    "variation_stale": {
+      "estimated_rows": 16036,
+      "actual_rows": 1000,
+      "rows_removed": 9000,
+      "scan_loops": 1
+    },
+    "variation_refreshed": {
+      "estimated_rows": 1000,
+      "actual_rows": 1000,
+      "rows_removed": 9000,
+      "scan_loops": 1
+    }
+  },
+  "unexpected_errors": []
+}

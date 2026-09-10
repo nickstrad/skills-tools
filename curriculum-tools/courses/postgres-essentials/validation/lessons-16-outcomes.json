@@ -1,0 +1,103 @@
+{
+  "query_work": {
+    "16": [
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": null,
+            "loops": null
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": null,
+            "loops": null
+          }
+        ],
+        "shared_accesses": 0,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9900
+        ],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read",
+            "estimate": 50,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9900
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "16": []
+  },
+  "variations": {
+    "16": [
+      {
+        "nodes": [
+          {
+            "node": "Aggregate",
+            "estimate": 1,
+            "actual": 1,
+            "loops": 1
+          },
+          {
+            "node": "Seq Scan on pe_plan_read_variation",
+            "estimate": 50,
+            "actual": 1000,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 84,
+        "heap_fetches": [],
+        "removed": [
+          9000
+        ],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  }
+}

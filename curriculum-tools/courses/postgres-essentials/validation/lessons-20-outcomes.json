@@ -1,0 +1,85 @@
+{
+  "query_work": {
+    "20": [
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 7,
+        "heap_fetches": [
+          0
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 211,
+        "heap_fetches": [
+          200
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      },
+      {
+        "nodes": [
+          {
+            "node": "Index Only Scan using pe_visibility_cover_lookup on pe_visibility_cover",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 11,
+        "heap_fetches": [
+          0
+        ],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  },
+  "expected_errors": {
+    "20": []
+  },
+  "variations": {
+    "20": [
+      {
+        "nodes": [
+          {
+            "node": "Bitmap Heap Scan on pe_visibility_variation",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          },
+          {
+            "node": "Bitmap Index Scan on pe_visibility_variation_lookup",
+            "estimate": 100,
+            "actual": 100,
+            "loops": 1
+          }
+        ],
+        "shared_accesses": 103,
+        "heap_fetches": [],
+        "removed": [],
+        "sorts": [],
+        "temp_io": []
+      }
+    ]
+  }
+}
