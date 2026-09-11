@@ -84,7 +84,7 @@ try:
     assert actual.strip() == str(data), actual
     result = subprocess.run(['/root/.deno/bin/deno', 'run', '-A', str(evidence / 'run.ts'),
                              *selectors], cwd=engine, env=env, text=True,
-                            capture_output=True, timeout=90)
+                            capture_output=True, timeout=180)
     output = result.stdout + result.stderr
     (evidence / (logname + '.log')).write_text(output)
     assert result.returncode == 0, output
@@ -137,6 +137,7 @@ try:
         '14': {},
         '15': {'final_balance': 100},
         '16': {}, '17': {}, '18': {}, '19': {}, '20': {}, '21': {},
+        '22': {}, '23': {}, '24': {}, '25': {}, '26': {},
     }
     # Read the labelled table column, including second columns and signed numbers.
     lines = [re.sub(r'^\s*\[[AB]\] ?', '', line).strip() for line in output.splitlines()]
@@ -216,6 +217,8 @@ try:
     if any(int(n) >= 16 for n in selected):
         from check_plans import check_plans
         measured['query_work'] = check_plans(sections)
+    from check_wal_batch import check_batch
+    measured['wal_batch'] = check_batch(sections)
     measured['expected_errors'] = error_inventory
     if '3' in selected:
         assert re.search(r'idle in transaction\s*\|\s*\d+', output), 'Snapshot horizon missing'
@@ -230,7 +233,7 @@ try:
             assert any(w['lesson'] == int(n) for w in waits), 'Missing actual wait for ' + n
     if waits:
         measured['waits'] = waits
-    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21')]
+    variation_numbers = [n for n in selected if n in ('7', '8', '9', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26')]
     if variation_numbers:
         variation_output = run(['/root/.deno/bin/deno', 'run', '-A', evidence / 'run.ts',
                                 '--variations', *variation_numbers])
@@ -265,6 +268,7 @@ try:
         if any(int(n) >= 16 for n in variation_numbers):
             from check_plans import check_plan_variations
             checks.update(check_plan_variations(variation_sections))
+        checks.update(check_batch(variation_sections, variations=True))
         measured['variations'] = checks
     if '10' in selected:
         from check_retry import check_retry
@@ -275,7 +279,9 @@ try:
                     for l in catalog if str(l['ordinal']) in selected},
         'support_files': {name: hashlib.sha256((course / name).read_bytes()).hexdigest()
                           for name in (['lab/retry.py'] if {'10', '11'} & set(selected) else []) +
-                          (['lab/unknown_outcome.py'] if '11' in selected else [])},
+                          (['lab/unknown_outcome.py'] if '11' in selected else []) +
+                          (['lab/checkpoint.py'] if '25' in selected else []) +
+                          (['lab/crash.py'] if {'25', '26'} & set(selected) else [])},
     }, indent=2) + '\n')
     (evidence / (logname + '-outcomes.json')).write_text(json.dumps(measured, indent=2) + '\n')
     leftovers = run([bindir / 'psql', '-X', '-Atqc',

@@ -1,0 +1,15 @@
+{
+  "catalog_sha256": "96fde1a82b811c7ffe92a8a2a2686d65acfe1b895186b05e9cf5cf3cb7cecd49",
+  "first21_unchanged": true,
+  "lessons": {
+    "join-memory": "5875d4ff25cc71fb7aef3c0bef49db5cba0ec3cc410b957356cdf9b27ebe054c",
+    "checkpoint-writeback": "609717afc4ecb86822c9321eeb81a7efd74be610ecd9b2a481e3038866b32fb2",
+    "crash-replay": "61fed8311abe75655514fe347c3937abcff318d325f0be51991fc1abf8c9ed83",
+    "commit-and-wal": "f179ef3aa02abac2d5a907c647ec1e3dcd1f94662660dd52cc51e954323544f9",
+    "wal-per-useful-write": "069edb13a1c9b0d464ffeba95e18c416511db6bd97a05a5724c69221f0cf6147"
+  },
+  "executed_groups": [
+    "lessons-22-25-26",
+    "lessons-23-24"
+  ]
+}

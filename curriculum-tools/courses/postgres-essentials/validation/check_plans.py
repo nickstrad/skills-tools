@@ -51,7 +51,7 @@ def measured(plan):
 def check_plans(sections):
     checks = {}
     for number, section in sections.items():
-        if int(number) < 16:
+        if not 16 <= int(number) <= 21:
             continue
         pp = plans(section)
         if number == '16':
@@ -112,7 +112,7 @@ def check_plans(sections):
 def check_plan_variations(sections):
     checks = {}
     for number, section in sections.items():
-        if int(number) < 16:
+        if not 16 <= int(number) <= 21:
             continue
         pp = plans(section)
         if number == '16':

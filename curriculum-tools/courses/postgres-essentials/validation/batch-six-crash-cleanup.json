@@ -1,0 +1,19 @@
+{
+  "KeyboardInterrupt": {
+    "failure_after_real_open_update": true,
+    "cleanup": {
+      "cleanup": "owned cluster removed",
+      "path": "/tmp/pe-crash-jd9yikt4",
+      "removed": true
+    }
+  },
+  "RuntimeError": {
+    "failure_after_real_open_update": true,
+    "cleanup": {
+      "cleanup": "owned cluster removed",
+      "path": "/tmp/pe-crash-m3phrr3f",
+      "removed": true
+    }
+  },
+  "source_sha256": "7f8bb8c5827bf67044d5f8df7aa5e6a0eb2338571384a5bb9644d802f1a6deb0"
+}

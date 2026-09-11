@@ -68,8 +68,8 @@ def main():
     args = parser.parse_args()
     if shutil.disk_usage('/tmp').free < 2 * 1024**3:
         raise RuntimeError('Need at least 2 GiB free before allocating this small fixture')
-    bindir = Path(subprocess.check_output(['pg_config', '--bindir'], text=True).strip())
-    version = subprocess.check_output([bindir/'postgres', '--version'], text=True)
+    bindir = Path(subprocess.check_output(['pg_config', '--bindir'], text=True, timeout=10).strip())
+    version = subprocess.check_output([bindir/'postgres', '--version'], text=True, timeout=10)
     if ' 16.' not in version:
         raise RuntimeError('This experiment requires PostgreSQL 16 server binaries')
     owner = pwd.getpwnam('postgres') if os.geteuid() == 0 else pwd.getpwuid(os.geteuid())
@@ -129,6 +129,12 @@ checkpoint;""")
         # This synchronous marker commit flushes WAL preceding it, including the open update.
         observer.sql('update pe_crash_inventory set value=1 where id=4;')
         positions = observer.sql('select pg_current_wal_insert_lsn(), pg_current_wal_flush_lsn();')
+        insert_lsn, flush_lsn = positions.split('|')
+        def lsn_bytes(position):
+            high, low = position.split('/')
+            return (int(high, 16) << 32) + int(low, 16)
+        if not lsn_bytes(flush_lsn) >= lsn_bytes(insert_lsn) > lsn_bytes(checkpoint):
+            raise RuntimeError('Marker WAL was not flushed beyond the baseline checkpoint')
         current_checkpoint = observer.sql('select checkpoint_lsn from pg_control_checkpoint();')
         assert current_checkpoint == checkpoint, 'An unexpected checkpoint changed the comparison'
         inventory_sql = ('select json_agg(json_build_array(id,value) order by id) '
@@ -137,7 +143,7 @@ checkpoint;""")
         expected = [[1,110],[2,100],[3,100],[4,1]]
         assert before == expected
         emit(phase='before_stop', pending_private_value=int(private), committed_inventory=before,
-             insert_and_flush_lsn=positions, checkpoint_unchanged=True,
+             insert_lsn=insert_lsn, flush_lsn=flush_lsn, wal_after_checkpoint=True, checkpoint_unchanged=True,
              marker_commit='synchronous: preceding WAL flushed')
         if args.mode == 'clean':
             pending.sql('rollback;')
@@ -161,6 +167,8 @@ checkpoint;""")
         redo_seen = 'redo starts at' in restart_log and 'redo done at' in restart_log
         assert recovery_seen == (args.mode == 'crash'), restart_log
         assert redo_seen == (args.mode == 'crash'), restart_log
+        if args.mode == 'clean' and 'database system was shut down' not in restart_log:
+            raise RuntimeError('Clean shutdown evidence missing: ' + restart_log)
         for line in restart_log.splitlines():
             if any(word in line for word in ('was interrupted', 'was shut down', 'redo starts at',
                                              'redo done at', 'ready to accept connections')):
@@ -172,13 +180,22 @@ checkpoint;""")
         old_int = signal.signal(signal.SIGINT, signal.SIG_IGN)
         old_term = signal.signal(signal.SIGTERM, signal.SIG_IGN)
         try:
+            close_errors = []
             for client in connections:
-                client.close()
+                try:
+                    client.close()
+                except Exception as error:
+                    close_errors.append(str(error))
             if (data/'postmaster.pid').exists():
                 server('pg_ctl', '-D', data, '-m', 'fast', '-w', '-t', '15', 'stop')
-            assert not (data/'postmaster.pid').exists(), 'Server not stopped; preserve fixture'
+            status = subprocess.run(list(map(str, prefix + [bindir/'pg_ctl', '-D', data, 'status'])),
+                                    env=env, capture_output=True, text=True, timeout=10)
+            if status.returncode not in (3, 4) or (data/'postmaster.pid').exists():
+                raise RuntimeError('Cannot prove server stopped; preserving ' + str(root))
             shutil.rmtree(root)
             emit(cleanup='owned cluster removed', path=str(root), removed=not root.exists())
+            if close_errors:
+                raise RuntimeError('Client cleanup errors: ' + '; '.join(close_errors))
         finally:
             signal.signal(signal.SIGINT, old_int)
             signal.signal(signal.SIGTERM, old_term)

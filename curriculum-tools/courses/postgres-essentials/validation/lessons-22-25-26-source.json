@@ -1,0 +1,12 @@
+{
+  "catalog_sha256": "86004498e96e9a40782d8b4706c34833de57e883943f50d68d717358e1c3e815",
+  "lessons": {
+    "join-memory": "5875d4ff25cc71fb7aef3c0bef49db5cba0ec3cc410b957356cdf9b27ebe054c",
+    "checkpoint-writeback": "609717afc4ecb86822c9321eeb81a7efd74be610ecd9b2a481e3038866b32fb2",
+    "crash-replay": "61fed8311abe75655514fe347c3937abcff318d325f0be51991fc1abf8c9ed83"
+  },
+  "support_files": {
+    "lab/checkpoint.py": "e6e48ccf4fb6c3b067bc68c239f7f2c877a183f5ff33cda7c7a9adaa4c6f2480",
+    "lab/crash.py": "7f8bb8c5827bf67044d5f8df7aa5e6a0eb2338571384a5bb9644d802f1a6deb0"
+  }
+}

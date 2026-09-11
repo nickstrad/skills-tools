@@ -21,6 +21,11 @@ import { READ_PLAN_VISUAL, STATISTICS_VISUAL } from "../curriculum/14-plans.ts";
 import { COMPOSITE_INDEX_VISUAL, INDEX_CROSSOVER_VISUAL } from "../curriculum/15-index-choice.ts";
 import { INDEX_ONLY_VISUAL, SORT_SPILL_VISUAL } from "../curriculum/16-visibility-sort.ts";
 
+import { JOIN_MEMORY_VISUAL } from "../curriculum/17-join-memory.ts";
+import { COMMIT_WAL_VISUAL, WAL_PER_WRITE_VISUAL } from "../curriculum/18-wal.ts";
+import { CHECKPOINT_VISUAL } from "../curriculum/19-checkpoint.ts";
+import { CRASH_REPLAY_VISUAL } from "../curriculum/20-crash-replay.ts";
+
 type Output = { log(value: string): void; error(value: string): void };
 type Selected = Lesson & { status?: string };
 const COURSE = "postgres-essentials";
@@ -28,6 +33,11 @@ const catalog: Lesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
 const VISUALS: Record<string, string> = {
+  "join-memory": JOIN_MEMORY_VISUAL,
+  "commit-and-wal": COMMIT_WAL_VISUAL,
+  "wal-per-useful-write": WAL_PER_WRITE_VISUAL,
+  "checkpoint-writeback": CHECKPOINT_VISUAL,
+  "crash-replay": CRASH_REPLAY_VISUAL,
   "read-a-plan-as-evidence": READ_PLAN_VISUAL,
   "statistics-and-estimates": STATISTICS_VISUAL,
   "index-crossover": INDEX_CROSSOVER_VISUAL,
@@ -99,6 +109,7 @@ export function render(lesson: Selected, stage: string, db?: string): string {
   ];
   const twoSessions = lesson.sessions === 2;
   const shell = lesson.runIn === "shell";
+  const privateCluster = ["checkpoint-writeback", "crash-replay"].includes(lesson.slug);
   const language = shell ? "sh" : "sql";
   const terminals = twoSessions ? "both sessions" : "session A";
   const first = stage === "lesson" || stage === "full";
@@ -134,7 +145,10 @@ export function render(lesson: Selected, stage: string, db?: string): string {
       "## Experiment\n\n" + experiment(lesson.code, language),
       "**Reflect briefly:** Connect one changed result to the diagram. Then open review to compare with the explanation; no written answer is needed.",
       shell
-        ? "If you reach 30 minutes or get stuck, stop and ask for help. Ctrl-C interrupts the supplied client and runs its cleanup; check for the schema removal record."
+        ? "If you reach 30 minutes or get stuck, stop and ask for help. Ctrl-C interrupts the supplied controller and runs its cleanup; " +
+          (privateCluster
+            ? "check for the owned cluster removal record."
+            : "check for the schema removal record.")
         : `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
           "then follow this lesson's cleanup commands to restore settings and drop its named pe_* table. Rerun setup next time.",
     );

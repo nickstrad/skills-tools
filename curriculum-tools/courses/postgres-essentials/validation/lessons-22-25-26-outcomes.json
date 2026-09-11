@@ -1,0 +1,233 @@
+{
+  "query_work": {},
+  "wal_batch": {
+    "22": [
+      {
+        "joined_rows": 50000,
+        "batches": 256,
+        "temp_io": [
+          1769,
+          1769,
+          1769,
+          1769,
+          1259
+        ]
+      },
+      {
+        "joined_rows": 50000,
+        "batches": 1,
+        "temp_io": []
+      }
+    ],
+    "25": {
+      "before": {
+        "data_directory": "/tmp/pe-checkpoint-bwnkncr_/data",
+        "observer_original_rows": 12000,
+        "observer_rows": 12000,
+        "phase": "before_checkpoint",
+        "relation_dirty_buffers": 906,
+        "writer_pending_rows": 12000,
+        "writer_pid": 917970,
+        "writer_rows": 12000,
+        "writer_state": "idle in transaction"
+      },
+      "after": {
+        "observer_original_rows": 12000,
+        "observer_rows": 12000,
+        "phase": "after_checkpoint",
+        "relation_dirty_buffers": 0,
+        "writer_pending_rows": 12000,
+        "writer_pid": 917970,
+        "writer_rows": 12000,
+        "writer_state": "idle in transaction"
+      },
+      "final": {
+        "decision": "rollback",
+        "original_rows": 12000,
+        "pending_rows": 0,
+        "phase": "final",
+        "rows": 12000
+      },
+      "cleanup": {
+        "cleanup": "owned cluster removed",
+        "path": "/tmp/pe-checkpoint-bwnkncr_",
+        "removed": true
+      }
+    },
+    "26": {
+      "before": {
+        "checkpoint_unchanged": true,
+        "committed_inventory": [
+          [
+            1,
+            110
+          ],
+          [
+            2,
+            100
+          ],
+          [
+            3,
+            100
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "flush_lsn": "0/613250",
+        "insert_lsn": "0/613250",
+        "marker_commit": "synchronous: preceding WAL flushed",
+        "pending_private_value": 700,
+        "phase": "before_stop",
+        "wal_after_checkpoint": true
+      },
+      "after": {
+        "aborted_visible": false,
+        "committed_survived": true,
+        "crash_recovery": true,
+        "interrupted_visible": false,
+        "inventory": [
+          [
+            1,
+            110
+          ],
+          [
+            2,
+            100
+          ],
+          [
+            3,
+            100
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "phase": "recovered",
+        "redo": true
+      },
+      "cleanup": {
+        "cleanup": "owned cluster removed",
+        "path": "/tmp/pe-crash-z64lbc7c",
+        "removed": true
+      }
+    }
+  },
+  "expected_errors": {
+    "22": [],
+    "25": [],
+    "26": []
+  },
+  "variations": {
+    "22": [
+      {
+        "joined_rows": 50000,
+        "batches": 32,
+        "temp_io": [
+          1548,
+          1548,
+          1548,
+          1548,
+          1331
+        ]
+      }
+    ],
+    "25": {
+      "before": {
+        "data_directory": "/tmp/pe-checkpoint-dpysbvyr/data",
+        "observer_original_rows": 12000,
+        "observer_rows": 12000,
+        "phase": "before_checkpoint",
+        "relation_dirty_buffers": 906,
+        "writer_pending_rows": 12000,
+        "writer_pid": 918100,
+        "writer_rows": 12000,
+        "writer_state": "idle in transaction"
+      },
+      "after": {
+        "observer_original_rows": 12000,
+        "observer_rows": 12000,
+        "phase": "after_checkpoint",
+        "relation_dirty_buffers": 0,
+        "writer_pending_rows": 12000,
+        "writer_pid": 918100,
+        "writer_rows": 12000,
+        "writer_state": "idle in transaction"
+      },
+      "final": {
+        "decision": "commit",
+        "original_rows": 0,
+        "pending_rows": 12000,
+        "phase": "final",
+        "rows": 12000
+      },
+      "cleanup": {
+        "cleanup": "owned cluster removed",
+        "path": "/tmp/pe-checkpoint-dpysbvyr",
+        "removed": true
+      }
+    },
+    "26": {
+      "before": {
+        "checkpoint_unchanged": true,
+        "committed_inventory": [
+          [
+            1,
+            110
+          ],
+          [
+            2,
+            100
+          ],
+          [
+            3,
+            100
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "flush_lsn": "0/613250",
+        "insert_lsn": "0/613250",
+        "marker_commit": "synchronous: preceding WAL flushed",
+        "pending_private_value": 700,
+        "phase": "before_stop",
+        "wal_after_checkpoint": true
+      },
+      "after": {
+        "aborted_visible": false,
+        "committed_survived": true,
+        "crash_recovery": false,
+        "interrupted_visible": false,
+        "inventory": [
+          [
+            1,
+            110
+          ],
+          [
+            2,
+            100
+          ],
+          [
+            3,
+            100
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "phase": "recovered",
+        "redo": false
+      },
+      "cleanup": {
+        "cleanup": "owned cluster removed",
+        "path": "/tmp/pe-crash-elun4rtc",
+        "removed": true
+      }
+    }
+  }
+}

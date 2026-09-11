@@ -29,7 +29,7 @@ function history(path: string): string {
 
 Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
   assert(
-    ROUTE.length === 40 && catalog.length === 21,
+    ROUTE.length === 40 && catalog.length === 26,
     "route or authored batch drifted",
   );
   assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
@@ -75,6 +75,12 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
       assert(
         !shown.includes("psql -X -h") && !shown.includes("ROLLBACK in"),
         "shell lesson sent learner into psql",
+      );
+    }
+    if (["checkpoint-writeback", "crash-replay"].includes(lesson.slug)) {
+      assert(
+        shown.includes("owned cluster removal record") && !shown.includes("schema removal record"),
+        "private server cleanup was described as schema cleanup",
       );
     }
     if (lesson.challenge) assert(review.includes(lesson.challenge), "optional variation hidden");

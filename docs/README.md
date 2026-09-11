@@ -14,7 +14,7 @@ start. The September 2026 report is a historical inventory, not a deletion allow
 ## Learning roadmap
 
 The current [PostgreSQL Essentials route](../curriculum-tools/courses/postgres-essentials/PLAN.md)
-lists 40 lessons of 20–30 minutes with specific outcomes. Its first 21 are authored; `pgcoach`
+lists 40 lessons of 20–30 minutes with specific outcomes. Its first 26 are authored; `pgcoach`
 opens this course. [Implementation findings](knowledge/postgres-essentials.md) explain separate
 progress, reference access and validation. The old 9–12 coaching pilot is no longer the entry path.
 

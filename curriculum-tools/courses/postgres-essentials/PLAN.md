@@ -1,7 +1,7 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, updated 2026-09-10. **Lessons 1–21 are authored and available.** The full
-sequence below fixes the intended scope; 22–40 are planned, not placeholder lessons. Nick explicitly
+Current learner direction, updated 2026-09-11. **Lessons 1–26 are authored and available.** The full
+sequence below fixes the intended scope; 27–40 are planned, not placeholder lessons. Nick explicitly
 prefers smaller meaningful chunks over compressing the same work into 24 long sessions. Target
 **20–30 minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings
 remain estimates until learner feedback. Changes to scope must be recorded here, not invented as we
@@ -12,7 +12,7 @@ row versions and HOT. No requirement to repeat them or take the old TOAST/cache/
 lesson teaches the mechanism and useful terminal diagram before commands in `lesson`; `review`
 interprets evidence, implications and limits. Optional references are not hidden homework. No typed
 guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6. A
-brief clarity and pacing check follows the latest available lesson, currently 21. Feedback improves
+brief clarity and pacing check follows the latest available lesson, currently 26. Feedback improves
 the course while the fixed route continues.
 
 ## Fixed sequence and intended outcomes
@@ -153,3 +153,18 @@ performance, b-tree, visibility-map, query-execution, sorting, work-mem and temp
 comparisons use measured rows, buffers, Heap Fetches and sort methods; elapsed time is supporting
 evidence, not a benchmark. The validation budget for parallel author fixtures is below 1GB combined,
 with normal teardown after each run. Learner pacing remains provisional.
+
+## Sixth batch: follow memory and durability boundaries
+
+Lessons 22–26 follow [the batch design](designs/22-26.md). Lesson 22 extends query memory evidence
+with hash join batches; 23 distinguishes inserted, written and flushed WAL positions; 24 compares
+WAL per equal useful work across transaction sizes. Lessons 25–26 use supplied private-cluster
+controllers for checkpoint write-back and actual crash recovery, with teardown inside the core time
+budget. A clean-stop variation separates correct recovered rows from proof that redo occurred. The
+next availability boundary is lesson 27, restore-and-verify.
+
+SQL lessons 22–24 use one psql terminal. Lessons 25–26 use one shell terminal and allocate their own
+bounded PostgreSQL 16 server; they never target the learner cluster. Tags add hash-joins, wal,
+commit, durability, lsn, batching, write-amplification, checkpoints, buffer-cache and recovery.
+Private validation runs are retired after evidence checks; budget below 700MB combined, keep at
+least 2GiB free, and preserve every existing lesson identity and learner completion.

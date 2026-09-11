@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-10. The active route is 40 small lessons, with its first 21 implemented. The
+Updated 2026-09-11. The active route is 40 small lessons, with its first 26 implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -207,3 +207,41 @@ The [fifth-batch acceptance](../../curriculum-tools/courses/postgres-essentials/
 records all six standalone core/variation checks and the final21-lesson run,37 passing tests,
 unchanged first15 lesson objects, preserved13 learner history/attempt rows during catalog refresh,
 and final cleanup with only the learner server remaining. Lesson22 is the next planned entry.
+
+
+## WAL/recovery batch: evidence and owned-controller boundaries
+
+Lessons 22–26 follow [the sixth-batch design](../../curriculum-tools/courses/postgres-essentials/designs/22-26.md).
+Use the [acceptance report](../../curriculum-tools/courses/postgres-essentials/validation/batch-six.md)
+for exact-source results. These review findings matter for later restore/replication fixtures:
+
+- A supplied controller must query its writer's values, not print a hard-coded label that agrees
+  with the UPDATE it attempted. Check every expected row and use the exact backend PID when proving
+  that a particular transaction remains open across a checkpoint.
+- Bound client reads and server commands. Put ownership setup and partially successful startup
+  inside cleanup scope; attempt shutdown and verify stopped status before removing a newly allocated
+  root. Do not catch a stop error, delete the tree anyway and print successful cleanup. Close-client
+  errors must not prevent server shutdown. Clear inherited PG connection/options variables so a
+  private fixture cannot be redirected or have its experiment settings silently changed.
+- Force later synchronous marker WAL after an unfinished update when demonstrating that logged
+  unfinished work stays invisible after recovery. This establishes a flush boundary covering the
+  unfinished change. Check that the baseline checkpoint did not move, parse WAL positions, require
+  actual redo log lines, and separately compare the recovered inventory. Equal rows after a clean
+  stop prove that row outcomes alone cannot identify the recovery path.
+- Bracket full transaction workloads with insert LSNs to include COMMIT WAL; EXPLAIN WAL alone
+  omits it. Hold individual statement shape fixed when changing transaction grouping, including the
+  optional intermediate batch. Cluster-wide intervals and page images limit attribution on a busy
+  learner server. An asynchronous commit may already be flushed when sampled; do not require a
+  race-dependent gap or infer a power-loss result from a running-server LSN query.
+- Shell lessons can own whole clusters rather than schemas. Render the correct cleanup record,
+  extract their actual fenced shell variations, and hash imported helper dependencies as well as
+  the short learner launcher. First-view commands must stay identical to the built lesson text.
+
+The mechanism claims were checked against PostgreSQL 16's [resource settings](https://www.postgresql.org/docs/16/runtime-config-resource.html),
+[WAL settings](https://www.postgresql.org/docs/16/runtime-config-wal.html),
+[asynchronous commit](https://www.postgresql.org/docs/16/wal-async-commit.html),
+[WAL configuration](https://www.postgresql.org/docs/16/wal-configuration.html),
+[administration functions](https://www.postgresql.org/docs/16/functions-admin.html),
+[pg_buffercache](https://www.postgresql.org/docs/16/pgbuffercache.html), and
+[pg_ctl](https://www.postgresql.org/docs/16/app-pg-ctl.html). The experiments test a live or crashed
+PostgreSQL process on one running host, not failed storage or power loss.

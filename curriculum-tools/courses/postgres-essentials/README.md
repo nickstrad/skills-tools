@@ -2,7 +2,7 @@
 
 The current path is **40 meaningful lessons of 20–30 minutes**, after the eight PostgreSQL lessons
 already completed. The [full sequence and intended outcomes](PLAN.md) fixes the scope. **The first
-21 are available**; the remaining 19 are planned and will be authored in small batches.
+26 are available**; the remaining 14 are planned and will be authored in small batches.
 
 1. An uncommitted write is private to its transaction.
 2. Choose a fresh statement view or a stable transaction view.
@@ -25,11 +25,16 @@ already completed. The [full sequence and intended outcomes](PLAN.md) fixes the 
 19. Match an index to filtering and ordering.
 20. Covering the columns is only half an index-only scan.
 21. Make a sort spill, then bring it back into memory.
+22. A join adds another memory consumer.
+23. Connect commit acknowledgement to durable log work.
+24. Measure WAL per useful operation.
+25. A checkpoint writes pages without ending transactions.
+26. Reconcile committed and aborted work after a crash.
 
 These are the actual first lessons of the route. They use small account, history and stock tables to
 connect visibility, cleanup, concurrent arithmetic, protected decisions, conflict detection and
 retries, request reconciliation, transaction lifetime and measured query work. No TOAST/cache/XID
-tour or new cluster installation is needed before starting them.
+tour is needed before starting them. Lessons 25–26 supply their own temporary server fixtures.
 
 ## Use
 
@@ -44,7 +49,7 @@ pgcoach
 The launcher is `../postgres/bin/pgcoach` if it is not on PATH. `lesson` contains the concepts,
 terminal diagram, purpose, setup and commands; `review` explains observed evidence and insights.
 `full` adds optional reading references. Only explicit `NUMBER done` records completion. A mental
-reflection follows the experiment; a brief feedback chat after lesson 21 guides the next batch.
+reflection follows the experiment; a brief feedback chat after lesson 26 guides the next batch.
 Optional variations appear in review. There are no typed answers, required notes or separate
 pause/resume state.
 
@@ -64,7 +69,7 @@ experiments. `pgtutor` is a legacy wrapper; use the printed `pgcoach NUMBER done
 
 Use the existing `/labs/pglab/primary` learner cluster through `/tmp`, port 5440, role postgres,
 database lab. SQL lessons prepare and drop only their named pe_* table; finish earlier transactions
-before setup. Lessons 4 and 16–21 use one experiment terminal; the other SQL lessons use two.
+before setup. Lessons 4 and 16–24 use one experiment terminal; the other SQL lessons use two.
 Lessons 10–11 use one shell with supplied Python 3/psql clients that create unique pe_retry_* or
 pe_unknown_* schemas, open their own connections and remove the schemas on exit. To stop early,
 ROLLBACK in each SQL session, restore settings as shown and drop the exact lesson table. For shell
@@ -78,3 +83,9 @@ the connection. The error inventory and cleanup are part of each experiment.
 The 20–30 minute ranges include reading, commands, reflection and cleanup but await learner timing
 feedback. Optional book references do not add mandatory homework. PostgreSQL 16 validation and
 cleanup evidence are under `validation/`; `validate.py` allocates and removes a private cluster.
+
+Lessons 25–26 use one shell with supplied PostgreSQL 16 controllers. They create unique private
+clusters, perform the checkpoint or crash experiment, stop the private servers and remove their
+files. They ignore inherited PostgreSQL connection variables and accept no existing target path.
+Ctrl-C runs cleanup; check the owned-cluster removal record. The learner server is preserved. See
+[batch-six validation](validation/batch-six.md) for measured outcomes and limitations.

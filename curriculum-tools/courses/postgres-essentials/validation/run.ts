@@ -18,6 +18,11 @@ const selected = catalog.filter((l) => !selectors.length || selectors.includes(S
 if (!selected.length) throw new Error("No lessons selected");
 
 function variationCode(lesson: Lesson): string {
+  if (lesson.runIn === "shell") {
+    const blocks = [...(lesson.challenge ?? "").matchAll(/```sh\n([\s\S]*?)\n```/g)];
+    if (!blocks.length) throw new Error(`Lesson ${lesson.ordinal}: no runnable shell variation`);
+    return blocks.map((m) => m[1]).join("\n\n");
+  }
   const blocks = [
     ...(lesson.challenge ?? "").matchAll(/```sql\n([\s\S]*?)\n```|(?:^[ ]{4}.*\n?)+/gm),
   ];

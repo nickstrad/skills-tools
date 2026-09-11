@@ -1,0 +1,18 @@
+
+=== #23 commit-and-wal ===
+  -- Session A --
+  [A] NOTICE:  table "pe_wal_rollback" does not exist, skipping
+  [A]  wal_bytes_generated | visible_rows 
+  [A] ---------------------+--------------
+  [A]                 1328 |            0
+  [A] (1 row)
+
+=== #24 wal-per-useful-write ===
+  -- Session A --
+  [A] NOTICE:  table "pe_wal_twenty" does not exist, skipping
+  [A]  ten_transaction_wal_bytes | useful_rows 
+  [A] ---------------------------+-------------
+  [A]                      51840 |         200
+  [A] (1 row)
+
+2/2 lessons completed; deliberate waits observed

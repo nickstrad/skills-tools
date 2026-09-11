@@ -14,6 +14,10 @@ import { TIMEOUT } from "./13-timeout.ts";
 import { PLANS } from "./14-plans.ts";
 import { INDEX_CHOICE } from "./15-index-choice.ts";
 import { VISIBILITY_SORT } from "./16-visibility-sort.ts";
+import { JOIN_MEMORY } from "./17-join-memory.ts";
+import { WAL } from "./18-wal.ts";
+import { CHECKPOINT_WRITEBACK } from "./19-checkpoint.ts";
+import { CRASH_REPLAY } from "./20-crash-replay.ts";
 export const MODULES = [
   VISIBILITY,
   REUSE,
@@ -31,4 +35,8 @@ export const MODULES = [
   PLANS,
   INDEX_CHOICE,
   VISIBILITY_SORT,
+  JOIN_MEMORY,
+  WAL,
+  CHECKPOINT_WRITEBACK,
+  CRASH_REPLAY,
 ];

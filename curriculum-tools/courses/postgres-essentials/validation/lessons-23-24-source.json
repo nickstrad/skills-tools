@@ -1,0 +1,8 @@
+{
+  "catalog_sha256": "96fde1a82b811c7ffe92a8a2a2686d65acfe1b895186b05e9cf5cf3cb7cecd49",
+  "lessons": {
+    "commit-and-wal": "f179ef3aa02abac2d5a907c647ec1e3dcd1f94662660dd52cc51e954323544f9",
+    "wal-per-useful-write": "069edb13a1c9b0d464ffeba95e18c416511db6bd97a05a5724c69221f0cf6147"
+  },
+  "support_files": {}
+}

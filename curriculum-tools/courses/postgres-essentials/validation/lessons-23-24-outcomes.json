@@ -1,0 +1,30 @@
+{
+  "query_work": {},
+  "wal_batch": {
+    "23": {
+      "flush_reached_saved_write": true,
+      "synchronous_rows": 1,
+      "asynchronous_rows": 1
+    },
+    "24": {
+      "useful_rows_each": 200,
+      "checksums_equal": true,
+      "autocommit_wal_bytes": 59464,
+      "batched_wal_bytes": 51504
+    }
+  },
+  "expected_errors": {
+    "23": [],
+    "24": []
+  },
+  "variations": {
+    "23": {
+      "visible_rows": 0,
+      "wal_bytes_generated": 1328
+    },
+    "24": {
+      "useful_rows": 200,
+      "ten_transaction_wal_bytes": 51840
+    }
+  }
+}

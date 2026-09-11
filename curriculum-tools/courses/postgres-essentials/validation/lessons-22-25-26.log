@@ -1,0 +1,64 @@
+
+=== #22 join-memory ===
+  [A] NOTICE:  table "pe_join_orders" does not exist, skipping
+  [A] NOTICE:  table "pe_join_accounts" does not exist, skipping
+  -- Session A --
+  [A] phase=small_hash_allowance
+  [A]                                                        QUERY PLAN                                                        
+  [A] -------------------------------------------------------------------------------------------------------------------------
+  [A]  Aggregate  (cost=7099.26..7099.27 rows=1 width=8) (actual rows=1 loops=1)
+  [A]    Buffers: shared hit=1742, temp read=1769 written=1769
+  [A]    ->  Hash Join  (cost=4013.00..6724.26 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]          Hash Cond: (o.account_id = a.account_id)
+  [A]          Buffers: shared hit=1742, temp read=1769 written=1769
+  [A]          ->  Seq Scan on pe_join_orders o  (cost=0.00..771.00 rows=50000 width=8) (actual rows=50000 loops=1)
+  [A]                Buffers: shared hit=271
+  [A]          ->  Hash  (cost=1971.00..1971.00 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]                Buckets: 512  Batches: 256  Memory Usage: 57kB
+  [A]                Buffers: shared hit=1471, temp written=1259
+  [A]                ->  Seq Scan on pe_join_accounts a  (cost=0.00..1971.00 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]                      Buffers: shared hit=1471
+  [A]  Planning:
+  [A]    Buffers: shared hit=73 read=3
+  [A] (14 rows)
+  -- Session A --
+  [A] phase=larger_hash_allowance
+  [A]                                                        QUERY PLAN                                                        
+  [A] -------------------------------------------------------------------------------------------------------------------------
+  [A]  Aggregate  (cost=3873.26..3873.27 rows=1 width=8) (actual rows=1 loops=1)
+  [A]    Buffers: shared hit=1742
+  [A]    ->  Hash Join  (cost=2596.00..3498.26 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]          Hash Cond: (o.account_id = a.account_id)
+  [A]          Buffers: shared hit=1742
+  [A]          ->  Seq Scan on pe_join_orders o  (cost=0.00..771.00 rows=50000 width=8) (actual rows=50000 loops=1)
+  [A]                Buffers: shared hit=271
+  [A]          ->  Hash  (cost=1971.00..1971.00 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]                Buckets: 65536  Batches: 1  Memory Usage: 12231kB
+  [A]                Buffers: shared hit=1471
+  [A]                ->  Seq Scan on pe_join_accounts a  (cost=0.00..1971.00 rows=50000 width=208) (actual rows=50000 loops=1)
+  [A]                      Buffers: shared hit=1471
+  [A] (12 rows)
+
+=== #25 checkpoint-writeback ===
+  -- Session A --
+  [A] {"finish": "rollback", "fixture": "/tmp/pe-checkpoint-bwnkncr_", "server": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)"}
+  [A] {"data_directory": "/tmp/pe-checkpoint-bwnkncr_/data", "observer_original_rows": 12000, "observer_rows": 12000, "phase": "before_checkpoint", "relation_dirty_buffers": 906, "writer_pending_rows": 12000, "writer_pid": 917970, "writer_rows": 12000, "writer_state": "idle in transaction"}
+  [A] {"observer_original_rows": 12000, "observer_rows": 12000, "phase": "after_checkpoint", "relation_dirty_buffers": 0, "writer_pending_rows": 12000, "writer_pid": 917970, "writer_rows": 12000, "writer_state": "idle in transaction"}
+  [A] {"decision": "rollback", "original_rows": 12000, "pending_rows": 0, "phase": "final", "rows": 12000}
+  [A] {"budget_bytes": 200000000, "fixture_bytes": 64966600}
+  [A] {"cleanup": "owned cluster removed", "path": "/tmp/pe-checkpoint-bwnkncr_", "removed": true}
+
+=== #26 crash-replay ===
+  -- Session A --
+  [A] {"fixture": "/tmp/pe-crash-z64lbc7c", "mode": "crash", "server": "postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)"}
+  [A] {"checkpoint_lsn": "0/612F78", "inventory": [[1, 100], [2, 100], [3, 100], [4, 0]], "phase": "baseline"}
+  [A] {"checkpoint_unchanged": true, "committed_inventory": [[1, 110], [2, 100], [3, 100], [4, 1]], "flush_lsn": "0/613250", "insert_lsn": "0/613250", "marker_commit": "synchronous: preceding WAL flushed", "pending_private_value": 700, "phase": "before_stop", "wal_after_checkpoint": true}
+  [A] {"action": "stop owned server", "data_directory": "/tmp/pe-crash-z64lbc7c/data", "stop_mode": "immediate"}
+  [A] {"restart_log": "2026-09-11 04:02:05.814 UTC [918048] LOG:  database system was interrupted; last known up at 2026-09-11 04:02:05 UTC"}
+  [A] {"restart_log": "2026-09-11 04:02:05.925 UTC [918048] LOG:  redo starts at 0/612F40"}
+  [A] {"restart_log": "2026-09-11 04:02:05.925 UTC [918048] LOG:  redo done at 0/613228 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s"}
+  [A] {"restart_log": "2026-09-11 04:02:05.959 UTC [918045] LOG:  database system is ready to accept connections"}
+  [A] {"aborted_visible": false, "committed_survived": true, "crash_recovery": true, "interrupted_visible": false, "inventory": [[1, 110], [2, 100], [3, 100], [4, 1]], "phase": "recovered", "redo": true}
+  [A] {"cleanup": "owned cluster removed", "path": "/tmp/pe-crash-z64lbc7c", "removed": true}
+
+3/3 lessons completed; deliberate waits observed
