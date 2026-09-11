@@ -1,0 +1,39 @@
+{
+  "postgres_version": 16,
+  "core": {
+    "small": {
+      "hash_join_rows": 50000,
+      "batches": 256,
+      "temp_io": [
+        [
+          1769,
+          1769
+        ],
+        [
+          1769,
+          1769
+        ]
+      ]
+    },
+    "large": {
+      "hash_join_rows": 50000,
+      "batches": 1,
+      "temp_io": []
+    }
+  },
+  "variation": {
+    "hash_join_rows": 50000,
+    "batches": 32,
+    "temp_io": [
+      [
+        1548,
+        1548
+      ],
+      [
+        1548,
+        1548
+      ]
+    ]
+  },
+  "unexpected_errors": []
+}

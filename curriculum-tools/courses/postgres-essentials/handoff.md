@@ -36,3 +36,16 @@ Unrelated initial dirty files: root README.md, reference postgres designs/09-coa
 guides/{pilot-mvcc,pilot-storage,types}.ts, tools/{coach,pilot,pilot_test}.ts,
 docs/{README,learner-profile}.md, docs/knowledge/{README,postgres-coaching-pilot}.md, untracked grpc
 course and docs/knowledge/grpc-course.md. Preserve these; stage only owned hunks.
+
+
+## Checkpoint update
+
+Lesson22 review corrections and rerun complete (source cc1c5f25...). Build now produces26 lessons
+and existing37 Deno tests pass. Required full check currently fails only formatting on incoming
+agent-owned files, to be formatted after delivery. Lesson26 clean comparison passed with no redo;
+primary hardened cleanup/status and explicit WAL-position checks after review, requiring rerun.
+Checkpoint helper review found fabricated own-value, unbounded waits and unsafe cleanup; Sol is
+correcting these before acceptance. WAL primary review corrections sent; validation ongoing.
+Integration source/visuals/tests/availability docs edited but not yet accepted or committed.
+Raw knowledge entry added with index row: /root/Raw/knowledge/pgcoach-course-authoring.md.
+No learner completion or live catalog refresh performed yet. Final check_batch validator pending.
