@@ -23,9 +23,10 @@ No unexpected PostgreSQL errors occurred. Core results:
 [Join/checkpoint/crash outcomes](lessons-22-25-26-outcomes.json) and
 [WAL outcomes](lessons-23-24-outcomes.json) include variation checks and scoped empty error
 inventories. Matching `.log`, `-variations.log`, `-source.json` and `-cleanup.json` files record
-executed text, lesson hashes, imported helper hashes and fixture removal.
-[Final source manifest](batch-six-source.json) verifies all five final objects and helper
-dependencies against those runs. The first 21 lesson objects compare equal to the pre-batch catalog.
+executed text, lesson hashes, imported helper hashes and fixture removal. Retained logs trim only
+trailing terminal padding. [Final source manifest](batch-six-source.json) verifies all five final
+objects and helper dependencies against those runs. The first 21 lesson objects compare equal to the
+pre-batch catalog.
 
 The checkpoint controller was corrected during primary review to query the writer's actual rows,
 track its exact backend PID, bound commands, clear inherited PG variables and verify server stop

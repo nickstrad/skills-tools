@@ -2,16 +2,16 @@
 === #23 commit-and-wal ===
   [A] NOTICE:  table "pe_commit_wal" does not exist, skipping
   -- Session A --
-  [A]  saved_write_lsn | current_write_lsn | current_flush_lsn | flush_reached_saved_write 
+  [A]  saved_write_lsn | current_write_lsn | current_flush_lsn | flush_reached_saved_write
   [A] -----------------+-------------------+-------------------+---------------------------
   [A]  0/617528        | 0/617550          | 0/617550          | t
   [A] (1 row)
   -- Session A --
-  [A]  saved_write_lsn | flush_before_insert | sampled_write_lsn | sampled_flush_lsn | sampled_unflushed_bytes 
+  [A]  saved_write_lsn | flush_before_insert | sampled_write_lsn | sampled_flush_lsn | sampled_unflushed_bytes
   [A] -----------------+---------------------+-------------------+-------------------+-------------------------
   [A]  0/6175D8        | 0/617550            | 0/617550          | 0/617550          |                     136
   [A] (1 row)
-  [A]  synchronous_rows | asynchronous_rows 
+  [A]  synchronous_rows | asynchronous_rows
   [A] ------------------+-------------------
   [A]                 1 |                 1
   [A] (1 row)
@@ -21,11 +21,11 @@
   [A] NOTICE:  table "pe_wal_batch" does not exist, skipping
   -- Session A --
   -- Session A --
-  [A]  autocommit_wal_bytes | autocommit_bytes_per_row | batched_wal_bytes | batched_bytes_per_row 
+  [A]  autocommit_wal_bytes | autocommit_bytes_per_row | batched_wal_bytes | batched_bytes_per_row
   [A] ----------------------+--------------------------+-------------------+-----------------------
   [A]                 59464 |                   297.32 |             51504 |                257.52
   [A] (1 row)
-  [A]  autocommit_rows | batched_rows | checksums_equal 
+  [A]  autocommit_rows | batched_rows | checksums_equal
   [A] -----------------+--------------+-----------------
   [A]              200 |          200 | t
   [A] (1 row)

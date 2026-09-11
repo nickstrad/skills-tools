@@ -4,7 +4,7 @@
   [A] NOTICE:  table "pe_join_accounts" does not exist, skipping
   -- Session A --
   [A] phase=small_hash_allowance
-  [A]                                                        QUERY PLAN                                                        
+  [A]                                                        QUERY PLAN
   [A] -------------------------------------------------------------------------------------------------------------------------
   [A]  Aggregate  (cost=7099.26..7099.27 rows=1 width=8) (actual rows=1 loops=1)
   [A]    Buffers: shared hit=1742, temp read=1769 written=1769
@@ -23,7 +23,7 @@
   [A] (14 rows)
   -- Session A --
   [A] phase=larger_hash_allowance
-  [A]                                                        QUERY PLAN                                                        
+  [A]                                                        QUERY PLAN
   [A] -------------------------------------------------------------------------------------------------------------------------
   [A]  Aggregate  (cost=3873.26..3873.27 rows=1 width=8) (actual rows=1 loops=1)
   [A]    Buffers: shared hit=1742

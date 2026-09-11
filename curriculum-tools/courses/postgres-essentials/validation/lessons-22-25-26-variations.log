@@ -4,7 +4,7 @@
   [A] NOTICE:  table "pe_join_variation_orders" does not exist, skipping
   [A] NOTICE:  table "pe_join_variation_accounts" does not exist, skipping
   [A] phase=variation_hash_multiplier
-  [A]                                                             QUERY PLAN                                                             
+  [A]                                                             QUERY PLAN
   [A] -----------------------------------------------------------------------------------------------------------------------------------
   [A]  Aggregate  (cost=7099.26..7099.27 rows=1 width=8) (actual rows=1 loops=1)
   [A]    Buffers: shared hit=1719 read=23 written=8, temp read=1548 written=1548
