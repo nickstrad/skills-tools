@@ -46,7 +46,7 @@ The learner-facing controllers never accept an existing target directory or serv
   The learner's original PID 348739 remained running at `/labs/pglab/primary`, PostgreSQL 16.15.
   Existing learner clients were preserved. About 16 GB disk and 6.6 GiB memory remained available.
 - Reports/logs/scripts are retained; reproducible cluster data and temporary progress copies were
-  removed. `handoff.md` records final status for the user's requested continuity record.
+  removed. The temporary `handoff.md` was removed at the user's request after batch completion.
 
 The core duration estimates remain provisional until learner feedback. WAL bytes are controlled
 cluster-wide interval measurements, not universal operation prices. Async position samples do not
