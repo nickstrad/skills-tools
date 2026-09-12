@@ -1,5 +1,0 @@
-#!/bin/sh
-# Friendly entry point for PostgreSQL Essentials.
-set -eu
-SCHOOL_ROOT=$(dirname "$(dirname "$(readlink -f "$0")")")
-exec "$SCHOOL_ROOT/curriculum-tools/courses/postgres/bin/pgcoach" "$@"

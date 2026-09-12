@@ -1,6 +1,32 @@
 #!/bin/sh
-# Repository-local launcher for the curriculum tutor.
+# Thin launcher for the Go tutor CLI: builds (cached) and execs the binary with TUTOR_ROOT set.
+# This is the sanctioned Bash exception: a copied binary cannot locate the checkout on its own.
 set -eu
+
 SELF=$(readlink -f "$0")
-REPO_DIR=$(dirname "$(dirname "$SELF")")
-exec "$REPO_DIR/curriculum-tools/bin/tutor" "$@"
+REPO=$(dirname "$(dirname "$SELF")")
+TOOLS=$REPO/curriculum-tools
+export TUTOR_ROOT="$TOOLS"
+
+if [ -n "${TUTOR_BIN:-}" ]; then
+  exec "$TUTOR_BIN" "$@"
+fi
+
+GO=""
+if command -v go >/dev/null 2>&1; then
+  GO=$(command -v go)
+elif [ -x /usr/local/go/bin/go ]; then
+  GO=/usr/local/go/bin/go
+elif [ -x /usr/local/bin/go ]; then
+  GO=/usr/local/bin/go
+else
+  echo "tutor: Go is required (or set TUTOR_BIN to a built binary)" >&2
+  exit 127
+fi
+
+cd "$TOOLS"
+mkdir -p .cache
+VERSION=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo dev)
+# `go build` is a no-op when the cache is current; it rewrites .cache/tutor only when inputs change.
+"$GO" build -ldflags "-X main.version=$VERSION" -o .cache/tutor ./cmd/tutor
+exec .cache/tutor "$@"

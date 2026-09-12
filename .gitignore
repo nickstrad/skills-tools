@@ -27,3 +27,6 @@ coverage/
 tmp/
 temp/
 archive/legacy-reading/databases/
+
+# Go tutor build cache and legacy progress backups (bin/tutor)
+curriculum-tools/.cache/
