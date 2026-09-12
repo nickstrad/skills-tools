@@ -78,7 +78,7 @@ a separate handoff document.
 | WP7.2 AGENTS.md | O | done | resume skill commit | Sol rewrite reviewed by primary; protections retained, Markdown/Go/unified progress documented, links checked, CLAUDE.md symlink preserved. |
 | WP7.3 Author skill and AUTHORING.md | S | done | resume authoring commit | Luna/high edits reviewed/refined by primary; standalone grammar, metadata-only prerequisites, isolated progress smoke, skill/link checks pass. |
 | WP7.4 Remaining documentation | S | done | resume documentation commit | Active docs use direct Markdown parsing and unified CLI/DB; historical validation body preserved; 71 links and five course checks pass. |
-| WP8.1 Archive-then-delete Deno engine | S | in progress | | Archive commit A prepared after all parity/race gates; includes obsolete Essentials validation controllers and one-time converter. |
+| WP8.1 Archive-then-delete Deno engine | S | done | archive A: 9fc73b2; retirement B: see log | 150 source/catalog/controller files archived byte-identically, then removed; README records Git retrieval. Native Python lab fixtures preserved. |
 | WP8.2 Knowledge cleanup | S | in progress | | Luna/high knowledge_cleanup preparing final-design docs; primary must finish archive prerequisite and review. |
 | WP8.3 Machine install and sweep | O | todo | | |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |

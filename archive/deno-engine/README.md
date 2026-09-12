@@ -9,6 +9,9 @@ generated catalogs, old installer/export scripts, the one-time Go converter, and
 PostgreSQL Essentials validation controllers. These controllers are preserved evidence, not
 current tooling. Native lesson fixtures under `courses/*/lab/` remain active and unchanged.
 
-The following commit removes this archived source tree from the checkout while preserving it
-in Git history. Historical validation records retain their original commands and source hashes;
-use this archive to inspect those exact sources rather than recreating their old environments.
+The archived tree is in commit `9fc73b2`; inspect a file with
+`git show 9fc73b2:archive/deno-engine/<original-repository-path>`. The 150 archived files have
+been removed from the current checkout. Historical validation records retain their original
+commands and source hashes; use Git to inspect those exact sources rather than recreating their
+old environments. Earlier coach and harness sources retired in commit `0106961` are available
+from its parent at their original paths.

@@ -3,6 +3,10 @@
 The log and artifact files below predate the Go CLI and retain their original command spellings as
 historical evidence.
 
+Historical TypeScript/Python validation controllers are preserved in Git commit `9fc73b2`
+under `archive/deno-engine/` at their original repository-relative paths. Active lab helpers
+remain under `../lab/`; these historical controllers are not current course tooling.
+
 This is the historical first-batch record. Lessons 1–6 are now available; see
 [second-batch acceptance](batch-two.md) for the current checks and cleanup.
 
