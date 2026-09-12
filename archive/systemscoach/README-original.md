@@ -9,14 +9,14 @@ learner coding focused on core logic, with Go first and Deno second.
 Every lesson reserves meaningful work for you: construct or adapt a command, change a consequential
 setting, implement a core decision, or investigate a failure. Setup is supplied; optional hints and
 a clearly labelled worked reference appear below the task in the complete lesson output. See the
-[learner work standard](docs/knowledge/learner-work.md).
+[learner work standard](../../docs/knowledge/learner-work.md).
 
 Run **`systemscoach`** or **`systemscoach courses`** to discover existing systems courses, their
 available lesson counts and the commands to open them. `list` and `topics` are aliases.
 
 Start in chat: **“Use systemscoach to help me choose a project”** or **“Use systemscoach with this
 write-up: URL.”** The skill conducts a short interview and proposes a bounded Markdown route under
-[`future-courses/`](../future-courses/). No project JSON, scaffolding, lab, or validation suite is
+[`future-courses/`](../../future-courses/). No project JSON, scaffolding, lab, or validation suite is
 created during planning. Once you agree and request implementation, the route is converted into the
 Systemscoach JSON/Markdown format and authored in small batches. The first selected topic has a
 [approved Cursor Git roadmap](projects/cursor-git/PLAN.md): eight lessons on publication and
@@ -47,8 +47,8 @@ including when invoked through a symlink. The initial `go run` may compile the s
 - [Design and interview workflow](docs/design-workflow.md)
 - [Authoring and validation](docs/authoring.md)
 - [Project/progress format](docs/format.md)
-- [Skill](skills/systemscoach/SKILL.md)
-- [Systems knowledge store](docs/knowledge/README.md) — reusable findings updated after systems tasks
+- [Skill](SKILL.md)
+- [Systems knowledge store](knowledge/README.md) — reusable findings updated after systems tasks
 
 Development: `go test ./...`, `go vet ./...`, `go build ./cmd/systemscoach` (choose an output path
 outside the source tree). Tests use isolated temporary progress. Other courses and their learner

@@ -39,8 +39,8 @@ the current concise policy generalizes that preference without changing existing
 
 ## Applying and checking the norm
 
-The installed [skill](../../skills/systemscoach/SKILL.md), local AGENTS guidance,
-[design workflow](../design-workflow.md), [authoring contract](../authoring.md) and templates carry
+The installed [skill](../../archive/systemscoach/SKILL.md), local AGENTS guidance,
+[design workflow](../../archive/systemscoach/docs/design-workflow.md), [authoring contract](../../archive/systemscoach/docs/authoring.md) and templates carry
 this rule. At design time, name each lesson's task, supplied boundary, evidence and attempt budget.
 Before publication, validate the starter and worked completion with external evidence and an
 appropriate wrong choice/failure. Manually review whether the task teaches the intended mechanism;
@@ -50,7 +50,7 @@ Apply this to new courses and existing-course revisions. Preserve learner work a
 the normal revision and real-validation rules when changing an available lesson. Existing validation
 records remain historical evidence, not proof of a redesigned task's acceptance.
 
-The [Cursor Git revision plan](../../projects/cursor-git/docs/learner-work-plan.md) applies this to the
+The [Cursor Git revision plan](../../archive/systemscoach/projects/cursor-git/docs/learner-work-plan.md) applies this to the
 ten-lesson target route (splitting original lessons 5 and 8). The temporary project handoff tracks pending implementation while the batch is open.
 At this policy checkpoint, existing lesson pages have not yet been retrofitted; lessons 1–3 remain
 available in their earlier form and 4–8 remain unpublished drafts.

@@ -9,14 +9,14 @@ for shared tutor, shell and VM guidance; link it instead of copying it here.
 
 | Note | When to use it |
 | --- | --- |
-| [Meaningful learner work](learner-work.md) | Required for every systemscoach course: learner-owned tasks, scaffolding boundaries, hints, validation and lesson sizing. |
+| [Meaningful learner work](../../../docs/knowledge/learner-work.md) | Required for every systemscoach course: learner-owned tasks, scaffolding boundaries, hints, validation and lesson sizing. |
 | [Object-store and Git labs](object-store-git-labs.md) | Selecting SeaweedFS launch mode, checking conditional publication, validating Git fixtures and cleaning a local lab. |
-| [Systemscoach engine and installation](../../../docs/knowledge/systemscoach.md) | CLI/progress behavior, discovery, shell availability and installation. |
+| [Systemscoach engine and installation](systemscoach-engine.md) | CLI/progress behavior, discovery, shell availability and installation. |
 | [Concise course flow](../../../docs/knowledge/concise-course-cli.md) | Shared route/lesson/done, planning-first routes, first-class diagrams, and complete single-file lesson output. |
 | [VM resources and cleanup](../../../docs/knowledge/vm-resource-cleanup.md) | Before allocations and at task completion; preserve learner labs and progress. |
 | [Shell experiment pitfalls](../../../docs/knowledge/shell-lesson-gotchas.md) | Writing supplied shell commands, handling expected errors and coordinating processes. |
 
-The [single-source migration record](../../projects/cursor-git/validation/source-layout-migration-20260912.md)
+The [single-source migration record](../projects/cursor-git/validation/source-layout-migration-20260912.md)
 explains how old interpretation files were merged without changing rendered content, and how
 historical acceptance hashes are distinguished from source-transformation hashes. The shared
 engine/installation note above also records the move from gRPC-owned Go to a shared installation.

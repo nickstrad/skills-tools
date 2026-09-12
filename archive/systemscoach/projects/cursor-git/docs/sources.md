@@ -1,7 +1,7 @@
 # Source notes for the Cursor Git project
 
 Reviewed 2026-09-09. Start with the existing
-[learner interest and article note](../../../../docs/articles/cursor-git-at-any-scale.md).
+[learner interest and article note](../../../../../docs/articles/cursor-git-at-any-scale.md).
 Nick approved the eight-step agenda and requested lessons 1–3 on 2026-09-09.
 Batch 1 measured results and remaining limits are recorded in [validation](../validation/batch-1.md).
 

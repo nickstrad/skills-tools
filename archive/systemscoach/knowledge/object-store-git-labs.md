@@ -1,7 +1,7 @@
 # Object-store and Git lab findings
 
 Validated work began 2026-09-09 with SeaweedFS 4.46, Git 2.43.0 and the Cursor Git project.
-Use [batch evidence](../../projects/cursor-git/validation/batch-1.md) for final measured acceptance.
+Use [batch evidence](../projects/cursor-git/validation/batch-1.md) for final measured acceptance.
 
 ## What happened
 
@@ -41,7 +41,7 @@ tokens; use a separate checksum to verify payload bytes.
 
 ## How to apply
 
-- Follow the [owned launcher](../../projects/cursor-git/lab/lab.sh): unique root, recorded PID,
+- Follow the [owned launcher](../projects/cursor-git/lab/lab.sh): unique root, recorded PID,
   executable and data-directory ownership check before stopping, all data underneath the root,
   finite startup/shutdown waits and complete teardown. Check peak allocation including install
   copies, object-store files and Git replicas. Retain one reusable pinned binary, not download copies.

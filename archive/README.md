@@ -20,6 +20,7 @@ metadata and has its own inventory.
 - [Linux history](course-history/linux/): the superseded refactor proposal.
 - [Legacy reading archive](legacy-reading/): catalog metadata exported before reading fields were
   removed from the active engine.
+- [Systemscoach archive](systemscoach/): superseded on 2026-09-12; tool retired; see its README.
 
 ## Old-to-new locations
 

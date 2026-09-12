@@ -17,6 +17,7 @@ and shared tutor rendering. Proposed courses live under [`future-courses/`](../.
 | File                                                                           | What it covers                                                                                                                                                             |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [concise-course-cli.md](concise-course-cli.md) | Shared route/lesson/done, read-only completion markers, Markdown plans, course discovery, empty scaffolds, diagrams, and systemscoach compatibility. |
+| [learner-work.md](learner-work.md) | Every lesson reserves meaningful learner work; user norm from 2026-09-09. |
 | [course-workflow-cleanup.md](course-workflow-cleanup.md) | Luna/high cleanup review, preserved original curricula and progress, retired books/pgtutor, synchronized installation and final acceptance. |
 | [school-final-refactor.md](school-final-refactor.md) | Final reading-schema migration, single-source lessons, archive moves, gRPC pruning, shared Go repair and independent preservation checks. |
 | [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
@@ -58,8 +59,3 @@ and shared tutor rendering. Proposed courses live under [`future-courses/`](../.
    note the date of the change at the top.
 4. Do not record what the repository already shows (code structure, git history, lesson text) or
    what only mattered to one session. Record the non-obvious part.
-
-## Systems project track
-
-[Systemscoach builder](systemscoach.md) — interview and agenda boundaries, Go/Markdown project
-format, stable completion identities, read-only coaching views, installation and resource validation.

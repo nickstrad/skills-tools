@@ -4,7 +4,7 @@ Scope: approved lessons 1–3, course discovery, Bash availability and ongoing s
 Lessons 4–8 remain planned. Primary designed the batch and reviewed all teaching/code; bounded Sol
 assignments implemented discovery/Bash and lesson 1. Primary implemented the lab and lessons 2–3,
 then independently executed all rendered lessons. Followed the
-[repository batch workflow](../../../../docs/lesson-batch-workflow.md).
+[repository batch workflow](../../../../../docs/lesson-batch-workflow.md).
 
 ## Reproduction and source correspondence
 
@@ -58,7 +58,7 @@ PID file, the owned fixture was cleaned normally. Learner readiness still passed
 
 Earlier trials found mini admin listeners despite disabling its UI, a short shutdown allowance,
 and listing readiness before data readability on restart. Final stable-source checks passed after
-fixes. [Shared findings](../../../docs/knowledge/object-store-git-labs.md) preserve the causes and
+fixes. [Shared findings](../../../knowledge/object-store-git-labs.md) preserve the causes and
 tested corrections. Earlier scratch inputs are retired, not acceptance dependencies.
 
 ## CLI, shell and knowledge
@@ -75,7 +75,7 @@ idempotent PATH additions; the launcher also finds the repository toolchain when
 render. Read commands leave isolated state empty. Simulated completion of 1–3 in temporary state
 stops at planned lesson 4, which cannot be marked complete. No real systemscoach state was created.
 
-The [systems knowledge store](../../../docs/knowledge/README.md) indexes reusable evidence and
+The [systems knowledge store](../../../knowledge/README.md) indexes reusable evidence and
 shared repository guidance. The installed skill, local AGENTS and design/authoring workflows require
 reading it before work and updating it after completed tasks, as Nick requested.
 

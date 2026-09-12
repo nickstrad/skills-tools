@@ -16,7 +16,7 @@ systems-projects/
   .state/                           ignored learner state, never authored or committed
 ```
 
-Plan a new topic first as inexpensive Markdown under the root [`future-courses/`](../../future-courses/)
+Plan a new topic first as inexpensive Markdown under the root [`future-courses/`](../../../future-courses/)
 tree. Only after the learner agrees and requests implementation, copy `templates/project.json` and
 `templates/PLAN.md`, preserving agreed slugs and outcomes. The JSON then becomes the canonical
 ordered implementation roadmap; PLAN.md explains the design and agreement rather than keeping a

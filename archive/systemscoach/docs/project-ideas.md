@@ -93,7 +93,7 @@ Git replicas reconstructed/synchronized via CLIs. Supply transport and command s
 work should be central structures/logic. The JSON/path sketch above is the document's toy proposal,
 not a claim about Cursor's literal storage layout. PostgreSQL WAL and an application WAL differ.
 A local flock must not be presented as distributed CAS. See the existing
-[Cursor source notes](../../docs/articles/cursor-git-at-any-scale.md) before choosing the protocol.
+[Cursor source notes](../../../docs/articles/cursor-git-at-any-scale.md) before choosing the protocol.
 
 ## 2. GitHub — Building resilience in Spokes / Stretching Spokes
 

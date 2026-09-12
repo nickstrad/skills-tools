@@ -1,13 +1,13 @@
 # Systemscoach project builder
 
-Created 2026-09-09. [Entry point](../../systems-projects/README.md),
-[skill](../../systems-projects/skills/systemscoach/SKILL.md),
-[format](../../systems-projects/docs/format.md).
+Created 2026-09-09. [Entry point](../README-original.md),
+[skill](../SKILL.md),
+[format](../docs/format.md).
 
 ## Current concise contract (2026-09-12)
 
 Future systems projects begin as inexpensive Markdown routes under
-[`future-courses/`](../../future-courses/). Planning records the bounded mechanism, stable slugs,
+[`future-courses/`](../../../future-courses/). Planning records the bounded mechanism, stable slugs,
 meaningful learner work, outcomes, visual teaching plan, and exclusions; it does not create a
 project JSON route, scaffolding, lab, or validation suite. Only after agreement and an
 implementation request is the plan converted into Systemscoach's existing `project.json` and
@@ -23,7 +23,7 @@ receipt.
 
 ## Ongoing systems knowledge
 
-The dedicated [systems knowledge store](../../systems-projects/docs/knowledge/README.md) is the
+The dedicated [systems knowledge store](README.md) is the
 cross-project entry point for measured systems-course findings. Read it before new systems work;
 after each completed task/batch, update the relevant note and index with evidence, limits and
 cleanup implications. Source research stays beside its project, per-batch validation stays in the
@@ -63,7 +63,7 @@ contains PostgreSQL.
 
 The user supplied all contents of an ideas document, so no Drive fetch or bulk source research was
 needed to preserve it. All 15 examples and their links are in
-[project-ideas.md](../../systems-projects/docs/project-ideas.md), with provenance and distinction
+[project-ideas.md](../docs/project-ideas.md), with provenance and distinction
 between proposed approximations and verified claims. No project was selected or course authored by
 this initial builder task. The document's suggested sequence and written postmortem are optional.
 

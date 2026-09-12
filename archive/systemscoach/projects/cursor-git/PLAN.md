@@ -135,7 +135,7 @@ Batch 1 lab: SeaweedFS 4.46 in one process using `weed server -filer -s3`, plus 
 fixtures and independent curl clients. All eight TCP listeners are bound to loopback: HTTP
 18333/19333/18888/18080 and gRPC 28333/29333/28888/28080. The launcher refuses occupied ports.
 The documented `mini` mode was trialed but its admin listener behavior did not fit this lab;
-[shared findings](../../docs/knowledge/object-store-git-labs.md) record the measured reason.
+[shared findings](../../knowledge/object-store-git-labs.md) record the measured reason.
 Native CLIs suffice for these three lessons; supplied shell scripts handle fixtures and lifecycle.
 Go remains the default when later replay/coordination logic needs code.
 

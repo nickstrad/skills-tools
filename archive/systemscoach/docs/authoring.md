@@ -1,11 +1,11 @@
 # Author a systems project lesson
 
-Before authoring, consult the [systems knowledge store](knowledge/README.md). At batch completion,
+Before authoring, consult the [systems knowledge store](../knowledge/README.md). At batch completion,
 record reusable findings there with measured evidence, limits and cleanup implications, and update
 its index. Link project validation records; do not retain bulky lab state as documentation.
 
-Read the repository [authoring contract](../../curriculum-tools/docs/AUTHORING.md) and
-[resource lifecycle](../../docs/knowledge/vm-resource-cleanup.md). Use its pedagogy, not its
+Read the repository [authoring contract](../../../curriculum-tools/docs/AUTHORING.md) and
+[resource lifecycle](../../../docs/knowledge/vm-resource-cleanup.md). Use its pedagogy, not its
 TypeScript data model: systemscoach has its own [small file format](format.md).
 
 ## One causal experiment, one complete lesson
@@ -27,7 +27,7 @@ single file; there is no separate review source or CLI stage.
 
 Use the [lesson](../templates/lesson.md) template as a prompt, not mandatory padding. No pure
 installation lesson, command tour, line-count target, or coding-only milestone. Apply the
-[learner work contract](knowledge/learner-work.md) to every lesson. Name a specific command to
+[learner work contract](../../../docs/knowledge/learner-work.md) to every lesson. Name a specific command to
 construct/adapt, causal configuration change, core edit, or diagnostic question whose investigation
 the learner controls. Prediction and running a completed helper alone are not sufficient. Supply
 plumbing and unfamiliar syntax; leave the meaningful action for the learner.

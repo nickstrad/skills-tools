@@ -1,6 +1,6 @@
 # From an engineering write-up to a bounded project
 
-Start with the [systems knowledge store](knowledge/README.md) and reuse relevant prior findings.
+Start with the [systems knowledge store](../knowledge/README.md) and reuse relevant prior findings.
 After completing planning or course work, update the store when new reusable evidence or decisions
 emerge; source-specific research stays beside the project and is linked from shared notes.
 
@@ -14,7 +14,7 @@ Forty lessons is not a target, and the old long PostgreSQL route is not the plan
 
 Known preferences: experienced engineer, familiar with Go, Docker and production Kubernetes;
 DDIA/OSTEP background; local Linux VM, CLI-first, evenings outside work; no scaffolding homework.
-See the [learner profile](../../docs/learner-profile.md). Do not re-interview those facts.
+See the [learner profile](../../../docs/learner-profile.md). Do not re-interview those facts.
 
 If no topic is named, offer two or three mechanism choices from the saved ideas, with one sentence
 on what each makes observable. If a URL/topic is given, focus on it. Ask only missing questions that
@@ -44,7 +44,7 @@ separate tutor, not a prerequisite course buried in this project.
 ## Lock in a cheap Markdown route before implementation
 
 Persist the proposed route under the repository root
-[`future-courses/<topic>/course.md`](../../future-courses/) using the shared template. Record the
+[`future-courses/<topic>/course.md`](../../../future-courses/) using the shared template. Record the
 systems question, topology, meaningful learner work, ordered lesson titles and stable slugs,
 observable outcomes, visual teaching plan, safety boundary, and exclusions. Do not create
 `project.json`, empty lesson files, scaffolding, labs, or validation infrastructure during planning.
@@ -70,7 +70,7 @@ Provide connection handling, transport, generated stubs, configuration, fixtures
 and cleanup. Mark the learner's edit boundary: e.g. `Apply(event)`, `ChooseOwner(key, members)`,
 `NextState(observation)`, or a WAL record struct plus replay ordering. Define behavior and provide
 observable acceptance commands. Every lesson needs a meaningful learner action under the
-[learner work contract](knowledge/learner-work.md). Native commands that the learner constructs or
+[learner work contract](../../../docs/knowledge/learner-work.md). Native commands that the learner constructs or
 adapts, or diagnostic commands they choose to resolve an uncertainty, count without writing Go;
 explaining an ordering alone does not. Go is preferred for code; Deno is second when justified.
 
