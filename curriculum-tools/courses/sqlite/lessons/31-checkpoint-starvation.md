@@ -34,7 +34,7 @@ A system can continue accepting writes while accumulating a maintenance debt it 
 - **wal_checkpoint(PASSIVE)** does not wait for B. Compare log frames with checkpointed frames rather than treating first-column 0 as complete success.
 - **.shell stat -c '%n %s bytes'** records file growth while connections remain open.
 - **B's COMMIT** releases the old snapshot. A's **wal_checkpoint(TRUNCATE)** can now finish and reduce the WAL to zero bytes; the current count must still be 7.
-- **The challenge's alert policy** should specify an operational threshold and what action is allowed. Cancelling a long reader may be appropriate, but a WAL-size alert alone does not identify which connection owns the pin.
+- **A WAL alert policy** needs an operational threshold and an allowed response. Cancelling a long reader may be appropriate, but a WAL-size alert alone does not identify which connection owns the pin.
 
 ## Caution
 WAL is same-host coordination, not replication or consensus; do not place the files on NFS, SMB, or a synchronized cloud directory.
@@ -83,4 +83,4 @@ While B's snapshot is open, passive checkpoints report a WAL backlog and the sid
 The general lesson transfers to replication lag, retained queue offsets and version garbage collection: a slow observer can control reclamation. SQLite makes the ownership local and concrete. Your application's transaction lifetimes are part of its storage-capacity contract, even if its queries are read-only.
 
 ## Optional variation
-Set a WAL size alert and choose a policy for readers that exceed it: cancellation, restart, or allowing growth.
+Use the two pre-release byte measurements and checkpoint backlogs to interpret a WAL-size alert. An application policy can allow bounded growth within available headroom, cancel an identified overlong read transaction, or restart that read from a fresh snapshot when its semantics permit. In this fixture B is the known owner; its COMMIT demonstrates the release needed for reclamation. A byte threshold alone cannot identify that owner or make a restart safe.

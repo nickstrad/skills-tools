@@ -83,4 +83,4 @@ With B open, PASSIVE reports first column 0 but log > checkpointed; FULL, RESTAR
 PostgreSQL checkpoint and vacuum experience gives useful questions about writeback and retention, but SQLite's APIs expose different boundaries. Here the oldest local reader constrains safe page replacement and log reuse. Monitor reader age, checkpoint progress and WAL size together before choosing a remedy.
 
 ## Optional variation
-Repeat with no reader. Which modes converge to the same result, and why is PASSIVE still useful for low-latency maintenance?
+Repeat Setup and Run while omitting B's BEGIN, SELECT and COMMIT. A's first PASSIVE can now checkpoint all frames, with log equal to checkpointed; FULL and RESTART can also finish without waiting for B. TRUNCATE additionally reduces WAL length to zero. PASSIVE remains useful when maintenance should make available progress without waiting on concurrent readers or writers; complete progress here follows from the controlled absence of contention.

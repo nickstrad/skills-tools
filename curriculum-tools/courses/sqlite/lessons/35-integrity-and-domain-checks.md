@@ -87,4 +87,4 @@ quick_check and integrity_check each print ok because the B-tree and pages are s
 Health checks certify specific invariants, not a database in the abstract. Structural checks, declared foreign-key checks and application queries cover different failure classes. Enabling SQLite foreign_keys for future writes does not retroactively repair old state; a restored offline replica also needs history reconciliation beyond all three checks.
 
 ## Optional variation
-Add a CHECK constraint for allowed state values and compare what integrity_check can and cannot validate.
+Repeat Setup with the child table's state declaration changed to `state TEXT NOT NULL CHECK(state IN ('ready','done'))`, then repeat Run. The existing rows satisfy CHECK, so integrity_check still reports ok while foreign_key_check and the orphan query still expose child 2. Try `INSERT INTO child VALUES (3, 1, 'invalid');`: CHECK rejects it and the ready count remains 2. A declared state constraint covers that rule; it does not make integrity_check a substitute for foreign-key or other domain checks.

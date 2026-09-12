@@ -34,7 +34,7 @@ A lock can eventually be released, but an old snapshot cannot become the latest 
 - **.timer on/off** scopes elapsed reporting to the rejected UPDATE. Expect an immediate result relative to the budget, not a required literal zero on every machine.
 - **SELECT after the error** still sees v1, proving A remains in the same read transaction.
 - **ROLLBACK** discards that transaction; the next query sees v2. Production retry logic must recompute any decision derived from v1.
-- **BEGIN IMMEDIATE** in the challenge reserves writer admission before reading a new decision snapshot. Use it after rollback; it cannot repair the old transaction in place.
+- **BEGIN IMMEDIATE** in the variation reserves writer admission before reading a new decision snapshot. Use it after rollback; it cannot repair the old transaction in place.
 
 ## Caution
 The default CLI exposes the primary error text; bindings can inspect the extended SQLITE_BUSY_SNAPSHOT result code.
@@ -74,4 +74,4 @@ A reads v1 and B commits v2. A's UPDATE prints database is locked promptly rathe
 Carry forward PostgreSQL's rule that a retry must repeat the decision whose assumptions failed. Add SQLite's distinction between writer-admission contention and stale-snapshot refusal. A larger timeout addresses some admission waits; it cannot repair a stale decision or provide more writer capacity.
 
 ## Optional variation
-Retry A with BEGIN IMMEDIATE after rolling back. Why does admission plus a fresh read avoid the stale upgrade?
+After A's existing ROLLBACK and fresh read, run `BEGIN IMMEDIATE;`, repeat `SELECT body FROM docs WHERE id=1;`, and then run `UPDATE docs SET body='A fresh write' WHERE id=1; COMMIT;`. A reads v2 after admission and commits its new value without upgrading an old snapshot. Verify with the same SELECT. Reserving the writer before reading prevents another writer from advancing this decision's history in between.

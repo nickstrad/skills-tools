@@ -87,4 +87,4 @@ The source baseline is 1, then A commits and reports source current=2. The delib
 A successful file operation is not a successful snapshot protocol. SQLite's portable-file appeal can hide a live multi-file state; PostgreSQL backup experience should make you ask the same capture-consistency question, but the concrete SQLite hazard is omitting committed WAL frames. A backup age metric is meaningless if the captured artifact was never consistent.
 
 ## Optional variation
-Repeat after an engine-coordinated TRUNCATE checkpoint while all writers are quiescent, and compare the copy. Then explain why checkpoint followed by cp is still racy if a writer may commit between them.
+After the completed run, keep both sessions in autocommit and perform no more writes. In A run `PRAGMA wal_checkpoint(TRUNCATE);`, require 0|0|0, then repeat the existing copy cleanup, cp and destination query. This quiescent copy now has 2 rows, matching the source. A writer committing between checkpoint and cp could place newer state in WAL again; the two separate operations do not constitute an online snapshot protocol.

@@ -219,18 +219,18 @@ sqlite	21	deferred-write-race	coaching-only prompt retired	Challenge	primary	Dir
 sqlite	22	immediate-reserves-writer	coaching-only prompt retired	Challenge	primary	Direct zero and1000ms admission comparisons preserve controlled release order
 sqlite	23	rollback-reader-writer-blocking	coaching-only prompt retired	Challenge	primary	Direct WAL comparison distinguishes successful first commit and omits redundant retry
 sqlite	24	busy-timeout-bounds-wait	coaching-only prompt retired	Challenge	primary	Direct500ms expiry and bounded longer successful-wait comparisons
-sqlite	25	idempotent-retry-ledger	pending			
-sqlite	26	wal-sidecar-files	pending			
-sqlite	27	reader-and-writer-overlap	pending			
-sqlite	28	busy-snapshot-upgrade	pending			
-sqlite	29	checkpoint-modes	pending			
-sqlite	30	automatic-checkpoint-cost	pending			
-sqlite	31	checkpoint-starvation	pending			
-sqlite	32	unsafe-live-copy	pending			
-sqlite	33	online-cli-backup	pending			
-sqlite	34	vacuum-into-snapshot	pending			
-sqlite	35	integrity-and-domain-checks	pending			
-sqlite	36	bounded-storage-failure	pending			
+sqlite	25	idempotent-retry-ledger	coaching-only prompt retired	Challenge	primary	Direct atomic rollback/replay count and external-effect boundary
+sqlite	26	wal-sidecar-files	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct reader-close checkpoint comparison with zero WAL bytes and unchanged rows
+sqlite	27	reader-and-writer-overlap	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct two-session writer-admission comparison with bounded wait and rollback cleanup
+sqlite	28	busy-snapshot-upgrade	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct fresh BEGIN IMMEDIATE retry reads v2 and commits new value
+sqlite	29	checkpoint-modes	coaching-only prompt retired	Challenge	primary	Direct no-reader checkpoint comparison separates complete progress from truncation
+sqlite	30	automatic-checkpoint-cost	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Trace comparison uses existing four cases and removes description of absent flag
+sqlite	31	checkpoint-starvation	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Operational alert interpretation supplied without separate policy-submission stage
+sqlite	32	unsafe-live-copy	coaching-only prompt retired	Challenge	primary	Direct quiescent checkpoint/copy comparison yields two rows and explains race boundary
+sqlite	33	online-cli-backup	unchanged		primary	Complete online backup schedule and rollback-mode comparison retained
+sqlite	34	vacuum-into-snapshot	coaching-only prompt retired	Challenge	primary	Direct doubled-payload snapshot comparison retains counts and integrity checks
+sqlite	35	integrity-and-domain-checks	coaching-only prompt retired	Challenge	primary	Direct declared CHECK comparison distinguishes state rejection from orphan detection
+sqlite	36	bounded-storage-failure	unchanged		primary	Complete bounded quota failure/recovery and native variations retained
 sqlite	37	recover-damaged-copy	pending			
 sqlite	38	query-plan-as-evidence	pending			
 sqlite	39	index-read-write-tradeoff	pending			

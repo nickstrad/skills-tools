@@ -32,7 +32,7 @@ The main file is not necessarily the latest committed database. In WAL mode, rec
 - **PRAGMA wal_autocheckpoint=0** disables automatic threshold checkpoints on this connection. It does not change other connections' policies or stop last-close cleanup.
 - **The two labeled sessions** use separate connections to the same absolute TUTOR_SQLITE_DB. A commits its second row; B verifies count 2 without sharing A's memory.
 - **.shell stat -c '%n %s bytes'** inspects the main file, -wal and -shm without opening another database connection. %n names each file and %s gives its byte length; shell expansion supplies the lab path.
-- **PRAGMA wal_checkpoint(TRUNCATE)** in the challenge asks SQLite to apply safe frames and reclaim the WAL file's length. Perform it through the engine, never by deleting a sidecar yourself.
+- **PRAGMA wal_checkpoint(TRUNCATE)** in the variation asks SQLite to apply safe frames and reclaim the WAL file's length. Perform it through the engine, never by deleting a sidecar yourself.
 
 ## Caution
 Never copy just the main file while WAL contains committed frames; use an engine-coordinated backup.
@@ -68,4 +68,4 @@ Both connections report journal_mode wal and count 2. While the connections are 
 Compare responsibilities, not names: SQLite WAL is a local page-history and recovery mechanism, not PostgreSQL streaming replication, an application event log, or consensus. A backup tool must obtain a consistent database snapshot; a file picker that happens to see the main file cannot infer which committed frames it is missing.
 
 ## Optional variation
-Run PRAGMA wal_checkpoint(TRUNCATE) after closing the reader. Which sidecar changes, and why is that a separate operation from committing?
+Close B, keep A open, and run `PRAGMA wal_checkpoint(TRUNCATE);` in A. Repeat A's stat and count queries. With no competing connection, the checkpoint reports 0|0|0, the WAL has zero bytes, and the count remains 2. The shared-memory index can remain while A is open. Commit made the row visible earlier; this maintenance step transfers safe frames and reclaims WAL length.

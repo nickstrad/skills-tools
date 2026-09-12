@@ -33,7 +33,7 @@ A snapshot is the database state a transaction is allowed to observe. A's first 
 - **count(*) and group_concat(value)** expose both how many rows A sees and whether new content entered its snapshot. With the initial single row the concatenated value must be old.
 - **B's INSERT without BEGIN** is an autocommit write. Its count 2 proves publication while A remains open.
 - **A's second SELECT before COMMIT** must still report 1 and old. **COMMIT** ends the read transaction; the following autocommit count gets a fresh view and reports 2.
-- **A second concurrent writer** in the challenge competes for file-wide admission even if it targets an unrelated row; short writer transactions still matter.
+- **A second concurrent writer** in the variation competes for file-wide admission even if it targets an unrelated row; short writer transactions still matter.
 
 ## Caution
 Readers must actually keep a transaction open; two autocommit SELECT statements can observe different snapshots.
@@ -70,4 +70,4 @@ B commits and reports count 2 while A remains in its transaction. A's second que
 The PostgreSQL analogy is snapshot isolation, but SQLite does not keep PostgreSQL-style heap tuple-version chains for this observation. It reconstructs page versions relative to the reader's WAL end mark. That makes reader lifetime an input to checkpoint and log-space policy, which the next experiments expose.
 
 ## Optional variation
-Add a second concurrent writer. Predict which operation waits or returns busy and why WAL is not distributed replication.
+After the completed run, use the same two sessions to compare writer admission. In B run `BEGIN IMMEDIATE;`. In A run `.timeout 100` and then `BEGIN IMMEDIATE;`: A waits roughly 100 ms and reports busy while B owns the writer reservation. Run `ROLLBACK;` in B, then retry `BEGIN IMMEDIATE;` in A and end it with `ROLLBACK;`. The two rows remain unchanged. WAL permits the earlier reader/writer overlap, but still coordinates one local writer; it does not transport or agree on changes between hosts.

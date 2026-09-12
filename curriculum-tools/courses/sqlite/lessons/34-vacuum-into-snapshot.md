@@ -81,4 +81,4 @@ The source has 20 rows and a nonzero freelist after deleting 80 approximately 2,
 SQLite can package a consistent logical rewrite as an independent file. That combines snapshot creation and compaction, while still leaving freshness, atomic publication of the destination, temporary space and restore verification to the application. An interrupted output must not be published as a known-good backup.
 
 ## Optional variation
-Increase payload size and compare the size delta. At what point does rewrite cost exceed the space benefit for your workload?
+Repeat Setup and Run with `randomblob(1000)` changed to `randomblob(2000)`, retaining the 100 source rows and deletion above id 20. Both source and compact copy still contain 20 rows, and the copy must pass integrity_check. Compare the measured byte difference with the earlier run. Larger payloads change rewrite I/O and reclaimable space; a useful compaction policy also depends on available temporary space and how soon that space would be reused.

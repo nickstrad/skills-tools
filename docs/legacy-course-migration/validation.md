@@ -4,6 +4,17 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## SQLite25–36 content group
+
+All12 accepted: ten prose edits,33/36 unchanged. Direct WAL comparisons specify local outcomes,
+bounded admission/release and fresh-read retry. Quiescent copy, larger-payload compact snapshots
+and declared CHECK comparisons distinguish their measured guarantees. Alert policy is interpreted
+locally without a submission stage. Lesson30's syntax drops a flag absent from the unchanged script.
+Setup/Run, existing blocks, metadata and revisions match baseline. All12 actual plain/ANSI/JSON
+views and the54-lesson source check pass. Existing runtime evidence applies; no new lab allocated.
+Temporary catalog removed. Evidence uses `.cache/legacy-migration/sqlite-25-36*` until acceptance.
+The ledger has234 accepted and16 pending.
+
 ## SQLite13–24 content group
 
 Primary accepted all12 lessons:13–18 unchanged,19–24 direct optional comparisons with local results.
