@@ -1,7 +1,8 @@
 // Operations behind the course verbs: get, next, done, skip, undone, note, list, topics, modules,
-// status and search. Every query is a verbatim port of the corresponding statement in src/main.ts
+// status and search. Every query is a port of the corresponding statement in src/main.ts
 // (LESSON_SELECT, topicFilter and the "next"/"done"/"list"/"topics"/"modules"/"status"/"search"
-// branches of run()), so an existing progress database keeps behaving identically under the Go CLI.
+// branches of run()) with one added predicate, l.course_id=?, so consolidated learner history
+// keeps behaving identically under the Go CLI.
 package progress
 
 import (
@@ -16,7 +17,7 @@ import (
 	"skills-tools/tutor/internal/course"
 )
 
-// lessonSelect is LESSON_SELECT from src/main.ts, verbatim.
+// lessonSelect is LESSON_SELECT from src/main.ts; l.* now begins with course_id.
 const lessonSelect = `SELECT l.*, COALESCE(p.status,'todo') AS status, p.notes AS notes,
   CASE WHEN p.status='done' AND p.completed_revision<>l.revision THEN 1 ELSE 0 END AS stale
 FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id`
@@ -26,7 +27,8 @@ const unfinishedPredicate = `(p.lesson_id IS NULL OR p.status='todo' OR (p.statu
 
 // Row is one lesson joined with its progress, the shape every read verb hands to the renderer.
 type Row struct {
-	ID int64
+	ID       int64
+	CourseID string
 	course.Lesson
 	Status string // raw p.status, COALESCE 'todo': "todo" | "done" | "skipped"
 	Notes  string // "" when NULL
@@ -96,6 +98,7 @@ type scanner interface {
 func scanRow(s scanner) (Row, error) {
 	var (
 		id                                                                                      int64
+		courseID                                                                                string
 		ordinal                                                                                 int
 		slug, title, category, difficulty, tags                                                 string
 		overview, syntaxBreakdown, setup, code, expectedResult, systemsLens, challenge, caution string
@@ -109,7 +112,7 @@ func scanRow(s scanner) (Row, error) {
 		stale                                                                                   int
 	)
 	if err := s.Scan(
-		&id, &ordinal, &slug, &title, &category, &difficulty, &tags,
+		&id, &courseID, &ordinal, &slug, &title, &category, &difficulty, &tags,
 		&overview, &syntaxBreakdown, &setup, &code, &expectedResult, &systemsLens, &challenge, &caution,
 		&safetyLevel, &runIn, &sessions, &minVersion, &estimatedMinutes, &revision, &active, &updatedAt,
 		&status, &notes, &stale,
@@ -117,7 +120,8 @@ func scanRow(s scanner) (Row, error) {
 		return Row{}, err
 	}
 	return Row{
-		ID: id,
+		ID:       id,
+		CourseID: courseID,
 		Lesson: course.Lesson{
 			Ordinal:          ordinal,
 			Slug:             slug,
@@ -176,9 +180,9 @@ func topicFilter(topic string) (string, []any, error) {
 	return strings.Join(conds, " AND "), args, nil
 }
 
-// Get returns the active lesson at ordinal, or NotFoundError if none exists.
-func Get(db *sql.DB, ordinal int) (Row, error) {
-	r, err := scanRow(db.QueryRow(lessonSelect+" WHERE l.ordinal=? AND l.active=1", ordinal))
+// Get returns the course's active lesson at ordinal, or NotFoundError if none exists.
+func Get(db *sql.DB, courseID string, ordinal int) (Row, error) {
+	r, err := scanRow(db.QueryRow(lessonSelect+" WHERE l.course_id=? AND l.ordinal=? AND l.active=1", courseID, ordinal))
 	if errors.Is(err, sql.ErrNoRows) {
 		return Row{}, NotFoundError{ordinal}
 	}
@@ -194,9 +198,9 @@ func Get(db *sql.DB, ordinal int) (Row, error) {
 // topic != "": no lesson matches at all -> (Row{}, 0, false, nil) with matched 0;
 //
 //	all matching lessons finished -> (Row{}, matched, true, nil); else (row, matched, false, nil).
-func Next(db *sql.DB, topic string) (Row, int, bool, error) {
+func Next(db *sql.DB, courseID, topic string) (Row, int, bool, error) {
 	if topic == "" {
-		r, err := scanRow(db.QueryRow(lessonSelect + " WHERE l.active=1 AND " + unfinishedPredicate + " ORDER BY l.ordinal LIMIT 1"))
+		r, err := scanRow(db.QueryRow(lessonSelect+" WHERE l.course_id=? AND l.active=1 AND "+unfinishedPredicate+" ORDER BY l.ordinal LIMIT 1", courseID))
 		if errors.Is(err, sql.ErrNoRows) {
 			return Row{}, 0, true, nil
 		}
@@ -209,14 +213,15 @@ func Next(db *sql.DB, topic string) (Row, int, bool, error) {
 	if err != nil {
 		return Row{}, 0, false, err
 	}
+	args = append([]any{courseID}, args...)
 	var matched int
-	if err := db.QueryRow("SELECT count(*) FROM lessons l WHERE l.active=1 AND "+cond, args...).Scan(&matched); err != nil {
+	if err := db.QueryRow("SELECT count(*) FROM lessons l WHERE l.course_id=? AND l.active=1 AND "+cond, args...).Scan(&matched); err != nil {
 		return Row{}, 0, false, err
 	}
 	if matched == 0 {
 		return Row{}, 0, false, nil
 	}
-	r, err := scanRow(db.QueryRow(lessonSelect+" WHERE l.active=1 AND "+unfinishedPredicate+" AND "+cond+" ORDER BY l.ordinal LIMIT 1", args...))
+	r, err := scanRow(db.QueryRow(lessonSelect+" WHERE l.course_id=? AND l.active=1 AND "+unfinishedPredicate+" AND "+cond+" ORDER BY l.ordinal LIMIT 1", args...))
 	if errors.Is(err, sql.ErrNoRows) {
 		return Row{}, matched, true, nil
 	}
@@ -228,8 +233,8 @@ func Next(db *sql.DB, topic string) (Row, int, bool, error) {
 
 // setStatus is the shared body of Done and Skip: one BEGIN IMMEDIATE transaction that upserts
 // progress (keeping the existing note when note is "") and inserts the matching attempts row.
-func setStatus(db *sql.DB, ordinal int, status, note string) error {
-	lesson, err := Get(db, ordinal)
+func setStatus(db *sql.DB, courseID string, ordinal int, status, note string) error {
+	lesson, err := Get(db, courseID, ordinal)
 	if err != nil {
 		return err
 	}
@@ -260,14 +265,18 @@ func setStatus(db *sql.DB, ordinal int, status, note string) error {
 }
 
 // Done marks a lesson done at its current revision. note == "" keeps the existing note.
-func Done(db *sql.DB, ordinal int, note string) error { return setStatus(db, ordinal, "done", note) }
+func Done(db *sql.DB, courseID string, ordinal int, note string) error {
+	return setStatus(db, courseID, ordinal, "done", note)
+}
 
 // Skip marks a lesson skipped. note == "" keeps the existing note.
-func Skip(db *sql.DB, ordinal int, note string) error { return setStatus(db, ordinal, "skipped", note) }
+func Skip(db *sql.DB, courseID string, ordinal int, note string) error {
+	return setStatus(db, courseID, ordinal, "skipped", note)
+}
 
 // Undone resets a lesson to todo, clearing completion metadata but keeping notes.
-func Undone(db *sql.DB, ordinal int) error {
-	lesson, err := Get(db, ordinal)
+func Undone(db *sql.DB, courseID string, ordinal int) error {
+	lesson, err := Get(db, courseID, ordinal)
 	if err != nil {
 		return err
 	}
@@ -278,12 +287,12 @@ func Undone(db *sql.DB, ordinal int) error {
 
 // Note saves free text against a lesson without changing its status (it upserts status='todo' only
 // on insert; an existing row's status is untouched). An empty (after trimming) text is an error.
-func Note(db *sql.DB, ordinal int, text string) error {
+func Note(db *sql.DB, courseID string, ordinal int, text string) error {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return errors.New("note text is required")
 	}
-	lesson, err := Get(db, ordinal)
+	lesson, err := Get(db, courseID, ordinal)
 	if err != nil {
 		return err
 	}
@@ -294,7 +303,7 @@ func Note(db *sql.DB, ordinal int, text string) error {
 }
 
 // List returns active lessons matching f, ordered by ordinal. The zero ListFilter is --all.
-func List(db *sql.DB, f ListFilter) ([]Row, error) {
+func List(db *sql.DB, courseID string, f ListFilter) ([]Row, error) {
 	var set []string
 	if f.Todo {
 		set = append(set, "--todo")
@@ -308,8 +317,8 @@ func List(db *sql.DB, f ListFilter) ([]Row, error) {
 	if len(set) > 1 {
 		return nil, fmt.Errorf("choose one of %s", strings.Join(set, ", "))
 	}
-	filters := []string{"l.active=1"}
-	var args []any
+	filters := []string{"l.course_id=?", "l.active=1"}
+	args := []any{courseID}
 	switch {
 	case f.Done:
 		filters = append(filters, "p.status='done' AND p.completed_revision=l.revision")
@@ -341,11 +350,11 @@ func List(db *sql.DB, f ListFilter) ([]Row, error) {
 }
 
 // Topics summarizes every tag across the active catalog, sorted by the ordinal it first appears at.
-func Topics(db *sql.DB) ([]Topic, error) {
+func Topics(db *sql.DB, courseID string) ([]Topic, error) {
 	rows, err := db.Query(`SELECT l.ordinal, l.tags,
     (p.status='done' AND p.completed_revision=l.revision) AS finished
-    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1
-    ORDER BY l.ordinal`)
+    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.course_id=? AND l.active=1
+    ORDER BY l.ordinal`, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -390,12 +399,12 @@ func Topics(db *sql.DB) ([]Topic, error) {
 }
 
 // Modules summarizes every category across the active catalog, ordered by its first ordinal.
-func Modules(db *sql.DB) ([]Module, error) {
+func Modules(db *sql.DB, courseID string) ([]Module, error) {
 	rows, err := db.Query(`SELECT l.category, min(l.ordinal) first, max(l.ordinal) last,
     count(*) total, count(*) FILTER (WHERE p.status='done' AND p.completed_revision=l.revision) done,
     sum(l.estimated_minutes) minutes
-    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1
-    GROUP BY l.category ORDER BY first`)
+    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.course_id=? AND l.active=1
+    GROUP BY l.category ORDER BY first`, courseID)
 	if err != nil {
 		return nil, err
 	}
@@ -415,13 +424,13 @@ func Modules(db *sql.DB) ([]Module, error) {
 // a function and a type to share one package-level identifier, and the type name is fixed by the
 // spec (used as the JSON/rendering shape), so the function took the name Get already establishes
 // as this package's "look one thing up" verb.
-func GetStatus(db *sql.DB) (Status, error) {
+func GetStatus(db *sql.DB, courseID string) (Status, error) {
 	var s Status
 	err := db.QueryRow(`SELECT count(*) total,
     count(*) FILTER (WHERE p.status='done' AND p.completed_revision=l.revision) done,
     count(*) FILTER (WHERE p.status='skipped') skipped,
     count(*) FILTER (WHERE p.status='done' AND p.completed_revision<>l.revision) stale
-    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.active=1`).
+    FROM lessons l LEFT JOIN progress p ON p.lesson_id=l.id WHERE l.course_id=? AND l.active=1`, courseID).
 		Scan(&s.Total, &s.Done, &s.Skipped, &s.Stale)
 	if err != nil {
 		return Status{}, err
@@ -432,7 +441,7 @@ func GetStatus(db *sql.DB) (Status, error) {
 
 // Search matches lessons whose title, overview, systems lens, code, category, slug or tags contain
 // every term (case-insensitive, SQLite LIKE semantics). An empty term list is an error.
-func Search(db *sql.DB, terms []string) ([]Row, error) {
+func Search(db *sql.DB, courseID string, terms []string) ([]Row, error) {
 	words := make([]string, 0, len(terms))
 	for _, t := range terms {
 		if t != "" {
@@ -444,12 +453,12 @@ func Search(db *sql.DB, terms []string) ([]Row, error) {
 	}
 	const haystack = "(l.title || ' ' || l.overview || ' ' || l.systems_lens || ' ' || l.code || ' ' || l.category || ' ' || l.slug || ' ' || l.tags)"
 	conds := make([]string, len(words))
-	args := make([]any, len(words))
+	args := []any{courseID}
 	for i, w := range words {
 		conds[i] = haystack + " LIKE ?"
-		args[i] = "%" + w + "%"
+		args = append(args, "%"+w+"%")
 	}
-	rows, err := db.Query(lessonSelect+" WHERE l.active=1 AND "+strings.Join(conds, " AND ")+" ORDER BY l.ordinal", args...)
+	rows, err := db.Query(lessonSelect+" WHERE l.course_id=? AND l.active=1 AND "+strings.Join(conds, " AND ")+" ORDER BY l.ordinal", args...)
 	if err != nil {
 		return nil, err
 	}

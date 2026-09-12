@@ -15,7 +15,7 @@ import (
 	"skills-tools/tutor/internal/testutil"
 )
 
-// schemaDDL is copied verbatim from src/main.ts's SCHEMA constant (plan.md §3.4). Package
+// schemaDDL is src/main.ts's SCHEMA constant plus the Phase 9 course_id column (plan.md §3.4, Phase 9). Package
 // progress owns writing this in production; this test builds a database by hand to exercise
 // LoadRoute's read-only progress query without importing that package.
 const schemaDDL = `
@@ -27,8 +27,9 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 CREATE TABLE IF NOT EXISTS lessons (
   id INTEGER PRIMARY KEY,
-  ordinal INTEGER NOT NULL UNIQUE CHECK (ordinal > 0),
-  slug TEXT NOT NULL UNIQUE,
+  course_id TEXT NOT NULL DEFAULT 'demo',
+  ordinal INTEGER NOT NULL CHECK (ordinal > 0),
+  slug TEXT NOT NULL,
   title TEXT NOT NULL,
   category TEXT NOT NULL,
   difficulty TEXT NOT NULL CHECK (difficulty IN ('beginner','intermediate','advanced')),

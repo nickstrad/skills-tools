@@ -55,10 +55,10 @@ type courseCtx struct {
 func (cc *courseCtx) id() string { return cc.disc.ID }
 
 // dbPath resolves the progress database location: the --db value (relative to the working
-// directory) or courses/<id>/progress.sqlite under the curriculum root. It never creates it.
+// directory) or the one tutor.sqlite under the curriculum root. It never creates it.
 func (cc *courseCtx) dbPath() (string, error) {
 	if cc.db == "" {
-		return filepath.Join(cc.root, "courses", cc.id(), "progress.sqlite"), nil
+		return progress.DefaultPath(cc.root), nil
 	}
 	if filepath.IsAbs(cc.db) {
 		return cc.db, nil
@@ -85,7 +85,7 @@ func (cc *courseCtx) openRead() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := progress.EnsureReady(db); err != nil {
+	if err := progress.EnsureReady(db, cc.id()); err != nil {
 		db.Close()
 		if errors.Is(err, progress.ErrNotInitialized) {
 			return nil, notInitialized()
@@ -110,7 +110,7 @@ func (cc *courseCtx) openWrite() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := progress.EnsureReady(db); err != nil {
+	if err := progress.EnsureReady(db, cc.id()); err != nil {
 		db.Close()
 		if errors.Is(err, progress.ErrNotInitialized) {
 			return nil, notInitialized()
@@ -275,14 +275,14 @@ Course maintenance:
   tutor %s check                               validate the lesson files against the plan
 
 Flags:
-  --db PATH     progress database (default courses/%s/progress.sqlite)
+  --db PATH     progress database (default tutor.sqlite)
   --json        machine-readable output, on the verbs that support it
   --ansi        force ANSI styling of lesson Markdown
   --plain       disable ANSI styling
 
 Displaying a lesson never marks it done.`,
 		id, disc.Name, disc.Status, disc.Available, disc.Total,
-		id, id, id, id, id, id, id, id, id, id, id, id, id, id, id)
+		id, id, id, id, id, id, id, id, id, id, id, id, id, id)
 }
 
 // newRouteCmd: the fixed route merged with progress, read-only and database-optional.
@@ -337,7 +337,7 @@ type topicCompleteJSON struct {
 
 // serveNext prints the next unfinished lesson, or the matching "nothing left" message.
 func (cc *courseCtx) serveNext(db *sql.DB, asJSON bool) error {
-	row, matched, complete, err := progress.Next(db, cc.topic)
+	row, matched, complete, err := progress.Next(db, cc.id(), cc.topic)
 	if err != nil {
 		return err
 	}
@@ -393,7 +393,7 @@ func newLessonCmd(cc *courseCtx) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			row, err := progress.Get(db, ordinal)
+			row, err := progress.Get(db, cc.id(), ordinal)
 			if err != nil {
 				return err
 			}
@@ -442,9 +442,9 @@ func newDoneCmd(cc *courseCtx, verb, status, short string) *cobra.Command {
 		}
 		defer db.Close()
 		if verb == "done" {
-			err = progress.Done(db, ordinal, cc.note)
+			err = progress.Done(db, cc.id(), ordinal, cc.note)
 		} else {
-			err = progress.Skip(db, ordinal, cc.note)
+			err = progress.Skip(db, cc.id(), ordinal, cc.note)
 		}
 		if err != nil {
 			return err
@@ -471,7 +471,7 @@ func newUndoneCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			if err := progress.Undone(db, ordinal); err != nil {
+			if err := progress.Undone(db, cc.id(), ordinal); err != nil {
 				return err
 			}
 			cc.print(fmt.Sprintf("Lesson %d marked todo.", ordinal))
@@ -500,7 +500,7 @@ func newNoteCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			if err := progress.Note(db, ordinal, text); err != nil {
+			if err := progress.Note(db, cc.id(), ordinal, text); err != nil {
 				return err
 			}
 			cc.print(fmt.Sprintf("Note saved for lesson %d.", ordinal))
@@ -524,7 +524,7 @@ func newListCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			rows, err := progress.List(db, progress.ListFilter{
+			rows, err := progress.List(db, cc.id(), progress.ListFilter{
 				Todo: cc.todo, Done: cc.done, All: cc.all,
 				Category: cc.category, Topic: cc.topic, Limit: cc.limit,
 			})
@@ -570,7 +570,7 @@ func newModulesCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			mods, err := progress.Modules(db)
+			mods, err := progress.Modules(db, cc.id())
 			if err != nil {
 				return err
 			}
@@ -602,7 +602,7 @@ func newTopicsCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			topics, err := progress.Topics(db)
+			topics, err := progress.Topics(db, cc.id())
 			if err != nil {
 				return err
 			}
@@ -633,7 +633,7 @@ func newStatusCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			s, err := progress.GetStatus(db)
+			s, err := progress.GetStatus(db, cc.id())
 			if err != nil {
 				return err
 			}
@@ -670,7 +670,7 @@ func newSearchCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			rows, err := progress.Search(db, terms)
+			rows, err := progress.Search(db, cc.id(), terms)
 			if err != nil {
 				return err
 			}
@@ -720,7 +720,7 @@ func newInitCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			count, err := progress.Init(db, lessons)
+			count, err := progress.Init(db, cc.id(), lessons)
 			if err != nil {
 				return err
 			}

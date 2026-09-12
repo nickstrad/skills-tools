@@ -55,7 +55,7 @@ func queryString(t *testing.T, db *sql.DB, q string, args ...any) string {
 func TestInitIsIdempotentAndRecordsSchemaVersions(t *testing.T) {
 	db, path := openTemp(t)
 	for i := 0; i < 2; i++ {
-		n, err := progress.Init(db, lessons(5))
+		n, err := progress.Init(db, "demo", lessons(5))
 		if err != nil || n != 5 {
 			t.Fatalf("init %d: %d %v", i, n, err)
 		}
@@ -75,12 +75,12 @@ func TestInitIsIdempotentAndRecordsSchemaVersions(t *testing.T) {
 	if queryString(t, db, "SELECT tags FROM lessons WHERE ordinal=1") != ",demo,topic-1," {
 		t.Fatal("tags column")
 	}
-	if err := progress.EnsureReady(db); err != nil {
+	if err := progress.EnsureReady(db, "demo"); err != nil {
 		t.Fatal(err)
 	}
 	fresh, _ := progress.Open(filepath.Join(t.TempDir(), "x.sqlite"))
 	defer fresh.Close()
-	if err := progress.EnsureReady(fresh); err != progress.ErrNotInitialized {
+	if err := progress.EnsureReady(fresh, "demo"); err != progress.ErrNotInitialized {
 		t.Fatalf("want ErrNotInitialized, got %v", err)
 	}
 	if _, err := progress.OpenReadOnly(filepath.Join(t.TempDir(), "absent.sqlite")); err != progress.ErrMissing {
@@ -98,7 +98,7 @@ func TestInitIsIdempotentAndRecordsSchemaVersions(t *testing.T) {
 
 func TestEnsureSchemaRefusesLegacyColumns(t *testing.T) {
 	db, _ := openTemp(t)
-	if _, err := progress.Init(db, lessons(1)); err != nil {
+	if _, err := progress.Init(db, "demo", lessons(1)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec("ALTER TABLE lessons ADD COLUMN reading TEXT NOT NULL DEFAULT ''"); err != nil {
@@ -114,7 +114,7 @@ func TestEnsureSchemaRefusesLegacyColumns(t *testing.T) {
 func TestSeedFollowsIdentityAcrossReorderRemovalAndReinsertion(t *testing.T) {
 	db, _ := openTemp(t)
 	catalog := lessons(3)
-	if _, err := progress.Init(db, catalog); err != nil {
+	if _, err := progress.Init(db, "demo", catalog); err != nil {
 		t.Fatal(err)
 	}
 	first, second := catalog[0], catalog[1]
@@ -129,7 +129,7 @@ func TestSeedFollowsIdentityAcrossReorderRemovalAndReinsertion(t *testing.T) {
 	mustExec(t, db, "INSERT INTO attempts(lesson_id,outcome,lesson_revision,notes) VALUES(?,'manual',1,'')", firstID)
 	mustExec(t, db, "INSERT INTO progress(lesson_id,status,notes) VALUES(?,'skipped','belongs to first slug')", secondID)
 
-	if _, err := progress.Seed(db, catalog); err != nil {
+	if _, err := progress.Seed(db, "demo", catalog); err != nil {
 		t.Fatal(err)
 	}
 	if queryInt(t, db, "SELECT id FROM lessons WHERE ordinal=2 AND active=1") != firstID {
@@ -143,7 +143,7 @@ func TestSeedFollowsIdentityAcrossReorderRemovalAndReinsertion(t *testing.T) {
 	}
 	// Removing an old identity and inserting its replacement must not transfer its completion.
 	mustExec(t, db, "UPDATE lessons SET slug='removed-fixture' WHERE slug=?", second.Slug)
-	if _, err := progress.Seed(db, catalog); err != nil {
+	if _, err := progress.Seed(db, "demo", catalog); err != nil {
 		t.Fatal(err)
 	}
 	if queryInt(t, db, "SELECT count(*) FROM progress p JOIN lessons l ON l.id=p.lesson_id WHERE l.ordinal=2 AND l.active=1") != 0 {
@@ -156,7 +156,7 @@ func TestSeedFollowsIdentityAcrossReorderRemovalAndReinsertion(t *testing.T) {
 	mustExec(t, db, "UPDATE lessons SET slug='replacement-fixture' WHERE id=?", freshID)
 	mustExec(t, db, "UPDATE lessons SET slug=? WHERE slug='removed-fixture'", second.Slug)
 	for i := 0; i < 3; i++ {
-		if _, err := progress.Seed(db, catalog); err != nil {
+		if _, err := progress.Seed(db, "demo", catalog); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -178,7 +178,7 @@ func TestSeedFollowsIdentityAcrossReorderRemovalAndReinsertion(t *testing.T) {
 func TestRevisionBumpMakesCompletionStale(t *testing.T) {
 	db, _ := openTemp(t)
 	catalog := lessons(2)
-	if _, err := progress.Init(db, catalog); err != nil {
+	if _, err := progress.Init(db, "demo", catalog); err != nil {
 		t.Fatal(err)
 	}
 	mustExec(t, db, "INSERT INTO progress(lesson_id,status,completed_revision,completed_at) VALUES(1,'done',1,'2026-09-12T00:00:00.000Z')")
@@ -187,7 +187,7 @@ func TestRevisionBumpMakesCompletionStale(t *testing.T) {
 		t.Fatal("fresh completion reported stale")
 	}
 	catalog[0].Revision = 2
-	if _, err := progress.Seed(db, catalog); err != nil {
+	if _, err := progress.Seed(db, "demo", catalog); err != nil {
 		t.Fatal(err)
 	}
 	if queryInt(t, db, stale) != 1 {
@@ -195,47 +195,167 @@ func TestRevisionBumpMakesCompletionStale(t *testing.T) {
 	}
 }
 
-// Seeding a copy of each real learner database from the converted lesson files must produce the
-// same rows the Deno engine's `init` produced on an identical copy (golden dump.json), ignoring
-// updated_at. Requires the WP0/WP1.2 artifacts; skipped when they are absent.
-func TestSeedOnRealDatabaseCopiesMatchesDenoInit(t *testing.T) {
+// TestConsolidateRealDatabaseCopiesThenSeedMatchesDenoInit is the Phase 9 form of the seed parity
+// check: copies of the five baseline learner databases are consolidated into one temporary
+// tutor.sqlite, the per-course dumps must equal WP0.1's dump.json (ids remapped, everything else
+// identical), a second run is refused, --replace works, and after `Init` on the consolidated file
+// each course's dump must equal the golden Deno `init` dump. Requires the WP0/WP1.2 artifacts;
+// skipped when they are absent.
+func TestConsolidateRealDatabaseCopiesThenSeedMatchesDenoInit(t *testing.T) {
 	work := "/root/tutor-migration"
 	root, _ := filepath.Abs("../..")
 	if _, err := os.Stat(filepath.Join(work, "golden")); err != nil {
 		t.Skip("golden corpus not present")
 	}
-	for _, id := range []string{"grpc", "linux", "postgres", "postgres-essentials", "sqlite"} {
-		t.Run(id, func(t *testing.T) {
-			if files, _ := course.LessonFiles(root, id); files == nil {
-				t.Skip("lesson files not converted yet")
-			}
-			want, err := os.ReadFile(filepath.Join(work, "golden", id, "dump.json"))
-			if err != nil {
-				t.Skip(err)
-			}
-			dir := t.TempDir()
-			for _, suffix := range []string{"", "-wal", "-shm"} {
-				copyFile(t, filepath.Join(work, "baseline", id, "progress.sqlite"+suffix), filepath.Join(dir, "progress.sqlite"+suffix))
-			}
-			catalog, err := course.LoadLessons(root, id)
-			if err != nil {
-				t.Fatal(err)
-			}
-			db, err := progress.Open(filepath.Join(dir, "progress.sqlite"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer db.Close()
-			if _, err := progress.Init(db, catalog); err != nil {
-				t.Fatal(err)
-			}
-			got := dump(t, db)
-			if !reflect.DeepEqual(got, normalizeDump(t, want)) {
-				g, _ := json.MarshalIndent(got, "", " ")
-				t.Fatalf("dump differs from Deno init\n%s", g)
-			}
-		})
+	ids := []string{"grpc", "linux", "postgres", "postgres-essentials", "sqlite"}
+	for _, id := range ids {
+		if files, _ := course.LessonFiles(root, id); files == nil {
+			t.Skip("lesson files not converted yet")
+		}
 	}
+	dir := t.TempDir()
+	from := filepath.Join(dir, "courses")
+	for _, id := range ids {
+		for _, suffix := range []string{"", "-wal", "-shm"} {
+			copyFile(t, filepath.Join(work, "baseline", id, "progress.sqlite"+suffix), filepath.Join(from, id, "progress.sqlite"+suffix))
+		}
+	}
+	opts := progress.ConsolidateOptions{
+		Target:    filepath.Join(dir, "tutor.sqlite"),
+		FromDir:   from,
+		BackupDir: filepath.Join(dir, "backup"),
+		Courses:   append([]string{"absent-course"}, ids...),
+	}
+	reports, err := progress.Consolidate(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reports) != 6 || reports[0].Skipped == "" {
+		t.Fatalf("reports = %+v", reports)
+	}
+	for _, id := range ids {
+		if _, err := os.Stat(filepath.Join(from, id, "progress.sqlite")); !os.IsNotExist(err) {
+			t.Fatalf("%s: legacy file still in place", id)
+		}
+		if _, err := os.Stat(filepath.Join(dir, "backup", id, "progress.sqlite-wal")); err != nil {
+			t.Fatalf("%s: backup trio incomplete: %v", id, err)
+		}
+	}
+
+	db, err := progress.Open(opts.Target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for i, id := range ids {
+		want, err := os.ReadFile(filepath.Join(work, "baseline", id, "dump.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := courseDump(t, db, id)
+		if !reflect.DeepEqual(idFree(got), idFree(normalizeDump(t, want))) {
+			g, _ := json.MarshalIndent(idFree(got), "", " ")
+			t.Fatalf("%s: consolidated dump differs from the baseline\n%s", id, g)
+		}
+		if reports[i+1].Lessons != len(got.Lessons) || reports[i+1].Progress != len(got.Progress) || reports[i+1].Attempts != len(got.Attempts) {
+			t.Fatalf("%s: report %+v does not match the dump", id, reports[i+1])
+		}
+	}
+	if n := queryInt(t, db, "SELECT count(*) FROM schema_migrations WHERE version=7 AND name='consolidate courses'"); n != 1 {
+		t.Fatal("migration 7 not recorded")
+	}
+
+	// A second run over the backups is refused per course, and --replace copies over the rows.
+	again := opts
+	again.FromDir = filepath.Join(dir, "backup")
+	again.BackupDir = filepath.Join(dir, "backup2")
+	if _, err := progress.Consolidate(again); err == nil || !strings.Contains(err.Error(), "already has") {
+		t.Fatalf("second consolidate: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "backup", "grpc", "progress.sqlite")); err != nil {
+		t.Fatal("a refused run moved the legacy files")
+	}
+	again.Replace = true
+	if _, err := progress.Consolidate(again); err != nil {
+		t.Fatal(err)
+	}
+	// Seeding each course from its lesson files now matches the Deno init on the same history.
+	for _, id := range ids {
+		want, err := os.ReadFile(filepath.Join(work, "golden", id, "dump.json"))
+		if err != nil {
+			t.Skip(err)
+		}
+		catalog, err := course.LoadLessons(root, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := progress.Init(db, id, catalog); err != nil {
+			t.Fatal(err)
+		}
+		got := courseDump(t, db, id)
+		if !reflect.DeepEqual(idFree(got), idFree(normalizeDump(t, want))) {
+			g, _ := json.MarshalIndent(idFree(got), "", " ")
+			t.Fatalf("%s: dump after init differs from Deno init\n%s", id, g)
+		}
+	}
+	// Every course's history is still present after all five seeds.
+	for _, id := range ids {
+		if queryInt(t, db, "SELECT count(*) FROM lessons WHERE course_id=? AND active=1", id) == 0 {
+			t.Fatalf("%s lost its rows", id)
+		}
+	}
+}
+
+// courseDump reads one course's rows in the shape of the sqlite3 dump files.
+func courseDump(t *testing.T, db *sql.DB, courseID string) dumpRows {
+	t.Helper()
+	q := func(sqlText string) []map[string]any {
+		rows, err := db.Query(sqlText, courseID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rowsToMaps(t, rows)
+	}
+	return dumpRows{
+		Lessons:  q("SELECT id,ordinal,slug,revision,active FROM lessons WHERE course_id=? ORDER BY id"),
+		Progress: q("SELECT p.* FROM progress p JOIN lessons l ON l.id=p.lesson_id WHERE l.course_id=? ORDER BY p.lesson_id"),
+		Attempts: q("SELECT a.* FROM attempts a JOIN lessons l ON l.id=a.lesson_id WHERE l.course_id=? ORDER BY a.id"),
+	}
+}
+
+// idFree rewrites a dump so it no longer depends on row ids: lessons lose id (their order by id is
+// kept), progress and attempts reference lessons by slug, attempts lose their own id.
+func idFree(d dumpRows) dumpRows {
+	slugByID := map[float64]string{}
+	var lessons []map[string]any
+	for _, l := range d.Lessons {
+		slugByID[l["id"].(float64)] = l["slug"].(string)
+		m := map[string]any{}
+		for k, v := range l {
+			if k != "id" {
+				m[k] = v
+			}
+		}
+		lessons = append(lessons, m)
+	}
+	rewrite := func(rows []map[string]any, dropID bool) []map[string]any {
+		var out []map[string]any
+		for _, r := range rows {
+			m := map[string]any{}
+			for k, v := range r {
+				switch {
+				case k == "lesson_id":
+					m["lesson"] = slugByID[v.(float64)]
+				case k == "id" && dropID:
+				default:
+					m[k] = v
+				}
+			}
+			out = append(out, m)
+		}
+		return out
+	}
+	return dumpRows{Lessons: lessons, Progress: rewrite(d.Progress, false), Attempts: rewrite(d.Attempts, true)}
 }
 
 type dumpRows struct {
@@ -325,6 +445,9 @@ func copyFile(t *testing.T, src, dst string) {
 		return
 	}
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(dst, data, 0o644); err != nil {

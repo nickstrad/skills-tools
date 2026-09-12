@@ -193,6 +193,7 @@ func newRootCmd(root string, discovered []route.CourseDiscovery, stdout, stderr 
 	cmd.AddCommand(newVersionCmd(stdout))
 	cmd.AddCommand(newNewCourseCmd(root, stdout))
 	cmd.AddCommand(newInstallCmd(root, stdout))
+	cmd.AddCommand(newProgressCmd(root, stdout))
 	cmd.AddCommand(newConvertLegacyCmd(root, stdout))
 
 	// One command per discovered course, installed or plan-only.
@@ -265,11 +266,12 @@ Across courses:
   tutor roadmap [--json] [--followups]         the overall learning roadmap
   tutor new-course <id> "<Name>" <tool> "<description>" [minVersion]
   tutor install [--check] [--bin-dir DIR] [--codex-skills DIR] [--claude-skills DIR]
+  tutor progress consolidate [--db PATH] [--from-dir DIR] [--backup-dir DIR] [--replace]
   tutor version
 
 Flags:
   --root PATH   curriculum-tools directory (default $TUTOR_ROOT, else the launcher's checkout)
-  --db PATH     progress database for a course (default courses/<course>/progress.sqlite)
+  --db PATH     progress database (default curriculum-tools/tutor.sqlite, shared by every course)
   --json        machine-readable output, on the verbs that support it
   --ansi        force ANSI styling of lesson Markdown
   --plain       disable ANSI styling

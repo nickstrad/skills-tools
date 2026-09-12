@@ -91,7 +91,7 @@ Show a topic: tutor roadmap show <slug>   (goals, diagram, optional Go follow-up
 		" 1. [active]   Alpha — demo: 9/10 authored, 0 done\n   - [ ] Project one: first idea\n   - [ ] Project two: second idea\n", 1)})
 
 	// Progress in the linked course's default database shows up in the counts.
-	x.check(t, step{name: "init demo", args: []string{"demo", "init"}, out: "Initialized 9 Demo Course lessons in {root}/courses/demo/progress.sqlite\n"})
+	x.check(t, step{name: "init demo", args: []string{"demo", "init"}, out: "Initialized 9 Demo Course lessons in {root}/tutor.sqlite\n"})
 	x.check(t, step{name: "done demo 1", args: []string{"demo", "1", "done"}, out: "Lesson 1 marked done.\n"})
 	x.check(t, step{name: "view with progress", args: []string{"roadmap"}, out: strings.Replace(view, "9/10 authored, 0 done", "9/10 authored, 1 done", 1)})
 

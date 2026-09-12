@@ -2,7 +2,6 @@ package roadmap_test
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -87,7 +86,7 @@ func TestViewFollowups(t *testing.T) {
 func TestViewCountsFixtureCourse(t *testing.T) {
 	f := testutil.NewCourse(t, 5)
 	f.WritePlan(t, "Planned six / lesson-06", "Planned seven / lesson-07")
-	dbPath := filepath.Join(f.CourseDir(), "progress.sqlite")
+	dbPath := roadmap.DatabasePath(f.Root)
 
 	counter := roadmap.DefaultCounter(f.Root)
 	if got := counter("demo"); got != (roadmap.CourseCount{Authored: 5, Total: 7, Done: 0, Known: true}) {
@@ -105,11 +104,11 @@ func TestViewCountsFixtureCourse(t *testing.T) {
 	for i := 1; i <= 5; i++ {
 		lessons = append(lessons, testutil.Lesson(i))
 	}
-	if _, err := progress.Init(db, lessons); err != nil {
+	if _, err := progress.Init(db, "demo", lessons); err != nil {
 		t.Fatal(err)
 	}
 	for _, ordinal := range []int{1, 2, 3} {
-		if err := progress.Done(db, ordinal, ""); err != nil {
+		if err := progress.Done(db, "demo", ordinal, ""); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -2,7 +2,6 @@ package roadmap
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"skills-tools/tutor/internal/route"
@@ -21,16 +20,15 @@ type CourseCount struct {
 // tests supply a stub so no real learner database is opened.
 type Counter func(courseID string) CourseCount
 
-// DefaultCounter counts lessons with route.LoadRoute against the course's default progress
-// database (courses/<id>/progress.sqlite). LoadRoute opens that database read-only and never
-// creates it, so a course that was never initialized simply reports 0 done.
+// DefaultCounter counts lessons with route.LoadRoute against the one learner database
+// (root/tutor.sqlite). LoadRoute opens it read-only and never creates it, so a course that was
+// never initialized simply reports 0 done.
 func DefaultCounter(root string) Counter {
 	return func(courseID string) CourseCount {
 		if courseID == "" {
 			return CourseCount{}
 		}
-		db := filepath.Join(root, "courses", courseID, "progress.sqlite")
-		r, err := route.LoadRoute(root, courseID, db)
+		r, err := route.LoadRoute(root, courseID, DatabasePath(root))
 		if err != nil {
 			return CourseCount{}
 		}

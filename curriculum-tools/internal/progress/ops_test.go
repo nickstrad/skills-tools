@@ -35,7 +35,7 @@ func setup(t *testing.T, n int) *sql.DB {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { db.Close() })
-	if _, err := progress.Init(db, fx.Lessons); err != nil {
+	if _, err := progress.Init(db, "demo", fx.Lessons); err != nil {
 		t.Fatal(err)
 	}
 	return db
@@ -46,7 +46,7 @@ func TestShowDoneNextUndoneSkipStatusPreserveExplicitProgress(t *testing.T) {
 	db := setup(t, 9)
 
 	// show 2 --json: ordinal 2, non-empty overview/syntaxBreakdown/code.
-	shown, err := progress.Get(db, 2)
+	shown, err := progress.Get(db, "demo", 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,34 +55,34 @@ func TestShowDoneNextUndoneSkipStatusPreserveExplicitProgress(t *testing.T) {
 	}
 
 	// done 1 --note "ran it"; next -> ordinal 2.
-	if err := progress.Done(db, 1, "ran it"); err != nil {
+	if err := progress.Done(db, "demo", 1, "ran it"); err != nil {
 		t.Fatal(err)
 	}
-	row, _, complete, err := progress.Next(db, "")
+	row, _, complete, err := progress.Next(db, "demo", "")
 	if err != nil || complete || row.Ordinal != 2 {
 		t.Fatalf("next after done 1: row=%+v complete=%v err=%v", row, complete, err)
 	}
 
 	// skip 2; next -> ordinal 3.
-	if err := progress.Skip(db, 2, ""); err != nil {
+	if err := progress.Skip(db, "demo", 2, ""); err != nil {
 		t.Fatal(err)
 	}
-	row, _, complete, err = progress.Next(db, "")
+	row, _, complete, err = progress.Next(db, "demo", "")
 	if err != nil || complete || row.Ordinal != 3 {
 		t.Fatalf("next after skip 2: row=%+v complete=%v err=%v", row, complete, err)
 	}
 
 	// undone 1; next -> ordinal 1 again.
-	if err := progress.Undone(db, 1); err != nil {
+	if err := progress.Undone(db, "demo", 1); err != nil {
 		t.Fatal(err)
 	}
-	row, _, complete, err = progress.Next(db, "")
+	row, _, complete, err = progress.Next(db, "demo", "")
 	if err != nil || complete || row.Ordinal != 1 {
 		t.Fatalf("next after undone 1: row=%+v complete=%v err=%v", row, complete, err)
 	}
 
 	// show 1 --json: notes "ran it" survived undone.
-	one, err := progress.Get(db, 1)
+	one, err := progress.Get(db, "demo", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestShowDoneNextUndoneSkipStatusPreserveExplicitProgress(t *testing.T) {
 	}
 
 	// status: done 0, skipped 1, todo total-1.
-	status, err := progress.GetStatus(db)
+	status, err := progress.GetStatus(db, "demo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,13 +104,13 @@ func TestShowDoneNextUndoneSkipStatusPreserveExplicitProgress(t *testing.T) {
 func TestRevisedLessonBecomesStaleAndIsServedAgain(t *testing.T) {
 	db := setup(t, 9)
 
-	if err := progress.Done(db, 1, ""); err != nil {
+	if err := progress.Done(db, "demo", 1, ""); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec("UPDATE lessons SET revision = revision + 1 WHERE ordinal = 1"); err != nil {
 		t.Fatal(err)
 	}
-	row, _, complete, err := progress.Next(db, "")
+	row, _, complete, err := progress.Next(db, "demo", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +118,7 @@ func TestRevisedLessonBecomesStaleAndIsServedAgain(t *testing.T) {
 		t.Fatalf("next after revision bump: row=%+v complete=%v", row, complete)
 	}
 
-	status, err := progress.GetStatus(db)
+	status, err := progress.GetStatus(db, "demo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +133,7 @@ func TestRevisedLessonBecomesStaleAndIsServedAgain(t *testing.T) {
 func TestSearchRequiresEveryTermListFiltersByCategoryModulesSummarizes(t *testing.T) {
 	db := setup(t, 9)
 
-	rows, err := progress.Search(db, []string{"lesson", "intro"})
+	rows, err := progress.Search(db, "demo", []string{"lesson", "intro"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +141,7 @@ func TestSearchRequiresEveryTermListFiltersByCategoryModulesSummarizes(t *testin
 		t.Fatalf("search requiring every term: %+v", rows)
 	}
 
-	none, err := progress.Search(db, []string{"zzzz-no-such-term"})
+	none, err := progress.Search(db, "demo", []string{"zzzz-no-such-term"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,11 +149,11 @@ func TestSearchRequiresEveryTermListFiltersByCategoryModulesSummarizes(t *testin
 		t.Fatalf("search with no matches: %+v", none)
 	}
 
-	if _, err := progress.Search(db, []string{""}); err == nil || err.Error() != "search text is required" {
+	if _, err := progress.Search(db, "demo", []string{""}); err == nil || err.Error() != "search text is required" {
 		t.Fatalf("empty search terms: %v", err)
 	}
 
-	listed, err := progress.List(db, progress.ListFilter{Category: "intro"})
+	listed, err := progress.List(db, "demo", progress.ListFilter{Category: "intro"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestSearchRequiresEveryTermListFiltersByCategoryModulesSummarizes(t *testin
 		}
 	}
 
-	modules, err := progress.Modules(db)
+	modules, err := progress.Modules(db, "demo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +187,7 @@ func TestSearchRequiresEveryTermListFiltersByCategoryModulesSummarizes(t *testin
 func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T) {
 	db := setup(t, 9)
 
-	topics, err := progress.Topics(db)
+	topics, err := progress.Topics(db, "demo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 
 	// --topic serves the next unfinished lesson matching every word, case-insensitively, against
 	// tags/category/title.
-	row, matched, complete, err := progress.Next(db, "DEMO CORE")
+	row, matched, complete, err := progress.Next(db, "demo", "DEMO CORE")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,10 +217,10 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 		t.Fatalf("next --topic 'DEMO CORE': row=%+v matched=%d complete=%v", row, matched, complete)
 	}
 
-	if err := progress.Done(db, 3, ""); err != nil {
+	if err := progress.Done(db, "demo", 3, ""); err != nil {
 		t.Fatal(err)
 	}
-	row, matched, complete, err = progress.Next(db, "demo core")
+	row, matched, complete, err = progress.Next(db, "demo", "demo core")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,11 +229,11 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 	}
 
 	for ordinal := 4; ordinal <= 9; ordinal++ {
-		if err := progress.Done(db, ordinal, ""); err != nil {
+		if err := progress.Done(db, "demo", ordinal, ""); err != nil {
 			t.Fatal(err)
 		}
 	}
-	_, matched, complete, err = progress.Next(db, "demo core")
+	_, matched, complete, err = progress.Next(db, "demo", "demo core")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 		t.Fatalf("next --topic all complete: matched=%d complete=%v", matched, complete)
 	}
 
-	_, matched, complete, err = progress.Next(db, "zzzz-no-such-topic")
+	_, matched, complete, err = progress.Next(db, "demo", "zzzz-no-such-topic")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,11 +249,11 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 		t.Fatalf("next --topic no match: matched=%d complete=%v", matched, complete)
 	}
 
-	if _, _, _, err := progress.Next(db, "   "); err == nil || err.Error() != "--topic requires at least one word" {
+	if _, _, _, err := progress.Next(db, "demo", "   "); err == nil || err.Error() != "--topic requires at least one word" {
 		t.Fatalf("blank --topic: %v", err)
 	}
 
-	listedByTopic, err := progress.List(db, progress.ListFilter{Topic: "topic-1"})
+	listedByTopic, err := progress.List(db, "demo", progress.ListFilter{Topic: "topic-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,13 +270,13 @@ func TestTopicsListsTagsAndTopicServesNextUnfinishedMatchingLesson(t *testing.T)
 func TestDoneTwiceKeepsNoteAndAddsSecondAttempt(t *testing.T) {
 	db := setup(t, 3)
 
-	if err := progress.Done(db, 1, "first note"); err != nil {
+	if err := progress.Done(db, "demo", 1, "first note"); err != nil {
 		t.Fatal(err)
 	}
-	if err := progress.Done(db, 1, ""); err != nil {
+	if err := progress.Done(db, "demo", 1, ""); err != nil {
 		t.Fatal(err)
 	}
-	row, err := progress.Get(db, 1)
+	row, err := progress.Get(db, "demo", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,10 +296,10 @@ func TestDoneTwiceKeepsNoteAndAddsSecondAttempt(t *testing.T) {
 func TestListRejectsMultipleStatusFilters(t *testing.T) {
 	db := setup(t, 3)
 
-	if _, err := progress.List(db, progress.ListFilter{Todo: true, Done: true}); err == nil || err.Error() != "choose one of --todo, --done" {
+	if _, err := progress.List(db, "demo", progress.ListFilter{Todo: true, Done: true}); err == nil || err.Error() != "choose one of --todo, --done" {
 		t.Fatalf("--todo --done: %v", err)
 	}
-	if _, err := progress.List(db, progress.ListFilter{Todo: true, All: true}); err == nil || err.Error() != "choose one of --todo, --all" {
+	if _, err := progress.List(db, "demo", progress.ListFilter{Todo: true, All: true}); err == nil || err.Error() != "choose one of --todo, --all" {
 		t.Fatalf("--todo --all: %v", err)
 	}
 }
@@ -308,7 +308,7 @@ func TestListRejectsMultipleStatusFilters(t *testing.T) {
 func TestGetUnknownOrdinalReturnsNotFoundError(t *testing.T) {
 	db := setup(t, 3)
 
-	_, err := progress.Get(db, 99)
+	_, err := progress.Get(db, "demo", 99)
 	var notFound progress.NotFoundError
 	if !errors.As(err, &notFound) || notFound.Ordinal != 99 || err.Error() != "lesson 99 not found" {
 		t.Fatalf("get 99: %v", err)
@@ -324,7 +324,7 @@ func TestReadOperationsDoNotWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.Init(db, fx.Lessons); err != nil {
+	if _, err := progress.Init(db, "demo", fx.Lessons); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Close(); err != nil {
@@ -343,25 +343,25 @@ func TestReadOperationsDoNotWrite(t *testing.T) {
 	}
 	defer ro.Close()
 
-	if _, err := progress.Get(ro, 1); err != nil {
+	if _, err := progress.Get(ro, "demo", 1); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := progress.Next(ro, ""); err != nil {
+	if _, _, _, err := progress.Next(ro, "demo", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.List(ro, progress.ListFilter{}); err != nil {
+	if _, err := progress.List(ro, "demo", progress.ListFilter{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.Topics(ro); err != nil {
+	if _, err := progress.Topics(ro, "demo"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.Modules(ro); err != nil {
+	if _, err := progress.Modules(ro, "demo"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.GetStatus(ro); err != nil {
+	if _, err := progress.GetStatus(ro, "demo"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := progress.Search(ro, []string{"lesson"}); err != nil {
+	if _, err := progress.Search(ro, "demo", []string{"lesson"}); err != nil {
 		t.Fatal(err)
 	}
 

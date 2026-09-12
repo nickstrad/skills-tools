@@ -12,6 +12,8 @@ import (
 	"time"
 
 	_ "modernc.org/sqlite" // database/sql driver "sqlite"
+
+	"skills-tools/tutor/internal/progress"
 )
 
 // Schema is the roadmap DDL of plan.md §3.5. CREATE ... IF NOT EXISTS keeps it idempotent, so
@@ -75,9 +77,9 @@ var ErrNoRoadmap = errors.New("No roadmap yet: run tutor roadmap import")
 // given.
 var ErrNotEmpty = errors.New("roadmap database already has topics: pass --replace to overwrite it")
 
-// DatabasePath is the roadmap database of a curriculum-tools tree (root/tutor.sqlite); it holds
-// the editable roadmap, not learner progress.
-func DatabasePath(root string) string { return filepath.Join(root, "tutor.sqlite") }
+// DatabasePath is the roadmap database of a curriculum-tools tree: root/tutor.sqlite, the same
+// file that holds every course's learner progress (internal/progress.DefaultPath).
+func DatabasePath(root string) string { return progress.DefaultPath(root) }
 
 // SnapshotPath is the committed roadmap snapshot of a curriculum-tools tree, the default file for
 // `tutor roadmap import` and `tutor roadmap export`.
@@ -170,7 +172,9 @@ func ensureSchema(db *sql.DB) error {
 	if _, err := tx.Exec(Schema); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(?,?)", 1, "roadmap"); err != nil {
+	// Version 8 follows the progress schema's version 7: both packages share this file's
+	// schema_migrations table.
+	if _, err := tx.Exec("INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(?,?)", 8, "roadmap"); err != nil {
 		return err
 	}
 	return tx.Commit()

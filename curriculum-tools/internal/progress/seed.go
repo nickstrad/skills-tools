@@ -9,10 +9,10 @@ import (
 )
 
 const upsertLesson = `
-    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,
+    INSERT INTO lessons(id,course_id,ordinal,slug,title,category,difficulty,tags,
       overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,
       safety_level,run_in,sessions,min_version,estimated_minutes,revision)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,slug=excluded.slug,title=excluded.title,
       category=excluded.category,difficulty=excluded.difficulty,tags=excluded.tags,
       overview=excluded.overview,
@@ -28,25 +28,26 @@ func TagsColumn(tags []string) string {
 	return "," + strings.Join(tags, ",") + ","
 }
 
-// Seed upserts the catalog into an initialized database, following lesson identity by slug so
-// progress and attempts survive reordering, removal and reinsertion. It returns the lesson count.
+// Seed upserts one course's catalog into an initialized database, following lesson identity by
+// slug within the course so progress and attempts survive reordering, removal and reinsertion.
+// Other courses' rows are never touched. It returns the lesson count.
 //
-// Algorithm (identical to the Deno seed): read existing id/ordinal/slug; park every row inactive at
-// ordinal offset+id; upsert each lesson by its previous id (or a fresh id); rebuild prerequisites;
-// re-park retired rows at len(lessons)+1, +2, ... in id order.
-func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
+// Algorithm (the Deno seed, scoped by course): read the course's existing id/ordinal/slug; park
+// every one of its rows inactive at ordinal offset+id; upsert each lesson by its previous id (or a
+// fresh global id); rebuild the course's prerequisites; re-park its retired rows at
+// len(lessons)+1, +2, ... in id order.
+func Seed(db *sql.DB, courseID string, lessons []course.Lesson) (int, error) {
 	tx, err := db.BeginTx(context.Background(), nil) // BEGIN IMMEDIATE via the DSN's _txlock
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query("SELECT id,ordinal,slug FROM lessons")
+	rows, err := tx.Query("SELECT id,ordinal,slug FROM lessons WHERE course_id=?", courseID)
 	if err != nil {
 		return 0, err
 	}
 	idBySlug := map[string]int64{}
-	var nextID int64
 	maxOrdinal := len(lessons)
 	for rows.Next() {
 		var id int64
@@ -57,9 +58,6 @@ func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
 			return 0, err
 		}
 		idBySlug[slug] = id
-		if id > nextID {
-			nextID = id
-		}
 		if ordinal > maxOrdinal {
 			maxOrdinal = ordinal
 		}
@@ -68,8 +66,13 @@ func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
 	if err := rows.Err(); err != nil {
 		return 0, err
 	}
+	// Ids are global across courses: a new lesson takes the next free id in the whole table.
+	var nextID int64
+	if err := tx.QueryRow("SELECT coalesce(max(id),0) FROM lessons").Scan(&nextID); err != nil {
+		return 0, err
+	}
 	offset := maxOrdinal + 1
-	if _, err := tx.Exec("UPDATE lessons SET active=0,ordinal=?+id", offset); err != nil {
+	if _, err := tx.Exec("UPDATE lessons SET active=0,ordinal=?+id WHERE course_id=?", offset, courseID); err != nil {
 		return 0, err
 	}
 	idByOrdinal := map[int]int64{}
@@ -81,14 +84,14 @@ func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
 		}
 		idByOrdinal[x.Ordinal] = id
 		if _, err := tx.Exec(upsertLesson,
-			id, x.Ordinal, x.Slug, x.Title, x.Category, x.Difficulty, TagsColumn(x.Tags),
+			id, courseID, x.Ordinal, x.Slug, x.Title, x.Category, x.Difficulty, TagsColumn(x.Tags),
 			x.Overview, x.SyntaxBreakdown, x.Setup, x.Code, x.ExpectedResult, x.SystemsLens,
 			x.Challenge, x.Caution, x.SafetyLevel, x.RunIn, x.Sessions, x.MinVersion,
 			x.EstimatedMinutes, x.Revision); err != nil {
 			return 0, err
 		}
 	}
-	if _, err := tx.Exec("DELETE FROM lesson_prerequisites"); err != nil {
+	if _, err := tx.Exec("DELETE FROM lesson_prerequisites WHERE lesson_id IN (SELECT id FROM lessons WHERE course_id=?)", courseID); err != nil {
 		return 0, err
 	}
 	for _, x := range lessons {
@@ -99,7 +102,7 @@ func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
 			}
 		}
 	}
-	retiredRows, err := tx.Query("SELECT id FROM lessons WHERE active=0 ORDER BY id")
+	retiredRows, err := tx.Query("SELECT id FROM lessons WHERE course_id=? AND active=0 ORDER BY id", courseID)
 	if err != nil {
 		return 0, err
 	}
@@ -127,10 +130,10 @@ func Seed(db *sql.DB, lessons []course.Lesson) (int, error) {
 	return len(lessons), nil
 }
 
-// Init ensures the schema and seeds the catalog: the `tutor <course> init` operation.
-func Init(db *sql.DB, lessons []course.Lesson) (int, error) {
+// Init ensures the schema and seeds one course's catalog: the `tutor <course> init` operation.
+func Init(db *sql.DB, courseID string, lessons []course.Lesson) (int, error) {
 	if err := EnsureSchema(db); err != nil {
 		return 0, err
 	}
-	return Seed(db, lessons)
+	return Seed(db, courseID, lessons)
 }

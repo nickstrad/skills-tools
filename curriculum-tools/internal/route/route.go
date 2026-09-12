@@ -565,7 +565,7 @@ func LoadRoute(root, id, dbPath string) (Route, error) {
 
 	progress := map[string]progressRow{}
 	if _, statErr := os.Stat(dbPath); statErr == nil {
-		if err := readProgress(dbPath, progress); err != nil {
+		if err := readProgress(dbPath, id, progress); err != nil {
 			return Route{}, err
 		}
 	} else if !os.IsNotExist(statErr) {
@@ -609,7 +609,10 @@ type progressRow struct {
 	completedRevision sql.NullInt64
 }
 
-func readProgress(dbPath string, out map[string]progressRow) error {
+// readProgress reads one course's completion rows from a database opened read-only. A database
+// without a progress table contributes nothing; one with the retired per-course layout (no
+// course_id column) is an error, because its rows cannot be attributed to a course.
+func readProgress(dbPath, courseID string, out map[string]progressRow) error {
 	db, err := sql.Open("sqlite", "file:"+dbPath+"?mode=ro")
 	if err != nil {
 		return err
@@ -627,8 +630,16 @@ func readProgress(dbPath string, out map[string]progressRow) error {
 		return err
 	}
 
+	var hasCourse int
+	if err := db.QueryRow("SELECT count(*) FROM pragma_table_info('lessons') WHERE name='course_id'").Scan(&hasCourse); err != nil {
+		return err
+	}
+	if hasCourse == 0 {
+		return fmt.Errorf("%s is a per-course progress database; run 'tutor progress consolidate' to move it into tutor.sqlite", dbPath)
+	}
 	rows, err := db.Query(
-		"SELECT l.slug,p.status,p.completed_revision FROM lessons l JOIN progress p ON p.lesson_id=l.id WHERE l.active=1",
+		"SELECT l.slug,p.status,p.completed_revision FROM lessons l JOIN progress p ON p.lesson_id=l.id WHERE l.course_id=? AND l.active=1",
+		courseID,
 	)
 	if err != nil {
 		return err
