@@ -12,7 +12,7 @@ receipt), keyed on topic/slug/revision.
 
 Nick asked to retire systemscoach on 2026-09-12. The separate project-builder engine (hand-authored
 JSON routes, its own Go CLI, its own progress storage) is superseded by the single Go `tutor` CLI
-that serves every course from Markdown lesson files and per-course progress databases. This tree keeps its
+that serves every course from Markdown lesson files and course-scoped progress in one shared database. This tree keeps its
 documentation, project material and skill as provenance; none of it is active guidance and none of
 it is a learner prerequisite.
 

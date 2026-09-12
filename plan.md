@@ -73,7 +73,7 @@ a separate handoff document.
 | WP5.4 VALIDATION.md | S | in progress | | Luna/high authoring_docs; primary review. |
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
-| WP6.3 Delete systemscoach | O | todo | | |
+| WP6.3 Delete systemscoach | O | done | resume retirement commit | Primary verified exact archived completion receipt and remaining file inventory, retired 100 KB tool tree, applied reviewed link install (15 actions). |
 | WP7.1 tutor skill | O | done | resume skill commit | Sol drafted, primary reviewed; skill validator and isolated command smoke pass; old source skill files retired. Machine links updated in WP6.3/WP8.3. |
 | WP7.2 AGENTS.md | O | done | resume skill commit | Sol rewrite reviewed by primary; protections retained, Markdown/Go/unified progress documented, links checked, CLAUDE.md symlink preserved. |
 | WP7.3 Author skill and AUTHORING.md | S | in progress | | Luna/high authoring_docs; primary review. |
