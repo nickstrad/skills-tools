@@ -76,10 +76,10 @@ a separate handoff document.
 | WP6.3 Delete systemscoach | O | done | resume retirement commit | Primary verified exact archived completion receipt and remaining file inventory, retired 100 KB tool tree, applied reviewed link install (15 actions). |
 | WP7.1 tutor skill | O | done | resume skill commit | Sol drafted, primary reviewed; skill validator and isolated command smoke pass; old source skill files retired. Machine links updated in WP6.3/WP8.3. |
 | WP7.2 AGENTS.md | O | done | resume skill commit | Sol rewrite reviewed by primary; protections retained, Markdown/Go/unified progress documented, links checked, CLAUDE.md symlink preserved. |
-| WP7.3 Author skill and AUTHORING.md | S | in progress | | Luna/high authoring_docs; primary review. |
-| WP7.4 Remaining documentation | S | in progress | | Luna/high remaining_docs; primary review. |
+| WP7.3 Author skill and AUTHORING.md | S | done | resume authoring commit | Luna/high edits reviewed/refined by primary; standalone grammar, metadata-only prerequisites, isolated progress smoke, skill/link checks pass. |
+| WP7.4 Remaining documentation | S | done | resume documentation commit | Active docs use direct Markdown parsing and unified CLI/DB; historical validation body preserved; 71 links and five course checks pass. |
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |
-| WP8.2 Knowledge cleanup | S | todo | | |
+| WP8.2 Knowledge cleanup | S | in progress | | Luna/high knowledge_cleanup preparing final-design docs; primary must finish archive prerequisite and review. |
 | WP8.3 Machine install and sweep | O | todo | | |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
 | WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | done | ff2b69c + resume acceptance | Primary shared-file test: 1130 golden outputs match across all five courses before/after init; read-only DB/WAL hashes unchanged. All baseline course rows/timestamps and 15 backup hashes match. |

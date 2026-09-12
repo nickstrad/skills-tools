@@ -1,6 +1,6 @@
 ---
 name: curriculum-author
-description: Plan or incrementally author hands-on systems courses in the tutor engine. Use for future course proposals, lesson/module creation or revision, real-tool validation, and course wrapper installation. Planning alone does not implement a course.
+description: Plan or incrementally author hands-on systems courses in the tutor engine. Use for future course proposals, Markdown lesson creation or revision, real-tool validation, and shared skill installation. Planning alone does not implement a course.
 ---
 
 # Curriculum author
@@ -25,22 +25,30 @@ material scope/count/order changes need renewed sign-off. Keep one canonical rou
    model/delegation choice; historical plan assignments do not bind the current batch. Usually
    author 3–4 short lessons; do not build the whole future course.
 2. Scaffold only if implementation is requested and the course does not exist:
-   `cd $TUTOR && deno task new-course <id> "<Name>" <tool> "<description>" <minVersion>`. Keep
+   `cd $TUTOR && tutor new-course <id> "<Name>" <tool> "<description>" <minVersion>`. Keep
    availability distinct from the planned route.
-3. Edit `courses/<id>/curriculum/*.ts` as typed Draft objects using the raw `code` tag. Register
-   modules in `curriculum/mod.ts`; prerequisites use earlier slugs. Preserve learner experiments for
-   metadata-only edits. Never hand-edit generated `lessons.json` or learner progress.
-4. Build the changed course and run relevant structural checks. Validate each new or changed
+3. Add `courses/<id>/lessons/NN-<slug>.md` files following the grammar in AUTHORING.md; ordinals
+   come from the filename. Prerequisites use earlier slugs as sequencing metadata; the CLI does not
+   gate lesson availability on their completion. Preserve learner experiments for metadata-only
+   edits. Never edit learner progress by hand.
+4. Run `tutor <id> check` and relevant structural checks. Validate each new or changed
    experiment against the real tool in an owned lab; check actual outcomes, not only process exit.
    Run independently and in sequence where state could leak. Use `docs/VALIDATION.md` and the
    course-specific findings. Delegate bounded files only when authorized; review the resulting
    evidence yourself.
 5. Smoke-test the shared `tutor <id> <n> lesson|done` flow with an explicit temporary `--db PATH`.
-   Showing content never completes it. Preserve stable identities; bump revisions only for material
-   lesson changes and check progress migration on a copy when necessary.
-6. Install or synchronize the course wrapper skill if required. Record non-obvious findings in
+   The learner database is the shared `curriculum-tools/tutor.sqlite`, with rows still scoped to the
+   course. Showing content never completes it. Preserve stable identities; bump revisions only for
+   material lesson changes and check progress migration on a copy when necessary.
+6. Install or synchronize the shared tutor skill if required. Record non-obvious findings in
    `docs/knowledge/` and its index, update authored availability, and report validation limits.
    Clean all owned labs/evidence and verify learner readiness before finishing.
+
+New CLI logic, labs, fixtures, harnesses, and other course tooling follow the repository's
+[Go-first language policy](../../../AGENTS.md#language-policy); lesson experiments continue to use
+their tool's native commands. Every new lesson also reserves meaningful learner work with a supplied
+boundary, evidence to collect, and an attempt budget, as described in the repository's
+[learner-work norm](../../../docs/knowledge/learner-work.md).
 
 Read `docs/knowledge/vm-resource-cleanup.md` before allocating labs. Account for peak backup,
 replica, archive, and evidence copies, preserve `/labs/pglab` and unrelated work, and retire owned
@@ -59,8 +67,9 @@ reading. Retired source metadata is preserved in the repository archive, outside
 ## Validation pitfalls to retain
 
 - The generic harness detects timeouts, not all SQL failures. Read output, classify intentional
-  errors, and compare data outcomes with expectedResult.
-- A lesson must recreate its own state or explicitly name a prerequisite that does so.
+  errors, and compare data outcomes with the Expected result section.
+- A lesson must recreate its own state or explicitly identify an earlier lesson whose experiment
+  provides it; that prerequisite documents setup sequencing, not a CLI availability gate.
 - Real two-session experiments must keep separate live connections and deterministic ordering.
 - Crash/restart/replication lessons require serial owned fixtures and reliable teardown.
 - Feature-probe the actual runtime and any language binding; version text alone may not establish
