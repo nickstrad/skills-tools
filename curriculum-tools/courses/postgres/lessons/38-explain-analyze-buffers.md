@@ -86,10 +86,6 @@ The result is a practical way to distinguish planner cost units from elapsed tim
   - What it is: A relation option that disables routine automatic vacuum and analysis for this table; anti-wraparound vacuum can still run.
   - What it does here: It keeps background maintenance from changing measured pages.
   - What it gives us: A controlled experiment whose maintenance is explicit ANALYZE only.
-- **SET LOCAL seq_page_cost** (variation setting)
-  - What it is: A change to the modeled sequential-page price that lasts only until the transaction ends.
-  - What it does here: It tests cost estimates without changing the data or hardware.
-  - What it gives us: A changed cost beside the same predicate and actual row count.
 - **CREATE INDEX / DROP INDEX and \gset** (controlled access-path change)
   - What they are: index DDL and a psql command that saves a one-row query result as a variable.
   - What they do here: They record the cancelled-order answer before and after adding a status index,
@@ -193,8 +189,3 @@ An optimizer chooses using a model; execution supplies evidence for that model. 
 cardinality estimate, an expensive access path and time spent outside the database before choosing
 a remedy. The same distinction matters for schedulers and distributed query engines: returning the
 right answer is a correctness condition, while measured resource use supports a performance choice.
-
-## Optional variation
-Change only seq_page_cost inside a transaction and compare the same cancelled query before and
-after. Predict which estimate will change and whether that alone changes the executor's page work.
-The coaching hint supplies the commands and rolls back the local setting.

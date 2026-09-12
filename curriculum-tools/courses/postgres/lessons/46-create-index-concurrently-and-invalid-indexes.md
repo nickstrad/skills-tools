@@ -178,8 +178,3 @@ A multi-phase operation can leave durable intermediate state after an error. Rec
 that state and decide whether to resume, replace or clean it up. A catalog row existing is weaker
 than being usable. This transfers to migration orchestration, but each protocol has its own reader,
 writer and activation conditions; do not assume every online change waits on the same boundary.
-
-## Optional variation
-Starting from setup, introduce one duplicate, attempt the unique concurrent build, inspect the
-invalid artifact, then remove the duplicate and retry after dropping the failed index. Finish by
-checking catalog flags and unique email count. Exact commands are available in the coaching hint.

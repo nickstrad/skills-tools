@@ -296,7 +296,10 @@ actual workload's byte rate and correctness before extrapolating to replication 
 capacity or recovery cost. This experiment measures WAL volume, not throughput or recovery duration.
 
 ## Optional variation
-For200 rows already satisfying amount=id, predict the difference between an unconditional UPDATE
-and one guarded by amount IS DISTINCT FROM id. Run the exact pgcoach hint2 comparison, check equal
-final values and count actual heap updates. Explain what further application assumptions make
-skipping a no-op safe before projecting these small-run savings onto a million-row workload.
+In a copy of the supplied Run block, change only `noop_comparison = False` to
+`noop_comparison = True`. For200 rows already satisfying amount=id, compare an unconditional UPDATE
+with one guarded by amount IS DISTINCT FROM id. Check equal final values and count actual heap
+updates: the unconditional statement writes200 heap updates; the guarded statement writes none.
+Both retain the same final values. Skipping a no-op is safe only when the application does not
+depend on UPDATE side effects, such as triggers; this fixture does not establish that for another
+application or measure a million-row workload.

@@ -254,7 +254,7 @@ production or deliberately abandon a recovery guarantee. A same-disk copy proves
 survival nor restorability, which require additional failure boundaries and tests.
 
 ## Optional variation
-Predict what happens if the failure lasts for20 sealed segments instead of12, with the same8MB
-budget and one10-unit receipt per segment. Run the complete variation from pgcoach hint2; compare
-retained bytes and final receipts against the workload denominator. Explain why this bounded run
-proves a soft budget but does not measure time to disk exhaustion under a production byte rate.
+In a copy of the supplied Run block, change only `segments = 12` to `segments = 20`. Keep the same8MB
+budget and one10-unit receipt per segment. Compare retained bytes and final receipts against the
+workload denominator. Retention can exceed the configured budget while archiving is blocked. This
+bounded run does not measure time to disk exhaustion under a production byte rate.

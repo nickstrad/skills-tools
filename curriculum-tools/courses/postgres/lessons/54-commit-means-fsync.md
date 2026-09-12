@@ -152,7 +152,10 @@ WAL counters are cluster-wide and can include background work; the samples do no
 Keep the workload outcome and acknowledgement boundary explicit. Group commit can amortize flush work while preserving synchronous acknowledgement. Application batching changes the atomic unit and amortizes transaction overhead; asynchronous commit changes what acknowledgement promises. Compare useful operations per second and transaction latency rather than treating those three choices as equivalent optimizations.
 
 ## Optional variation
-Change only the grouping from one increment per transaction to five. Keep400 useful increments per trial and the same policy/client sweep. Compare increments_per_s and transaction latency while acknowledging the smaller80-sample tail estimate; exact batch-five code is in hint2.
+Export `WAL_BATCH=5` before rerunning the supplied block, then unset it afterward. This changes only
+the grouping from one increment per transaction to five. Keep400 useful increments per trial and
+the same policy/client sweep. Compare increments_per_s and transaction latency while acknowledging
+the smaller80-sample tail estimate.
 
 Optional depth: run a file-flush probe on its own temporary file. It requires pg_test_fsync from the
 same PostgreSQL installation on PATH. Results describe the filesystem containing its printed

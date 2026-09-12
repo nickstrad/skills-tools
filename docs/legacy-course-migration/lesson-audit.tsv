@@ -114,7 +114,7 @@ postgres	34	ddl-behind-a-long-query	pending
 postgres	35	advisory-locks-as-leases	pending			
 postgres	36	skip-locked-work-queue	pending			
 postgres	37	unique-constraint-race	pending			
-postgres	38	explain-analyze-buffers	pending			
+postgres	38	explain-analyze-buffers	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Retired unsupplied seq_page_cost coaching prompt and dangling syntax bullet; core cost explanation and commands preserved
 postgres	39	statistics-drive-plans	pending			
 postgres	40	index-scan-vs-seq-scan-crossover	pending			
 postgres	41	join-strategies	pending			
@@ -122,7 +122,7 @@ postgres	42	work-mem-spills-to-disk	pending
 postgres	43	parallel-query	pending			
 postgres	44	pg-stat-statements-as-tracing	pending			
 postgres	45	btree-page-anatomy	pending			
-postgres	46	create-index-concurrently-and-invalid-indexes	pending			
+postgres	46	create-index-concurrently-and-invalid-indexes	coaching-only prompt retired	Challenge	primary	Retired missing-hint replay of failure/repair already supplied completely in core; three-session ordering preserved
 postgres	47	bounded-online-migration	pending			
 postgres	48	partial-and-covering-indexes	pending			
 postgres	49	index-bloat-from-churn	pending			
@@ -130,10 +130,10 @@ postgres	50	unique-index-enforcement-under-concurrency	pending
 postgres	51	keyset-pagination-and-concurrent-writes	pending			
 postgres	52	every-change-is-a-wal-record	pending			
 postgres	53	full-page-writes-after-checkpoint	pending			
-postgres	54	commit-means-fsync	pending			
-postgres	55	wal-files-and-recycling	pending			
-postgres	56	crash-and-redo	pending			
-postgres	57	wal-size-of-operations	pending			
+postgres	54	commit-means-fsync	prose/diagram only	Challenge	primary	Direct existing WAL_BATCH=5 switch; 400 useful increments and optional supplied file probe preserved
+postgres	55	wal-files-and-recycling	prose/diagram only	Challenge	primary	Direct existing segments=20 switch and retention interpretation; no executable changes
+postgres	56	crash-and-redo	prose/diagram only	Challenge	primary	Direct existing commit_second=True switch; locally interprets COMMIT and recovered 2 receipts/amount30 versus 1/10
+postgres	57	wal-size-of-operations	prose/diagram only	Challenge	primary	Direct existing noop_comparison=True switch; equal final values with 200 versus zero heap updates and side-effect caveat
 postgres	58	checkpoint-anatomy	pending			
 postgres	59	redo-point-bounds-recovery	pending			
 postgres	60	max-wal-size-forces-checkpoints	pending			

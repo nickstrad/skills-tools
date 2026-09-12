@@ -34,6 +34,23 @@ All13 rendered in plain and ANSI through the actual CLI from a refreshed disposa
 Parsed comparisons against the baseline allow only the reviewed fields/comment substitutions.
 Existing real-tool evidence remains applicable because executable behavior did not change.
 
+## PostgreSQL38/46/54–57 editorial acceptance
+
+Primary reviewed all six diffs and their complete local experiment flow. Lesson38 removes an
+unsupplied cost-setting coaching prompt and its dangling syntax bullet;46 removes a hint-dependent
+replay of the duplicate/index repair sequence already present in Run. Lessons54–57 now identify
+their existing WAL_BATCH, segments, commit_second and noop_comparison switches directly. Primary
+checked the associated workload and outcome assertions and supplied local interpretation for55–57.
+The existing optional pg_test_fsync program remains byte-identical.
+
+The parsed baseline comparison rejects every change outside the reviewed prose fields. Setup,
+Run, metadata, revisions, identities and session ordering are identical. All six were rendered
+through the CLI from a fresh disposable catalog in plain, ANSI and JSON; JSON matches every source
+field and ANSI matches styling of the complete plain view. PostgreSQL's92-lesson check passed.
+These are editorial changes, so the existing real-tool evidence applies without new cluster runs.
+Concise verification log: `.cache/legacy-migration/postgres-six-parity.log`; its renders are retained
+until final migration acceptance. The temporary catalog was removed and no lab was allocated.
+
 ## SQLite52/54 real-tool acceptance
 
 2026-09-12: `bin/tutor sqlite-legacy validate --isolated --keep 52 54` passed with SQLite3.53.4.

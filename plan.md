@@ -1,6 +1,6 @@
 # Legacy courses in the simple tutor CLI
 
-Updated: 2026-09-12. Status: paused at the user's requested context-clear checkpoint.
+Updated: 2026-09-12. Status: implementation resumed; content acceptance in progress.
 This file is the primary-owned plan and continuing handoff.
 
 ## Resume here — current authoritative checkpoint
@@ -17,17 +17,19 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - P7 active guidance changes are reviewed and included in the documentation checkpoint commit,
   including primary corrections to completion wording, the `undone N` example and the SQLite54
   outline. No installer command has been run yet.
-- Sol's P5 first-six PostgreSQL edits (38/46/54/55/56/57) are **pending primary acceptance**.
-  Preserve these worktree changes; do not treat their ledger rows as accepted. The full92-row
+- Sol's P5 first-six PostgreSQL edits (38/46/54/55/56/57) are now **primary accepted**.
+  Primary reviewed the removed prompts and existing comparison switches, supplied local outcome
+  interpretation for55–57, and verified exact main commands/metadata plus plain/ANSI/JSON views.
+  The full92-row
   preliminary audit is `curriculum-tools/.cache/legacy-migration/postgres-audit.tsv`.
 - All three workers have stopped. Sol completed the 92-row preliminary inventory, checked the
-  PostgreSQL structure and rendered all six edited lessons; primary acceptance remains pending.
+  PostgreSQL structure and rendered all six edited lessons; primary acceptance is now recorded.
   Worker temporary databases and renders are removed, with no active worker processes or labs.
 - Critical new P5 finding: PostgreSQL89 and90 also omit their controller inspection/recovery/
   cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
   validation schedule. PG92's core is complete but its existing optional branch needs local wording.
-- Next: finish primary acceptance of the six P5 prose edits; then continue Linux13–71 in bounded
-  Terra chunks, PostgreSQL prose/continuations, SQLite01–51/53 and Essentials/gRPC audits. Primary
+- Next: primary continues the Essentials/gRPC audits, then Linux13–71, PostgreSQL
+  prose/continuations and SQLite01–51/53. No new worker has been dispatched. Primary
   still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation. No next chunk has been
   dispatched after this stop request. Use the plan's current model/ownership assignments if resumed.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -43,6 +45,20 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL first six
+
+Primary owns the resumed editorial work, ledger and plan; no worker currently owns files.
+Accepted exact files: PostgreSQL38/46/54/55/56/57 named in the P5 dispatch below.
+The ledger now records21 accepted lessons. The two removed optional prompts supplied no commands;
+46 duplicated the existing core failure/repair schedule. The other four variations use switches
+already present in their unchanged Run programs. Primary inspected branch assertions and provided
+local interpretation for55–57. Revisions, Setup, Run, safety, sessions, slugs and order are unchanged.
+The disposable-catalog verifier checks every unapproved parsed field, exact JSON/source parity,
+complete plain content and ANSI styling for all six. Its log and renders remain under
+`.cache/legacy-migration/` until final acceptance. No real-tool rerun is required for these editorial
+changes; prior experiment evidence remains applicable. `bin/tutor postgres-legacy check` passes.
+No lab or learner-state write occurred; final whole-plan checks and rollout remain pending.
 
 Sections below preserve the full requirements and dated implementation checkpoints; this resume
 summary supersedes their earlier “pending/start P0” scheduling statements.

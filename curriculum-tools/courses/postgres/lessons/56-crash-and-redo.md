@@ -282,7 +282,8 @@ caller received success. Local recovery also depends on an intact starting state
 an arbitrary WAL suffix cannot reconstruct the complete database.
 
 ## Optional variation
-Change only the second transaction's decision: commit it before the same immediate shutdown.
-Predict its Transaction record, physical header and post-recovery receipt totals, then run the
-complete pgcoach hint2 variation. Compare the recorded intervals and explain why the physical INSERT
-alone cannot distinguish these two outcomes.
+In a copy of the supplied Run block, change only `commit_second = False` to
+`commit_second = True`. This commits the second transaction before the same immediate shutdown.
+Compare its Transaction record, physical header and post-recovery receipt totals with the core.
+Both runs contain the physical INSERT, but only this branch has the second transaction's COMMIT
+record: recovery exposes both receipt IDs and amount30 instead of only ID1 and amount10.
