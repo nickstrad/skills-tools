@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — in flight (delegated, do not re-delegate): WP3.1 cobra tree (opus). Roadmap package landed (07d2ede). Next after WP3.1 lands: `internal/cli/roadmap.go`, WP3.5 launcher, WP2.3 parity B, WP3.6 parity C, then Phase 9.**
+**Status: in progress — nothing delegated. Next: WP3.6 parity C and write smoke through `bin/tutor`, then Phase 9 (WP9.1, WP9.2), then WP4.3.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -57,15 +57,15 @@ a separate handoff document.
 | WP1.5 Course template | S | done | see log | `templates/course/lessons/01-example.md` is byte-canonical (`FormatLessonFile` reproduces it) |
 | WP2.1 progress schema and seed | F | done | see log | `Open` uses `_txlock=immediate`; read verbs use `OpenReadOnly` (`mode=ro`); Go `Init` on baseline copies == Deno `init` dumps for all 5 courses |
 | WP2.2 Progress operations | S | done | 8f9b2e2 | `GetStatus` (name clash with type); `Topics` NULL-finished scan fix |
-| WP2.3 Parity gate B | S | todo | | |
-| WP3.1 Cobra tree | O | in progress | | delegated to an opus subagent; owns `internal/cli/*`, `cmd/tutor/main.go`; wires scaffold and links, not roadmap |
+| WP2.3 Parity gate B | S | done | run only | 1145 files compared, 0 differences, through a frozen build of c05d4e4 (`$WORK/run-parity.sh parity-b`, report in `$WORK/parity-b/report.txt`); raw copies unchanged by read verbs; the five real databases hash-identical to the WP0.1 baseline |
+| WP3.1 Cobra tree | O | done | c138c56 | see the WP3.1 log entry: degraded discovery keeps `check` reachable when one course drifts; non-integer lesson numbers exit 2 |
 | WP3.2 route package | S | done | 18e4ea8 | `DiscoverCourses` on the real root equals golden `courses.json` |
 | WP3.3 new-course scaffold | S | done | 5f35a4c | package `internal/scaffold` (not `internal/cli`); CLI wiring in WP3.1 |
 | WP3.4 links and install | S | done | 1c96ad4 | package `internal/links`; `install` command wired in WP3.1 |
-| WP3.5 Launcher | S | todo | | |
+| WP3.5 Launcher | S | done | c05d4e4 | `env -i` run from /tmp works; second run 0.33 s; `tutor version` prints the git short hash |
 | WP3.6 Parity gate C and smoke | S | todo | | |
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
-| WP4.2 roadmap package and command | O | package done | 07d2ede | `internal/roadmap` committed; `internal/cli/roadmap.go` is added by the primary after WP3.1 lands. Uses `<root>/tutor.sqlite` already (the Phase 9 file) |
+| WP4.2 roadmap package and command | O | done | 07d2ede + wiring commit | package by an opus subagent, `internal/cli/roadmap.go` by the primary; uses `<root>/tutor.sqlite` already (the Phase 9 file); real machine import happens in WP4.3 |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
 | WP5.2 validate and progress verify | S | todo | | |
@@ -110,6 +110,16 @@ learner progress rows that changed during the work).
   rows, not 66 as §B says; `courses.json` in the corpus is authoritative. (d) Deno's `lesson N
   --json` prints Markdown (only `show N --json` printed JSON); the Go `lesson N --json` prints the
   JSON, matching golden `lesson-NN.json`.
+- 2026-09-12 — WP3.1 findings (package `internal/cli`): (a) `route.DiscoverCourses` fails as a
+  whole when any course's catalog disagrees with its plan, so `Execute` builds the command tree
+  from a non-validating course listing in that case; `courses` and the unknown-course listing
+  still report the discovery error (exit 2), and `check`/`init` report the mismatch (exit 1).
+  (b) A non-integer lesson number exits 2 (§3.3 usage error), where Deno exited 1; `note text is
+  required`, `search text is required` and `choose one of --todo, --done` stay exit 1. (c)
+  `lesson N --topic X` is rejected in both spellings (Deno ignored the flag). (d) `--ansi` on
+  `route` follows Deno: the flag only, no terminal detection. (e) `tutor install --check` fails
+  until WP7.1 creates `curriculum-tools/skills/tutor` (a listed source). (f) The `roadmap` view
+  and `show` are styled with the Markdown styler only when stdout is a terminal.
 - 2026-09-12 — WP4.2 findings (package `internal/roadmap`): (a) the §3.5 stale-export rule
   ("roadmap.json older than `exported_at`") can never fire after a mutation, because nothing
   later moves either value; the package adds a third `roadmap_meta` key, `changed_at`, stamped by

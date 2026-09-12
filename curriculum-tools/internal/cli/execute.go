@@ -187,9 +187,9 @@ func newRootCmd(root string, discovered []route.CourseDiscovery, stdout, stderr 
 		fmt.Fprint(c.OutOrStdout(), c.UsageString())
 	})
 
-	// Cross-course commands. Register additional top-level commands (for example `tutor roadmap`,
-	// added by its own work package) alongside these.
+	// Cross-course commands.
 	cmd.AddCommand(newCoursesCmd(root, stdout))
+	cmd.AddCommand(newRoadmapCmd(root, stdout))
 	cmd.AddCommand(newVersionCmd(stdout))
 	cmd.AddCommand(newNewCourseCmd(root, stdout))
 	cmd.AddCommand(newInstallCmd(root, stdout))

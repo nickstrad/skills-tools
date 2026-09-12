@@ -32,6 +32,15 @@ var valuedFlags = map[string]bool{
 	"--claude-skills": true,
 	"--file":          true,
 	"--diagram-file":  true,
+	"--status":        true,
+	"--track":         true,
+	"--title":         true,
+	"--tool":          true,
+	"--goals":         true,
+	"--after":         true,
+	"--course":        true,
+	"--plan":          true,
+	"--description":   true,
 }
 
 var ordinalRE = regexp.MustCompile(`^[1-9]\d*$`)
