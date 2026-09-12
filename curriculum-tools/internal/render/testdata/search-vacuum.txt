@@ -1,0 +1,4 @@
+  3  [visibility-and-retention] An old reader can prevent vacuum from removing history
+  4  [vacuum-and-reuse] Reusable space is different from a smaller file
+ 17  [query-evidence] Repair a misleading row estimate
+ 20  [query-execution] Covering the columns is only half an index-only scan

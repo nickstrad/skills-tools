@@ -1,0 +1,82 @@
+[
+  {
+    "category": "visibility-and-retention",
+    "first": 1,
+    "last": 3,
+    "total": 3,
+    "done": 3,
+    "minutes": 80
+  },
+  {
+    "category": "vacuum-and-reuse",
+    "first": 4,
+    "last": 4,
+    "total": 1,
+    "done": 1,
+    "minutes": 25
+  },
+  {
+    "category": "concurrent-writes",
+    "first": 5,
+    "last": 5,
+    "total": 1,
+    "done": 1,
+    "minutes": 25
+  },
+  {
+    "category": "concurrency-control",
+    "first": 6,
+    "last": 15,
+    "total": 9,
+    "done": 9,
+    "minutes": 225
+  },
+  {
+    "category": "reliable-requests",
+    "first": 12,
+    "last": 12,
+    "total": 1,
+    "done": 1,
+    "minutes": 25
+  },
+  {
+    "category": "query-evidence",
+    "first": 16,
+    "last": 19,
+    "total": 4,
+    "done": 4,
+    "minutes": 100
+  },
+  {
+    "category": "query-execution",
+    "first": 20,
+    "last": 22,
+    "total": 3,
+    "done": 3,
+    "minutes": 75
+  },
+  {
+    "category": "wal-and-recovery",
+    "first": 23,
+    "last": 24,
+    "total": 2,
+    "done": 0,
+    "minutes": 50
+  },
+  {
+    "category": "durability-and-recovery",
+    "first": 25,
+    "last": 25,
+    "total": 1,
+    "done": 0,
+    "minutes": 25
+  },
+  {
+    "category": "durability-recovery",
+    "first": 26,
+    "last": 26,
+    "total": 1,
+    "done": 0,
+    "minutes": 25
+  }
+]

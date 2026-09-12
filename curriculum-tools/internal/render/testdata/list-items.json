@@ -1,0 +1,331 @@
+[
+  {
+    "ordinal": 1,
+    "status": "done",
+    "category": "visibility-and-retention",
+    "title": "An uncommitted write is private to its transaction",
+    "sessions": 2,
+    "tags": [
+      "mvcc",
+      "isolation"
+    ]
+  },
+  {
+    "ordinal": 2,
+    "status": "done",
+    "category": "visibility-and-retention",
+    "title": "Choose a fresh statement view or a stable transaction view",
+    "sessions": 2,
+    "tags": [
+      "mvcc",
+      "snapshots",
+      "isolation"
+    ]
+  },
+  {
+    "ordinal": 3,
+    "status": "done",
+    "category": "visibility-and-retention",
+    "title": "An old reader can prevent vacuum from removing history",
+    "sessions": 2,
+    "tags": [
+      "mvcc",
+      "snapshots",
+      "vacuum",
+      "retention"
+    ]
+  },
+  {
+    "ordinal": 4,
+    "status": "done",
+    "category": "vacuum-and-reuse",
+    "title": "Reusable space is different from a smaller file",
+    "sessions": 1,
+    "tags": [
+      "vacuum",
+      "storage",
+      "reclamation"
+    ]
+  },
+  {
+    "ordinal": 5,
+    "status": "done",
+    "category": "concurrent-writes",
+    "title": "Lose an update, then keep arithmetic in the database",
+    "sessions": 2,
+    "tags": [
+      "isolation",
+      "read-committed",
+      "lost-update",
+      "concurrency"
+    ]
+  },
+  {
+    "ordinal": 6,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Protect a read-modify-write decision with a row lock",
+    "sessions": 2,
+    "tags": [
+      "isolation",
+      "row-locks",
+      "concurrency-control"
+    ]
+  },
+  {
+    "ordinal": 7,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Reject a stale edit with a version check",
+    "sessions": 2,
+    "tags": [
+      "isolation",
+      "optimistic-concurrency",
+      "conflict-detection"
+    ]
+  },
+  {
+    "ordinal": 8,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Two valid decisions can break one shared rule",
+    "sessions": 2,
+    "tags": [
+      "isolation",
+      "repeatable-read",
+      "concurrency-control"
+    ]
+  },
+  {
+    "ordinal": 9,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Make the conflicting decision fail under Serializable",
+    "sessions": 2,
+    "tags": [
+      "isolation",
+      "serializable",
+      "concurrency-control"
+    ]
+  },
+  {
+    "ordinal": 10,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Retry a known-aborted transaction from the beginning",
+    "sessions": 1,
+    "tags": [
+      "isolation",
+      "serializable",
+      "retries",
+      "transactions"
+    ]
+  },
+  {
+    "ordinal": 11,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "A lost response leaves the commit outcome unknown",
+    "sessions": 1,
+    "tags": [
+      "transactions",
+      "retries",
+      "unknown-outcome"
+    ]
+  },
+  {
+    "ordinal": 12,
+    "status": "done",
+    "category": "reliable-requests",
+    "title": "Reconcile a repeated request by its durable identity",
+    "sessions": 2,
+    "tags": [
+      "transactions",
+      "uniqueness",
+      "idempotency",
+      "reconciliation"
+    ]
+  },
+  {
+    "ordinal": 13,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Find the transaction controlling a wait",
+    "sessions": 2,
+    "tags": [
+      "locks",
+      "wait-events",
+      "observability",
+      "transactions"
+    ]
+  },
+  {
+    "ordinal": 14,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "Cause a deadlock and explain the cycle",
+    "sessions": 2,
+    "tags": [
+      "deadlocks",
+      "locks",
+      "sqlstate",
+      "transaction-retry"
+    ]
+  },
+  {
+    "ordinal": 15,
+    "status": "done",
+    "category": "concurrency-control",
+    "title": "A deadline does not always end the transaction",
+    "sessions": 2,
+    "tags": [
+      "timeouts",
+      "transactions",
+      "sqlstate",
+      "connection-pools"
+    ]
+  },
+  {
+    "ordinal": 16,
+    "status": "done",
+    "category": "query-evidence",
+    "title": "Read a plan as measured work",
+    "sessions": 1,
+    "tags": [
+      "explain",
+      "query-plans",
+      "buffers",
+      "cardinality"
+    ]
+  },
+  {
+    "ordinal": 17,
+    "status": "done",
+    "category": "query-evidence",
+    "title": "Repair a misleading row estimate",
+    "sessions": 1,
+    "tags": [
+      "analyze",
+      "statistics",
+      "query-plans",
+      "cardinality"
+    ]
+  },
+  {
+    "ordinal": 18,
+    "status": "done",
+    "category": "query-evidence",
+    "title": "An index can stop being the cheaper path",
+    "sessions": 1,
+    "tags": [
+      "query-plans",
+      "indexes",
+      "cost-model",
+      "performance"
+    ]
+  },
+  {
+    "ordinal": 19,
+    "status": "done",
+    "category": "query-evidence",
+    "title": "Match an index to filtering and ordering",
+    "sessions": 1,
+    "tags": [
+      "query-plans",
+      "indexes",
+      "b-tree",
+      "performance"
+    ]
+  },
+  {
+    "ordinal": 20,
+    "status": "done",
+    "category": "query-execution",
+    "title": "Covering the columns is only half an index-only scan",
+    "sessions": 1,
+    "tags": [
+      "indexes",
+      "mvcc",
+      "visibility-map",
+      "query-plans"
+    ]
+  },
+  {
+    "ordinal": 21,
+    "status": "done",
+    "category": "query-execution",
+    "title": "Make a sort spill, then bring it back into memory",
+    "sessions": 1,
+    "tags": [
+      "query-execution",
+      "sorting",
+      "work-mem",
+      "temporary-io"
+    ]
+  },
+  {
+    "ordinal": 22,
+    "status": "done",
+    "category": "query-execution",
+    "title": "A join adds another memory consumer",
+    "sessions": 1,
+    "tags": [
+      "query-execution",
+      "hash-joins",
+      "work-mem",
+      "temporary-io"
+    ]
+  },
+  {
+    "ordinal": 23,
+    "status": "todo",
+    "category": "wal-and-recovery",
+    "title": "Connect commit acknowledgement to durable log work",
+    "sessions": 1,
+    "tags": [
+      "wal",
+      "commit",
+      "durability",
+      "lsn"
+    ]
+  },
+  {
+    "ordinal": 24,
+    "status": "todo",
+    "category": "wal-and-recovery",
+    "title": "Measure WAL per useful operation",
+    "sessions": 1,
+    "tags": [
+      "wal",
+      "transactions",
+      "batching",
+      "write-amplification"
+    ]
+  },
+  {
+    "ordinal": 25,
+    "status": "todo",
+    "category": "durability-and-recovery",
+    "title": "A checkpoint writes pages without ending transactions",
+    "sessions": 1,
+    "tags": [
+      "write-ahead-log",
+      "checkpoints",
+      "buffer-cache",
+      "transactions"
+    ]
+  },
+  {
+    "ordinal": 26,
+    "status": "todo",
+    "category": "durability-recovery",
+    "title": "Reconcile committed and aborted work after a crash",
+    "sessions": 1,
+    "tags": [
+      "wal",
+      "recovery",
+      "transactions",
+      "durability"
+    ]
+  }
+]

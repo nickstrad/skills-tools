@@ -1,0 +1,26 @@
+  1  done    [visibility-and-retention] An uncommitted write is private to its transaction (2 sessions)  {mvcc,isolation}
+  2  done    [visibility-and-retention] Choose a fresh statement view or a stable transaction view (2 sessions)  {mvcc,snapshots,isolation}
+  3  done    [visibility-and-retention] An old reader can prevent vacuum from removing history (2 sessions)  {mvcc,snapshots,vacuum,retention}
+  4  done    [vacuum-and-reuse] Reusable space is different from a smaller file  {vacuum,storage,reclamation}
+  5  done    [concurrent-writes] Lose an update, then keep arithmetic in the database (2 sessions)  {isolation,read-committed,lost-update,concurrency}
+  6  done    [concurrency-control] Protect a read-modify-write decision with a row lock (2 sessions)  {isolation,row-locks,concurrency-control}
+  7  done    [concurrency-control] Reject a stale edit with a version check (2 sessions)  {isolation,optimistic-concurrency,conflict-detection}
+  8  done    [concurrency-control] Two valid decisions can break one shared rule (2 sessions)  {isolation,repeatable-read,concurrency-control}
+  9  done    [concurrency-control] Make the conflicting decision fail under Serializable (2 sessions)  {isolation,serializable,concurrency-control}
+ 10  done    [concurrency-control] Retry a known-aborted transaction from the beginning  {isolation,serializable,retries,transactions}
+ 11  done    [concurrency-control] A lost response leaves the commit outcome unknown  {transactions,retries,unknown-outcome}
+ 12  done    [reliable-requests] Reconcile a repeated request by its durable identity (2 sessions)  {transactions,uniqueness,idempotency,reconciliation}
+ 13  done    [concurrency-control] Find the transaction controlling a wait (2 sessions)  {locks,wait-events,observability,transactions}
+ 14  done    [concurrency-control] Cause a deadlock and explain the cycle (2 sessions)  {deadlocks,locks,sqlstate,transaction-retry}
+ 15  done    [concurrency-control] A deadline does not always end the transaction (2 sessions)  {timeouts,transactions,sqlstate,connection-pools}
+ 16  done    [query-evidence] Read a plan as measured work  {explain,query-plans,buffers,cardinality}
+ 17  done    [query-evidence] Repair a misleading row estimate  {analyze,statistics,query-plans,cardinality}
+ 18  done    [query-evidence] An index can stop being the cheaper path  {query-plans,indexes,cost-model,performance}
+ 19  done    [query-evidence] Match an index to filtering and ordering  {query-plans,indexes,b-tree,performance}
+ 20  done    [query-execution] Covering the columns is only half an index-only scan  {indexes,mvcc,visibility-map,query-plans}
+ 21  done    [query-execution] Make a sort spill, then bring it back into memory  {query-execution,sorting,work-mem,temporary-io}
+ 22  done    [query-execution] A join adds another memory consumer  {query-execution,hash-joins,work-mem,temporary-io}
+ 23  todo    [wal-and-recovery] Connect commit acknowledgement to durable log work  {wal,commit,durability,lsn}
+ 24  todo    [wal-and-recovery] Measure WAL per useful operation  {wal,transactions,batching,write-amplification}
+ 25  todo    [durability-and-recovery] A checkpoint writes pages without ending transactions  {write-ahead-log,checkpoints,buffer-cache,transactions}
+ 26  todo    [durability-recovery] Reconcile committed and aborted work after a crash  {wal,recovery,transactions,durability}

@@ -1,0 +1,326 @@
+{
+  "id": "postgres-essentials",
+  "name": "PostgreSQL Essentials",
+  "lessons": [
+    {
+      "ordinal": 1,
+      "slug": "committed-row-visibility",
+      "title": "An uncommitted write is private to its transaction",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 2,
+      "slug": "statement-versus-transaction-snapshot",
+      "title": "Choose a fresh statement view or a stable transaction view",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 3,
+      "slug": "old-reader-retains-history",
+      "title": "An old reader can prevent vacuum from removing history",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 4,
+      "slug": "reusable-space-versus-file-size",
+      "title": "Reusable space is different from a smaller file",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 5,
+      "slug": "lost-update-and-atomic-write",
+      "title": "Lose an update, then keep arithmetic in the database",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 6,
+      "slug": "row-lock-protects-decision",
+      "title": "Protect a read-modify-write decision with a row lock",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 7,
+      "slug": "reject-stale-edit",
+      "title": "Reject a stale edit with a version check",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 8,
+      "slug": "multi-row-write-skew",
+      "title": "Two valid decisions can break one shared rule",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 9,
+      "slug": "serializable-protects-invariant",
+      "title": "Make the conflicting decision fail under Serializable",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 10,
+      "slug": "whole-transaction-retry",
+      "title": "Retry a known-aborted transaction from the beginning",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 11,
+      "slug": "unknown-commit-outcome",
+      "title": "A lost response leaves the commit outcome unknown",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 12,
+      "slug": "durable-request-identity",
+      "title": "Reconcile a repeated request by its durable identity",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 13,
+      "slug": "find-the-blocker",
+      "title": "Find the transaction controlling a wait",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 14,
+      "slug": "deadlock-cycle",
+      "title": "Cause a deadlock and explain the cycle",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 15,
+      "slug": "timeout-and-transaction-state",
+      "title": "A deadline does not always end the transaction",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 16,
+      "slug": "read-a-plan-as-evidence",
+      "title": "Read a plan as measured work",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 17,
+      "slug": "statistics-and-estimates",
+      "title": "Repair a misleading row estimate",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 18,
+      "slug": "index-crossover",
+      "title": "An index can stop being the cheaper path",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 19,
+      "slug": "composite-index-order",
+      "title": "Match an index to filtering and ordering",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 20,
+      "slug": "index-only-needs-visibility",
+      "title": "Covering the columns is only half an index-only scan",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 21,
+      "slug": "sort-spill",
+      "title": "Make a sort spill, then bring it back into memory",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 22,
+      "slug": "join-memory",
+      "title": "A join adds another memory consumer",
+      "available": true,
+      "done": true,
+      "stale": false
+    },
+    {
+      "ordinal": 23,
+      "slug": "commit-and-wal",
+      "title": "Connect commit acknowledgement to durable log work",
+      "available": true,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 24,
+      "slug": "wal-per-useful-write",
+      "title": "Measure WAL per useful operation",
+      "available": true,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 25,
+      "slug": "checkpoint-writeback",
+      "title": "A checkpoint writes pages without ending transactions",
+      "available": true,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 26,
+      "slug": "crash-replay",
+      "title": "Reconcile committed and aborted work after a crash",
+      "available": true,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 27,
+      "slug": "restore-and-verify",
+      "title": "Prove a backup can restore the intended data",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 28,
+      "slug": "recovery-needs-history",
+      "title": "Recovery can fail when one required segment is missing",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 29,
+      "slug": "targeted-recovery",
+      "title": "Recover to a chosen point and account for excluded work",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 30,
+      "slug": "build-a-standby",
+      "title": "Build and verify a streaming standby",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 31,
+      "slug": "received-is-not-replayed",
+      "title": "Received WAL is not yet visible data",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 32,
+      "slug": "bounded-read-your-writes",
+      "title": "Give a replica read a bounded freshness guarantee",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 33,
+      "slug": "synchronous-acknowledgement",
+      "title": "Choose what a synchronous acknowledgement waits for",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 34,
+      "slug": "connection-capacity",
+      "title": "More clients can produce more waiting instead of more work",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 35,
+      "slug": "bounded-online-change",
+      "title": "Keep a schema change from becoming an unbounded queue",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 36,
+      "slug": "transactional-outbox",
+      "title": "Commit business state and pending delivery together",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 37,
+      "slug": "receiver-effect-before-ack",
+      "title": "Commit the receiver effect before acknowledging delivery",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 38,
+      "slug": "recover-abandoned-claim",
+      "title": "Make abandoned work eligible again",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 39,
+      "slug": "investigate-an-unfamiliar-incident",
+      "title": "Choose evidence before seeing an incident’s cause",
+      "available": false,
+      "done": false,
+      "stale": false
+    },
+    {
+      "ordinal": 40,
+      "slug": "intervene-and-verify",
+      "title": "Verify that the remedy restored correct useful work",
+      "available": false,
+      "done": false,
+      "stale": false
+    }
+  ]
+}

@@ -1,0 +1,545 @@
+[
+  {
+    "tag": "mvcc",
+    "first": 1,
+    "total": 4,
+    "done": 4,
+    "lessons": [
+      1,
+      2,
+      3,
+      20
+    ]
+  },
+  {
+    "tag": "isolation",
+    "first": 1,
+    "total": 8,
+    "done": 8,
+    "lessons": [
+      1,
+      2,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "tag": "snapshots",
+    "first": 2,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      2,
+      3
+    ]
+  },
+  {
+    "tag": "vacuum",
+    "first": 3,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      3,
+      4
+    ]
+  },
+  {
+    "tag": "retention",
+    "first": 3,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      3
+    ]
+  },
+  {
+    "tag": "storage",
+    "first": 4,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      4
+    ]
+  },
+  {
+    "tag": "reclamation",
+    "first": 4,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      4
+    ]
+  },
+  {
+    "tag": "read-committed",
+    "first": 5,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      5
+    ]
+  },
+  {
+    "tag": "lost-update",
+    "first": 5,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      5
+    ]
+  },
+  {
+    "tag": "concurrency",
+    "first": 5,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      5
+    ]
+  },
+  {
+    "tag": "row-locks",
+    "first": 6,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      6
+    ]
+  },
+  {
+    "tag": "concurrency-control",
+    "first": 6,
+    "total": 3,
+    "done": 3,
+    "lessons": [
+      6,
+      8,
+      9
+    ]
+  },
+  {
+    "tag": "optimistic-concurrency",
+    "first": 7,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      7
+    ]
+  },
+  {
+    "tag": "conflict-detection",
+    "first": 7,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      7
+    ]
+  },
+  {
+    "tag": "repeatable-read",
+    "first": 8,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      8
+    ]
+  },
+  {
+    "tag": "serializable",
+    "first": 9,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      9,
+      10
+    ]
+  },
+  {
+    "tag": "retries",
+    "first": 10,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      10,
+      11
+    ]
+  },
+  {
+    "tag": "transactions",
+    "first": 10,
+    "total": 8,
+    "done": 5,
+    "lessons": [
+      10,
+      11,
+      12,
+      13,
+      15,
+      24,
+      25,
+      26
+    ]
+  },
+  {
+    "tag": "unknown-outcome",
+    "first": 11,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      11
+    ]
+  },
+  {
+    "tag": "uniqueness",
+    "first": 12,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      12
+    ]
+  },
+  {
+    "tag": "idempotency",
+    "first": 12,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      12
+    ]
+  },
+  {
+    "tag": "reconciliation",
+    "first": 12,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      12
+    ]
+  },
+  {
+    "tag": "locks",
+    "first": 13,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      13,
+      14
+    ]
+  },
+  {
+    "tag": "wait-events",
+    "first": 13,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      13
+    ]
+  },
+  {
+    "tag": "observability",
+    "first": 13,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      13
+    ]
+  },
+  {
+    "tag": "deadlocks",
+    "first": 14,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      14
+    ]
+  },
+  {
+    "tag": "sqlstate",
+    "first": 14,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      14,
+      15
+    ]
+  },
+  {
+    "tag": "transaction-retry",
+    "first": 14,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      14
+    ]
+  },
+  {
+    "tag": "timeouts",
+    "first": 15,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      15
+    ]
+  },
+  {
+    "tag": "connection-pools",
+    "first": 15,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      15
+    ]
+  },
+  {
+    "tag": "explain",
+    "first": 16,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      16
+    ]
+  },
+  {
+    "tag": "query-plans",
+    "first": 16,
+    "total": 5,
+    "done": 5,
+    "lessons": [
+      16,
+      17,
+      18,
+      19,
+      20
+    ]
+  },
+  {
+    "tag": "buffers",
+    "first": 16,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      16
+    ]
+  },
+  {
+    "tag": "cardinality",
+    "first": 16,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      16,
+      17
+    ]
+  },
+  {
+    "tag": "analyze",
+    "first": 17,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      17
+    ]
+  },
+  {
+    "tag": "statistics",
+    "first": 17,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      17
+    ]
+  },
+  {
+    "tag": "indexes",
+    "first": 18,
+    "total": 3,
+    "done": 3,
+    "lessons": [
+      18,
+      19,
+      20
+    ]
+  },
+  {
+    "tag": "cost-model",
+    "first": 18,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      18
+    ]
+  },
+  {
+    "tag": "performance",
+    "first": 18,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      18,
+      19
+    ]
+  },
+  {
+    "tag": "b-tree",
+    "first": 19,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      19
+    ]
+  },
+  {
+    "tag": "visibility-map",
+    "first": 20,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      20
+    ]
+  },
+  {
+    "tag": "query-execution",
+    "first": 21,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      21,
+      22
+    ]
+  },
+  {
+    "tag": "sorting",
+    "first": 21,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      21
+    ]
+  },
+  {
+    "tag": "work-mem",
+    "first": 21,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      21,
+      22
+    ]
+  },
+  {
+    "tag": "temporary-io",
+    "first": 21,
+    "total": 2,
+    "done": 2,
+    "lessons": [
+      21,
+      22
+    ]
+  },
+  {
+    "tag": "hash-joins",
+    "first": 22,
+    "total": 1,
+    "done": 1,
+    "lessons": [
+      22
+    ]
+  },
+  {
+    "tag": "wal",
+    "first": 23,
+    "total": 3,
+    "done": 0,
+    "lessons": [
+      23,
+      24,
+      26
+    ]
+  },
+  {
+    "tag": "commit",
+    "first": 23,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      23
+    ]
+  },
+  {
+    "tag": "durability",
+    "first": 23,
+    "total": 2,
+    "done": 0,
+    "lessons": [
+      23,
+      26
+    ]
+  },
+  {
+    "tag": "lsn",
+    "first": 23,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      23
+    ]
+  },
+  {
+    "tag": "batching",
+    "first": 24,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      24
+    ]
+  },
+  {
+    "tag": "write-amplification",
+    "first": 24,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      24
+    ]
+  },
+  {
+    "tag": "write-ahead-log",
+    "first": 25,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      25
+    ]
+  },
+  {
+    "tag": "checkpoints",
+    "first": 25,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      25
+    ]
+  },
+  {
+    "tag": "buffer-cache",
+    "first": 25,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      25
+    ]
+  },
+  {
+    "tag": "recovery",
+    "first": 26,
+    "total": 1,
+    "done": 0,
+    "lessons": [
+      26
+    ]
+  }
+]

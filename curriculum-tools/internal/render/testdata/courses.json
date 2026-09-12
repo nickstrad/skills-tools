@@ -1,0 +1,91 @@
+[
+  {
+    "id": "grpc",
+    "name": "gRPC and Protocol Buffers",
+    "description": "Small CLI experiments in messages, RPCs, compatibility and failure",
+    "tool": "bash",
+    "status": "reference",
+    "implemented": true,
+    "planned": false,
+    "authored": 6,
+    "available": 6,
+    "total": 6,
+    "planPath": "/root/Software/skills-tools/curriculum-tools/courses/grpc/PLAN.md"
+  },
+  {
+    "id": "linux",
+    "name": "Linux Systems",
+    "description": "Linux kernel abstractions through hands-on experiments on a disposable Ubuntu VM",
+    "tool": "bash",
+    "status": "reference",
+    "implemented": true,
+    "planned": false,
+    "authored": 72,
+    "available": 72,
+    "total": 72,
+    "planPath": "/root/Software/skills-tools/curriculum-tools/courses/linux/PLAN.md"
+  },
+  {
+    "id": "linux-v2",
+    "name": "Linux Systems v2",
+    "description": "",
+    "status": "proposed",
+    "implemented": false,
+    "planned": true,
+    "authored": 0,
+    "available": 0,
+    "total": 44,
+    "planPath": "/root/Software/skills-tools/future-courses/linux-v2/course.md"
+  },
+  {
+    "id": "postgres",
+    "name": "PostgreSQL Systems",
+    "description": "PostgreSQL internals as hands-on experiments for systems and distributed-systems engineers",
+    "tool": "psql",
+    "status": "reference",
+    "implemented": true,
+    "planned": false,
+    "authored": 92,
+    "available": 92,
+    "total": 92,
+    "planPath": "/root/Software/skills-tools/curriculum-tools/courses/postgres/PLAN.md"
+  },
+  {
+    "id": "postgres-essentials",
+    "name": "PostgreSQL Essentials",
+    "description": "40 focused PostgreSQL systems lessons after the completed storage foundation",
+    "tool": "psql",
+    "status": "current",
+    "implemented": true,
+    "planned": false,
+    "authored": 26,
+    "available": 26,
+    "total": 40,
+    "planPath": "/root/Software/skills-tools/curriculum-tools/courses/postgres-essentials/PLAN.md"
+  },
+  {
+    "id": "sqlite",
+    "name": "SQLite Systems",
+    "description": "Embedded state: file and connection contracts, durability, writer capacity, recovery, and offline reconciliation",
+    "tool": "sqlite3",
+    "status": "reference",
+    "implemented": true,
+    "planned": false,
+    "authored": 54,
+    "available": 54,
+    "total": 54,
+    "planPath": "/root/Software/skills-tools/curriculum-tools/courses/sqlite/PLAN.md"
+  },
+  {
+    "id": "sqlite-essentials",
+    "name": "SQLite Essentials",
+    "description": "",
+    "status": "proposed",
+    "implemented": false,
+    "planned": true,
+    "authored": 0,
+    "available": 0,
+    "total": 32,
+    "planPath": "/root/Software/skills-tools/future-courses/sqlite/course.md"
+  }
+]

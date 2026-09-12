@@ -1,0 +1,44 @@
+# PostgreSQL Essentials — 40 lessons, 22 done
+
+[done] marks completion of the current lesson revision; planned lessons are not yet available.
+
+1. [done] An uncommitted write is private to its transaction — available
+2. [done] Choose a fresh statement view or a stable transaction view — available
+3. [done] An old reader can prevent vacuum from removing history — available
+4. [done] Reusable space is different from a smaller file — available
+5. [done] Lose an update, then keep arithmetic in the database — available
+6. [done] Protect a read-modify-write decision with a row lock — available
+7. [done] Reject a stale edit with a version check — available
+8. [done] Two valid decisions can break one shared rule — available
+9. [done] Make the conflicting decision fail under Serializable — available
+10. [done] Retry a known-aborted transaction from the beginning — available
+11. [done] A lost response leaves the commit outcome unknown — available
+12. [done] Reconcile a repeated request by its durable identity — available
+13. [done] Find the transaction controlling a wait — available
+14. [done] Cause a deadlock and explain the cycle — available
+15. [done] A deadline does not always end the transaction — available
+16. [done] Read a plan as measured work — available
+17. [done] Repair a misleading row estimate — available
+18. [done] An index can stop being the cheaper path — available
+19. [done] Match an index to filtering and ordering — available
+20. [done] Covering the columns is only half an index-only scan — available
+21. [done] Make a sort spill, then bring it back into memory — available
+22. [done] A join adds another memory consumer — available
+23. Connect commit acknowledgement to durable log work — available
+24. Measure WAL per useful operation — available
+25. A checkpoint writes pages without ending transactions — available
+26. Reconcile committed and aborted work after a crash — available
+27. Prove a backup can restore the intended data — planned
+28. Recovery can fail when one required segment is missing — planned
+29. Recover to a chosen point and account for excluded work — planned
+30. Build and verify a streaming standby — planned
+31. Received WAL is not yet visible data — planned
+32. Give a replica read a bounded freshness guarantee — planned
+33. Choose what a synchronous acknowledgement waits for — planned
+34. More clients can produce more waiting instead of more work — planned
+35. Keep a schema change from becoming an unbounded queue — planned
+36. Commit business state and pending delivery together — planned
+37. Commit the receiver effect before acknowledging delivery — planned
+38. Make abandoned work eligible again — planned
+39. Choose evidence before seeing an incident’s cause — planned
+40. Verify that the remedy restored correct useful work — planned

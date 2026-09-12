@@ -1,0 +1,10 @@
+  1-3   visibility-and-retention   3/3 done  ~80 min
+  4-4   vacuum-and-reuse           1/1 done  ~25 min
+  5-5   concurrent-writes          1/1 done  ~25 min
+  6-15  concurrency-control        9/9 done  ~225 min
+ 12-12  reliable-requests          1/1 done  ~25 min
+ 16-19  query-evidence             4/4 done  ~100 min
+ 20-22  query-execution            3/3 done  ~75 min
+ 23-24  wal-and-recovery           0/2 done  ~50 min
+ 25-25  durability-and-recovery    0/1 done  ~25 min
+ 26-26  durability-recovery        0/1 done  ~25 min
