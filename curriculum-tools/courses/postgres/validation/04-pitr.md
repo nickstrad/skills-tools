@@ -51,8 +51,7 @@ The 93-lesson build removes only timeline-history. Apart from its prerequisite r
 point-in-time-recovery is the only materially changed surviving lesson. Promotion and postmortem now
 depend on the actual PITR lesson. Scoped builder normalizes ordinal shifts and the explicit retired
 prerequisite replacement before checking every other field, preserving first seven and accepted
-capacity. Seven reading stops remain. lesson-map.md records retirement without completion transfer;
-the canonical book reading map keeps original numbering and documents the consolidation.
+capacity. lesson-map.md records retirement and consolidation without completion transfer.
 
 Fresh copied catalog /tmp/pg-observe-progress-ypfk8jc3/progress.sqlite preserves every original ID,
 progress and attempt row and marks timeline-history inactive. Learner hash during audit:

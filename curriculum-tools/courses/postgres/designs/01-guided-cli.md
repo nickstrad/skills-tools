@@ -1,5 +1,9 @@
 # Chunk 1A: staged PostgreSQL coaching
 
+> Historical design record. This assignment and its Terra/high model label are retained for
+> provenance; they are not a current implementation instruction. See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
+
 Owner: Terra/high agent `guided_cli`. Work independently while primary builds validation lab. Read
 REWORK-PLAN, handoff, AUTHORING and curriculum-author skill. Exact owned files: `tools/coach.ts`,
 `tools/coach_test.ts`, `bin/pgcoach`, `skill/postgres-tutor/SKILL.md` within this course. Do not
@@ -25,9 +29,8 @@ The first seven legacy lessons are intentionally not guided in this change.
 - inspect/explain/vary/apply: exact corresponding authored prompt; no expectedResult. Explain asks
   learner for causal reasoning before reveal. Vary offers hints and supplied commands on request.
 - hint1/hint2: corresponding authored hint; hints may contain runnable variation code.
-- reveal: full expectedResult and systemsLens plus full studyCheckpoint (core and optional depth)
-  and optional reading/readingNotes; never silently omit a reading stop. Tell learner to complete
-  the core stop before next lesson. No automatic completion.
+- reveal: full expectedResult and systemsLens plus the complete lesson context; legacy source
+  metadata is not learner-facing and does not gate the next lesson. No automatic completion.
 - full: invoke existing pretty NUMBER --plain with same db. Preserve exact legacy full renderer.
 
 Route wrapper skill's next/specific lesson requests through pgcoach start. Subsequent run/inspect/
@@ -39,7 +42,7 @@ instructions before execution and study stops at end. Preserve explanations once
 begins; don't truncate complex commands to create a guessing game.
 
 Tests: pure rendering prevents expected-result/solution leaks in start/inspect, run retains exact
-code and syntax, reveal contains checkpoint core/optional, full preserves renderer; CLI invalid
+code and syntax, reveal contains complete context, full preserves renderer; CLI invalid
 input/complete/topic-miss; temp progress init, mark first seven in FIXTURE, next selects lesson8,
 run every stage and verify completion/notes unchanged. Never touch real progress. Test via private
 copy if root generated artifact is in transition. Return exact commands/results, changed files, and

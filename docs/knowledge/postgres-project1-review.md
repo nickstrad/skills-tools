@@ -7,7 +7,7 @@ direction, not an implemented curriculum revision or a runtime validation report
 ## What happened
 
 Reviewed the remaining PostgreSQL source lessons, their experiments and explanations, the course
-plan, AUTHORING.md, the canonical book research, and `docs/learning_path.md`. The in-progress SQLite
+plan, AUTHORING.md, `docs/learning_path.md`. The in-progress SQLite
 REWORK-PLAN.md provides additional context, but does not determine PostgreSQL's scope. All lesson
 numbers below refer to the existing 96-lesson ordering. No course or learner-progress changes are
 part of this review.

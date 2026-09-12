@@ -41,26 +41,11 @@ evidence, not required implementations to copy or rebuild.
 
 ## Plan cheaply, then implement in small batches
 
-Before scaffolding a future course, write an inexpensive Markdown route under
-[`future-courses/`](../../future-courses/) using its [template](../../future-courses/TEMPLATE.md).
-Plan from the tool's distinctive mechanisms and the engineering decisions they support. Apply “deep
-once, contrast thereafter” across projects. Keep the route fixed and intentionally small; do not add
-a topic tour to reach a quota or remove a distinctive mechanism merely to shorten it.
-
-A future-course plan should state the scope, assumed knowledge, ordered lesson titles, mechanism and
-outcome of each lesson, decisive evidence, major safety boundaries, and final capability. It should
-not contain finished command-by-command syntax, create module stubs, allocate labs, build the
-course, or demand validation scaffolding. Those belong to implementation after the direction is
-agreed.
-
-Create `course.md` immediately as the persistent working draft. Update research, assumptions,
-learner feedback, decisions, and open questions there throughout the conversation. Explain the
-grouping, order, lesson boundaries, and length; present the proposal and explicitly ask Nick for
-suggestions. Revise the outline, then obtain and record his final-outline sign-off before
-implementation. Creating or editing the draft does not need approval; implementation needs both
-sign-off and a batch request. Material outline changes require renewed approval, not unchanged
-batches. See the
-[planning approval workflow](../../future-courses/README.md#research-propose-revise-sign-off).
+Create `future-courses/<folder>/course.md` immediately as a persistent working draft. The
+[planning guide](../../future-courses/README.md) owns research, scope, discussion and final-outline
+sign-off; use its template and preserve one canonical ordered route. Planning creates no course
+shell, lesson commands, lab or progress. Follow the
+[batch workflow](../../docs/lesson-batch-workflow.md) after approval and a batch request.
 
 Implement only the next small batch. Supply complete core commands whenever a mechanism is new and
 put all required explanation before the experiment. Optional predictions or variations can deepen a
@@ -69,31 +54,27 @@ expected-result section must distinguish measured facts, documented guarantees, 
 printed “success” message is not proof of an external effect; exercise the actual commit, process,
 or resource boundary on which the conclusion depends.
 
-All courses use the generic learner flow `tutor <course> <number> lesson|done`;
-`tutor <course> lesson` opens the next unfinished lesson. `tutor <course> route` distinguishes
-completed, available, and planned entries. A valid `future-courses/<folder>/course.md` may supply a
-plan-only route before implementation; planned rows never create progress or claim that a lesson
-exists. Do not create a course-specific renderer or adapter. `pgcoach` remains the PostgreSQL
-Essentials entry point. Only explicit `done` changes progress; showing a lesson, optional reading,
-or discussion never does. There is no mandatory review, pause, study checkpoint, homework, note, or
-answer-submission stage.
+All courses use the generic learner flow `tutor <course> route`, then
+`tutor <course> <number> lesson|done`; `tutor <course> lesson` opens the next unfinished lesson.
+Plan-only routes may show planned rows without creating progress. Do not create a course-specific
+renderer or adapter. `pgcoach` remains the PostgreSQL Essentials entry point. Only explicit `done`
+changes progress; optional source material and discussion never do. There is no mandatory review,
+pause, homework, note, or answer-submission stage. Execution policy belongs to the
+[batch workflow](../../docs/lesson-batch-workflow.md).
 
 ## The lesson contract
 
 See `src/types.ts` for the `Lesson` type. Field notes:
 
-| Field             | Meaning                                                                                                                                                                             |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `slug`            | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                                                              |
-| `tags`            | 2-5 kebab-case topic labels used by topic search. Align them with the canonical book and systems concepts; keep a vocabulary list in `courses/<id>/PLAN.md`.                        |
-| `reading`         | Optional. Where the course's canonical book covers this lesson, printed as an **Optional reference** at the top of the write-up. See "Optional references".                         |
-| `readingNotes`    | Optional. Brief experiment overlap with the cited chapter, printed as optional context after the overview. Omit when the book does not cover the lesson. See "Optional references". |
-| `studyCheckpoint` | Legacy optional-reading metadata. The renderer may show its bounded references, but it does not require a stop or create progress state. Do not add it to new concise routes.       |
-| `runIn`           | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                                                        |
-| `sessions`        | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                                                    |
-| `safetyLevel`     | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.                                     |
-| `minVersion`      | Version string the lesson was validated on; defaults to `course.json`.                                                                                                              |
-| `revision`        | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                                                         |
+| Field         | Meaning                                                                                                                                            |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `slug`        | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                             |
+| `tags`        | 2-5 kebab-case topic labels used by topic search. Align them with the course's systems concepts; keep a vocabulary list in `courses/<id>/PLAN.md`. |
+| `runIn`       | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                       |
+| `sessions`    | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                   |
+| `safetyLevel` | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.    |
+| `minVersion`  | Version string the lesson was validated on; defaults to `course.json`.                                                                             |
+| `revision`    | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                        |
 
 `code` is a raw tagged-template helper: backslashes are literal, so `\timing` and `\d` survive.
 Avoid literal backticks and `${` inside a `code` template.
@@ -150,42 +131,12 @@ Write `caution` in the same voice: state the risk, what to do, and why, without 
 already knows the moving parts. A caution that needs a later module's concept should say "module 08
 explains this" rather than use the concept unexplained.
 
-## Optional references
+## External sources
 
-`reading` is optional metadata that prints as an **Optional reference** line right after the
-`Meta`/`Topics` lines. Use it when the course has a canonical book: a citation only (book, chapter
-number and exact title, section when you are sure of it), no explanatory prose. If the book does not
-cover the lesson, say so plainly and name the closest background chapter. Keep the course's chapter
-digest in `courses/<id>/docs/` so every author cites the same titles.
-
-When a lesson cites a chapter, `readingNotes` may briefly say how the experiment overlaps with it,
-what the book adds, where the lesson differs, and whether it is most useful before or after the
-experiment. Leave it out when there is no overlap; a citation that says "not covered" never carries
-notes. References are never homework or prerequisites.
-
-## Legacy study-checkpoint metadata
-
-Existing courses may contain `studyCheckpoint` records from an earlier design. The renderer treats
-all of their items as optional reading and does not tell the learner to stop. Preserve them when
-maintaining historical lesson identity, but do not add them to a new concise route. Every retained
-item still has a `source` and bounded `locator`:
-
-```ts
-studyCheckpoint: {
-  core: [
-    { source: "A systems paper", locator: "Sections 2–3, ‘The write path’" },
-  ],
-  optionalDepth: [
-    { source: "Project documentation", locator: "‘Recovery’ subsection" },
-    { source: "Conference talk", locator: "12:30–18:00" },
-  ],
-  rationale: "The experiment exposed the ordering; these excerpts explain why it matters.",
-}
-```
-
-Scope retained items to sections, page ranges, headings, anchors, or timestamps. Do not make any
-item a prerequisite for later lessons. `core` and `optionalDepth` are historical schema names only;
-both render as optional material and neither changes progress.
+Technical sources can inform planning and fact checking, but lessons supply their own context and
+commands. External sources are optional background and never a prerequisite, checkpoint or
+completion stage. Existing source metadata may remain internally for compatibility with old
+catalogs; do not add new assigned source stages or make the learner depend on them.
 
 ## Build, validate, ship
 

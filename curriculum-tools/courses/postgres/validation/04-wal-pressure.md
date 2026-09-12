@@ -2,9 +2,7 @@
 
 Primary acceptance, 2026-09-05. Current 60 max-wal-size-forces-checkpoints is revision 4, using two
 fresh owned PostgreSQL 16 clusters per core/variation. Both receive identical 1,000-row committed
-batches, with only max_wal_size varied between 8MB and 128MB. The core study checkpoint retains both
-original core book excerpts; its prose now avoids stale ordinal references and points to the
-following actual base-backup experiment.
+batches, with only max_wal_size varied between 8MB and 128MB.
 
 ## Runtime evidence
 

@@ -1,12 +1,12 @@
 # PostgreSQL Systems course
 
-The 92-lesson deep course progresses from pages/MVCC through concurrency, measured performance,
-recovery, replication, durable protocols and independent incident diagnosis. Its task-runner
-capstone requires complete request/effect reconciliation and a measured admission/concurrency
-decision. [PLAN.md](PLAN.md) gives the current outline; [lesson-map.md](lesson-map.md) maps original
-identities, consolidations and seven legacy reading stops, now rendered as optional references.
-[validation/](validation/) contains actual execution records, expected failure classifications and
-measurement limits.
+The 92-lesson deep reference course progresses from pages/MVCC through concurrency, measured
+performance, recovery, replication, durable protocols and independent incident diagnosis. Its
+task-runner capstone requires complete request/effect reconciliation and a measured
+admission/concurrency decision. [PLAN.md](PLAN.md) gives the current outline;
+[lesson-map.md](lesson-map.md) maps original identities and consolidations without transferring
+completions. [validation/](validation/) contains actual execution records, expected failure
+classifications and measurement limits.
 
 ## First operational task: resources and cleanup
 
@@ -73,8 +73,6 @@ record consolidation coverage instead of transferring completions. Compare a fre
 render with the code actually executed. Shared-host measurements do not establish production SLOs,
 election/consensus, network partitions or independent host availability.
 
-The book research is canonical under `docs/books/postgresql-14-internals/` in the repository; this
-course's docs symlink points there. Use its citation and legacy checkpoint maps as research before
-opening the PDF; their references are optional and do not pause progress. Do not duplicate the PDF
-or research into the course tree. General findings, validation pitfalls and cleanup lessons belong
-in docs/knowledge and its index.
+External technical sources may inform author research, but lessons supply their own context and the
+learner has no assigned reading stop. General findings, validation pitfalls and cleanup lessons
+belong in docs/knowledge and its index.

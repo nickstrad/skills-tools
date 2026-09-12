@@ -127,3 +127,8 @@ this roadmap at the learner's request.
   workloads. They should not require substantial new application development or cloning his repos.
 - Follow the [roadmap](learning_path.md) for project order and tool defaults; preserve existing
   course material and progress unless a specific refactor is requested.
+
+On 2026-09-12 Nick retired the bundled PostgreSQL Internals material and book-driven course
+authoring. Reading is a separate activity; course lessons must supply their own context and do not
+show reading assignments, citation maps or study checkpoints. Original experiment data is retained
+for reuse; the obsolete pgtutor CLI is retired.

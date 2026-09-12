@@ -57,4 +57,4 @@ Drivers: /tmp/pg-crash-{core,variation}.sh, /tmp/pg-crash-exact.ts/.sh,
 numbers to slugs: comparing raw numeric references after retirement would falsely report unrelated
 content changes. Generated JSON is from the actual builder, never hand-edited. Source/artifact
 coordination for the other workstream's published TOASTrev5 remains as documented in handoff. Plan,
-identity map and canonical book mapping now record the accepted consolidation.
+identity map records the accepted consolidation.

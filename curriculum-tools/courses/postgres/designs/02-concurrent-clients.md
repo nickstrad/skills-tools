@@ -1,5 +1,10 @@
 # Chunk 2: concurrent clients and durable ownership
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary design, 2026-09-04. Implement after chunk1 integration. Existing changed lessons revision4;
 new lessons revision1. Preserve slugs and completed first7. Agents receive exact subsets below.
 

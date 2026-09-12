@@ -1,5 +1,10 @@
 # Observability implementation contract
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary sequential design, 2026-09-05. Preserve the five existing slugs at revision4 and the
 accepted capacity lesson unchanged. These are diagnosis and measurement exercises after the
 mechanism lessons, not a second tour of monitoring views. No learner progress writes.

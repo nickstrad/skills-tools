@@ -1,9 +1,13 @@
 # Chunk 1C: visibility and reclamation
 
+> Historical design record. This assignment and its Terra/high model label are retained for
+> provenance; they are not a current implementation instruction. See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
+
 Owner: Terra/high `visibility`. Owned: curriculum/03-mvcc.ts, curriculum/04-vacuum.ts,
 guides/03-mvcc.ts, guides/04-vacuum.ts, validation/01-visibility.md. Private engine copy at
 /tmp/pg-pivot-visibility-work, no learner progress. Primary supplies isolated lab and DB. Read
-AUTHORING, curriculum-author, book digest/research and review. No global settings/restart or other
+AUTHORING, curriculum-author, course research and review. No global settings/restart or other
 agents' files. Existing semantic edits revision4. Preserve all 03-mvcc slugs.
 
 MVCC: keep XID allocation, snapshot anatomy, simultaneous raw versions, commit/abort visibility,
@@ -17,7 +21,7 @@ pinned snapshot and pinned case, same bounded separately committed churn (gexec 
 statements, NOT one giant DO txn as the sole causal comparison). Measure rows/pages/dead versus
 removable versions and exact blocker backend_xmin. VACUUM before/after reader release; assert same
 logical row count and changed reclamation. Explicitly distinguish allocated versus reusable space.
-Remove `long-transaction-bloats-everyone` from04 and transfer its studyCheckpoint to final
+Remove `long-transaction-bloats-everyone` from04 and transfer its legacy metadata to final
 autovacuum lesson. Keep exact resource scopes, replace stale ordinal references.
 
 Consolidate dead-tuples-accumulate + vacuum-reclaims-in-place + storage's free-space-map-and-reuse

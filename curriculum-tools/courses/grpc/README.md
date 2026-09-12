@@ -23,7 +23,8 @@ The tools and supplied service are installed separately from lesson time. On thi
 ```sh
 cd /root/Software/skills-tools/curriculum-tools
 bin/tutor grpc init
-bin/tutor grpc pretty 1
+bin/tutor grpc route
+bin/tutor grpc 1 lesson
 ```
 
 Run the displayed setup and experiment in Bash. Read its expected output directly; there is no
@@ -32,8 +33,8 @@ lesson.” Initialization creates the new course catalog but marks nothing compl
 only when you want to:
 
 ```sh
-bin/tutor grpc done 1
-bin/tutor grpc pretty
+bin/tutor grpc 1 done
+bin/tutor grpc route
 ```
 
 Each experiment's parenthesized block uses an isolated temporary directory. Its exit trap stops and

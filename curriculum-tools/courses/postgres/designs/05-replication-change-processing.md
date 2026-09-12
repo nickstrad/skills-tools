@@ -1,9 +1,14 @@
 # Replication and change-processing contract
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary sequential implementation, 2026-09-05. Chunks1–4 are accepted; current course has93 active
 lessons. Work on one coherent experiment at a time, using revision4 for changed identities. No
 learner catalog writes, port5440 operations, parallel authoring or changes to unrelated storage.
-Preserve first seven, seven reading stops, surviving identities and current copied progress.
+Preserve first seven, surviving identities and current copied progress.
 
 ## Owned physical topology
 

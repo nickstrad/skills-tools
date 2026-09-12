@@ -56,6 +56,6 @@ from committed application state, integrity responsibility and end-to-end latenc
   [administration functions](https://www.postgresql.org/docs/16/functions-admin.html).
 - Execute the exact coaching hint rendered from a refreshed copied lesson catalog. pgcoach reads
   lesson text through the tutor database: changing generated lessons.json alone does not refresh an
-  existing catalog. The learner's explicit pgtutor init refreshes lesson metadata while retaining
+  existing catalog. An explicit `tutor postgres init` refreshes reference lesson metadata while retaining
   recorded progress; author validation must use --db with a scratch copy. Do not mistake new guide
   prompts paired with stale database lesson text for a tested learner experience.

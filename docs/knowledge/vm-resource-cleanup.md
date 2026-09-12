@@ -84,11 +84,11 @@ whole owned tree instead of inventing an untested archive retention rule.
   Preserve existing archive bytes when an acceptance manifest names their hashes. A new outer
   archive changes the lookup path, not the inner file bytes. Record the mapping so final audit
   scripts can read the old archive member without restoring the entire parent tree.
-- Scoped build snapshots contain the course's canonical `docs` symlink. The first generic compaction
+- Historical build snapshots contained a course `docs` symlink. The first generic compaction
   preflight correctly refused this unhandled file type before deleting anything. The
   snapshot-specific version records/rechecks the link target and archives the link itself; it never
-  traverses or deletes the canonical research folder. Do not solve this by copying the book or
-  dereferencing every link.
+  traverses or deletes the target research folder. Preserve symlinks as links rather than
+  dereferencing them during evidence compaction.
 - Keep forensic records from superseded/unaccepted trials separate from accepted audit inputs. Root
   identities referenced by current `validation/*.md` and evidence manifests identify the images
   retained for the remaining course audit. Superseded or unaccepted roots can discard bulky

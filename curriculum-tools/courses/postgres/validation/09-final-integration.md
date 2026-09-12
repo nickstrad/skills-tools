@@ -4,7 +4,7 @@
 modules. Original completed lessons 1–7 remain exactly equal to the saved built objects. Course
 revision is 2; surviving identities retain their history. Seven original slugs retire with explicit
 coverage replacements and three new slugs are added. The current PLAN, identity map, canonical
-reading map, checkpoint plan, course README and installed wrapper describe this result.
+course README and installed wrapper described this result.
 
 ## Acceptance coverage
 

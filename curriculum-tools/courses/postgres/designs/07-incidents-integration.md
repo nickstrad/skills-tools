@@ -1,10 +1,15 @@
 # Incident diagnosis and final integration contract
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary sequential work, 2026-09-05. Chunks1–6 are accepted through current87 in a92-lesson catalog.
 This is the implementation contract for current88–92 and the remaining whole-course audit, not a
-validation claim. Preserve REWORK-PLAN's full scope, the original first-seven built objects, seven
-reading stops, stable surviving slugs and learner progress. No delegation or port5440 operations.
-Each lesson must be accepted before implementing the next.
+validation claim. Preserve REWORK-PLAN's full scope, the original first-seven built objects, stable
+surviving slugs and learner progress. No delegation or port5440 operations. Each lesson must be
+accepted before implementing the next.
 
 ## Teaching and execution boundary
 
@@ -192,12 +197,12 @@ exact rendered hint commands against real PostgreSQL, inspect errors and full ou
 owned clients/servers stopped, and record evidence/limits in validation and indexed knowledge.
 
 Integrate88–92 only after individual acceptance. Then refresh PLAN, ordinal/retirement mappings,
-canonical reading/checkpoint references, course docs and installed wrapper. Audit the entire
-resulting course against REWORK-PLAN and the prior project review, including the inherited earlier
-idle insertion/replay and abort-only WAL-flush boundary checks. Copied-progress migration must
-preserve identities, notes, history, first-seven current completions and seven stops while the real
-learner database hash remains unchanged. Run full format/lint/type checks and engine tests; examine
-coverage before claiming completion. Fetch, commit only owned changes and push without force.
+course identity references, course docs and installed wrapper. Audit the entire resulting course
+against REWORK-PLAN and the prior project review, including the inherited earlier idle
+insertion/replay and abort-only WAL-flush boundary checks. Copied-progress migration must preserve
+identities, notes, history, first-seven current completions and seven stops while the real learner
+database hash remains unchanged. Run full format/lint/type checks and engine tests; examine coverage
+before claiming completion. Fetch, commit only owned changes and push without force.
 
 Preserve explicitly identified stopped evidence before allocating additional clusters when disk is
 tight. Reopen cold archives and verify the complete regular-file path/hash inventory, then recheck

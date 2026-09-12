@@ -71,12 +71,10 @@ lesson's prerequisite to publication-and-subscription. No unrelated storage sour
 Copied migration /tmp/pg-bootstrap-progress.py initializes
 /tmp/pg-observe-progress-khy15knm/progress.sqlite. Existing lesson IDs, progress and attempts are
 unchanged; retired initial-sync-vs-streaming is inactive. The original first seven built lesson
-objects are exactly preserved, capacity is unchanged after ordinal normalization, and all seven
-reading stops remain. Learner progress SHA256 remains
-395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty tests and full
-formatting/lint/typecheck pass; logs: /tmp/pg-logical-bootstrap-{tests,check}.log. Lesson-map, PLAN,
-canonical reading map and handoff record the new identity/order and combined closest-background
-Chapters4/11 citation.
+objects are exactly preserved and capacity is unchanged after ordinal normalization. Learner
+progress SHA256 remains 395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6. Thirty
+tests and full formatting/lint/typecheck pass; logs: /tmp/pg-logical-bootstrap-{tests,check}.log.
+Lesson-map, PLAN, and handoff record the new identity/order.
 
 This is a controlled single-host experiment with one writer/driver, matching schemas and an enabled
 replica trigger used only as instrumentation. It changes timing/write cost and supplies no

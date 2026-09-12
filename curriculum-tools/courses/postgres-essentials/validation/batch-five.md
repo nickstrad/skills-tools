@@ -34,7 +34,7 @@ Evidence:
 
 ## Primary review and integration
 
-Review corrected route titles, book citations and raw-template syntax, supplied missing command
+Review corrected route titles, reference citations and raw-template syntax, supplied missing command
 explanations, clarified inclusive buffer accounting, and kept timeout guards active through table
 cleanup. It removed an unsupported claim that a trailing index condition must produce heap-level
 Rows Removed by Filter. The 80% crossover prototype still chose an index because heap order

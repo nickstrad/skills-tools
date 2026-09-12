@@ -44,10 +44,11 @@ ownership, state changes, competing timelines, tree/page layouts, queues, or log
 readable without color and explain its connection to the observation. Do not alter supplied
 experiment commands or claim an improvised variation has been validated.
 
-Optional references, variations, and legacy study-checkpoint excerpts never block progression. For a
-full lesson request, preserve all experiment content and cautions; for a narrower question, answer
-it directly. Existing long reference lessons keep their honest estimates. New lessons target about
-ten minutes including context and cleanup, with a fifteen-minute core ceiling.
+Reading is separate from the course. Do not add citation or reading-checkpoint sections. Optional
+experiment variations never block progression. For a full lesson request, preserve all experiment
+content and cautions; for a narrower question, answer it directly. Existing long reference lessons
+keep their honest estimates. New lessons target about ten minutes including context and cleanup,
+with a fifteen-minute core ceiling.
 
 ## Learning routes
 

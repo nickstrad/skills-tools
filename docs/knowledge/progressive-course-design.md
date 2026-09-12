@@ -15,7 +15,7 @@ Nick later clarified that he studies around parenting and a full-time job, compl
 PostgreSQL Essentials lessons in roughly ten minutes, and wants future courses bounded before
 implementation. A lesson should give him the mechanism, commands, expected evidence,
 interpretation, and cleanup in one output. External reading, written answers, separate review views,
-and study checkpoints are not required stages.
+and external source stops are not required stages.
 
 ## Why it matters
 
@@ -31,9 +31,9 @@ explicitly scoped guarantees.
 ## How to apply
 
 - Define future courses in [`future-courses/`](../../future-courses/) with the inexpensive
-  [template](../../future-courses/TEMPLATE.md). Fix a small mechanism-driven route and its outcomes
-  before implementation, without building scaffolding, validators, or deep per-lesson syntax.
-  Implement an agreed route in small batches.
+  [template](../../future-courses/TEMPLATE.md). That guide owns scope, discussion and sign-off;
+  the [batch workflow](../lesson-batch-workflow.md) owns implementation. Do not build scaffolding,
+  validators or deep per-lesson syntax during planning.
 - Use `docs/learning_path.md` for sequence and cross-project overlap, and
   `curriculum-tools/docs/AUTHORING.md` for the lesson contract. Do not copy PostgreSQL's total size or
   workload into every course.
@@ -55,12 +55,10 @@ explicitly scoped guarantees.
   complete commands for unfamiliar mechanisms. Use ASCII/ANSI terminal diagrams liberally when they
   clarify state transitions, ownership, timelines, layouts, contention, or log flow; label them,
   connect them to the coming evidence, and keep them readable without colour.
-- Present one complete lesson through the generic `tutor <course> <number> lesson` flow; only
-  `tutor <course> <number> done` changes progress. Do not require a separate review, pause,
-  checkpoint, homework, or answer-submission stage. References and deeper variations remain optional.
-- Use `tutor <course> route` to show completed, available, and planned entries. The shared engine may
-  render a valid `future-courses/<folder>/course.md` route before implementation; planned status
-  never seeds progress or pretends that lesson content exists.
+- Present one complete lesson through `tutor <course> route`, then
+  `tutor <course> <number> lesson`; only `tutor <course> <number> done` changes progress. Do not
+  require a separate review, pause, checkpoint, homework, or answer-submission stage. References
+  and deeper variations remain optional. Planned route rows never pretend that lesson content exists.
 - Consolidate repeated outcomes; retain an experiment when it provides materially different
   evidence. Use tiny examples for mechanisms and a recurring workload for their composition.
 - Distinguish observed behavior, documented guarantee and inference. Test the boundary actually
@@ -75,16 +73,10 @@ adapter. `pgcoach` remains the friendly entry point for PostgreSQL Essentials. I
 `review`/`full`/`start` spellings are compatibility aliases for the complete lesson, not additional
 learner stages.
 
-## Implementation ownership during coupled refactors
+## Ownership during coupled refactors
 
-On 2026-09-04 the user changed the PostgreSQL refactor to sequential implementation by the primary,
-with agents used only for narrowly scoped verification. This supersedes its earlier parallel lesson
-authoring plan. Planner and index drafts exposed the review cost: runnable hints needed corrections,
-and one report described a bounded variation without actually executing it. Preserve useful drafts,
-but distinguish implemented, executed, reviewed and integrated work in the handoff.
-
-For tightly connected recovery and application protocols, keep experiment design, implementation,
-wording and integration under one owner. When verification is delegated, provide the exact commands
-or finished change, the expected evidence and specific questions; require actual outputs and
-explicit gaps. Apply the current user's execution preference rather than copying historical agent
-assignments from a reference course.
+The [batch workflow](../lesson-batch-workflow.md) owns primary design/review, delegation, evidence,
+handoff and cleanup. Keep tightly connected experiment design, implementation and integration under
+one owner where practical; delegated verification must return actual outputs and explicit gaps. Apply
+the current user's execution preference rather than copying historical model assignments from a
+reference course.

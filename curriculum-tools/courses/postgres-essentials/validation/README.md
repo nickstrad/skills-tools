@@ -59,7 +59,7 @@ include explanations, terminal setup, reflection and cleanup but still require l
 Exact free percentages and transaction IDs vary. Another old transaction can also hold a cleanup
 horizon; the lesson teaches that limit rather than promising vacuum will always reclaim everything.
 
-Source checks used the existing book digest and PostgreSQL 16 documentation for
+Source checks used the existing research notes and PostgreSQL 16 documentation for
 [isolation](https://www.postgresql.org/docs/16/transaction-iso.html),
 [pgstattuple](https://www.postgresql.org/docs/16/pgstattuple.html) and
 [VACUUM](https://www.postgresql.org/docs/16/sql-vacuum.html).

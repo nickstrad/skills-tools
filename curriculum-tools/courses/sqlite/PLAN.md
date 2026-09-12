@@ -1,4 +1,9 @@
-# SQLite Systems: curriculum plan
+# SQLite Systems: curriculum plan (reference course)
+
+This is the existing 54-lesson reference course. The proposed concise replacement is
+[SQLite Essentials](../../../future-courses/sqlite/course.md); its plan is not an implementation or
+progress migration. Current learner commands and authoring rules are shared by the repository
+[documentation index](../../../docs/README.md).
 
 A second deep transactional-storage course for a systems/distributed-systems engineer who is already
 learning PostgreSQL. **54 lessons in ten modules**, with CLI-first experiments and no required
@@ -42,11 +47,11 @@ independent commits, lost acknowledgments, stale owners, ordered histories and r
   data_version evidence. Compare data_version only within one connection.
 - Use full Session A/B blocks for concurrency, with bounded waits and explicit release points. Every
   lesson has its own setup; only hot-journal-recovery requires the preceding crash artifact.
-- Early lessons guide setup and observation. Later lessons ask for predictions, variations,
-  diagnosis and defended policies. The final ADR is intentionally incomplete learner work, not a
+- Early lessons guide setup and observation. Later lessons invite predictions, variations, diagnosis
+  and defended policies. The final ADR is intentionally incomplete learner work, not a
   script-generated approval or automatic completion.
-- The six reading checkpoints remain after slugs now numbered **13, 19, 25, 31, 37 and 41**.
-  Ordinary references and optional depth do not block progression.
+- Legacy source annotations after slugs now numbered **13, 19, 25, 31, 37 and 41** remain only for
+  catalog compatibility. External sources and optional depth do not block progression.
 - Surviving slugs preserve progress identity. Explicit lesson revisions preserve editorial-only
   completion credit; changed experiments use revision 3 and new lessons start at revision 1. Course
   release revision is 3. No authoring run marks learner progress.
@@ -108,7 +113,7 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
 12. `overflow-pages`: create overflow, inspect local/overflow payload; contrast TOAST without
     implying SQLite compresses values.
 13. `freelist-vacuum-and-reuse`: delete/reuse/compact safe copy, measure bytes. Contrast VACUUM file
-    rewrite with PostgreSQL ordinary VACUUM. Keep checkpoint.
+    rewrite with PostgreSQL ordinary VACUUM.
 
 ### 03 — Rollback atomicity as an ordered file protocol (6)
 
@@ -124,7 +129,7 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
 18. `synchronous-contracts`: trace FULL/NORMAL/OFF rollback sync calls with file attribution where
     possible. Requests/order versus documented persistence guarantee.
 19. `batching-changes-the-cost`: identical process/connection count and SQL, different transaction
-    boundaries; sync counts/time. Call it transaction batching, not group commit. Keep checkpoint.
+    boundaries; sync counts/time. Call it transaction batching, not group commit.
 
 ### 04 — Error scope, writer admission and retries (6)
 
@@ -141,7 +146,6 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
     budget; measured wait and classified errors.
 25. `idempotent-retry-ledger`: identity+effect in one local commit; same payload replay, detect
     different payload for same ID; targeted conflict handling versus IGNORE, changes() adjacency.
-    Keep checkpoint.
 
 ### 05 — WAL work placement, snapshots and reclamation (6)
 
@@ -157,7 +161,7 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
     checkpoint I/O/timing; explicit checkpoint comparison and WAL FULL/NORMAL traces with same
     workload. Who pays maintenance?
 31. `checkpoint-starvation`: pinned reader, growing WAL, incomplete checkpoint, release/reclaim/no
-    row loss. Keep checkpoint.
+    row loss.
 
 ### 06 — Recovery of structure and meaning (6)
 
@@ -172,7 +176,7 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
     transaction/domain state, increase bound and recover. Page quota is not filesystem ENOSPC or WAL
     bound.
 37. `recover-damaged-copy`: preserve source/evidence; damage working copy, range salvage and
-    .recover, verify omissions and integrity. Keep checkpoint.
+    .recover, verify omissions and integrity.
 
 ### 07 — Workload capacity as measured evidence (4)
 
@@ -185,7 +189,7 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
 41. `measure-the-writer-envelope`: persistent CLI workers, identical settings/rows; vary batch size,
     one/two writers, time under reservation. Instrumented 40-row runs plus unpaced 4000-row runs;
     throughput, per-transaction latency samples/percentiles, attempts/success/busy/errors and live
-    WAL bytes. Handshakes/deadlines; no universal speed claim. Keep checkpoint.
+    WAL bytes. Handshakes/deadlines; no universal speed claim.
 
 ### 08 — Independent local histories and reconciliation (6)
 
@@ -268,5 +272,5 @@ synchronization evidence; no trace is not zero synchronization. Review the final
 
 See [the implementation analysis](REWORK-PLAN.md) for the original lesson-level decisions and
 [durable findings](../../../docs/knowledge/sqlite-curriculum-design.md) for reusable authoring
-lessons. The checkpoint sources and bounded reading scopes live in
-[the reading research](../../../docs/readings/sqlite/research-notes.md).
+lessons. Technical source notes live in
+[the SQLite research](../../../docs/readings/sqlite/research-notes.md).

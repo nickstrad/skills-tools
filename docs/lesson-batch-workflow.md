@@ -1,9 +1,10 @@
 # Lesson batch authoring workflow
 
-Updated 2026-09-12. Use this workflow when Nick asks to implement the next lesson batch. A future
-course must first have an agreed, inexpensive Markdown route under [`future-courses/`](../future-courses/),
-created from its [template](../future-courses/TEMPLATE.md). Planning fixes scope, order, and outcomes;
-it does not create course scaffolding, validation infrastructure, or detailed command scripts.
+Updated 2026-09-12. This document owns execution of an explicitly requested lesson batch. Planning,
+discussion and final-outline sign-off belong to [`future-courses/README.md`](../future-courses/README.md).
+A future course must have an agreed, inexpensive Markdown route created from its
+[template](../future-courses/TEMPLATE.md); planning does not create scaffolding, validation
+infrastructure or detailed command scripts.
 The shared `tutor <course> route` may display that plan with planned status before implementation;
 doing so must not seed progress.
 
@@ -13,9 +14,11 @@ doing so must not seed progress.
 2. The primary agent turns only the next small slice of the agreed route into a bounded batch
    design. State each mechanism, experiment, decisive evidence, safety boundary, cleanup, and owned
    files. Avoid speculative implementation detail for later lessons.
-3. Delegate suitable implementation to `gpt-5.6-sol` agents with explicit file ownership
-   and the design documents. Use independent assignments where practical. Require real
-   validation evidence and a concise report; a successful harness exit alone is insufficient.
+3. Use the current user's explicit model and delegation choice. If delegation is authorized, give
+   each agent explicit file ownership and the design documents; use independent assignments where
+   practical. Historical plans may mention Sol or Terra and do not override the current choice.
+   Require real validation evidence and a concise report; a successful harness exit alone is
+   insufficient.
 4. The primary agent reads every submission, reviews its teaching and technical accuracy,
    refines or refactors where needed, and independently validates important behavior.
    Polish concrete weaknesses without changing work merely for stylistic preference.
@@ -33,9 +36,8 @@ doing so must not seed progress.
    evidence, verify learner readiness and unchanged progress, and record validation limits.
    Delete the course's temporary `handoff.md` and commit its removal at completion.
 8. Report what was delivered, validation results and the location of this workflow document. The
-   learner uses `<course CLI> <number> lesson|done`; there is no mandatory review or checkpoint
-   stage, and authoring never marks a lesson complete.
+   learner uses `<course CLI> route`, `<course CLI> <number> lesson`, and `<course CLI> <number> done`;
+   there is no mandatory review or checkpoint stage, and authoring never marks a lesson complete.
 
-`AGENTS.md` links here, and `CLAUDE.md` should remain a symlink to `AGENTS.md` so both
-agents discover the same guidance. On the initial setup run, commit this workflow and
-its agent-guidance link first, then tell Nick that commit is ready while continuing the batch.
+`AGENTS.md` links here, and `CLAUDE.md` should remain a symlink to `AGENTS.md` so both agents
+discover the same guidance. Commit each coherent handoff update with its batch as described above.

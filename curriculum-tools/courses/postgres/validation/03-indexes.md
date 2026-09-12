@@ -60,9 +60,8 @@ statistics lag rather than claiming a HOT result without a forced stats refresh.
   `partial-and-covering-indexes` lesson.
 - Existing index lessons retain their identities and receive revision 4 material updates in the
   private module. The new keyset lesson is revision 1 and follows conditional uniqueness.
-- The only external references to the retired slug found in the root worktree are `PLAN.md` and
-  `docs/books/postgresql-14-internals/reading-map.md`; the primary must update them during ordinal
-  integration. No private curriculum prerequisite still refers to the retired slug.
+- The integration checked references to the retired slug in the plan and source metadata. No private
+  curriculum prerequisite still refers to the retired slug.
 
 ## Primary acceptance, 2026-09-05
 

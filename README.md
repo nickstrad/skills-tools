@@ -69,8 +69,8 @@ Older `pretty`, `show`, and `done NUMBER` spellings remain compatibility aliases
 not create completion records.
 
 Each lesson is the complete study unit: concise context, commands, expected evidence,
-interpretation, and cleanup. There is no required second review view, reading checkpoint, homework,
-or written response. References are optional. Mechanism diagrams appear before commands when they
+interpretation, and cleanup. There is no required second review view, assigned reading stop, homework,
+or written response. External references are optional. Mechanism diagrams appear before commands when they
 make ownership, order, layout, contention, or state changes easier to see; plain text carries the
 meaning and ANSI colour may only enhance it.
 
@@ -80,31 +80,22 @@ course scaffolding or validation work. The proposed SQLite route is
 [`future-courses/sqlite/course.md`](future-courses/sqlite/course.md); the existing 54-lesson SQLite
 course remains a reference, not the implementation target for that proposal.
 
-## Install the Codex skills on a fresh droplet
+## Install the local skills and launchers
 
-The checked-in skills point to this repository at `/root/Software/skills-tools`,
-matching the clone location used for the droplet. Symlink the skills so future
-pulls update them in place:
+Use the repository helper to check or install the canonical symlinks for both supported agents and
+the course launchers. It has no dependencies and does not modify course catalogs or progress:
 
 ```sh
-mkdir -p ~/.codex/skills
-ln -sfn /root/Software/skills-tools/curriculum-tools/skills/curriculum-author \
-  ~/.codex/skills/curriculum-author
-ln -sfn /root/Software/skills-tools/curriculum-tools/courses/postgres/skill/postgres-tutor \
-  ~/.codex/skills/postgres-tutor
-ln -sfn /root/Software/skills-tools/curriculum-tools/courses/sqlite/skill/sqlite-tutor \
-  ~/.codex/skills/sqlite-tutor
-ln -sfn /root/Software/skills-tools/curriculum-tools/courses/linux/skill/linux-tutor \
-  ~/.codex/skills/linux-tutor
+python3 scripts/school-links.py --check
+python3 scripts/school-links.py --install
 ```
 
-If the repository is cloned elsewhere, replace `/root/Software/skills-tools` in
-the skill files or keep a symlink at that path.
+See [`scripts/README.md`](scripts/README.md) for supported targets and alternate destination flags.
 
 ## Documentation and knowledge base for agents
 
-Start with `docs/README.md`. It indexes future-course plans, the reusable book research under
-`docs/books/` and the repository findings under `docs/knowledge/`: tooling
+Start with `docs/README.md`. It indexes future-course plans and the repository findings under
+`docs/knowledge/`: tooling
 quirks, how to read the validation harness, lesson-writing pitfalls per course,
 and the subagent workflow that has held up. Before starting work in this
 repository, read the index and the files it points to for your task. When you

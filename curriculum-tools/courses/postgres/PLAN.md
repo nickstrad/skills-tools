@@ -1,10 +1,10 @@
 # PostgreSQL Systems: current module plan
 
-Updated 2026-09-05. The course has 92 active lessons, seven bounded reading stops, and three new
-identities replacing seven consolidated identities from the original 96-lesson course. The
-[identity map](lesson-map.md) preserves that lineage without transferring completions. Original
-completed lessons 1–7 remain identical. [REWORK-PLAN.md](REWORK-PLAN.md) records the authorized
-change; [validation/](validation/) records actual execution evidence and its limits.
+Updated 2026-09-12. The course has 92 active lessons and three new identities replacing seven
+consolidated identities from the original 96-lesson course. The [identity map](lesson-map.md)
+preserves that lineage without transferring completions. Original completed lessons 1–7 remain
+identical. [REWORK-PLAN.md](REWORK-PLAN.md) records the authorized change;
+[validation/](validation/) records actual execution evidence and its limits.
 
 ## Scope and intended outcome
 
@@ -14,13 +14,15 @@ familiar usage; do not assume unfamiliar internals are mastered. No host-init ad
 web application or copying of the learner's repositories is required. Supplied CLI workloads keep
 the work focused on PostgreSQL mechanisms and engineering decisions.
 
-The progression is read → predict → run supplied commands → inspect → explain → vary → apply. Early
-lessons introduce mechanisms with complete scaffolding. Isolation/locking require explicit
-invariants and concurrency decisions. Performance requires controlled measurements. Recovery and
-replication require full state/history reconciliation. Durable protocols join independent commits.
-The final incidents ask the learner to choose evidence/remedies; the capstone requires a complete
-operation history and a defended correctness/recovery/capacity decision. Runnable hints and full
-worked commands remain available throughout; syntax recall is not the assessment.
+The progression is explain → run supplied commands → inspect → explain → vary → apply. Each lesson
+supplies its own context; external source research is optional background and never pauses the
+route. Early lessons introduce mechanisms with complete scaffolding. Isolation/locking require
+explicit invariants and concurrency decisions. Performance requires controlled measurements.
+Recovery and replication require full state/history reconciliation. Durable protocols join
+independent commits. The final incidents ask the learner to choose evidence/remedies; the capstone
+requires a complete operation history and a defended correctness/recovery/capacity decision.
+Runnable hints and full worked commands remain available throughout; syntax recall is not the
+assessment.
 
 The recurring request/job/result/receipt workload connects short claims, retry identity, durable
 outcomes, independent effects and bounded admission. Early tiny tables isolate a cause; later
@@ -45,14 +47,12 @@ needed findings, remove disposable raw state after acceptance and give any retai
 named removal trigger. Finish the final evidence audit and reclaim its bulky inputs before declaring
 a whole task complete. A stopped server alone has not released its files.
 
-## Reading and identity
+## Identity and source notes
 
-Mandatory core stops follow current 10,14,20,28,37,39,60. The
-[canonical checkpoint plan](../../../docs/books/postgresql-14-internals/study-checkpoint-plan.md)
-contains their bounded excerpts and PostgreSQL14/16 exclusions. The
-[current citation map](../../../docs/books/postgresql-14-internals/reading-map.md) matches every
-active slug. Reuse the canonical research instead of rereading the PDF. The book does not cover most
-replication/distributed protocols; closest-background citations are explicitly limited.
+The tables below give current numbers and stable identities. Existing source metadata may remain in
+older lesson records for catalog compatibility, but the learner path assigns no reading stop and no
+external source is a prerequisite. Use the course's validation records for measured behavior and
+preserve stable slugs when editing curriculum TypeScript.
 
 The tables below give current numbers, stable identities, key commands, the phenomenon/evidence and
 the engineering decision. Each lesson's full syntax breakdown explains its complete command
@@ -229,6 +229,6 @@ then build lessons.json. Keep unrelated work and learner progress intact.
 ## Tags and navigation
 
 Use the tutor topics command for the current vocabulary and progress; tags connect mechanisms across
-modules rather than assign fixed chapter numbers. Current categories are `lab-setup`, `storage`,
+modules rather than assign fixed source categories. Current categories are `lab-setup`, `storage`,
 `mvcc`, `vacuum`, `isolation`, `locking`, `query-planning`, `indexes`, `wal`, `checkpointing`,
 `observability`, `replication`, `logical-replication`, `distributed-patterns`, `reliability`.

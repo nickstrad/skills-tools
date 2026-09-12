@@ -1,34 +1,42 @@
-# PostgreSQL systems engineering pivot
+# PostgreSQL systems engineering pivot (historical record)
 
-Status: implementation authorized 2026-09-04. Scope is unfinished work after original lesson 7. The
-user changed the execution approach on 2026-09-04: the primary agent now designs and implements each
-section sequentially, reviews its wording and code, validates it, and commits/pushes each completed
-chunk. Agents may perform narrowly scoped verification of supplied commands or finished changes;
-parallel lesson authoring has stopped. This supersedes the earlier Terra implementation assignments
+This file records the 2026-09-04 pivot and its completed implementation decisions. It is retained
+for provenance and is not a current batch assignment. The current outline is [PLAN.md](PLAN.md),
+planning and sign-off are in [future-courses/README.md](../../../future-courses/README.md), and
+active batch execution is in
+[docs/lesson-batch-workflow.md](../../../docs/lesson-batch-workflow.md). Historical model and agent
+names below do not override the current user's choice.
+
+Status at the time: implementation authorized 2026-09-04. Scope was unfinished work after original
+lesson 7. The user then changed the execution approach: the primary agent designed and implemented
+each section sequentially, reviewed its wording and code, validated it, and committed/pushed each
+completed chunk. Agents performed narrowly scoped verification of supplied commands or finished
+changes; parallel lesson authoring stopped. This superseded earlier Terra implementation assignments
 in historical designs. The final acceptance is
 [validation/09-final-integration.md](validation/09-final-integration.md); [designs/](designs/)
 retain the implementation contracts.
 
 Completed 2026-09-05: all seven delivery chunks, the whole-course source/evidence audit, final
-PLAN/identity/readings/checkpoints/wrapper integration and final resource cleanup. The course has 92
-active lessons and seven reading stops; original completed lessons 1–7 and learner progress are
-preserved. See [the final evidence manifest](validation/09-final-evidence.json) and
+PLAN/identity integration and final resource cleanup. The course has 92 active lessons; original
+completed lessons 1–7 and learner progress are preserved. See
+[the final evidence manifest](validation/09-final-evidence.json) and
 [final resource retirement](validation/09-final-cleanup.md). Historical per-chunk reports describe
 their accepted runs; use the current lesson map when comparing old ordinal numbers.
 
-## Teaching contract
+## Historical teaching proposal retained for provenance
 
 Read → predict → run supplied code → inspect evidence → explain → vary → apply. Early lessons supply
 all runnable commands; later synthesis removes scaffolding gradually. Syntax memorization is not the
 assessment. The assistant offers hints and exact commands when requested and never records
 completion without the learner's explicit instruction.
 
-Provide a course-local staged CLI alongside the existing full `tutor postgres pretty` view. It uses
-the tutor CLI to select lessons and read progress, then joins authored coaching prompts by stable
-slug. This avoids changes to the shared engine while SQLite work is active. Stage selection is
-explicit and stateless. Expected results are withheld until `reveal`; supplied experiment code and
-its syntax explanation become available at `run`, after prediction. Full lesson text remains
-available on request. Preserve study checkpoints and cautions.
+The historical proposal was to provide a course-local staged CLI alongside the existing full
+`tutor postgres pretty` view. It used the tutor CLI to select lessons and read progress, then joins
+authored coaching prompts by stable slug. This avoids changes to the shared engine while SQLite work
+is active. Stage selection is explicit and stateless. Expected results are withheld until `reveal`;
+supplied experiment code and its syntax explanation become available at `run`, after prediction.
+Full lesson text remains available on request. It preserved historical metadata and cautions. The
+current shared engine renders complete lessons; see [PLAN.md](PLAN.md).
 
 ## Design reasoning
 
@@ -78,9 +86,8 @@ its audit dependency is discharged. Preserve learner progress and unrelated work
    and coaching together, so their assumptions stay consistent.
 7. **Independent diagnosis and final integration.** Original 92–96 become symptom-first incidents
    and an operation-history/capacity capstone; detailed salvage and repeated freezing are optional
-   depth. Refresh final PLAN, ordinal map, reading references/checkpoints, docs and wrapper.
-   Validate the complete resulting course and copied progress migration, review every change,
-   commit/push.
+   depth. Refresh final PLAN, ordinal map, docs and wrapper. Validate the complete resulting course
+   and copied progress migration, review every change, commit/push.
 
 Each chunk must leave a buildable, useful course. It may contain several reviewed commits if lab
 evidence warrants smaller checkpoints. Do not substitute a partially validated chunk for completion.
@@ -92,8 +99,8 @@ evidence warrants smaller checkpoints. Do not substitute a partially validated c
   revision 4 for materially changed existing lessons and revision 1 for new lessons.
 - Preserve surviving slugs. Retire only after coverage and prerequisite replacements are explicit;
   record old/new ordinal and slug mapping. No transferring a retired completion to a different task.
-- Keep the seven reading stops attached to appropriate surviving experiments and refresh ordinal
-  references at integration. Reuse canonical book research; do not re-extract the PDF.
+- Preserve stable lesson identity and refresh ordinal references at integration. Keep source and
+  validation findings in course-local records; no assigned external reading is required.
 - Primary owns all remaining lesson implementation and integration. Finish a coherent section before
   starting the next. Preserve returned private drafts as inputs for primary review.
 - Verification agents receive a fixed change or supplied experiment and explicit questions. They

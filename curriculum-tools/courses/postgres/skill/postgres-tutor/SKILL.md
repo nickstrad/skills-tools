@@ -20,22 +20,22 @@ CLI executes lesson SQL; the learner runs the supplied commands in their termina
 
 ## Route requests
 
-- Next unfinished available lesson: `COACH` or `COACH start`.
+- Next unfinished available lesson: `COACH` or `COACH lesson`.
 - Numbered complete lesson, including results and interpretation: `COACH NUMBER lesson`.
-- Full intended course sequence, including planned entries: `COACH route`.
+- Full intended course sequence, including planned entries: `COACH route` (read from the canonical
+  Essentials plan).
 - Search, available modules, topics or status: `TUTOR search TEXT`, `TUTOR modules`, `TUTOR topics`,
   `TUTOR status --json`. Search returns authored lessons only.
 - Next available lesson on a topic: `COACH --topic TEXT`; explain when the matching topic is planned
   but not yet authored rather than silently redirecting to the reference course.
-- Completion, **only on explicit request**: `COACH NUMBER done` or `TUTOR done NUMBER`.
+- Completion, **only on explicit request**: `COACH NUMBER done` or `TUTOR NUMBER done`.
 - Explicit progress correction/note/skip: `TUTOR undone NUMBER`, `TUTOR note NUMBER TEXT`,
   `TUTOR skip NUMBER`. Pass note text as one argument. No lesson requires a note.
 - An uninitialized essentials catalog: `TUTOR init`, then retry. If the built artifact is missing,
   run `deno task build postgres-essentials` from curriculum-tools before init.
 
 COACH and TUTOR above are abbreviations for the absolute commands, not literal executable names.
-`--db PATH` selects isolated progress for author checks. Do not use legacy `pgtutor done` for the
-new course: that wrapper may address reference ordinals. Never infer which course a completion
+`--db PATH` selects isolated progress for author checks. Never infer which course a completion
 refers to if recent context is ambiguous; identify the lesson before writing progress.
 
 ## Teach the current batch
@@ -52,7 +52,7 @@ lifetime; 16–21 develop measured query work. The latest authored batch is:
 Use one complete `lesson` view, followed only by explicit `done`. The mechanism, terminology,
 terminal diagram and command purpose precede setup; expected evidence, interpretation and cleanup
 are included in that same output. No separate review step or required typed prediction, written
-answer, report, or book-reading stop. Give targeted help if the result is confusing.
+answer, report, or reading stop. Give targeted help if the result is confusing.
 
 Terminal diagrams are first-class pre-experiment teaching aids. Lean toward including them for
 ownership, page layouts, waits, snapshots and log flow. Keep labels and alignment readable without
@@ -72,10 +72,11 @@ authoring.
 
 ## Original reference course
 
-For explicit original-course requests, use `COACH --reference NUMBER full` and
+For explicit original-course requests, use `COACH --reference NUMBER lesson` and
 `/root/Software/skills-tools/curriculum-tools/bin/tutor postgres ...` for its navigation/progress.
 It preserves the 92 original lessons, their identities and progress. Reference numbers are not new
-essentials numbers. Do not require the old lesson-12 pilot review on the essentials path.
+essentials numbers. Historical `start`, `review`, `run`, `full` and `syntax` reference aliases all
+open the complete shared lesson and do not create a pilot stop or reading gate.
 
 ## Lab and progress invariants
 

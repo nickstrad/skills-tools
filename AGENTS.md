@@ -23,7 +23,9 @@ record its location/expiry, and remove bulky retained evidence after that check.
 
 When planning or revising lessons, consult [`docs/articles/README.md`](docs/articles/README.md) for
 learner-selected articles and interests. Use relevant insights to motivate bounded experiments;
-distinguish the learner's preferences, source claims, and proposed applications.
+distinguish the learner's preferences, source claims, and proposed applications. Use
+[`future-courses/README.md`](future-courses/README.md) for planning and sign-off, and
+[`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md) for implementation batches.
 
 Read [`docs/learner-profile.md`](docs/learner-profile.md) to calibrate course depth. Nick's KCNA,
 Kubernetes production experience, Docker familiarity, and own repositories inform what to skip or
@@ -41,55 +43,39 @@ checkpoint, or answer-submission stage, and only an explicit `done` records comp
 `future-courses/<folder>/course.md` route may be displayed before implementation, but its planned
 entries have status only and never create progress.
 
-## PostgreSQL course and book
+## PostgreSQL course
 
-The canonical PostgreSQL book material is under
-[`docs/books/postgresql-14-internals/`](docs/books/postgresql-14-internals/). Start with:
-
-1. `research-notes.md` for scope and settled judgement calls.
-2. `reading-map.md` for the citation assigned to each active lesson, with retired research
-   identities retained.
-3. `pg14-internals-chapters.md` for chapter coverage, identifiers, gaps, and topic lookup.
-4. `lesson-writeup-spec.md` when authoring or reviewing lesson metadata.
-
-Do not read or re-extract the 6.3 MB PDF on every turn. The Markdown research was produced from the
-book and checked against its table of contents. Open the PDF only when the digest explicitly leaves
-a question unresolved or the user asks for primary-page verification. If new book research changes a
-conclusion, update the Markdown research so the next agent can reuse it.
-
-The PostgreSQL course lives at `curriculum-tools/courses/postgres/`. Its `docs` path is a symlink to
-the canonical book folder above. Do not duplicate the PDF or research files in the course tree.
+The PostgreSQL course lives at `curriculum-tools/courses/postgres/`. Read its `PLAN.md` for the
+current outline and its validation records for measured behavior. Edit curriculum TypeScript, keep
+stable lesson identities and preserve learner progress. Technical source research may inform a
+plan, but no external reading is a learner prerequisite or progression gate.
 
 ## Course editing rules
 
 - Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
-  using its [template](future-courses/TEMPLATE.md). A route fixes the bounded scope and lesson
-  outcomes; it must not trigger scaffolding, a full build, validation infrastructure, or detailed
-  per-lesson syntax. Implement only after direction is agreed, in small batches.
-- Create `course.md` immediately and keep research, rationale, feedback, decisions, and open questions
-  updated there during discussion. Explain the grouping, sequence, lesson boundaries, and length;
-  explicitly invite Nick's suggestions, revise, and record his final-outline sign-off before
-  implementation. Drafting needs no approval; implementation needs sign-off and a batch request.
-  Material outline changes require renewed approval; silence is not approval.
-- For requests to create the next lesson batch, follow
-  [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary-agent design,
-  bounded Sol implementation where useful, primary review and real validation, chunked
-  commits, and a temporary course handoff committed throughout and removed at completion.
+  using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion and
+  final-outline sign-off; a route does not authorize scaffolding, progress changes or validation
+  infrastructure. Implement only an agreed route in small batches.
+- For implementation batches, follow
+  [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary design and review,
+  current-user model/delegation choices, real validation, chunked commits and a temporary handoff
+  committed throughout and removed at completion. Historical plans may name earlier models or
+  assignments; they are provenance, not current delegation policy.
 - Keep `CLAUDE.md` symlinked to this file so both agents share this guidance.
 - Read `curriculum-tools/docs/AUTHORING.md` and the `curriculum-author` skill before changing lesson
   content.
 - Edit `curriculum/*.ts`; never hand-edit generated `lessons.json` or learner `progress.sqlite`.
 - Preserve experiment behavior unless the task explicitly asks for a semantic change. Metadata-only
   rewrites must not change setup, commands, expected results, safety levels, sessions, or slugs.
-- Author one complete `lesson` output: short mechanism explanation, useful ASCII/ANSI diagram,
-  setup and commands, expected evidence, interpretation, and cleanup. Diagrams must remain readable
-  without colour. The shared tutor renders this for every course; do not create a bespoke renderer.
+- Author one complete `lesson` output as specified in
+  [`curriculum-tools/docs/AUTHORING.md`](curriculum-tools/docs/AUTHORING.md): context, setup and
+  commands, expected evidence, interpretation and cleanup. Use a plain-text-readable diagram when
+  it clarifies the mechanism; the shared tutor renders every course.
 - Run Deno from `curriculum-tools/` with `/root/.deno/bin/deno` when it is not on `PATH`.
 - Keep unrelated working-tree changes intact. Multiple agents may own separate module files at the
   same time; never edit a file assigned to another agent.
 
 ## Durable findings
 
-General repository and validation findings belong in `docs/knowledge/` and its index. PostgreSQL 14
-Internals research and lesson-to-book mapping findings belong beside the book under
-`docs/books/postgresql-14-internals/`.
+General repository, course and validation findings belong in `docs/knowledge/` and its index. Keep
+course-local validation facts beside the relevant course; do not duplicate external source material.

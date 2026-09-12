@@ -15,9 +15,9 @@ detour is required.
 `pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
 renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
 and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Twenty-six real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
+Twenty-six real lessons are built; future entries are held in `PLAN.md` and PLAN.md. Rendering or
 finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
-addresses essentials; legacy pgtutor commands still belong to the original course.
+addresses Essentials. The obsolete pgtutor launcher is retired; original course data is preserved.
 
 On 2026-09-12 the learner flow became one complete `lesson` output: mechanism context, a useful
 terminal diagram, setup and commands, expected evidence, interpretation, optional references or
@@ -31,7 +31,7 @@ Authoring a short flow around unrelated old lessons did not satisfy the learner'
 UX need to advance together. A wrapper cannot make an oversized experiment concise. Each new
 lesson has one bounded comparison, supplied syntax, short mechanism context, a labelled diagram
 before commands when useful, expected evidence, interpretation, and cleanup. Plain text must carry
-the diagram's meaning; ANSI colour is optional. References are optional, with no hidden book work,
+the diagram's meaning; ANSI colour is optional. Lessons are self-contained, with no assigned external reading,
 review stage, checkpoint, homework, or written response.
 
 Two-course identity also prevents accidental completion of a different lesson with the same number.
@@ -96,7 +96,7 @@ Added during the 2026-09-07 batch and verified by its final acceptance.
 
 - Follow [the durable batch workflow](../lesson-batch-workflow.md) for primary design, bounded
   Sol assignments, primary review and per-chunk commits. Resolve prerequisite names against
-  `route.ts`, even when the prerequisite is being authored concurrently. A plausible invented
+  `PLAN.md`, even when the prerequisite is being authored concurrently. A plausible invented
   slug breaks integration despite an otherwise type-correct module.
 - A course gaining its first shell lesson needs both renderer and validator dispatch by
   `runIn`. SQL fencing, a psql connection command and ROLLBACK instructions are incorrect for

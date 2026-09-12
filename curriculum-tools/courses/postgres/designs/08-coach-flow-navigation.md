@@ -1,5 +1,10 @@
 # Coach flow: navigation, per-stage context and guide substance
 
+> Historical design record. This proposal is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 **Implementation scope update:** the learner has approved a four-lesson pilot, **9–12**, followed by
 a brief review before lesson 13. The [batch plan](09-coach-pilot-batches.md) now governs rollout.
 The earlier lesson-8 prototype and broad backfill below remain design background; they are deferred,
@@ -15,13 +20,13 @@ audit and a plan; no renderer or guide file was changed in producing it.
 **Review update, 2026-09-05:** Nick's subsequent feedback is specifically about a poor experience
 with lesson **8**, much of which he worked through with ChatGPT. Steps introduced concepts needed
 earlier, and their purpose and relationship were unclear. He wants pgcoach plus the experiment
-terminal(s) to drive most lessons independently, with ChatGPT and readings available for depth. He
-is taking this course outside work while married with children; bounded sessions and an explicit
-stopping rule are requirements. His clarification rules out a pause/resume system, required notes,
-written answers and answer-submission commands. Ask for a quick guess at the relevant moment, then
-trust reflection as the following steps explain and compare results. Practice is the outcome. The
-review and revised proposals below supersede the original recommendations where noted. This remains
-a plan, not an implemented coaching change.
+terminal(s) to drive most lessons independently, with ChatGPT available for depth. He is taking this
+course outside work while married with children; bounded sessions and an explicit stopping rule are
+requirements. His clarification rules out a pause/resume system, required notes, written answers and
+answer-submission commands. Ask for a quick guess at the relevant moment, then trust reflection as
+the following steps explain and compare results. Practice is the outcome. The review and revised
+proposals below supersede the original recommendations where noted. This remains a plan, not an
+implemented coaching change.
 
 The learner's stated goal: walk the pgcoach flow with every needed context in the current pass, know
 which terminals to open before running anything, never meet a step that depends on something a later
@@ -46,8 +51,8 @@ contract. Neither workstream is implemented by this commit checkpoint. The learn
 remain open; committing this plan does not settle them or expand the current task into
 implementation.
 
-Preserve the untouched original lessons 1–7, surviving slugs, learner progress and the seven reading
-stops. Author checks use a copied catalog; they never refresh the learner database.
+Preserve the untouched original lessons 1–7, surviving slugs and learner progress. Author checks use
+a copied catalog; they never refresh the learner database.
 
 ## Review: strengths, weaknesses and proposed corrections
 
@@ -71,7 +76,7 @@ stops. Author checks use a copied catalog; they never refresh the learner databa
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Footers are treated as the main flow repair.                                | Knowing the next command does not explain why the current step exists.                                                                     | Every stage states its question, the evidence it uses, the small action to take, and what counts as enough.                                |
 | Lesson 8 is outside the 26 thin-guide queue.                                | The learner's actual failure case would survive the first content pass.                                                                    | Make lesson 8 the first end-to-end prototype and acceptance case, then lesson 9 and a multi-session lesson.                                |
-| Longer prompts and character floors stand in for teaching quality.          | More prose can add reading time and repeat the same confusion.                                                                             | Review semantic completeness and reading burden; use length only to locate candidates for review.                                          |
+| Longer prompts and character floors stand in for teaching quality.          | More prose can add context time and repeat the same confusion.                                                                             | Review semantic completeness and context burden; use length only to locate candidates for review.                                          |
 | The proposed path postpones `reveal` until after variation and application. | A mistaken explanation can drive two more tasks before any correction.                                                                     | Check the core explanation immediately after `explain`, then make a short application decision; offer extra variation explicitly.          |
 | `run` prints all SQL followed by the full syntax breakdown.                 | The learner must connect several experiments to explanations below them; the breakdown includes later challenge material and some answers. | Group commands and just-in-time explanations by experiment phase; keep variation-only syntax with the variation.                           |
 | Avoiding all conceptual disclosure is conflated with avoiding spoilers.     | Predicting an unfamiliar mechanism without its setup becomes guessing or requires ChatGPT.                                                 | Supply definitions, scenario and controls before prediction; withhold the specific comparison's worked answer until the learner has tried. |
@@ -90,7 +95,7 @@ not a reconstruction of the exact older catalog/ChatGPT session Nick used.
 For the normal core path, a learner can answer these questions from the current stage and explicitly
 identified earlier evidence: **Why am I doing this? What do I run or think about now? Where do I run
 it? What output matters? When can I move on?** No required task depends on a future stage, a hidden
-hint, a book chapter or asking ChatGPT to supply missing instructions.
+hint or asking ChatGPT to supply missing instructions.
 
 **Interaction contract:** ask the guess immediately before the comparison it concerns, after
 introducing enough context to reason about it. Accept a thought or spoken guess; never require
@@ -122,11 +127,8 @@ establishes an essential objective, label and budget it as core explicitly rathe
 assuming all variations are optional. Preserve existing experiment commands while changing
 presentation; removing or changing an experiment requires a separate semantic decision.
 
-Move the seven existing core reading stops to the **finish decision**, with their additional time
-announced at `start`; displaying `reveal` earlier must not tell the learner to stop before `apply`.
-The core excerpts remain required before the next lesson. Ordinary readings, optional checkpoint
-depth and ChatGPT exploration remain optional. An early answer check must not accidentally hide or
-bypass the reading obligation.
+The old staged design included optional source material at the finish decision. It was never part of
+the current route: no excerpt, source note or external reading is required before the next lesson.
 
 ## What was measured in the original audit
 
@@ -213,7 +215,7 @@ choice, is why quality varies twelvefold.
 Authored `estimatedMinutes` totals 2,360 minutes — **39.3 hours across 92 lessons**, median 25,
 range 5–60; replication (5.1 h), distributed-patterns (4.2 h), logical-replication and reliability
 (3.7 h each) are the heaviest modules. That figure covers running the experiment, not the coach loop
-or the seven reading stops (lessons 10, 14, 20, 28, 37, 39, 60).
+or any external source material.
 
 The learner's own completion timestamps give five same-session intervals: 40, 20, 25, 74 and 88
 minutes against authored estimates of 10, 5, 10, 10 and 15 — a **median of 40 minutes per lesson and
@@ -245,12 +247,12 @@ of poor ability.
 | Standard internals experiment             | 30–45 min              | 40 min      | 60 min                                             |
 | Dense comparison, concurrency or recovery | 45–60 min              | 45 min      | 60 min per sitting; flag longer lessons in advance |
 
-Core time includes orientation, prediction, setup, reading/running commands, inspecting evidence,
+Core time includes orientation, prediction, setup, running commands, inspecting evidence,
 explaining/checking it, a short application decision, and safe wrap-up. Show optional variation
-separately, usually **10–15 minutes**, and show any core reading stop separately, normally **15–35
-minutes**. Identify expected machine waits inside the core estimate. Installation repair, unexpected
-failures, family breaks and optional exploration are not calibrated learning time; troubleshooting
-still consumes the evening's available time and cannot silently extend its cap.
+separately, usually **10–15 minutes**. Identify expected machine waits inside the core estimate.
+Installation repair, unexpected failures, family breaks and optional exploration are not calibrated
+learning time; troubleshooting still consumes the evening's available time and cannot silently
+extend its cap.
 
 Reserve the last **5 minutes** for wrap-up. A cap is a cue to end the sitting, not a timer that
 kills a process or marks a lesson complete. If a lesson realistically needs 75–90 minutes, say so up
@@ -263,7 +265,7 @@ Example of proposed lesson-8 start text (not current CLI output):
 ```text
 Question: When does reserving page space reduce index work during updates?
 Core: about 40–50 min. Reassess at 40 min; aim to wrap up by 60 min.
-Optional fillfactor-80 variation: +10–15 min. No core reading stop here.
+Optional fillfactor-80 variation: +10–15 min.
 Terminals: this coaching shell + one psql session connected to the learner lab.
 Enough today: compare the two update cases, check the indexed-key counter change,
 interpret the page sample with its limits, and consider one benefit/cost of page slack.
@@ -286,7 +288,7 @@ interpret the page sample with its limits, and consider one benefit/cost of page
 **The outcome is practice with understanding:** run the experiment, notice the result, compare it
 with the initial guess, and consider the coach's causal explanation and engineering implication. The
 flow should trust this reflection rather than test for a written artifact. Deep implementation
-details, memorizing SQL and exhaustive readings are not implicit completion criteria. Personal notes
+details, memorizing SQL and external reading are not implicit completion criteria. Personal notes
 are entirely the learner's choice and do not appear as a course task. Existing explicit completion
 remains available without a note; do not add answer commands, `-n` phrases or per-stage
 acknowledgements.
@@ -297,10 +299,11 @@ Nick described a 93-lesson course. The checked-in catalog currently contains **9
 original audit recorded 95 in the unrefreshed learner catalog. This review rechecked the built
 92-lesson count and 2,360 authored minutes, but did not refresh or renumber the learner catalog. Use
 93 for a conservative planning illustration: an eventual average of **35–50 minutes of core
-learning** yields **54–78 hours**, plus about **2–4 hours** for seven core reading stops. Rounded
-with modest scheduling overhead, **60–85 hours** is an initial planning envelope, excluding optional
-deep dives and substantial environment repair. The desired average still needs testing against the
-heavier lessons; this is a design target, not a measured completion forecast.
+learning** yields **54–78 hours**. The former proposal separately allowed about **2–4 hours** for
+external source material; that material is no longer assigned. Rounded with modest scheduling
+overhead, **60–85 hours** is an initial planning envelope, excluding optional deep dives and
+substantial environment repair. The desired average still needs testing against the heavier lessons;
+this is a design target, not a measured completion forecast.
 
 At two hours per week that envelope is roughly **30–43 weeks**; at three hours, **20–29 weeks**,
 before holidays or missed weeks. These are examples, not a prescribed weekly commitment. Prefer one
@@ -348,7 +351,8 @@ comments and explanations as well as renderer field selection for spoilers.
    `start → run → inspect → explain → reveal → apply`, with optional `vary`, `hint1`, `hint2` and
    `full` branches. Derive prev/next from that contract so ordering has a single source of truth.
    Update the README and older design's order together, then remove hand-written navigation from
-   lesson 9. Author explicit exceptions for essential variations and place reading stops at finish.
+   lesson 9. Author explicit exceptions for essential variations and place optional source notes at
+   finish.
 2. **A navigation footer on every stage**, including off-flow ones, propagating `--db`, using the
    short `pgcoach` invocation rather than the hardcoded absolute path:
 
@@ -359,12 +363,11 @@ comments and explanations as well as renderer field selection for spoilers.
    ```
 
    `start` has no previous within the lesson; omit the field. At `apply` offer explicit finish and
-   optional variation, including any outstanding core reading stop. Keep completion commands at that
-   finish point, rather than suggesting completion in every footer. Off-flow stages have a clear
-   default return target (variation help returns to `vary`); because the CLI is stateless, do not
-   imply a remembered back stack. Preserve database selection in completion commands too, and topic
-   selection when offering the next matching lesson. A direct stage jump never completes work
-   automatically.
+   optional variation. Keep completion commands at that finish point, rather than suggesting
+   completion in every footer. Off-flow stages have a clear default return target (variation help
+   returns to `vary`); because the CLI is stateless, do not imply a remembered back stack. Preserve
+   database selection in completion commands too, and topic selection when offering the next
+   matching lesson. A direct stage jump never completes work automatically.
 3. **A context strip on `inspect`, `explain`, `vary` and `apply`:** run-in, session count, safety
    level, current question/phase and named evidence needed, plus a way to reopen the commands with
    `pgcoach N run`. Distinguish reviewing those commands from executing setup again. Add a concise
@@ -383,16 +386,16 @@ comments and explanations as well as renderer field selection for spoilers.
    array in both directions; `--db` survives into every emitted command; the terminals block and
    context strip never contain expected-result or systems-lens text; `full` retains the complete
    lesson while omitting note solicitation in pgcoach. Also check answer-check order,
-   optional-extension return paths, reading-stop visibility at start/finish, timing display and
-   explicit-only completion. Phase rendering must preserve command order and session routing.
+   optional-extension return paths, timing display and explicit-only completion. Phase rendering
+   must preserve command order and session routing.
 
 **Timing implementation:** add typed course-local coaching metadata for the core time range,
-reassessment point, session cap, optional-extension time and required-reading time. Validate
-positive ordered ranges and flag core estimates exceeding one sitting. Prefer authored ranges; label
-any provisional fallback clearly. The existing `estimatedMinutes` must not silently become a
-measured end-to-end time or be multiplied by four. This is an interface proposal to implement in
-guide types and the renderer, not permission to hand-edit generated JSON or learner progress. Keep
-the first release informational and stateless.
+reassessment point, session cap and optional-extension time. Validate positive ordered ranges and
+flag core estimates exceeding one sitting. Prefer authored ranges; label any provisional fallback
+clearly. The existing `estimatedMinutes` must not silently become a measured end-to-end time or be
+multiplied by four. This is an interface proposal to implement in guide types and the renderer, not
+permission to hand-edit generated JSON or learner progress. Keep the first release informational and
+stateless.
 
 ## Workstream 2 — lesson 8 prototype, then guide coverage
 
@@ -434,8 +437,8 @@ the first release informational and stateless.
 - Exercise an expected-output mismatch: provide a bounded next check instead of requiring the
   learner to guess or consult an external chat. Wrong predictions are acceptable. Check that
   reflection prompts do not require typed answers, notes, evidence worksheets or new CLI commands.
-- Verify a standard finish, optional-variation skip/return, early reveal, and a core reading stop.
-  Optional work cannot become a hidden prerequisite, and no render action may change progress.
+- Verify a standard finish, optional-variation skip/return and early reveal. Optional work cannot
+  become a hidden prerequisite, and no render action may change progress.
 - Record author walkthrough time as a **lower-bound rehearsal**, then collect voluntary learner
   feedback for calibration. Do not claim the UX or estimates are validated solely because tests
   pass. Success is that the learner can finish the core within a bounded sitting with occasional
@@ -445,8 +448,8 @@ the first release informational and stateless.
 
 - Use early feedback: `explain → reveal → apply`, with extra variation offered explicitly.
 - Surface overlapping challenge/variation content once; retain distinct essential evidence as core.
-- Show the next-lesson command at finish, alongside explicit completion and any required reading
-  stop. Never infer completion from navigation.
+- Show the next-lesson command at finish alongside explicit completion. Never infer completion from
+  navigation.
 - Start with the provisional time bands and a 60-minute normal sitting cap; prototype lesson 8
   before extending this contract across the course. Nick has requested bounded time, but has not
   selected these particular numbers or committed to a weekly schedule.

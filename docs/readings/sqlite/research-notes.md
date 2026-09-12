@@ -1,26 +1,17 @@
-# SQLite readings research notes
+# SQLite technical source research
 
-Research pass completed 2026-09-04 for the 54-lesson SQLite Systems reference course. Updated
-2026-09-12: every reading below is now optional; the former checkpoint requirements and budgets
-are historical. Use [the future-course plan](../../../future-courses/sqlite/course.md) for the
-concise route and [the optional source map](study-checkpoint-plan.md) for selected references.
-Teach essential mechanisms inside the lesson, before commands. The course is
-experiment-led, so a source is recommended only when it adds a durable mechanism, boundary, or
-operational decision that the lab cannot efficiently derive by itself. The URLs below are the
-canonical SQLite documentation or a primary peer-reviewed paper; no third-party tutorial is needed
-to fill a demonstrated gap.
+Research completed 2026-09-04; workflow updated 2026-09-12. This is author research for choosing
+and verifying bounded experiments, not a reading curriculum. All required learner context belongs
+inside the lesson. Use the [future-course plan](../../../future-courses/sqlite/course.md) for scope
+and the [source map](source-map.md) to find the relevant primary documentation.
 
-## Selected optional source inventory
+## Technical source inventory
 
-The companion [optional source map](study-checkpoint-plan.md) retains six groups linked to
-reference lessons 13, 19, 25, 31, 37, and 41. The old reading estimates below are for the named
-sections, not required learner time or the whole web page.
-
-### Database File Format — after lesson 13 (20–30 minutes)
+### Database File Format
 
 Source: [SQLite Database File Format](https://www.sqlite.org/fileformat.html)
 
-Read only §§1.2 (Pages), 1.3.2 (Page Size), 1.5 (Freelist), 1.6 (B-tree Pages), 1.7 (Cell Payload
+Relevant sections: §§1.2 (Pages), 1.3.2 (Page Size), 1.5 (Freelist), 1.6 (B-tree Pages), 1.7 (Cell Payload
 Overflow Pages), 2.3 (Representation of SQL Tables), 2.4 (Representation of WITHOUT ROWID Tables),
 and 2.5 (Representation of SQL Indices).
 
@@ -30,11 +21,11 @@ as isolated CLI facts. The specification states that it describes the format use
 releases since 3.0.0, making the broad model unusually stable. Do not require memorization of every
 header offset or every file-format table; the lab's runtime observations are more useful for those.
 
-### Rollback atomic commit — after lesson 19 (15–20 minutes)
+### Rollback atomic commit
 
 Source: [Atomic Commit In SQLite](https://www.sqlite.org/atomiccommit.html)
 
-Read §§3.4 (Obtaining a Reserved Lock), 3.5 (Creating a Rollback Journal File), 3.7 (Flushing the
+Relevant sections: §§3.4 (Obtaining a Reserved Lock), 3.5 (Creating a Rollback Journal File), 3.7 (Flushing the
 Rollback Journal File to Mass Storage), 3.8 (Obtaining an Exclusive Lock), 3.9 (Writing Changes to
 the Database File), 3.10 (Flushing Changes to Mass Storage), 3.11 (Deleting the Rollback Journal),
 4.2 (Hot Rollback Journals), and 4.6 (Continue As If the Uncompleted Writes Had Never Happened).
@@ -44,12 +35,12 @@ ordering, lock escalation, sync barriers, and journal invalidation. It is a mech
 promise that a process kill simulates power loss. The page explicitly applies to rollback mode; WAL
 uses a different atomic-commit mechanism and must be read separately.
 
-### Isolation and rollback lock states — after lesson 25 (15–20 minutes)
+### Isolation and rollback lock states
 
 Sources: [Isolation In SQLite](https://sqlite.org/isolation.html) and
 [File Locking And Concurrency In SQLite Version 3](https://www.sqlite.org/lockingv3.html).
 
-Read all of the short Isolation page. From the locking page read §§2.0 (Overview), 3.0 (Locking),
+The Isolation page and locking sections §§2.0 (Overview), 3.0 (Locking),
 4.1 (Dealing with Hot Journals), and 5.0 (Writing to a Database File).
 
 These sections connect the deferred/immediate, busy-timeout, reader/writer, and retry experiments to
@@ -58,11 +49,11 @@ locking page is still the authoritative rollback-mode reference, but it was writ
 not describe WAL. Ignore its example that pages are “usually 1024 bytes”; page size is a
 runtime/database property and the course correctly observes it.
 
-### WAL lifecycle and checkpoints — after lesson 31 (15–20 minutes)
+### WAL lifecycle and checkpoints
 
 Source: [Write-Ahead Logging](https://www.sqlite.org/wal.html)
 
-Read §§1 (Overview), 2 (How WAL Works), 2.1 (Checkpointing), 2.2 (Concurrency), 2.3 (Performance
+Relevant sections: §§1 (Overview), 2 (How WAL Works), 2.1 (Checkpointing), 2.2 (Concurrency), 2.3 (Performance
 Considerations), 3 (Activating And Configuring WAL Mode), 3.1 (Automatic Checkpoint), 3.2
 (Application-Initiated Checkpoints), 3.3 (Persistence of WAL mode), and 9 (Sometimes Queries Return
 SQLITE_BUSY In WAL Mode). Skip the page's struck-through historical warning in the overview about
@@ -80,11 +71,11 @@ requires 3.53.4, which contains the fix. The bug section (§11) is intentionally
 checkpoint—it is version-specific incident material—but the risk remains relevant when evaluating
 older deployed SQLite libraries.
 
-### Consistent online backup and file pairing — after lesson 37 (15–20 minutes)
+### Consistent online backup and file pairing
 
 Source: [SQLite Backup API](https://sqlite.org/backup.html)
 
-Read §1 (Using the SQLite Online Backup API), §1.1 (Other Backup Techniques), and §3.1 (File and
+Relevant section: §1 (Using the SQLite Online Backup API), §1.1 (Other Backup Techniques), and §3.1 (File and
 Database Connection Locking). Also read
 [How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html) §§1.2 (Backup or
 restore while a transaction is active), 1.3 (Deleting a hot journal), and 1.4 (Mispairing database
@@ -97,25 +88,25 @@ The page now mentions `sqlite3_rsync`, introduced in SQLite 3.47.0 and therefore
 course's 3.53.4 floor. Do not add it merely because it is newer; the durable material here is the
 snapshot/locking model and the backup API/VACUUM INTO distinction.
 
-### Query planning and index locality — after lesson 41 (15–20 minutes)
+### Query planning and index locality
 
 Source: [Query Planning](https://sqlite.org/queryplanner.html)
 
-Read §§1.1–1.3 (table scan, rowid lookup, index lookup), 1.6–1.7 (multi-column and covering
+Relevant sections: §§1.1–1.3 (table scan, rowid lookup, index lookup), 1.6–1.7 (multi-column and covering
 indexes), §2 (Sorting), §3 (Searching and Sorting at the Same Time), and §4 (WITHOUT ROWID tables).
 
 The course already generates query plans and measures index costs. These sections provide the
 reusable model of search work, rowid indirection, covering/locality tradeoffs, and sorting. Keep it
 bounded: the full planner article is not needed for this systems path.
 
-## Optional depth, not mandatory stops
+## Additional author sources
 
 - [Architecture of SQLite](https://www.sqlite.org/arch.html): read “Overview,” “Bytecode Engine,”
   “B-Tree,” and “Page Cache” (about 10 minutes) if the learner wants the compiler → VDBE → B-tree →
   pager → VFS map. It is useful context but not required because the course does not inspect C
   implementation details.
 - [How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html): its §§1.2–1.4 are
-  core with the backup checkpoint above. Read §§2.1, 2.5, 3.2, and 7 optionally (about 10 minutes)
+  core with the backup checkpoint above. Relevant sections: §§2.1, 2.5, 3.2, and 7 optionally (about 10 minutes)
   for locking/filesystem assumptions, sync, and dangerous configuration. Skip §8's historical bug
   catalogue.
 - [SQLite As An Application File Format](https://sqlite.org/appfileformat.html): read the Executive
@@ -131,7 +122,7 @@ bounded: the full planner article is not needed for this systems path.
 
 ## Explicit rejects
 
-The following do not justify enforced reading in this course:
+The following do not justify expanding the concise course:
 
 - the complete SQLite documentation set or complete file-format reference;
 - the full [Next-Generation Query Planner](https://sqlite.org/queryplanner-ng.html) article, whose
@@ -143,9 +134,9 @@ The following do not justify enforced reading in this course:
 - generic third-party tutorials or blogs when the official documentation and primary VLDB paper
   already cover the relevant durable mechanism.
 
-## Systems articles considered but not enforced
+## Systems articles considered during design
 
-Two original-author articles map closely to module 08, but neither earns another stop:
+Two original-author articles explain mechanisms already covered by module 08:
 
 - Chris Richardson's
   [Transactional Outbox](https://microservices.io/patterns/data/transactional-outbox.html), from
@@ -159,14 +150,12 @@ Two original-author articles map closely to module 08, but neither earns another
   exact failure and rejection, while the rest of the article is a Redis/Redlock debate that would
   pull this SQLite course off path.
 
-These remain good follow-up reading for someone deliberately branching into messaging or distributed
-coordination. Omitting them from the checkpoint flow also avoids suggesting that an SQLite
-transaction itself coordinates external services or distributed lock ownership.
+These are design references for messaging and distributed coordination. An SQLite transaction
+does not itself coordinate external services or distributed lock ownership.
 
 ## Selection and version policy
 
-The former six stops totaled approximately 95–130 minutes. They are now optional reference;
-do not add that time to the concise course or require note-taking. Version-specific claims
+These sources do not add learner time or note-taking requirements. Version-specific claims
 (planner heuristics, benchmark numbers, test-suite counts,
 historical WAL warnings, and the WAL-reset bug) are excluded from the durable core, but
 safety-relevant current-version warnings must not be erased merely because they are inconvenient.

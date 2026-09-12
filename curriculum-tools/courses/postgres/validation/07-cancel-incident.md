@@ -57,12 +57,12 @@ and termination prefixes. Exact output is `/tmp/pg-cancel-exact-runaway-query-an
 rendered hint is `/tmp/pg-cancel-rendered-runaway-query-and-cancel.md`.
 
 `/tmp/pg-cancel-render-audit.ts` checked built/source/core/variation/exact command correspondence,
-neutral start, runnable inspection/action/cleanup, complete source and the preserved outside-book
-citation with Chapter15 background. `/tmp/pg-cancel-build.py` changed only91 among92 and removed its
-scoped snapshot. First7 objects, capacity semantics, copied IDs/history/progress and seven reading
-stops are unchanged. Current copy is `/tmp/pg-observe-progress-t7bgbky6/progress.sqlite`; real
-learner SHA256 remains `395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6`. Thirty
-tests pass and full format/lint/type checks pass in `/tmp/pg-cancel-{tests,check}.log`.
+neutral start, runnable inspection/action/cleanup and complete source. `/tmp/pg-cancel-build.py`
+changed only91 among92 and removed its scoped snapshot. First7 objects, capacity semantics and
+copied IDs/history/progress are unchanged. Current copy is
+`/tmp/pg-observe-progress-t7bgbky6/progress.sqlite`; real learner SHA256 remains
+`395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6`. Thirty tests pass and full
+format/lint/type checks pass in `/tmp/pg-cancel-{tests,check}.log`.
 
 ## Resources and limits
 

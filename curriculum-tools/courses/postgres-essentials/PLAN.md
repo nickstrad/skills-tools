@@ -95,17 +95,16 @@ Retain PostgreSQL storage internals already learned; do not repeat them just to 
 ## Identity, implementation and validation
 
 `curriculum/*.ts` is source; `lessons.json` is generated and contains only real available lessons.
-`route.ts` holds the exact ordered titles/slugs for `pgcoach route`; the shared
-`tutor postgres-essentials route` also labels completed, available, and planned entries. Tests check
-all available entries against the built catalog. A separate `postgres-essentials` course ID keeps
-numbering 1–40 and new progress separate from the original 92-lesson catalog. `pgcoach` opens
-essentials by default; the reference remains available through `tutor postgres NUMBER lesson` and
-legacy `pgcoach --reference` forms. Old completion records are never copied to new lesson
+The numbered table above is the canonical route; the shared route/build logic reads it and labels
+completed, available, and planned entries for `pgcoach route` and `tutor postgres-essentials route`.
+Tests check all available entries against the built catalog. A separate `postgres-essentials` course
+ID keeps numbering 1–40 and new progress separate from the original 92-lesson catalog. `pgcoach`
+opens essentials by default; the reference remains available through `tutor postgres NUMBER lesson`
+and legacy `pgcoach --reference` forms. Old completion records are never copied to new lesson
 identities. Only explicit `pgcoach NUMBER done` or `tutor <course> NUMBER done` commands write
 status. Every tool course is accessible through the generic tutor lesson renderer; the existing
 pgcoach presentation remains compatible, not an adapter future courses must reimplement.
 
-Canonical book research remains under `docs/books/postgresql-14-internals/`; no PDF copy is needed.
 The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Batch two adds storage,
 reclamation, read-committed, lost-update, concurrency, row-locks and concurrency-control. Validate
 exact setup and session blocks against a private PostgreSQL 16 cluster, check outcomes rather than

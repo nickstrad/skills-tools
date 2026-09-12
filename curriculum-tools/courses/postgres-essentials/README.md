@@ -49,11 +49,12 @@ pgcoach
 
 The launcher is `../postgres/bin/pgcoach` if it is not on PATH. `lesson` is the complete unit:
 concise mechanism explanation, a labelled terminal diagram when useful, setup and commands, expected
-evidence, interpretation, optional references or variations, and cleanup. Diagrams appear before
-commands and remain readable without ANSI colour. Only explicit `NUMBER done` records completion.
-There are no typed answers, required notes, homework, reading checkpoints, separate review stage, or
-pause/resume state. Older `review`, `full`, and `start` spellings remain hidden compatibility
-aliases for `lesson`.
+evidence, interpretation, optional variations, and cleanup. Any retained reading metadata is shown
+as separate optional context; it adds no commands, output requirement, or progression step. Diagrams
+appear before commands and remain readable without ANSI colour. Only explicit `NUMBER done` records
+completion. There are no typed answers, required notes, homework, reading checkpoints, separate
+review stage, or pause/resume state. Older `review`, `full`, and `start` spellings remain hidden
+compatibility aliases for `lesson`.
 
 The same reusable flow is available to every course through `tutor <course> <number> lesson|done`;
 `tutor <course> lesson` opens its next unfinished lesson. New courses do not need their own
@@ -68,10 +69,11 @@ bin/tutor postgres-essentials init
 ```
 
 The original 92-lesson course and its progress are preserved. It remains accessible with
-`tutor postgres NUMBER lesson` and legacy `pgcoach --reference` forms. The new essentials numbering
-is 1–40; the original eight completions are prerequisites by learner context, not completions of
-these new experiments. `pgtutor` is a legacy wrapper; use the printed `pgcoach NUMBER done` for
-essentials.
+`tutor postgres NUMBER lesson` and `pgcoach --reference NUMBER lesson`; historical `start`,
+`review`, `run`, `full` and `syntax` aliases open the same complete reference lesson. The new
+essentials numbering is 1–40; the original eight completions are prerequisites by learner context,
+not completions of these new experiments. Use the printed `pgcoach NUMBER done` command for
+Essentials.
 
 ## Lab and validation
 
@@ -89,9 +91,9 @@ expected SQL errors with immediate SQLSTATE evidence; follow the recovery comman
 the connection. The error inventory and cleanup are part of each experiment.
 
 The old 20–30 minute ranges included explanation, commands, interpretation, and cleanup, but were
-not measured learner timings; observed pace is now roughly ten minutes. Optional book references do
-not add homework. PostgreSQL 16 validation and cleanup evidence are under `validation/`;
-`validate.py` allocates and removes a private cluster.
+not measured learner timings; observed pace is now roughly ten minutes. Optional references do not
+add homework. PostgreSQL 16 validation and cleanup evidence are under `validation/`; `validate.py`
+allocates and removes a private cluster.
 
 Lessons 25–26 use one shell with supplied PostgreSQL 16 controllers. They create unique private
 clusters, perform the checkpoint or crash experiment, stop the private servers and remove their

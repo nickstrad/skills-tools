@@ -56,7 +56,7 @@ fork with truncation disabled; it does not establish total filesystem reclamatio
 supplied manual decline demonstrates a decision from the locked value, not an implemented client
 branch. A locked row does not establish arbitrary multi-row invariant protection.
 
-Mechanism checks used the canonical book digests and PostgreSQL 16 documentation for
+Mechanism checks used the settled research notes and PostgreSQL 16 documentation for
 [vacuum reclamation and rewriting](https://www.postgresql.org/docs/16/routine-vacuuming.html),
 [Read Committed row rechecking](https://www.postgresql.org/docs/16/transaction-iso.html), and
 [row locks](https://www.postgresql.org/docs/16/explicit-locking.html).

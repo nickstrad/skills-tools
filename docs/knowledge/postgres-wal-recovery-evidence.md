@@ -115,8 +115,7 @@ defines the archive command's success/retry contract and retention consequence;
 [WAL settings](https://www.postgresql.org/docs/16/runtime-config-wal.html)
 describes max_wal_size as soft;
 [archiver statistics](https://www.postgresql.org/docs/16/monitoring-stats.html#PG-STAT-ARCHIVER-VIEW)
-defines success/failure counters. Book Chapter10 covers segments/recycling, not
-archive_command or pg_stat_archiver; keep that reading boundary explicit.
+defines success/failure counters.
 
 ## Owned crash: physical replay versus transaction outcome (2026-09-05)
 

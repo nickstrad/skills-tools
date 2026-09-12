@@ -1,43 +1,61 @@
 # Shared concise course CLI
 
-Updated 2026-09-12. The learner chose the existing text CLI, not React/Ink. The shared Deno
-engine supports `tutor <course> <n> lesson|done`, `lesson` for the next unfinished lesson, and
-`route` for the full route. Legacy show/pretty/done-number spellings remain compatible.
+Updated: 2026-09-12. The learner uses `tutor <course> route`, `[NUMBER] lesson`, and `NUMBER done`.
+`pgcoach` wraps the same engine for PostgreSQL Essentials. Display never records completion.
 
-## Route identity and cheap planning
+## Plan, then implement a bounded batch
 
-`curriculum-tools/src/route.ts` reads an implemented catalog plus its PLAN.md, or a matching
-`future-courses/<folder>/course.md`. A future plan declares its Course ID in backticks and uses
-the template's numbered title/slug table. Numbers must be sequential and slugs unique. Only one
-future plan may declare an ID. Plan/catalog ordinal and slug mismatches fail instead of hiding
-implemented lessons. Existing PostgreSQL Essentials also retains its pgcoach route renderer.
+The [planning guide](../../future-courses/README.md) owns the persistent Markdown draft, research,
+discussion and outline sign-off. The [batch workflow](../lesson-batch-workflow.md) owns execution,
+primary review, validation, commits and cleanup. The [authoring guide](../../curriculum-tools/docs/AUTHORING.md)
+owns complete lesson content. Do not reconstruct current policy from historical course redesigns.
 
-`route` reads an existing progress database read-only and never initializes one. It resolves
-completion by stable slug and current catalog revision, showing `[done]` for current completions,
-`[revisit]` for stale completions, and available/planned content status. A plan-only course is
-browsable without a catalog, lab, or progress. Planned lessons cannot be opened or completed.
-Do not copy reference progress into a future essentials course.
+Future routes live in `future-courses/<folder>/course.md`; existing Essentials keeps `PLAN.md`.
+A canonical numbered table fixes titles and stable slugs. Future plans take precedence over their
+implementation's plan link. Invalid identities and route/catalog mismatches must fail before a
+build replaces the generated catalog. Old reference plans use their catalogs for route display.
 
-## One lesson output
+The scaffold is an empty runtime-neutral course shell, with a relative link to its planning source
+when present. It supplies no invented first lesson, REPL defaults, catalog or progress. Author the
+requested batch before building; empty builds fail explicitly. Do not scaffold during discussion.
 
-Required context and terminal diagrams precede setup/commands; expected evidence and interpretation
-follow in the same output. `syntaxBreakdown` carries Markdown diagrams without a new schema or
-course-specific renderer. Use indented blocks inside TypeScript template strings; literal backtick
-fences terminate those strings. Colour cannot carry meaning by itself. Legacy `studyCheckpoint`
-items and variations now render as optional depth, not progression requirements.
+## Discovery, content and progress
 
-PostgreSQL Essentials folds its former review into lesson; review/start/full are hidden aliases.
-The separate Go systemscoach engine keeps JSON routes and atomic completion receipts, but adopts
-the same learner flow. Existing review.md content is appended below the learner task. New project
-lessons need only lesson.md; the meaningful learner-work contract remains intact. Old honest
-estimates remain valid, while new lessons target about ten minutes and a fifteen-minute core cap.
+`tutor courses` combines current/reference course metadata with proposed routes and derives
+available/total counts. `route` reads existing progress read-only, showing current `[done]`, stale
+`[revisit]`, available and planned rows. Planned routes are browsable without initializing progress;
+planned lessons cannot be served or completed. New IDs never inherit old reference completion.
 
-## Verification
+Essentials now uses the shared route and lesson renderer. The initial 26 lessons' former
+wrapper-only diagrams, session setup and safe-stop guidance are authored into their syntax context.
+New batches supply their own context directly; no renderer imports or second route list are needed.
+Saved presentation aliases open the same complete lesson. The reference pilot no longer inserts a
+stop gate; original course experiments, data and historical guide notes remain for reuse.
 
-The 41 Deno tests cover all implemented courses, numbered lesson/done, complete evidence output,
-diagram ordering, route completion/revisions, planned boundaries, unchanged progress bytes, and
-missing progress not being created. Deno formatting/lint/type checks and Go tests/vet also pass.
-Tests use disposable state and do not run database experiments. No new SQLite lessons were authored
-or validated; its 32-lesson route and timing are proposals. Learner PostgreSQL remained reachable
-at /tmp port 5440, database lab, data_directory /labs/pglab/primary. No author cluster or retained
-lab evidence was allocated by this CLI/docs task.
+Reading is separate from these courses. The bundled PostgreSQL book and its authoring/mapping
+workflow are removed. Lesson output omits citations, reading notes and reading checkpoints.
+Legacy fields remain readable in original catalogs and JSON exports to preserve existing data;
+new lessons do not use them. Technical primary-source research still informs experiment design.
+
+The Go systemscoach engine remains separate, with JSON routes and atomic completion receipts.
+It shares the learner commands and one complete lesson. New projects use only `lesson.md`;
+the retired review template is removed. Existing review files still supply their interpretation
+through the compatibility reader, preserving existing project evidence and learner tasks.
+
+## Local installation
+
+[`scripts/school-links.py`](../../scripts/school-links.py) audits or installs canonical links for
+`tutor`, `pgcoach`, `systemscoach` and six skills in both agent directories. Its preflight preserves
+conflicting paths and compares every entry before converting an identical skill copy. The user
+retired `pgtutor`; installation removes only its known obsolete symlink, never original course data.
+Use `--check` to find later installation drift. Do not keep independently edited installed copies.
+
+## Validation boundary
+
+CLI tests use disposable progress and verify rendering, planned boundaries, completion/revisions,
+source preservation and scaffold/build failures. They do not validate database experiments.
+For a presentation-only change, compare experiment fields with the accepted baseline; run real
+experiments if their behavior changes. Refresh learner catalog metadata only after testing a SQLite
+backup copy and comparing logical progress/attempt history. File hashes alone can omit WAL changes.
+
+The cleanup verification record is [course-workflow-cleanup.md](course-workflow-cleanup.md).

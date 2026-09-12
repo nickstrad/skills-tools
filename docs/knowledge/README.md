@@ -11,12 +11,13 @@ otherwise rediscover.
 The current PostgreSQL path and its identity/validation rules are in
 [postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first 26 available.
 Current course-planning policy is in [progressive-course-design.md](progressive-course-design.md):
-small fixed Markdown routes, complete single-view lessons, explicit completion, optional reading,
+small fixed Markdown routes, complete single-view lessons, explicit completion, self-contained context,
 and shared tutor rendering. Proposed courses live under [`future-courses/`](../../future-courses/).
 
 | File                                                                           | What it covers                                                                                                                                                             |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [concise-course-cli.md](concise-course-cli.md) | Shared route/lesson/done, read-only completion markers, Markdown plans, optional legacy reading, diagrams, and systemscoach compatibility. |
+| [concise-course-cli.md](concise-course-cli.md) | Shared route/lesson/done, read-only completion markers, Markdown plans, course discovery, empty scaffolds, diagrams, and systemscoach compatibility. |
+| [course-workflow-cleanup.md](course-workflow-cleanup.md) | Luna/high cleanup review, preserved original curricula and progress, retired books/pgtutor, synchronized installation and final acceptance. |
 | [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |
 | [repo-tooling.md](repo-tooling.md)                                             | Deno location, scoped `fmt`/`lint`/`check` commands, formatter effects on Markdown, Docker test rig, and how to build a non-root test user.                                |

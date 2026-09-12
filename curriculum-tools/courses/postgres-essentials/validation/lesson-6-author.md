@@ -31,10 +31,10 @@ The authored file passed:
 - `splitSteps`, which found ten labelled blocks across A and B and classified only the locking read
   in Session B as asynchronous/blocking
 
-The slug and title match PLAN row 6. The optional reading uses the settled digest titles for Chapter
-2, **Isolation**, and Chapter 13, **Row-Level Locks**. The write-up states the required limits:
-ordinary reads still use MVCC, competing locking readers and writers participate, lock holding
-should stay short, and one locked row cannot protect arbitrary multi-row or cross-service rules.
+The slug and title match PLAN row 6. The optional reference names the isolation and row-lock
+background relevant to this lesson. The write-up states the required limits: ordinary reads still
+use MVCC, competing locking readers and writers participate, lock holding should stay short, and one
+locked row cannot protect arbitrary multi-row or cross-service rules.
 
 ## Runtime evidence pending parent integration
 

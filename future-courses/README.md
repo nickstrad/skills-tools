@@ -50,27 +50,14 @@ canonical PLAN.md files can retain them; link rather than migrate for its own sa
 
 ## Shared learner experience
 
-The generic engine supplies `tutor <course> <n> lesson` and `tutor <course> <n> done`.
-Here `tutor <course>` is the course CLI; an existing name such as `pgcoach` may wrap it. The
-unnumbered `tutor <course> lesson` selects the next unfinished lesson. All content, expected results,
-interpretation, and cleanup fit in one lesson. Completion is explicit. No review stage, required
-written answers, or external-reading checkpoint is part of the normal flow.
+The generic engine supplies `tutor <course> route`, `tutor <course> <number> lesson`, and
+`tutor <course> <number> done`; `tutor <course> lesson` selects the next unfinished lesson. A
+plan-only route, such as `tutor sqlite-essentials route`, can show planned rows without creating
+progress. A lesson must be implemented before it can be served or completed, and only explicit
+`done` records completion. Existing wrappers such as `pgcoach` may provide the same commands.
 
-`tutor <course> route` lists the full route with `[done]`, available, and planned status. It reads
-completion by stable identity and current revision without creating or changing progress. This also
-works for plan-only courses: `tutor sqlite-essentials route` reads the Markdown plan now. Each plan
-must declare its Course ID and use the numbered title/slug table in the template. Keep one
-plan per course ID. A lesson must be implemented before it can be served or completed.
-
-Terminal diagrams are a first-class part of the explanation **before setup and commands**. Lean
-toward including them: timelines, state transitions, process ownership, page/tree layouts, queues,
-and log flows. Label the diagram and explain what to watch for in the experiment. ASCII art must
-work in plain output; ANSI color can enhance it but must not carry meaning alone. Future content
-uses the shared Markdown renderer, with diagrams in `syntaxBreakdown`; no bespoke course renderer
-or React/Ink UI is required.
-
-Aim for ten minutes of core work and narrow lessons that routinely exceed fifteen. Count context,
-setup, experiment, interpretation, and cleanup together; declare one-time installation separately.
-Preserve technical depth by choosing a clear question, not by assigning unexplained commands.
-Optional depth stays optional. See [authoring guidance](../curriculum-tools/docs/AUTHORING.md) and
-[the learner profile](../docs/learner-profile.md).
+The shared renderer and lesson contract are maintained in the
+[authoring guide](../curriculum-tools/docs/AUTHORING.md). The implementation sequence, review,
+validation, handoff and cleanup rules are maintained in the
+[batch workflow](../docs/lesson-batch-workflow.md). Keep diagrams, optional depth and timing
+guidance consistent with those authorities rather than duplicating their full policy here.

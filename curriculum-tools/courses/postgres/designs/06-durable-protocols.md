@@ -1,5 +1,10 @@
 # Durable protocol implementation contract
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary sequential work, 2026-09-05. Chunks1–5 are accepted in92 active lessons; the next surviving
 identities are current83–87. This document plans the required replacement behavior. It does not
 assert that these experiments have been implemented or validated. Keep the full scope from
@@ -114,7 +119,7 @@ Write standalone owned fixtures for lifecycle/failure work. New modules/helpers 
 accepted commands or leave implicit shared state. Add guides/14-patterns.ts and register it with
 specific predict/inspect/explain/vary/apply prompts and complete executable hint2 commands. Keep
 surviving slugs, course revision2 and changed lesson revision4; any consolidation needs measured
-replacement coverage and explicit identity/prerequisite/reading maps before retiring a lesson.
+replacement coverage and explicit identity/prerequisite maps before retiring a lesson.
 
 Run every core, source variation and exact rendered hint against the actual local tools,
 sequentially for process/recovery operations. Inspect outcomes and expected errors independently of

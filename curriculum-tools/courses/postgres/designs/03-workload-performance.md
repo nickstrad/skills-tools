@@ -1,5 +1,10 @@
 # Chunk 3: measured workload decisions
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Execution update, 2026-09-04: the user stopped parallel implementation. The primary now owns the
 remaining implementation, corrections, review and integration sequentially. The private planner and
 index drafts below are retained as review inputs; their old assignments are historical. Agents may

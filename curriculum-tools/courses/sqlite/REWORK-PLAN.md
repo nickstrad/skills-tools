@@ -1,4 +1,9 @@
-# SQLite course implementation plan — 2026-09-04
+# SQLite course implementation plan — 2026-09-04 (historical record)
+
+This file preserves the original implementation analysis and is retained for provenance. It is not a
+current batch assignment. The current reference outline is [PLAN.md](PLAN.md); future-course
+planning/sign-off and batch execution live in the repository's shared documentation. Historical
+model or agent assignments do not override the current user's choice.
 
 ## Objective
 
@@ -21,7 +26,8 @@ Module filenames stay stable; new `10-toolkit.ts` is registered BEFORE `09-capst
 - Materially changed existing lessons use revision 3; new lessons use revision 1. Pure explanation
   expansion preserves the existing revision and working experiment. Preserve surviving slugs; retire
   only the four listed below. Never edit generated lessons or real learner progress directly.
-- Retain the six reading checkpoints on their surviving slugs and refresh ordinal references.
+- Retain the six legacy source annotations on their surviving slugs and refresh ordinal references;
+  they do not define progression.
 - Unique learner-owned scratch directories for shell experiments; no clearing the main lab database
   for convenience. Print evidence paths. Bound readiness with markers/deadlines, not unverified
   sleeps. Trap and reap owned subprocesses. Preserve original crash/corruption evidence before
@@ -76,7 +82,7 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
 12. `overflow-pages`: create overflow, inspect local/overflow payload; contrast TOAST without
     implying SQLite compresses values.
 13. `freelist-vacuum-and-reuse`: delete/reuse/compact safe copy, measure bytes. Contrast VACUUM file
-    rewrite with PostgreSQL ordinary VACUUM. Keep checkpoint.
+    rewrite with PostgreSQL ordinary VACUUM.
 
 ### 03 — Rollback atomicity as an ordered file protocol (6)
 
@@ -92,7 +98,7 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
 18. `synchronous-contracts`: trace FULL/NORMAL/OFF rollback sync calls with file attribution where
     possible. Requests/order versus documented persistence guarantee.
 19. `batching-changes-the-cost`: identical process/connection count and SQL, different transaction
-    boundaries; sync counts/time. Call it transaction batching, not group commit. Keep checkpoint.
+    boundaries; sync counts/time. Call it transaction batching, not group commit.
 
 ### 04 — Error scope, writer admission and retries (6)
 
@@ -109,7 +115,6 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
     budget; measured wait and classified errors.
 25. `idempotent-retry-ledger`: identity+effect in one local commit; same payload replay, detect
     different payload for same ID; targeted conflict handling versus IGNORE, changes() adjacency.
-    Keep checkpoint.
 
 ### 05 — WAL work placement, snapshots and reclamation (6)
 
@@ -125,7 +130,7 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
     checkpoint I/O/timing; explicit checkpoint comparison and WAL FULL/NORMAL traces with same
     workload. Who pays maintenance?
 31. `checkpoint-starvation`: pinned reader, growing WAL, incomplete checkpoint, release/reclaim/no
-    row loss. Keep checkpoint.
+    row loss.
 
 ### 06 — Recovery of structure and meaning (6)
 
@@ -140,7 +145,7 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
     transaction/domain state, increase bound and recover. Page quota is not filesystem ENOSPC or WAL
     bound.
 37. `recover-damaged-copy`: preserve source/evidence; damage working copy, range salvage and
-    .recover, verify omissions and integrity. Keep checkpoint.
+    .recover, verify omissions and integrity.
 
 ### 07 — Workload capacity as measured evidence (4)
 
@@ -153,7 +158,7 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
 41. `measure-the-writer-envelope`: persistent CLI workers, identical settings/rows; vary batch size,
     one/two writers, time under reservation. Throughput, per-transaction latency
     samples/percentiles, attempts/success/busy/errors and live WAL bytes. Handshakes/deadlines; no
-    universal speed claim. Keep checkpoint.
+    universal speed claim.
 
 ### 08 — Independent local histories and reconciliation (6)
 
@@ -214,10 +219,11 @@ sizes when real-tool validation requires it, recording the evidence. Do not sile
 Do not reassign retired completions to new lessons. Test existing slug-based refresh on a COPY of
 progress, preserving real files byte-for-byte. Record old/new ordinal map for learners.
 
-## Delegation
+## Historical delegation record
 
-Use user-requested **gpt-5.6-luna, high**. Primary owns this plan, module08, runtime capability,
-integration/docs and independent review. Agents use private copies and own only assigned files:
+The implementation used the then-requested **gpt-5.6-luna, high**. Primary owned this plan,
+module08, runtime capability, integration/docs and independent review. Agents use private copies and
+own only assigned files:
 
 1. Foundations: 01-lab-file.ts, 02-pages.ts, 04-concurrency.ts (19 lessons).
 2. Mechanisms/performance: 03-journals.ts, 05-wal.ts, 07-performance.ts (16 lessons).
@@ -236,15 +242,16 @@ primary coordination; timing benchmarks are independently rerun without other ag
 ## Verification and completion
 
 1. Build/check/test; 54 unique slugs, backward prerequisites, full explanation fields, correct
-   revisions, six checkpoints. Review every semantic change against this plan and actual evidence.
+   revisions, six legacy source annotations. Review every semantic change against this plan and
+   actual evidence.
 2. Each lesson isolated (except explicit crash pair), plus sequential full course in one private
    lab. Tool harness plus explicit shell runs; compare rows/errors/status/files/frames/invariants,
    not just timeout completion. Preserve logs and a per-lesson validation report.
 3. Primary independently reruns changed failure/concurrency experiments and performance
    measurements.
 4. Isolated progress rendering and migration smoke tests; real progress hashes unchanged.
-5. Update PLAN.md to reflect final course, checkpoint/readings docs, course description, wrapper
-   guidance, bootstrap capability and durable knowledge. Report remaining limits accurately.
+5. Update PLAN.md to reflect final course, source docs, course description, wrapper guidance,
+   bootstrap capability and durable knowledge. Report remaining limits accurately.
 
 ## Added tags
 

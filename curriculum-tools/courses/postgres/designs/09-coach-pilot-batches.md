@@ -1,5 +1,9 @@
 # Coaching pilot: learn a small batch, review, then adapt
 
+> Historical design record. This superseded pilot is retained for provenance, not as a current route
+> or assignment. See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
+
 > Superseded as the learner path on 2026-09-06. Nick explicitly requested real first lessons of a
 > fixed smaller-chunk course rather than this UX pilot. The active course is now
 > [PostgreSQL Essentials](../../postgres-essentials/PLAN.md): 40 planned lessons, first three
@@ -16,9 +20,9 @@ belong before execution; review must not be the first explanation of the mechani
 variation, syntax, full material and the earlier direct stages remain available.
 
 The new lesson target is **20–30 minutes**, including all core work. The existing four experiments
-have not yet been split: their longer estimates and lesson 10's core reading are still displayed
-honestly. A 30-minute sitting cue includes rolling back open sessions when stopping early and
-rerunning setup when returning. There is no saved pause/resume state.
+have not yet been split: their longer estimates and lesson 10's optional source context are still
+displayed honestly. A 30-minute sitting cue includes rolling back open sessions when stopping early
+and rerunning setup when returning. There is no saved pause/resume state.
 
 **Current path:** Nick is leaning toward roughly **24 further essentials lessons**, building on the
 eight already completed, each targeting 20–30 minutes. This is the default direction for the next
@@ -34,7 +38,7 @@ next small batch toward the essentials route. No typed answers or written report
 
 This supersedes the six-stage path and 60-minute cue described in the original pilot below. The
 two-view presentation is ready for learner feedback; shorter experiment design remains pending. The
-SQL, session order, optional executable variations, reading locators and progress are preserved.
+SQL, session order, optional executable variations, source locators and progress are preserved.
 
 Approved by the learner on 2026-09-05. This narrows the broader
 [flow change plan](08-coach-flow-navigation.md): implement the next four lessons first, and defer
@@ -44,12 +48,12 @@ There is no need to repeat lesson 8 as an acceptance assignment.
 
 ## First batch: lessons 9–12
 
-| Lesson                     | Experiment                                                        | Why it belongs in the pilot                                                             |
-| -------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 9 — TOAST and large values | Compare storage, reads and updates of large text.                 | Tests whether several comparisons form one understandable single-session lesson.        |
-| 10 — Buffer cache and I/O  | Compare repeat scans and dirty pages before/after checkpoint.     | Tests output interpretation, bounded depth and a separately budgeted core reading stop. |
-| 11 — Transaction IDs       | Watch two sessions obtain transaction IDs as they write.          | Tests explicit terminal provisioning, session switches and just-in-time vocabulary.     |
-| 12 — Snapshot anatomy      | Watch an uncommitted writer and the view before/after its commit. | Tests a more abstract model grounded in two-session observations, then ends the pilot.  |
+| Lesson                     | Experiment                                                        | Why it belongs in the pilot                                                                      |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 9 — TOAST and large values | Compare storage, reads and updates of large text.                 | Tests whether several comparisons form one understandable single-session lesson.                 |
+| 10 — Buffer cache and I/O  | Compare repeat scans and dirty pages before/after checkpoint.     | Tests output interpretation, bounded depth and a separately budgeted optional reading reference. |
+| 11 — Transaction IDs       | Watch two sessions obtain transaction IDs as they write.          | Tests explicit terminal provisioning, session switches and just-in-time vocabulary.              |
+| 12 — Snapshot anatomy      | Watch an uncommitted writer and the view before/after its commit. | Tests a more abstract model grounded in two-session observations, then ends the pilot.           |
 
 Four is enough to sample different teaching demands while keeping rework small. This is not a claim
 that four lessons validate the entire course. Recovery, replication and incident work need another
@@ -75,9 +79,7 @@ of phase introductions. The optional snapshot variation must actually interleave
 with a stable reader, rather than displaying the same snapshot twice without a change between.
 
 Show the honest unsplit experiment time range, a 30-minute wrap-up cue and separately budgeted
-optional variation. Lesson 10 announces its existing core reading at the start and shows the exact
-excerpts at the finish. Core reading remains required before lesson 11; ordinary references remain
-optional.
+optional variation. Lesson 10's existing source context is optional and does not gate lesson 11.
 
 ## Review that appears in the actual flow
 

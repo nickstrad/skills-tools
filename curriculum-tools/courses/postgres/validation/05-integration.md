@@ -26,8 +26,8 @@ Every row has real core, source-variation and exact rendered-hint execution evid
 The experiments initialize isolated state and clean up their own processes/slots; they do not
 require a predecessor to leave a live shared topology. Current80 consolidates retired
 initial-sync-vs-streaming only after both original and new-table handoffs were measured. The
-physical read-your-writes identity was moved with its prerequisites and reading map preserved.
-Current course is92 lessons/seven stops.
+physical read-your-writes identity was moved with its prerequisites preserved. Current course is92
+lessons/seven stops.
 
 ## Current artifact correspondence
 

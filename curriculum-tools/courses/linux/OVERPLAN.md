@@ -1,4 +1,11 @@
-# Linux refactor: from demonstrations to defended decisions
+# Linux refactor: from demonstrations to defended decisions (historical record)
+
+This document preserves the 2026-09-04 refactor proposal and completion notes. It is reference
+material, not a current implementation assignment. The existing 72-lesson course is described in
+[PLAN.md](PLAN.md); the proposed replacement route is
+[Linux Systems v2](../../../future-courses/linux-v2/course.md). Use the repository's
+[batch workflow](../../../docs/lesson-batch-workflow.md) for any new batch. Historical Terra/model
+assignments below do not override the current user's choice.
 
 2026-09-04. The authority is `docs/learning_path.md`, `docs/AUTHORING.md`, and the checked-in
 curriculum-author skill. This is a deep Linux substrate course, not a command survey or a substitute
@@ -37,10 +44,10 @@ containers.
    and exact cleanup; wrapper uses the existing guided template. Update PLAN, progress evidence and
    durable findings.
 
-Each delegated change is implemented by a Terra agent at high reasoning effort in a private copy,
-with only its owned source files and validation report copied back. The primary owns difficult
-semantic decisions, final review, wording, artifacts, integration validation, commits and pushes.
-Agents never commit.
+The historical implementation used Terra agents at high reasoning effort in private copies, with the
+primary owning semantic decisions, final review, wording, artifacts, integration validation, commits
+and pushes. Treat those assignments as provenance; current batches follow the shared workflow and
+current user direction.
 
 ## Progression
 
@@ -66,9 +73,9 @@ privileged branches where the disposable host permits them and record policy ski
 variations need executed evidence. Run formatting, lint, type checks, tests and the repository
 check; report unrelated failures without changing concurrent PostgreSQL/SQLite work.
 
-Commit and push this plan and the restart handoff before implementation, then each reviewed unit
-with generated artifacts and updated `handoff.md`. Never stage the whole repository. Keep per-change
-results in `validation/` and reusable discoveries in `docs/knowledge/`.
+For any active batch, commit each reviewed unit with generated artifacts and an updated `handoff.md`
+as required by the shared workflow. Never stage the whole repository. Keep per-change results in
+`validation/` and reusable discoveries in `docs/knowledge/`.
 
 ## Completion — 2026-09-04
 

@@ -23,7 +23,7 @@ Give a bounded safe-stop/resume path at the stated limit.
 
 Existing projects may keep `review.md` as an optional separate source file. The CLI folds it into
 the complete lesson display, and `review` is a compatibility alias for that same output. New lessons
-may put interpretation and the worked reference directly below the learner task in `lesson.md`; no
+put interpretation and the worked reference directly below the learner task in `lesson.md`; no
 separate review file or CLI stage is required.
 
 Use the [lesson](../templates/lesson.md) template as a prompt, not mandatory padding. No pure

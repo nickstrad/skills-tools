@@ -13,7 +13,7 @@ The approach was to verify ownership and current resource use, preserve only evi
 for named unfinished checks, finish those checks, then retire the bulky inputs. The final audit
 compared current source and generated objects with accepted commits, reread selected complete
 outcomes, validated copied progress, and checked actual rendered commands. It did not restart all
-archived databases or repeat the book extraction. The final 1.81 GB of mapped archives was temporary
+archived databases or repeat the source research. The final 1.81 GB of mapped archives was temporary
 acceptance evidence, not a permanent recovery service. The final cleanup report records removal and
 learner readiness.
 

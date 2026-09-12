@@ -1,5 +1,10 @@
 # Durability and recovery contract
 
+> Historical design record. This contract is retained for provenance, not as a current assignment.
+> See [PLAN.md](../PLAN.md) and the
+> [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
+> choices.
+
 Primary sequential implementation,2026-09-05. Continue the accepted observability approach across
 original39–51 (current52–64). Preserve completed original1–7; preserve surviving slugs and use
 revision4. Keep supplied core code and exact runnable variations. No learner database writes and no
@@ -66,7 +71,7 @@ port5440 operations. Existing uncommitted guides/02-storage.ts changes belong to
 Implement one coherent subsection at a time. New process helpers must own unique directories,
 ports/sockets and subprocesses, bound startup/stop/polling, and retain useful logs. Shell lessons
 are executed separately from the SQL harness. Verify each core and exact rendered hint, classify
-errors, check first7/current progress on a copy, and update identity/reading maps on consolidation.
-Commit and push each accepted subsection with handoff and durable findings. Recovery completion
-requires actual restores and failures, not just static code review. After chunk4 proceed to
-replication, durable protocols and incidents; the active goal is the entire remaining refactor.
+errors, check first7/current progress on a copy, and update identity maps on consolidation. Commit
+and push each accepted subsection with handoff and durable findings. Recovery completion requires
+actual restores and failures, not just static code review. After chunk4 proceed to replication,
+durable protocols and incidents; the active goal is the entire remaining refactor.

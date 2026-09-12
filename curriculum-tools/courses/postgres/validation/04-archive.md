@@ -32,9 +32,9 @@ rejection did not start a server; subsequent owned-cluster runs used authorized 
 
 Primary designed, implemented, ran and reviewed the experiments. One bounded Terra/high read-only
 review found no blocking defects. Primary adopted wording corrections distinguishing a rejected
-archive command from a partial copy, driver timeouts from postmaster-launched commands, and book
-segment coverage from archive API coverage. The local copy does not claim crash-durable storage,
-host-loss survival, or restorability; those require later recovery experiments.
+archive command from a partial copy, and driver timeouts from postmaster-launched commands. The
+local copy does not claim crash-durable storage, host-loss survival, or restorability; those require
+later recovery experiments.
 
 Thirty engine/validation/coaching tests pass (/tmp/pg-archive-tests.log); full repository check
 passes (/tmp/pg-archive-check.log). Isolated actual build changes only wal-files-and-recycling,

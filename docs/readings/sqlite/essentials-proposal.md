@@ -39,10 +39,9 @@ while dropping a second distributed application curriculum.
 | --- | --- | --- |
 | PostgreSQL Systems | 92 active lessons, 15 categories; historical documents sometimes refer to 96 identities. Catalog estimates total 2,360 minutes before additional study. | Valuable deep reference: physical storage through MVCC, recovery, replication, protocols, and incidents. Its later 35–60 minute lessons explain why exhaustive coverage expands the commitment. |
 | PostgreSQL Essentials | Fixed 40-lesson route; 26 authored, 27–40 planned. Builds on eight previously completed reference lessons. | Keep the fixed scope, small causal questions, supplied commands, explanation/diagrams first, and interpretation. The former separate review is now folded into lesson. Do not infer the future 14 lessons have been validated or timed by the learner. |
-| SQLite Systems | 54 authored lessons in ten modules. Catalog estimates total 1,078 minutes, plus six formerly required reading stops totaling 95–130 minutes (now optional). | Strong reusable internals; latter scope expands into independent histories, delivery, fencing, tombstones, rejoin, FTS, and a substantial capstone/decision document. This exceeds the new time and scope preference. |
+| SQLite Systems | 54 authored lessons in ten modules. Catalog estimates total 1,078 minutes, excluding retired reading assignments. | Strong reusable internals; latter scope expands into independent histories, delivery, fencing, tombstones, rejoin, FTS, and a substantial capstone/decision document. This exceeds the new time and scope preference. |
 
-These are author estimates, not measured learning times. The SQLite estimates including required
-reading amount to roughly 19.5–20 hours. Simply changing the advertised times would not narrow the
+These are author estimates, not measured learning times. The SQLite experiment estimates total about 18 hours. Simply changing the advertised times would not narrow the
 work.
 
 Local evidence: [PostgreSQL reference catalog](../../../curriculum-tools/courses/postgres/lessons.json),
@@ -50,7 +49,7 @@ Local evidence: [PostgreSQL reference catalog](../../../curriculum-tools/courses
 [actual Essentials renderer](../../../curriculum-tools/courses/postgres-essentials/tools/coach.ts),
 [SQLite plan](../../../curriculum-tools/courses/sqlite/PLAN.md),
 [SQLite validation record](../../../curriculum-tools/courses/sqlite/VALIDATION.md), and
-[SQLite reading checkpoints](study-checkpoint-plan.md). The audit reviewed the catalogs, source
+[SQLite author source map](source-map.md). The audit reviewed the catalogs, source
 examples, renderer, planning documents and prior validation; it did not rerun the existing courses.
 
 ## What the research changes
