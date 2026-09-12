@@ -152,4 +152,8 @@ The log's PID and transaction number correlate events; durations and interleavin
 Reconstruct a failure across boundaries: a request entered, waited, executed, and then its enclosing transaction decided. Those are different events. Preserve identity, ordering and outcome evidence when designing telemetry. A completed-statement line is useful history, but deciding whether to retry a business operation requires its durable identity and committed result.
 
 ## Optional variation
-Repeat the exact workload with B's final COMMIT changed to ROLLBACK. Predict which wait and UPDATE log lines remain, and which stored value A reads afterward. Do not infer the business outcome from the UPDATE duration alone.
+Repeat Setup and Run with B's final COMMIT changed to ROLLBACK. In A's final query, also change
+the expected-value check to `note = 'holder committed' as final_outcome_ok`. Compare the wait and
+UPDATE log lines with the value A reads afterward. The UPDATE can execute and appear in the log while
+its transaction's later rollback discards the row change; duration alone does not establish the
+business outcome.

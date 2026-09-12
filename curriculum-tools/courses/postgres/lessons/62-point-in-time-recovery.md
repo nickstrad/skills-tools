@@ -390,6 +390,8 @@ still determine visible rows. This fixture places points between committed trans
 the resulting states directly; it does not replace authority control for a live failover.
 
 ## Optional variation
-Select after_cleanup first using the complete pgcoach hint2 variation. Predict the selected rows,
-receipt sum and absence of job999. Then compare the second, earlier-target branch and explain why
-its larger allocated timeline number cannot certify later application data or permission to write.
+In a copy of the supplied Run block, change only `selected_target = 'before_cleanup'` to
+`selected_target = 'after_cleanup'`. The first branch now has jobs6–20, five receipts and amount40;
+the second has jobs1–20, ten receipts and amount55. Neither includes job999. The second branch
+receives the larger allocated timeline number despite restoring earlier application data:
+timeline allocation alone establishes neither data freshness nor permission to write.

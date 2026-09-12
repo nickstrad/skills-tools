@@ -138,6 +138,8 @@ checkpoints identifies scheduling pressure, not direct proof of client stalls or
 Measure those outcomes before changing a service policy.
 
 ## Optional variation
-Double only the number of1,000-row batches using the complete pgcoach hint2 variation. Predict the
-receipt sum and which budget should show checkpoint activity. Compare actual record-distance and
-segment samples without assuming an exact checkpoint count, a hard disk ceiling or measured latency.
+In a copy of the supplied Run block, change only `batches = 32` to `batches = 64`. This doubles
+the number of1,000-row batches in both budget trials. Each trial verifies64,000 receipts with
+amount2,048,032,000. Compare actual record-distance and segment samples: the8MB budget triggers
+WAL-driven checkpoints while the128MB trial remains below its trigger in this fixture. Neither
+an exact checkpoint count, a hard disk ceiling nor latency follows from these samples.

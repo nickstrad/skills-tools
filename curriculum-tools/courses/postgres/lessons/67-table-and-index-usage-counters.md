@@ -108,3 +108,8 @@ Optimization needs a workload contract and an invariant inventory. Query telemet
 
 ## Optional variation
 Add customer=7 to the workload. Save its count and ID sum, compare its executed plan with and without the optional customer index inside a transaction, and roll back the drop. Decide whether a frequently used customer lookup changes your recommendation.
+
+After the core, or after finishing this optional comparison, run `DROP TABLE IF EXISTS
+obs_usage_orders;` in the same lab. This repeats the first Setup command to remove the owned
+table and its indexes once they are no longer needed. End any optional transaction with ROLLBACK
+before cleanup.

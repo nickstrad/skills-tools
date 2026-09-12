@@ -307,7 +307,8 @@ checkpoint frequency against writes, full-page images and recovery work requires
 WAL address distance alone neither predicts elapsed recovery nor specifies an application's RTO.
 
 ## Optional variation
-Run two committed update rounds before the same final checkpoint. Predict the receipt sum, Heap
-UPDATE count and whether writing pages once requires one page write per update record. Use the
-complete pgcoach hint2 variation, compare its JSON with the core, and explain any page-layout or
-catalog overhead before interpreting byte or buffer ratios.
+In a copy of the supplied Run block, change only `rounds = 1` to `rounds = 2`. This runs two
+committed update rounds before the same final checkpoint. Compare the receipt sum, Heap UPDATE
+count and JSON page evidence with the core. Several updates can dirty the same page before it is
+written, so page writes need not equal update records; page layout and catalog overhead also
+affect byte and buffer ratios.

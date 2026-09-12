@@ -158,6 +158,7 @@ These local trials preserve intact data files and WAL; backup recovery must sepa
 an independently restored starting state and available history suffice.
 
 ## Optional variation
-Double only the bulk workload to40,000 receipts using the complete pgcoach hint2 variation. Predict
-which record counts and final sum change, then compare both order-reversed pairs. Identify the
-measurements still missing before defending a production recovery-time objective.
+In a copy of the supplied Run block, change only `rows = 20000` to `rows = 40000`. Compare both
+order-reversed pairs, their record counts and the verified final sum. Each trial now has40,001
+receipts including the same7-unit tail, for amount800,020,007. This bounded, same-host restart
+does not establish a production recovery-time objective under a different workload or storage path.

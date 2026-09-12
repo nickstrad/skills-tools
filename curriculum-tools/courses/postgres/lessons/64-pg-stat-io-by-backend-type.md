@@ -117,4 +117,7 @@ Reads, hits, writes, evictions and reuses depend on existing cache state and bac
 Metric dimensions determine attribution limits. pg_stat_io aggregates all databases and processes of each backend type, while a query plan narrows evidence to one execution. Joining these perspectives supports a hypothesis; it does not turn cluster totals into per-request device latency. Use OS/device telemetry and a defined application workload before proposing storage or memory changes.
 
 ## Optional variation
-Change only the loaded row count from 100000 to 10000 and repeat the supplied measurement. Compare the relation-size boundary, scan context and buffer activity. Do not change cache settings or clear OS caches.
+In a copy of Setup and Run, change the loaded row count from100000 to10000. Adjust the matching
+`answer_ok` check to `count(*) = 10000 and sum(length(pad)) = 7000000`; this keeps the check tied
+to the smaller input. Repeat the measurement and compare the relation-size boundary, scan context
+and buffer activity. Do not change cache settings or clear OS caches.

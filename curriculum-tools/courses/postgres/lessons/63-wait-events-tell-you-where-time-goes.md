@@ -37,7 +37,7 @@ Two clients change the same account while a third collects evidence. The observe
 - **pg_stat_clear_snapshot()** (observation refresh): Clears C's cached activity snapshot inside the loop. Without it, repeated queries in the same transaction can repeat stale information.
 - **pg_stat_activity and pg_blocking_pids(pid)** (current activity): state and wait_event_type/wait_event describe the sampled clients; blocked_by contains the PIDs currently blocking the supplied backend on locks. These fields can change while being read.
 - **clock_timestamp(), xact_start, extract(epoch) and round** (time evidence): Use the advancing wall clock to calculate the age of each transaction and format seconds. Age is not CPU time.
-- **pg_sleep** (timer): The 0.05-second pause bounds polling overhead; 0.1 seconds spaces samples. Fifteen seconds in B creates an observable timer. The variation uses the same timer in A while A still owns its lock.
+- **pg_sleep** (timer): The 0.05-second pause bounds polling overhead; 0.1 seconds spaces samples. Fifteen seconds in B creates an observable timer.
 - **ANY(array), cardinality and GROUP BY** (evidence checks): Match the exact holder PID, check that the timer has no lock blockers, and count observed state combinations. Ten expected samples make a missed phase visible.
 
 ## Caution
@@ -109,7 +109,6 @@ from obs_wait_samples s join obs_wait_clients c on c.who = 'holder'
 where s.who = 'waiter' and c.pid = any(s.blocked_by);
 
 -- Session A
--- If A is running the variation's timer, wait for its prompt, then commit.
 commit;
 
 -- Session B
@@ -146,6 +145,3 @@ A NULL event means no instrumented wait was reported at that instant. It does no
 
 ## Systems lens
 Diagnose a dependency before choosing an intervention. Session state describes protocol progress, the wait event describes an instrumented wait, and blocker edges identify a lock dependency. A timer can be harmless outside a transaction and disruptive while retaining locks; the holder's own wait label is insufficient. Request traces and operating-system scheduling evidence answer questions these samples cannot.
-
-## Optional variation
-Repeat with the holder executing pg_sleep(15) while retaining its row lock. Predict both clients' wait labels and decide which transaction must end to release the writer. Exact code is available in the second coaching hint.

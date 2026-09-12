@@ -155,4 +155,7 @@ The autocommit variation still gets 57014, but the next query succeeds (00000), 
 A deadline is a policy at a particular boundary, not a generic instruction to undo the last request. Statement cancellation can leave a connection alive with an unusable transaction; a session deadline destroys connection state. Establish the transaction outcome and the operation's identity before retrying. Local database cleanup does not revoke an external side effect or fence another service.
 
 ## Optional variation
-Keep both timeout values and operations fixed, but omit the explicit BEGIN/ROLLBACK around the second client's work. Predict whether row 99 survives and whether the next query needs rollback. Run the exact autocommit variant from hint2.
+Export `OBS_AUTOCOMMIT=1` before rerunning the supplied block, then unset it afterward. This keeps
+both timeout values and operations fixed while omitting the explicit BEGIN/ROLLBACK around the
+second client's work. Its earlier row99 insert commits independently and survives the later
+statement timeout; the next query succeeds without a transaction rollback.

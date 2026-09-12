@@ -391,7 +391,8 @@ backup protocol and WAL establish a recoverable state. Recovery from later opera
 a chosen historical target and retained subsequent WAL, which the next lesson must exercise.
 
 ## Optional variation
-After reproducing the missing-WAL failure, supply that exact segment from the pristine backup
-through an owned archive restore command. Predict which failure should disappear and which row
-values should remain. Run the complete pgcoach hint2 variation; require actual archive retrieval,
-completed backup recovery and unchanged domain/constraint assertions with the source offline.
+In a copy of the supplied Run block, change only `repair = False` to `repair = True`. After
+reproducing the missing-WAL failure, this branch supplies that exact segment from the pristine
+backup through an owned archive restore command. It requires actual archive retrieval, completed
+backup recovery and the same domain/constraint assertions with the source offline. The repair
+restores the backup's2,000 jobs and receipts, with each amount total2,001,000.

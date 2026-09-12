@@ -29,8 +29,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
   validation schedule. PG92's core is complete but its existing optional branch needs local wording.
 - Essentials/gRPC audits are accepted: all32 reviewed and rendered;19 Essentials prose edits,
-  7 Essentials and6 gRPC unchanged. The ledger now has53 accepted rows,197 pending.
-- Next: primary continues PostgreSQL58–68, then remaining PostgreSQL prose/continuations,
+  7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
+- PostgreSQL58–68 are accepted:10 editorial changes and65 unchanged. The ledger now has64
+  accepted rows,186 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary continues PostgreSQL69–87, then remaining PostgreSQL prose/continuations,
   Linux13–72 and SQLite01–51/53. No new worker has been dispatched. Primary
   still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -47,6 +49,26 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL58–68
+
+Primary reviewed all11 lessons and their existing optional branch controls. Changes to58–62/66
+identify the existing switches directly;63 retires its unsupplied holder-timer hint prompt, one
+dangling syntax sentence and exactly the nonexecuting Run comment
+`-- If A is running the variation's timer, wait for its prompt, then commit.`
+This is an explicitly reviewed editorial byte-parity exception: executable SQL, session order,
+core lock/timer samples and cleanup are unchanged, so revision4 remains.
+
+Primary also made64's smaller-input answer_ok denominators and68's rollback expected-value check
+explicit. Those match their already documented and historically validated optional outcomes in
+`courses/postgres/validation/03-observability.md`; no new experiment is substituted. Lesson67's
+cleanup repeats the first Setup DROP after the optional transaction ends. Lesson65 is unchanged.
+All11 pass parsed allowed-field comparison and plain/ANSI/JSON rendering from a disposable catalog;
+all metadata/revisions and executable main commands are unchanged. The sole Code difference is
+the exact63 comment deletion checked above. PostgreSQL's92-lesson check passes.
+Retained log: `.cache/legacy-migration/postgres-58-68-parity.log`. Temporary catalogs are removed;
+no owned server or lab was allocated. Scratch remains15MB until final migration acceptance.
+Learner hash and lab identity remain at baseline; disk14GB/memory6.9GiB available.
 
 ### Resumed acceptance checkpoint — Essentials/gRPC
 

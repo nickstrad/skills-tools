@@ -51,6 +51,28 @@ These are editorial changes, so the existing real-tool evidence applies without 
 Concise verification log: `.cache/legacy-migration/postgres-six-parity.log`; its renders are retained
 until final migration acceptance. The temporary catalog was removed and no lab was allocated.
 
+## PostgreSQL58–68 editorial acceptance
+
+All11 lessons are reviewed. Lessons58–62/66 now name their existing rounds, rows, batches, repair,
+selected_target and OBS_AUTOCOMMIT controls and locally explain the outcomes. Lesson63 retires its
+unsupplied holder-timer hint, the associated syntax sentence, and exactly one nonexecuting Run
+comment: `-- If A is running the variation's timer, wait for its prompt, then commit.` The core
+three-session experiment is unchanged. No other Setup/Run byte changes are allowed in this chunk.
+
+The64 variation now names its matching10000-row/7000000-byte answer check;68 names its rollback
+expected-value expression. Both recover the already documented optional outcome rather than
+changing the comparison. The course's dated [observability acceptance](../../curriculum-tools/courses/postgres/validation/03-observability.md)
+records both successful answer checks and the exact intended row/log outcomes under these stable
+slugs (that historical report uses older ordinals). Lesson67's explicit cleanup repeats its first
+Setup DROP after the optional transaction ends. Lesson65's direct workload choice stays unchanged.
+
+All11 pass complete parsed comparison, rejecting nonapproved fields, and actual CLI plain/ANSI/JSON
+rendering from a fresh disposable catalog. All prose code blocks/diagrams remain identical, and the
+sole main Code exception is checked as an exact string deletion. Metadata/revisions remain stable;
+the92-lesson check passes. No new real-tool run was needed for these editorial clarifications.
+Log: `.cache/legacy-migration/postgres-58-68-parity.log`. Its render views remain until final
+acceptance; temporary catalogs are removed and no server or experiment lab was allocated.
+
 ## Essentials and gRPC presentation audit
 
 All26 authored Essentials lessons and all6 gRPC lessons are primary-reviewed. Essentials has19
