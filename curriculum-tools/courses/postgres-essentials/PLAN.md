@@ -12,8 +12,9 @@ row versions and HOT. No requirement to repeat them or take the old TOAST/cache/
 `lesson` output includes the mechanism, useful terminal diagram, setup and commands, expected
 evidence, interpretation, and cleanup. Put diagrams before commands, label them, connect them to the
 evidence, and keep them readable without colour. Optional references and variations are not
-homework. There are no typed guesses, reports, review view, pause, or checkpoint stage; only
-explicit `tutor postgres-essentials NUMBER done` records completion. Progress for this course is
+homework. There are no typed guesses, reports, review, prediction/reveal, pause, or checkpoint
+stage; only explicit `tutor postgres-essentials NUMBER done` records completion, while `skip` is an
+explicit separate decision. Progress for this course is
 stored in the shared `curriculum-tools/tutor.sqlite` database.
 
 ## Fixed sequence and intended outcomes
@@ -100,9 +101,10 @@ lessons. The numbered table above is the canonical route; `tutor <course> route`
 the authored files and labels completed, available, and planned entries. Tests check all available
 entries against their Markdown source. A separate `postgres-essentials` course ID
 keeps numbering 1–40 and course-scoped progress separate from the original 92-lesson catalog. The
-reference remains available through `tutor postgres NUMBER lesson`. Old completion records are
-never copied to new lesson identities. Only explicit `tutor <course> NUMBER done` commands write
-status. Every tool course is accessible through the generic tutor lesson renderer.
+reference remains available through `tutor postgres-legacy NUMBER lesson` (`postgres` remains its
+compatibility alias). Old completion records are never copied to new lesson identities. Only
+explicit progress commands write status. Every tool course is
+accessible through the generic tutor lesson renderer.
 
 The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Batch two adds storage,
 reclamation, read-committed, lost-update, concurrency, row-locks and concurrency-control. Validate

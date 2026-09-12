@@ -27,12 +27,12 @@ kernel behavior in a later lesson. Its expected count must move with the actual 
 
 ## How to apply
 
-1. Read lesson records with `tutor linux list --json`, or parse the fenced `Setup` and `Run` blocks
+1. Read lesson records with `tutor linux-legacy list --json` (the `linux` alias also works), or parse the fenced `Setup` and `Run` blocks
    directly when source text and quoting are required.
 2. Tokenize shell command position after `;`, pipes, `&&`, `||`, `&`, parentheses, `then`, `do`,
    `else`, and `!`; skip assignments and recurse into substitutions and shell strings.
 3. Cross-check candidates with `command -v`, `test -x` for required absolute paths, and
    `type -t NAME` for builtins. A command appearing only in the inventory lesson is suspect.
-4. Re-run the extraction after lesson edits, then run `tutor linux check` and compare the expected
+4. Re-run the extraction after lesson edits, then run `tutor linux-legacy check` and compare the expected
    inventory count with the generated evidence. Do not edit lesson content as a side effect of the
    inventory check.

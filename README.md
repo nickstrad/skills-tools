@@ -21,7 +21,9 @@ Linux debugging tools). Run it first on a new VM; see `scripts/README.md`.
 The generalized curriculum engine for building and running hands-on systems
 courses.
 
-- One CLI for multiple courses: `bin/tutor <course> route|<number> lesson|done`
+- One CLI for multiple courses: `bin/tutor <course> route|<number> lesson|done`; the reference
+  catalogs are exposed as `postgres-legacy`, `sqlite-legacy`, and `linux-legacy` while their
+  original stored IDs and paths remain `postgres`, `sqlite`, and `linux`.
 - Course authoring skill, reusable course template, build tooling, validation
   harness, and tests
 - [PostgreSQL Essentials](curriculum-tools/courses/postgres-essentials/PLAN.md): a fixed 40-lesson
@@ -58,6 +60,7 @@ cd ~/Software/skills-tools
 
 bin/tutor courses
 bin/tutor roadmap
+bin/tutor postgres-legacy route
 bin/tutor postgres-essentials route
 bin/tutor postgres-essentials init
 bin/tutor postgres-essentials 1 lesson
@@ -67,12 +70,16 @@ bin/tutor install
 
 Run `bin/tutor <course> init` before the first completion to initialize or refresh
 that course in the shared database. Use `--db PATH` with course commands when
-you need an isolated copy. Displaying a lesson never marks it complete;
-only `tutor <course> <number> done` does. The generic forms are
-`tutor <course> <number> lesson|done`; `tutor <course> lesson` opens the next unfinished lesson.
-`tutor <course> route` labels completed, available, and planned lessons. It can also show a valid
+you need an isolated copy. Displaying a lesson never marks it complete; only explicit `done`
+records completion. `skip`, `undone`, and `note` are separate progress operations. The generic forms are
+`tutor <course> <number> lesson|done|skip`; `tutor <course> lesson` opens the next eligible lesson.
+`tutor <course> route` labels completed, available, skipped, and planned lessons. It can also show a valid
 `future-courses/<folder>/course.md` route before the course is implemented; those planned rows do
 not create completion records.
+
+The legacy reference commands accept their original spellings as compatibility aliases: `postgres`,
+`sqlite`, and `linux` resolve to the same stored courses as the suffixed public names. There is one
+catalog and one progress history per course.
 
 Each lesson is the complete study unit: concise context, commands, expected evidence,
 interpretation, and cleanup. There is no required second review view, assigned reading stop, homework,

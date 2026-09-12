@@ -39,16 +39,21 @@ Nick studies around parenting and a full-time job and currently completes a Post
 lesson in roughly ten minutes. Prefer fixed, bounded routes of short mechanism-driven lessons. Put
 all context needed for the experiment in the lesson before its commands, use terminal-readable
 diagrams whenever they clarify a mechanism, and keep external reading optional. The learner uses
-`tutor <course> route` to see completed, available, and planned entries and
-`tutor <course> <number> lesson|done` to display or complete an authored lesson. There is no
-separate review, homework, checkpoint, or answer-submission stage, and only an explicit `done`
-records completion. A valid `future-courses/<folder>/course.md` route may be displayed before
-implementation, but its planned entries have status only and never create progress.
+`tutor <course> route` to see completed, available, planned, and skipped entries and
+`tutor <course> <number> lesson|done|skip` to display or update an authored lesson. `undone` restores
+an explicitly skipped lesson to next-lesson eligibility. There is no separate review, homework,
+checkpoint, or answer-submission stage. Only explicit `done` records completion; `skip`, `undone`,
+and `note` are explicit progress operations. A valid
+`future-courses/<folder>/course.md` route may be displayed before implementation, but its planned
+entries have status only and never create progress. The legacy reference courses are publicly named
+`postgres-legacy`, `sqlite-legacy`, and `linux-legacy`; their unsuffixed names remain aliases for the
+same stored course IDs and paths.
 
 ## Learning routes and progress
 
-The current PostgreSQL path is `postgres-essentials`; `postgres` remains a separate reference
-course with separate course-scoped progress. The shared learner database is
+The current PostgreSQL path is `postgres-essentials`; `postgres-legacy` is the separate reference
+course (with `postgres` as its compatibility alias) and has separate course-scoped progress. The
+shared learner database is
 `curriculum-tools/tutor.sqlite`; do not edit it directly or transfer completion between courses.
 Legacy per-course databases are retained under
 `curriculum-tools/.cache/legacy-progress/<course-id>/progress.sqlite*` as migration backups.

@@ -55,11 +55,14 @@ printed “success” message is not proof of an external effect; exercise the a
 or resource boundary on which the conclusion depends.
 
 All courses use the generic learner flow `tutor <course> route`, then
-`tutor <course> <number> lesson|done`; `tutor <course> lesson` opens the next unfinished lesson.
+`tutor <course> <number> lesson|done|skip`; `tutor <course> lesson` opens the next eligible lesson.
+`undone` restores a skipped lesson to eligibility. A skip is an explicit progress decision and is
+shown separately from completion.
 Plan-only routes may show planned rows without creating progress. Do not create a course-specific
-renderer or adapter. Only explicit `done` changes progress; optional source material and discussion
-never do. There is no mandatory review,
-pause, homework, note, or answer-submission stage. Execution policy belongs to the
+renderer or adapter. Only explicit `done` records completion; `skip`, `undone`, and `note` are
+explicit progress operations. Displaying a lesson, route or source material never writes progress.
+There is no mandatory prediction, reveal, review, pause, homework, note, or
+answer-submission stage. Execution policy belongs to the
 [batch workflow](../../docs/lesson-batch-workflow.md).
 
 New CLI logic, labs, fixtures, harnesses, and other course tooling follow the repository's

@@ -24,7 +24,8 @@ another. Migrated per-course databases are backups under
   `TUTOR COURSE modules`.
 - Inspect progress: `TUTOR COURSE status --json`.
 - Apply an explicit correction: `TUTOR COURSE undone NUMBER`,
-  `TUTOR COURSE skip NUMBER [--note TEXT]`, or `TUTOR COURSE note NUMBER TEXT`.
+  `TUTOR COURSE skip NUMBER [--note TEXT]`, `TUTOR COURSE NUMBER skip`, or
+  `TUTOR COURSE note NUMBER TEXT`.
 
 TUTOR and COURSE are abbreviations in this file, not literal arguments. Let the CLI choose the next
 lesson rather than deriving it from status output. A planned course supports `route` only; its plan
@@ -34,20 +35,20 @@ run `TUTOR COURSE init` and retry. Use `--db PATH` only for isolated author or v
 Show a complete lesson in one view: context, any terminal diagram, setup and commands, expected
 evidence, interpretation, and cleanup. Explain unfamiliar concepts and command purpose before the
 experiment. Preserve supplied commands and cautions. Give focused help when requested; there is no
-separate review, required prediction, written response, or reading checkpoint.
+separate review, required prediction or reveal, written response, or reading checkpoint.
 
 ## Courses and routes
 
 - `postgres-essentials` is the current PostgreSQL learning path. Its fixed 40-lesson route may
   include planned entries that are not yet authored.
-- `postgres` is the PostgreSQL Systems reference. It has its own course-scoped progress; reference
-  lesson numbers and completions do not transfer to PostgreSQL Essentials.
-  Some preserved reference prose mentions obsolete `pgcoach inspect`/`hint2` stages. Do not invoke
-  them or add a progression gate; use the complete lesson and give focused help with its evidence
-  or optional variation. See the reference course README for the historical limitation.
-- `sqlite` is the SQLite Systems reference. `TUTOR_SQLITE_DB` is needed only for real-tool
+- `postgres-legacy` is the PostgreSQL Systems reference (`postgres` remains its compatibility alias).
+  It has its own course-scoped progress; reference lesson numbers and completions do not transfer to
+  PostgreSQL Essentials. Use the complete lesson and give focused help with its evidence or optional
+  variation.
+- `sqlite-legacy` is the SQLite Systems reference (`sqlite` remains its compatibility alias).
+  `TUTOR_SQLITE_DB` is needed only for real-tool
   validation; ordinary route, lesson, and progress requests do not need it.
-- `linux` is the Linux Systems reference.
+- `linux-legacy` is the Linux Systems reference (`linux` remains its compatibility alias).
 - `grpc` is the short gRPC and Protocol Buffers reference. Its local tools and compiled artifacts
   were pruned; before running its experiments, reinstall them as directed by
   `curriculum-tools/courses/grpc/README.md`.
@@ -64,7 +65,7 @@ roadmap.
 - Showing, explaining, or author-validating a lesson never marks it done.
 - Complete only on an explicit request such as “done” or “mark 12 complete”; resolve the course and
   lesson from recent context only when unambiguous. Do not infer completion from pasted output.
-- Let the CLI select the next unfinished lesson; it handles skipped and stale entries.
+- Let the CLI select the next eligible lesson; it excludes skipped entries and handles stale entries.
 - Pass note text as one argument, preserve unrelated progress, and report command errors.
 
 ## New lessons

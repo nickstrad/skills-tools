@@ -10,15 +10,19 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 
 - P1 public names and P2/P3 aliases/history/skip behavior are committed in `d0c5511` and `8ee20a9`.
   Primary-focused suites pass. No live learner catalog refresh has occurred.
-- Primary accepted15 lesson edits: Linux01–12, PostgreSQL09, SQLite52/54. Exact allowed differences
+- Primary accepted15 lesson edits, committed in `d0d482d`: Linux01–12, PostgreSQL09, SQLite52/54. Exact allowed differences
   and pending rows are in `docs/legacy-course-migration/lesson-audit.tsv` (250 rows total).
   `docs/legacy-course-migration/validation.md` records command parity, rendering and real SQLite
   results. SQLite52/54 main SQL/database behavior is preserved; their revisions remain3.
-- P7 active guidance changes are reviewed, including primary corrections to completion wording,
-  the `undone N` example and the SQLite54 outline. No installer command has been run yet.
+- P7 active guidance changes are reviewed and included in the documentation checkpoint commit,
+  including primary corrections to completion wording, the `undone N` example and the SQLite54
+  outline. No installer command has been run yet.
 - Sol's P5 first-six PostgreSQL edits (38/46/54/55/56/57) are **pending primary acceptance**.
   Preserve these worktree changes; do not treat their ledger rows as accepted. The full92-row
   preliminary audit is `curriculum-tools/.cache/legacy-migration/postgres-audit.tsv`.
+- All three workers have stopped. Sol completed the 92-row preliminary inventory, checked the
+  PostgreSQL structure and rendered all six edited lessons; primary acceptance remains pending.
+  Worker temporary databases and renders are removed, with no active worker processes or labs.
 - Critical new P5 finding: PostgreSQL89 and90 also omit their controller inspection/recovery/
   cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
   validation schedule. PG92's core is complete but its existing optional branch needs local wording.

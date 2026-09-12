@@ -21,11 +21,12 @@ concrete uncertainty to resolve; simply running a provided inspection script is 
 
 Supply setup, fixtures, transport, process control and cleanup. Teach unfamiliar concepts and syntax
 before the task; a related worked example can precede it. Define its boundary and observable success
-criteria. Put optional hints and the exact worked answer below the task under a clear “attempt first”
-label, or link a separate reference. The single `lesson` output also contains the causal
-interpretation. `review` is only a compatibility alias, not a required step. Give full answers when
-requested. No forced quizzes, submissions, progress gates, blank-page boilerplate assignments, or
-mandatory Go everywhere. During coaching, do not silently complete the learner's reserved work.
+criteria. The single `lesson` output also contains the causal interpretation. Give full answers when
+requested. No forced quizzes, prediction/reveal prompts, submissions, progress gates, blank-page
+boilerplate assignments, or mandatory Go everywhere. For this user-requested legacy-course
+access/presentation migration, an existing supplied experiment may remain direct when that is the
+clearest way to expose its mechanism; this scoped exception does not change the meaningful-work
+norm for new lessons or introduce a replacement framework or attempt-first checkpoint.
 
 Predictions, reflection and observation still help, but alone do not meet this requirement. Neither
 does running a finished client, copying its complete solution, renaming a variable or making an

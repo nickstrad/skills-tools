@@ -1,4 +1,4 @@
-# PostgreSQL Systems: current module plan
+# PostgreSQL Systems (Legacy): current module plan
 
 Updated 2026-09-12. The course has 92 active lessons and three new identities replacing seven
 consolidated identities from the original 96-lesson course. The [identity map](lesson-map.md)
@@ -14,15 +14,15 @@ familiar usage; do not assume unfamiliar internals are mastered. No host-init ad
 web application or copying of the learner's repositories is required. Supplied CLI workloads keep
 the work focused on PostgreSQL mechanisms and engineering decisions.
 
-The progression is explain → run supplied commands → inspect → explain → vary → apply. Each lesson
-supplies its own context; external source research is optional background and never pauses the
-route. Early lessons introduce mechanisms with complete scaffolding. Isolation/locking require
-explicit invariants and concurrency decisions. Performance requires controlled measurements.
-Recovery and replication require full state/history reconciliation. Durable protocols join
-independent commits. The final incidents ask the learner to choose evidence/remedies; the capstone
-requires a complete operation history and a defended correctness/recovery/capacity decision.
-Runnable hints and full worked commands remain available throughout; syntax recall is not the
-assessment.
+Each lesson is a single complete output: explain the mechanism, run the supplied commands, inspect
+the evidence, and interpret the result. External source research is optional background and never
+pauses the route. Early lessons introduce mechanisms with complete scaffolding. Isolation/locking
+require explicit invariants and concurrency decisions. Performance requires controlled
+measurements. Recovery and replication require full state/history reconciliation. Durable protocols
+join independent commits. The final incidents ask the learner to choose evidence/remedies; the
+capstone compares a complete operation history with correctness, recovery and capacity evidence.
+Full commands and their interpretation are supplied in each lesson; no separate hints or written
+decision are required.
 
 The recurring request/job/result/receipt workload connects short claims, retry identity, durable
 outcomes, independent effects and bounded admission. Early tiny tables isolate a cause; later

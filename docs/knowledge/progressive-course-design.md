@@ -58,9 +58,11 @@ explicitly scoped guarantees.
   clarify state transitions, ownership, timelines, layouts, contention, or log flow; label them,
   connect them to the coming evidence, and keep them readable without colour.
 - Present one complete lesson through `tutor <course> route`, then
-  `tutor <course> <number> lesson`; only `tutor <course> <number> done` changes progress. Do not
-  require a separate review, pause, checkpoint, homework, or answer-submission stage. References
-  and deeper variations remain optional. Planned route rows never pretend that lesson content exists.
+  `tutor <course> <number> lesson`; only explicit `done` changes completion. `skip` records a
+  deliberate omission, shows separately in the route, and excludes that lesson from unnumbered
+  next selection; `undone` restores eligibility. Do not require a separate review, pause,
+  checkpoint, homework, prediction, or answer-submission stage. References and deeper variations
+  remain optional. Planned route rows never pretend that lesson content exists.
 - Consolidate repeated outcomes; retain an experiment when it provides materially different
   evidence. Use tiny examples for mechanisms and a recurring workload for their composition.
 - Distinguish observed behavior, documented guarantee and inference. Test the boundary actually
@@ -70,9 +72,10 @@ explicitly scoped guarantees.
   re-serve completed foundations that were not changed.
 
 The shared Go CLI owns presentation for every course. Future content renders through
-`tutor <course> route|<number> lesson|done`; do not build a new per-course renderer or a
-course-specific database adapter. Compatibility aliases, where retained, select the same complete
-lesson and do not add learner stages.
+`tutor <course> route|<number> lesson|done|skip`; do not build a new per-course renderer or a
+course-specific database adapter. The legacy reference commands are `postgres-legacy`,
+`sqlite-legacy`, and `linux-legacy`; their unsuffixed names remain aliases for the same stored
+course and do not add learner stages.
 
 ## Ownership during coupled refactors
 

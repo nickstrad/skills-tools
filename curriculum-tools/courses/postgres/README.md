@@ -1,13 +1,13 @@
-# PostgreSQL Systems course
+# PostgreSQL Systems (Legacy) course
 
-The reference lesson text is preserved from the earlier course. Lesson 9 and optional variations
-in lessons 55–62 and 69–76 mention retired `pgcoach inspect` or `hint2` stages; these were already
-unsupported by the last wrapper before the Go migration. They are not required progression steps
-or current commands. Use the complete `tutor postgres NUMBER lesson` view and its expected-result
-section. Historical extended variations remain in the archived PostgreSQL guides and source
-history; ask for help with a particular variation instead of invoking the retired stages.
+The reference lesson text is preserved from the earlier course. Use the complete
+`tutor postgres-legacy NUMBER lesson` view and its expected-result section. Historical extended
+variations remain in the archived PostgreSQL guides and source history; ask for help with a
+particular variation when needed.
 
-The 92-lesson deep reference course progresses from pages/MVCC through concurrency, measured
+The public command is `postgres-legacy`; the original `postgres` spelling remains a compatibility
+alias for this same stored course and physical path. The 92-lesson deep reference course progresses
+from pages/MVCC through concurrency, measured
 performance, recovery, replication, durable protocols and independent incident diagnosis. Its
 task-runner capstone requires complete request/effect reconciliation and a measured
 admission/concurrency decision. [PLAN.md](PLAN.md) gives the current outline;
@@ -40,19 +40,21 @@ lesson. There is no requirement to take the old 9–12 coaching pilot.
 
 ```sh
 cd /root/Software/skills-tools
-bin/tutor postgres route
-bin/tutor postgres 1 lesson
-bin/tutor postgres 1 done
+bin/tutor postgres-legacy route
+bin/tutor postgres-legacy 1 lesson
+bin/tutor postgres-legacy 1 done
+bin/tutor postgres-legacy 2 skip
 ```
 
 This reference course has its own course identity and progress history inside the shared
-`curriculum-tools/tutor.sqlite` database. Use `tutor postgres NUMBER lesson` for reference content and
-`tutor postgres route` for reference navigation; the Essentials route is
+`curriculum-tools/tutor.sqlite` database. Use `tutor postgres-legacy NUMBER lesson` for reference
+content and `tutor postgres-legacy route` for reference navigation; `tutor postgres NUMBER lesson`
+continues to resolve through the compatibility alias. The Essentials route is
 `tutor postgres-essentials route`.
 Do not use old completion numbers for new lessons. `lesson` includes the concepts, labelled terminal
-diagram, commands, expected evidence, interpretation, and cleanup. Older `review`, `full`, and
-`start` spellings are compatibility aliases, not separate stages. Only explicit `NUMBER done`
-records completion.
+diagram, commands, expected evidence, interpretation, and cleanup. There are no review, full, start,
+or coaching stages. Only explicit `NUMBER done` records completion; `NUMBER skip` records a separate
+omission and `undone NUMBER` restores next-lesson eligibility.
 
 ## Original reference experiments
 
@@ -62,7 +64,7 @@ commands only prepare a stopped symptom packet: inspect and explicitly apply the
 before treating the incident as recovered. The cancellation incident applies a policy to a fresh
 equivalent trial after its survey is stopped. Record evidence and use its printed cleanup action.
 
-From the repository root, `bin/tutor postgres` is the generic CLI. Its `init` command synchronizes Markdown lesson
+From the repository root, `bin/tutor postgres-legacy` is the generic CLI. Its `init` command synchronizes Markdown lesson
 metadata into the shared catalog while preserving stable IDs, course history and progress. Author
 validation uses `init --db /tmp/owned-copy/tutor.sqlite` on a copied database; it does not refresh
 the real learner catalog implicitly. Apply newly authored lessons through the CLI rather than
@@ -73,10 +75,11 @@ direct database edits.
 Read repository AGENTS.md, [AUTHORING](../../docs/AUTHORING.md), the curriculum-author skill and
 [the knowledge index](../../../docs/knowledge/README.md). Edit Markdown lesson files under
 `lessons/`. The retired coaching guides are archived reference material. From curriculum-tools,
-run `tutor postgres check`, then the appropriate real-tool checks and `tutor postgres validate`.
+run `tutor postgres-legacy check`, then the appropriate real-tool checks and
+`tutor postgres-legacy validate`.
 The generic SQL harness skips
 shell lessons and its completion count does not classify errors; execute shell cores and exact
-rendered hints independently and inspect complete outcomes.
+rendered optional comparisons independently and inspect complete outcomes.
 
 Keep original completed lessons 1–7 unchanged. Preserve surviving slugs and existing learner state;
 record consolidation coverage instead of transferring completions. Compare a fresh copied-catalog

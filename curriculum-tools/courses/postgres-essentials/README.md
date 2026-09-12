@@ -56,10 +56,11 @@ evidence, interpretation, optional variations, and cleanup. Any retained reading
 as separate optional context; it adds no commands, output requirement, or progression step. Diagrams
 appear before commands and remain readable without ANSI colour. Only explicit `NUMBER done` records
 completion. There are no typed answers, required notes, homework, reading checkpoints, separate
-review stage, or pause/resume state.
+review or prediction/reveal stage, or pause/resume state. `skip` is explicit and separate from
+`done`; `undone` restores next-lesson eligibility.
 
-The same reusable flow is available to every course through `tutor <course> <number> lesson|done`;
-`tutor <course> lesson` opens its next unfinished lesson. New courses do not need their own
+The same reusable flow is available to every course through `tutor <course> <number> lesson|done|skip`;
+`tutor <course> lesson` opens its next eligible lesson. New courses do not need their own
 renderer. `tutor <course> route` shows completed, available, and planned entries, matching
 the canonical route table.
 
@@ -71,7 +72,8 @@ bin/tutor postgres-essentials init
 ```
 
 The original 92-lesson course and its course-scoped history are preserved. It remains accessible
-with `tutor postgres NUMBER lesson`. The essentials numbering is 1–40; the original eight
+with `tutor postgres-legacy NUMBER lesson` (`postgres` remains its compatibility alias). The
+essentials numbering is 1–40; the original eight
 completions are prerequisites by learner context, not completions of these new experiments. Course
 identities keep the two routes' progress separate in the shared database.
 

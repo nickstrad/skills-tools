@@ -29,10 +29,13 @@ scaffolding, validation infrastructure, or progress changes.
 
 The learner interface is shared across courses: `tutor <course> route`, then
 `tutor <course> <number> lesson` and `tutor <course> <number> done`; the unnumbered `lesson` opens
-the next unfinished lesson. A lesson includes its context, commands, expected evidence,
-interpretation, and cleanup. Optional references and diagrams never add a progression stage. Only
-explicit completion changes progress. A valid `future-courses/<folder>/course.md` plan can be shown
-with `route` before implementation without creating progress. See the
+the next eligible lesson. `skip` records an explicit omission and `undone` restores eligibility.
+A lesson includes its context, commands, expected evidence, interpretation, and cleanup. Optional
+references and diagrams never add a progression stage. Only explicit progress commands change
+progress; displaying a lesson or route never writes it. A valid `future-courses/<folder>/course.md` plan can be shown with `route` before
+implementation without creating progress. The legacy reference catalogs are invoked publicly as
+`postgres-legacy`, `sqlite-legacy`, and `linux-legacy`; `postgres`, `sqlite`, and `linux` remain
+compatibility aliases for their original stored IDs. See the
 [planning guide](../future-courses/README.md) and [batch workflow](lesson-batch-workflow.md) for
 their separate authorities; the [authoring guide](../curriculum-tools/docs/AUTHORING.md) owns the
 lesson contract.
@@ -60,6 +63,9 @@ measurement rules and earlier synthesis proposals. The
 reference for a possible future course refactor.
 
 ## Repository knowledge
+
+The in-progress [legacy-course migration acceptance](legacy-course-migration/validation.md) records
+reviewed behavior and runtime checks; its250-row ledger and root `plan.md` identify remaining work.
 
 [`knowledge/README.md`](knowledge/README.md) indexes reusable findings about the tutor engine,
 validation harness, course authoring workflow, and tool-specific pitfalls.

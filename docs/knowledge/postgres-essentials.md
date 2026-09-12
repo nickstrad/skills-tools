@@ -20,9 +20,9 @@ launchers are retired; original course data is preserved.
 
 On 2026-09-12 the learner flow became one complete `lesson` output: mechanism context, a useful
 terminal diagram, setup and commands, expected evidence, interpretation, optional references or
-variations, and cleanup. Older `review`, `full`, and `start` spellings remain hidden aliases to this
-output. The generic Go CLI supports the same `tutor <course> <number> lesson|done` contract for
-every course, so future courses need no custom renderer.
+variations, and cleanup. There are no review, full, start, prediction, or reveal stages. The generic
+Go CLI supports the same `tutor <course> <number> lesson|done|skip` contract for every course, so
+future courses need no custom renderer.
 
 ## Why it matters
 
@@ -34,8 +34,9 @@ the diagram's meaning; ANSI colour is optional. Lessons are self-contained, with
 review stage, checkpoint, homework, or written response.
 
 Two-course identity also prevents accidental completion of a different lesson with the same number.
-The installed `tutor` skill points to the repository source. Use `tutor postgres route` for the
-92-lesson reference course and `tutor postgres-essentials route` for Essentials.
+The installed `tutor` skill points to the repository source. Use `tutor postgres-legacy route` for
+the 92-lesson reference course (`postgres` remains its alias) and `tutor postgres-essentials route`
+for Essentials.
 
 ## How to apply
 

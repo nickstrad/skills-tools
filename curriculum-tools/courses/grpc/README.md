@@ -42,6 +42,7 @@ only when you want to:
 ```sh
 bin/tutor grpc 1 done
 bin/tutor grpc route
+bin/tutor grpc 2 skip
 ```
 
 Each experiment's parenthesized block uses an isolated temporary directory. Its exit trap stops and

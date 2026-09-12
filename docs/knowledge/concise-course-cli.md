@@ -4,7 +4,9 @@ Updated 2026-09-12 for the Go CLI.
 
 The learner uses one `tutor` command for installed and planned courses. The normal flow is
 `tutor <course> route`, `tutor <course> [NUMBER] lesson`, then
-`tutor <course> NUMBER done`; only explicit completion records progress.
+`tutor <course> NUMBER done` or `skip`; only explicit learner decisions record progress. The three reference
+catalogs are publicly named `postgres-legacy`, `sqlite-legacy`, and `linux-legacy`. Their original
+IDs (`postgres`, `sqlite`, and `linux`) remain the stored identities and compatibility aliases.
 
 ## What happened
 
@@ -17,11 +19,11 @@ The learner uses one `tutor` command for installed and planned courses. The norm
   canonical route in `PLAN.md` or a future-course plan. `tutor <course> check` validates lesson
   files and their route before `init` refreshes the shared database.
 - `tutor courses` discovers installed and planned courses. `route` reads progress and distinguishes
-  done, stale, available, and planned rows. Planned routes can be browsed without creating a
+  done, skipped, stale, available, and planned rows. Planned routes can be browsed without creating a
   database; planned lessons cannot be served or completed.
 - `tutor lesson` renders the complete unit: context, a useful mechanism diagram, setup and run
   commands, expected evidence, interpretation, optional variation, and cleanup. Presentation is
-  read-only. `review`, `full`, and `start` are compatibility aliases where retained by the CLI.
+  read-only. There are no `review`, `full`, or `start` commands or learner stages.
 - Every course uses `curriculum-tools/tutor.sqlite`, with `course_id` separating histories. Legacy
   per-course files are preserved as read-only backups under
   `.cache/legacy-progress/<course-id>/`; stable slugs preserve learner identity when ordinals move.
@@ -45,9 +47,12 @@ the learner completed a lesson. The single database makes those rules consistent
 
 ```sh
 bin/tutor courses
+bin/tutor postgres-legacy route
 bin/tutor postgres-essentials route
 bin/tutor postgres-essentials lesson 3 --plain
 bin/tutor postgres-essentials 3 done
+bin/tutor postgres-legacy 4 skip
+bin/tutor postgres-legacy undone 4
 bin/tutor roadmap
 ```
 

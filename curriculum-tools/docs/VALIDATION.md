@@ -7,7 +7,7 @@ experiments (lock waits, serialization failures, deadlocks) run as they would in
 
 ## How it was used for the PostgreSQL course
 
-1. Display lesson 1 with `tutor postgres 1 lesson --plain`. Use the displayed Setup and Run blocks
+1. Display lesson 1 with `tutor postgres-legacy 1 lesson --plain`. Use the displayed Setup and Run blocks
    as the starting point for a private lab as the postgres OS user. Before running them, replace
    every learner-specific data directory, socket, port, and database path with lab-owned values and
    point all `PG*` settings at that private endpoint. Never execute learner paths such as
@@ -51,7 +51,7 @@ experiments (lock waits, serialization failures, deadlocks) run as they would in
 `progress verify` checks that refreshing one course's lesson rows preserves learner state:
 
 ```sh
-tutor postgres progress verify --db /path/to/tutor.sqlite
+tutor postgres-legacy progress verify --db /path/to/tutor.sqlite
 ```
 
 Before copying, it refuses a positive-size `tutor.sqlite-wal` or `tutor.sqlite-journal` and reports

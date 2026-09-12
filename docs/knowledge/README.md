@@ -10,6 +10,8 @@ otherwise rediscover.
 
 Updated 2026-09-12 for the Go CLI. The current PostgreSQL path and its identity/validation rules are in
 [postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first 26 available.
+The legacy reference catalogs are publicly named `postgres-legacy`, `sqlite-legacy`, and
+`linux-legacy`; their original IDs and paths remain compatibility aliases and storage identities.
 Current course-planning policy is in [progressive-course-design.md](progressive-course-design.md):
 small fixed Markdown routes, complete single-view lessons, explicit completion, self-contained context,
 and shared Go tutor rendering. Proposed courses live under [`future-courses/`](../../future-courses/).

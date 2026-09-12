@@ -1,4 +1,4 @@
-# Linux Systems curriculum plan
+# Linux Systems (Legacy) curriculum plan
 
 ## Contract and vocabulary
 
@@ -34,7 +34,7 @@ container internals and tracing work should add their distinctive implementation
 boundaries.
 
 The roadmap’s early Linux pass can accompany ongoing database work: select the relevant process,
-file/descriptor, signal, introductory memory or socket lesson through topics and review its listed
+file/descriptor, signal, introductory memory or socket lesson through topics and read its listed
 prerequisites. Return later for deeper pressure, scheduling, cgroup and namespace work. The
 standalone route follows the stored sequence with complete introductions; prior database experience
 can shorten discussion of familiar evidence but never implies Linux completion. Future
@@ -48,17 +48,17 @@ process stop; it does not establish crash durability or sustained-load capacity.
 
 | Point         | Learner responsibility                                                                    | Supplied help                                                                      |
 | ------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Modules 01–03 | Predict identity, execution order and cleanup; explain one observed relationship.         | Full commands, definitions and bounded rerun substitutions.                        |
+| Modules 01–03 | Run the identity, execution-order and cleanup observations; explain one relationship.           | Full commands, definitions and bounded rerun substitutions.                        |
 | Module 04     | Distinguish writer-open blocking, finite buffer pressure and final-writer EOF.            | Two-session command order and endpoint-lifetime hints.                             |
 | Modules 05–06 | Choose evidence for publication and space recovery across names, live objects and blocks. | Exact inode, descriptor and filesystem measurements; bounded filesystem controls.  |
 | Modules 07–09 | Separate process demand from host totals; defend a placement or budget decision.          | Per-file residency, controlled samples, scoped counters and labeled policy limits. |
 | Modules 10–11 | Join endpoint and process ownership; distinguish visibility from authority and budgets.   | Complete commands for each new namespace mechanism and bounded variations.         |
-| Module 12     | Choose familiar measurements, reject competing causes and prove useful recovery.          | Symptom-first prompts, runnable hints, full worked experiments and exact cleanup.  |
+| Module 12     | Choose measurements, reject competing causes and prove useful recovery.                  | Symptom context, runnable commands, full experiments and exact cleanup.             |
 
-Each lesson's challenge contains a specific prediction, evidence interpretation, bounded variation,
-hint and workload decision. Use those stages flexibly through the existing CLI and wrapper;
-full-lesson requests still receive the complete lesson. Completion is recorded only on explicit
-learner request. Validation reports document actual variations and host-policy limits.
+Each lesson contains its context, commands, evidence interpretation, cleanup and any useful bounded
+variation in one output. Completion is recorded only on explicit learner request; a learner may also
+explicitly skip a lesson, which route displays separately and excludes from unnumbered next selection
+until `undone` is requested. Validation reports document actual variations and host-policy limits.
 
 The recurring integration setting is a small service with processes, open files and a loopback
 endpoint. Isolated examples introduce mechanisms; synthesis asks which of those observations justify

@@ -36,7 +36,7 @@ material scope/count/order changes need renewed sign-off. Keep one canonical rou
    Run independently and in sequence where state could leak. Use `docs/VALIDATION.md` and the
    course-specific findings. Delegate bounded files only when authorized; review the resulting
    evidence yourself.
-5. Smoke-test the shared `tutor <id> <n> lesson|done` flow with an explicit temporary `--db PATH`.
+5. Smoke-test the shared `tutor <id> <n> lesson|done|skip` flow with an explicit temporary `--db PATH`.
    The learner database is the shared `curriculum-tools/tutor.sqlite`, with rows still scoped to the
    course. Showing content never completes it. Preserve stable identities; bump revisions only for
    material lesson changes and check progress migration on a copy when necessary.
@@ -58,11 +58,13 @@ resources after validation. Historical scratch paths are not instructions to reb
 
 Every lesson causes a phenomenon and observes it. The generic CLI owns presentation:
 `tutor <course> route` lists status, `<n> lesson` prints one complete lesson, and explicit
-`<n> done` records completion. Follow the complete lesson contract in
+`<n> done` or `<n> skip` records the learner's decision. `undone` restores a skipped lesson to
+next-lesson eligibility. Follow the complete lesson contract in
 [`docs/AUTHORING.md`](../../docs/AUTHORING.md): context and a plain-text-readable mechanism map
 before commands, exact setup/action, expected evidence, interpretation, cleanup and honest safety
-metadata. Do not implement course-specific renderers, quiz/review stages or required external
-reading. Retired source metadata is preserved in the repository archive, outside active lessons.
+metadata. Do not implement course-specific renderers, quiz/review stages, prediction/reveal
+checkpoints or required external reading. Retired source metadata is preserved in the repository
+archive, outside active lessons.
 
 ## Validation pitfalls to retain
 

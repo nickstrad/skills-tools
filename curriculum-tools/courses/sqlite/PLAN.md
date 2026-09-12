@@ -1,4 +1,4 @@
-# SQLite Systems: curriculum plan (reference course)
+# SQLite Systems (Legacy): curriculum plan (reference course)
 
 This is the existing 54-lesson reference course. The proposed concise replacement is
 [SQLite Essentials](../../../future-courses/sqlite/course.md); its plan is not an implementation or
@@ -48,9 +48,9 @@ independent commits, lost acknowledgments, stale owners, ordered histories and r
   data_version evidence. Compare data_version only within one connection.
 - Use full Session A/B blocks for concurrency, with bounded waits and explicit release points. Every
   lesson has its own setup; only hot-journal-recovery requires the preceding crash artifact.
-- Early lessons guide setup and observation. Later lessons invite predictions, variations, diagnosis
-  and defended policies. The final ADR is intentionally incomplete learner work, not a
-  script-generated approval or automatic completion.
+- Every lesson supplies its setup, commands, expected evidence and interpretation in one view.
+  Variations and defended policies are optional depth; no prediction, reveal, ADR submission or
+  other coaching stage is required for completion.
 - Legacy source annotations after slugs now numbered **13, 19, 25, 31, 37 and 41** remain only for
   catalog compatibility. External sources and optional depth do not block progression.
 - Surviving slugs preserve progress identity. Explicit lesson revisions preserve editorial-only
@@ -231,14 +231,13 @@ grammar and canonical route.
 ### 09 — Diagnose, compose and decide (3)
 
 52. `wal-growth-incident`: symptoms/evidence before remedy; learner distinguishes pinned snapshot
-    versus writer contention, restores progress and verifies state. Put diagnosis after prediction
-    task.
+    versus writer contention, restores progress and verifies state from the supplied observations.
 53. `offline-agent-capstone`: independent intent/receipt commits, short fenced jobs, uncommitted
     crash, lost ack/duplicate, stale owner and damaged restore candidate. Assert all invariants; no
     unchecked success output.
-54. `sqlite-architecture-decision`: workload requirements plus incomplete ADR, actual
-    contention/restore evidence; learner chooses durability/cadence/RPO/RTO, measurable acceptance
-    and exit criteria. No hardcoded approved decision or cadence; mark unmeasured guarantees.
+54. `sqlite-architecture-decision`: compare workload requirements with actual contention and restore
+    evidence; explain durability, backup cadence, RPO/RTO and the limits of local measurements.
+    No submitted decision record or hardcoded approved architecture; mark unmeasured guarantees.
 
 ## Consolidation and learner history
 
@@ -251,18 +250,19 @@ grammar and canonical route.
 
 Retired completions are not reassigned. The tutor refresh matches stable slugs to preserved IDs,
 rather than using ordinal as identity. See [the old/new position map](LESSON-MAP.md). After updating
-course content, the learner can run `bin/tutor sqlite init` to refresh metadata without marking
-lessons done; authoring validation uses only an explicit copied progress path.
+course content, the learner can run `bin/tutor sqlite-legacy init` (or the `sqlite` alias) to
+refresh metadata without marking lessons done; authoring validation uses only an explicit copied
+progress path.
 
 ## Authoring and validation
 
 Edit the Markdown files under `lessons/`, then run:
 
 ```sh
-tutor sqlite check
-tutor sqlite validate --isolated
-tutor sqlite init --db /tmp/sqlite-authoring.sqlite
-tutor sqlite 1 lesson --plain --db /tmp/sqlite-authoring.sqlite
+tutor sqlite-legacy check
+tutor sqlite-legacy validate --isolated
+tutor sqlite-legacy init --db /tmp/sqlite-authoring.sqlite
+tutor sqlite-legacy 1 lesson --plain --db /tmp/sqlite-authoring.sqlite
 ```
 
 The course-local runner executes shell and multi-session native lessons serially, saves expected
