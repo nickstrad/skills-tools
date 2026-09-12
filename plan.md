@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — next WP1.2/1.3/1.5/3.2/6.1 (parallel), WP2.1. Baseline commit `368734b`.**
+**Status: in progress — next WP1.3/3.2/6.1 (parallel, delegated), WP2.2, WP5.1. Baseline commit `368734b`.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -51,11 +51,11 @@ a separate handoff document.
 | WP0.2 Golden corpus from the Deno engine | S | done | (no repo change) | corpus SHA256: `8b1b256f2db9fec5a4edd8e7f242c242cf3f4c4bfcbe331e025c9a22a04033dc` (`$WORK/golden.tar.gz`); two variants per course, see finding 2026-09-12 (b) |
 | WP0.3 Module bootstrap | F | done | see log | cobra v1.10.2 / modernc.org/sqlite v1.58.0; Go caches at `/root/go`, `/root/.cache/go-build` |
 | WP1.1 course package (grammar) | F | done | see log | `internal/course` + `internal/testutil`; 8 tests |
-| WP1.2 Converter and conversion | S | todo | | |
+| WP1.2 Converter and conversion | S | done | see log | 250 files; every fence is three backticks; converter test deleted in WP8.1 |
 | WP1.3 render package | S | todo | | |
 | WP1.4 Parity gate A | S | todo | | |
-| WP1.5 Course template | S | todo | | |
-| WP2.1 progress schema and seed | F | todo | | |
+| WP1.5 Course template | S | done | see log | `templates/course/lessons/01-example.md` is byte-canonical (`FormatLessonFile` reproduces it) |
+| WP2.1 progress schema and seed | F | done | see log | `Open` uses `_txlock=immediate`; read verbs use `OpenReadOnly` (`mode=ro`); Go `Init` on baseline copies == Deno `init` dumps for all 5 courses |
 | WP2.2 Progress operations | S | todo | | |
 | WP2.3 Parity gate B | S | todo | | |
 | WP3.1 Cobra tree | O | todo | | |
@@ -72,7 +72,7 @@ a separate handoff document.
 | WP5.3 Real-tool smoke, old tools removed | S | todo | | |
 | WP5.4 VALIDATION.md | S | todo | | |
 | WP6.1 fsutil scavenge | S | todo | | |
-| WP6.2 Archive systemscoach writing | S | todo | | |
+| WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | S | todo | | |
 | WP7.1 tutor skill | O | todo | | |
 | WP7.2 AGENTS.md | O | todo | | |
