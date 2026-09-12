@@ -1,9 +1,8 @@
-// Package cli will eventually hold the tutor cobra command tree (see plan.md Phase 3). For now it
-// holds only the one-time legacy converter: ConvertLegacy reads a course's legacy lessons.json
-// catalog and writes the equivalent courses/<id>/lessons/NN-<slug>.md files using the course
-// package's grammar writer (internal/course.FormatLessonFile). ConvertLegacyCmd is a hidden cobra
-// command wrapping it; the later cobra work package attaches it (and a --root flag) to the real
-// command tree.
+// The one-time legacy converter: ConvertLegacy reads a course's legacy lessons.json catalog and
+// writes the equivalent courses/<id>/lessons/NN-<slug>.md files using the course package's grammar
+// writer (internal/course.FormatLessonFile). newConvertLegacyCmd wraps it as a hidden subcommand of
+// the tutor tree, using the root the CLI already resolved (--root, $TUTOR_ROOT or the launcher's
+// checkout). It is expected to be removed once every course has migrated (see plan.md WP1.2).
 package cli
 
 import (
@@ -100,30 +99,26 @@ func ConvertLegacy(root, id string) (int, error) {
 	return len(lessons), nil
 }
 
-// ConvertLegacyCmd is the hidden "tutor convert-legacy <course>" command. It resolves root from
-// TUTOR_ROOT (the later cobra work package wires up a --root flag instead); this command exists
-// only to drive the one-time conversion of the five legacy courses and is expected to be removed
-// once every course has migrated (see plan.md WP1.2).
-var ConvertLegacyCmd = &cobra.Command{
-	Use:    "convert-legacy <course>",
-	Short:  "Convert a legacy lessons.json catalog to Markdown lesson files (one-time, hidden)",
-	Hidden: true,
-	Args:   cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		root := os.Getenv("TUTOR_ROOT")
-		if root == "" {
-			return fmt.Errorf("tutor: TUTOR_ROOT is not set")
-		}
-		id := args[0]
-		n, err := ConvertLegacy(root, id)
-		if err != nil {
-			return err
-		}
-		lessonsDir, err := course.LessonsDir(root, id)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(cmd.OutOrStdout(), "Converted %d lessons of %s into %s\n", n, id, lessonsDir)
-		return nil
-	},
+// newConvertLegacyCmd is the hidden "tutor convert-legacy <course>" command, built fresh for one
+// invocation against the already-resolved curriculum root.
+func newConvertLegacyCmd(root string, stdout io.Writer) *cobra.Command {
+	return &cobra.Command{
+		Use:    "convert-legacy <course>",
+		Short:  "Convert a legacy lessons.json catalog to Markdown lesson files (one-time, hidden)",
+		Hidden: true,
+		Args:   exactArgs(1, "tutor convert-legacy <course>"),
+		RunE: func(_ *cobra.Command, args []string) error {
+			id := args[0]
+			n, err := ConvertLegacy(root, id)
+			if err != nil {
+				return err
+			}
+			lessonsDir, err := course.LessonsDir(root, id)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(stdout, "Converted %d lessons of %s into %s\n", n, id, lessonsDir)
+			return nil
+		},
+	}
 }
