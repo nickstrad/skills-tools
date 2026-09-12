@@ -33,9 +33,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
 - PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
 - PostgreSQL01–08 are also accepted: five prose edits, three unchanged, committed as `dafcf23`.
-- PostgreSQL10–20 are accepted: eight prose edits, three unchanged. The ledger now has107 accepted
-  rows and143 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes PostgreSQL21–37/39–45/47–53 (31 rows), Linux13–72 (60 rows)
+- PostgreSQL10–20 are accepted in `abf7a63`: eight prose edits, three unchanged.
+- PostgreSQL21–37 are accepted: four prose edits,13 unchanged. The ledger now has124 accepted
+  rows and126 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes PostgreSQL39–45/47–53 (14 rows), Linux13–72 (60 rows)
   and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -53,6 +54,23 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL21–37
+
+Primary accepted the21–29 and30–37 groups. Lesson21 directly explains connection reuse and closes
+its optional read-only transaction;23 changes variation terminology. Lessons28/29 remove mandatory
+predictions and give local results for their existing increment/amount/identity comparisons. The
+29 comparison explicitly stops after two hidden-response fixtures before the deliberately new
+identity, keeping it separate from core concurrency/receipt assertions. The other13 lessons are
+unchanged. Both groups pass exact Setup/Run/metadata/revision comparison and complete actual CLI
+plain/ANSI/JSON rendering from independently created/removed catalogs. Existing runtime evidence
+applies; no lab was allocated. Logs/manifests use `postgres-{21-29,30-37}*` in migration scratch.
+
+124 rows are accepted and126 pending:14 PostgreSQL,60 Linux,52 SQLite. Remaining PostgreSQL rows
+are39–45 and47–53. Primary has confirmed47's retention-cutoff comparison and49's wider-range
+comparison refer to unavailable hint programs; inspect and restore useful local commands with
+appropriate evidence before accepting them. Core47/49 remain unchanged so far. Final installation,
+tests and live rollout are still pending; no learner progress command has been run.
 
 ### Resumed acceptance checkpoint — PostgreSQL10–20
 

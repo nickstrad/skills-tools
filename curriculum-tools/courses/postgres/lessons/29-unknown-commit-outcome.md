@@ -207,7 +207,9 @@ policy. Later delivery and replication experiments exercise those boundaries exp
 
 ## Optional variation
 Rerun setup and the two hidden-response fixtures with the first debit amount changed from10 to15,
-keeping its identity and payload consistent across every replay. Predict the final balances before
-running. Then deliberately give a replay a new identity: compare the extra debit and receipt, and
-explain why caller-generated identities must survive retries. Keep the incorrect variant isolated
-from the core's conservation and receipt-count assertions.
+keeping its identity and payload consistent across every replay. The first request and its replay
+return85; the second request applies7 once and leaves account1 at78. Stop after those two fixtures.
+Then repeat the first15-unit debit with a new identity: account1 falls to63 and a new receipt is
+created. Account2 remains100 throughout this comparison. A new identity describes another operation,
+so it defeats retry deduplication. Keep this deliberately incorrect replay separate from the core's
+later concurrency schedule and receipt-count assertions.

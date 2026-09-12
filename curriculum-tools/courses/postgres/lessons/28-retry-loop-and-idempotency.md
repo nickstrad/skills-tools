@@ -162,4 +162,8 @@ The first client ends with SQLSTATE 40001 and status 3. Its balance change and r
 Transaction retry is a client protocol around an atomic storage operation. The database reports the failed attempt, while the client owns the retry budget and repeats the decision on fresh state. The example has only transactional database effects, so the known-aborted attempt has nothing external to deduplicate. A timeout that hides whether COMMIT succeeded requires a stable request identity and result recovery; the unknown-outcome experiment handles that separate case. Safety of committed serializable results does not depend on retrying forever: the application can instead report a failure.
 
 ## Optional variation
-Change the competing increment from 5 to 20 and predict the final balance before rerunning. Update the corresponding final assertion only after writing the prediction. Keep the initial balance, decrement, gate and two-attempt requirement the same; identify which log proves the failed attempt did not subtract ten.
+Rerun Run with the competitor's `balance=balance+5` changed to `balance=balance+20` and the final
+`'95|1'` assertion changed to `'110|1'`. Keep the initial balance, decrement, gate and two-attempt
+requirement the same. The competitor commits120; the fresh second attempt reads120 and commits110
+with one effect row. The first attempt's40001/status3 log and the single effect show that its failed
+decrement did not survive. The script's existing cleanup removes its schema and clients.

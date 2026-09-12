@@ -63,6 +63,23 @@ Retained concise evidence: `verify-readonly-horizon.go` and `pg11-horizon.log` i
 
 PostgreSQL's92-lesson source check passes. The ledger has107 accepted rows and143 pending.
 
+## PostgreSQL21–37 review
+
+Primary accepted both review groups (21–29 and30–37): four prose changes and13 unchanged lessons.
+Lesson21 directly explains successful connection reuse and closes its optional read-only
+transaction;23 uses variation terminology. Lesson28 removes the prediction prerequisite and names
+the existing competitor increment/assertion substitutions (+20 and110|1). Lesson29 removes its
+prediction prerequisite, states85/78/63 for the supplied amount/identity comparisons and explicitly
+stops after the two hidden-response fixtures before the incorrect new-identity replay.
+
+The remaining isolation, lock queue, deadlock, DDL, advisory-lock and work-queue lessons have direct
+experiments and comparisons. Genuine wait instructions, native SQL error HINT output, physical
+observation and the queue's five-minute fixture deadline are retained. Neither group changes
+Setup/Run, existing optional SQL blocks, metadata, revisions or stable identities. Independent
+disposable catalogs pass exact allowed-field comparison and complete plain/ANSI/JSON checks for
+every lesson. Existing experiment evidence applies; no new lab was allocated. Logs/manifests use
+`.cache/legacy-migration/postgres-{21-29,30-37}*`. The ledger has124 accepted rows and126 pending.
+
 ## Public names and skipping
 
 Commits `d0c5511` and `8ee20a9` separate public names from stored identities and add number-first

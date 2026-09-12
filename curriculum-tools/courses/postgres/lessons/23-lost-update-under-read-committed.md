@@ -52,7 +52,7 @@ writers must wait for the current transaction to finish.
 - **COMMIT** (SQL transaction command): Publishes changes and releases transaction-held row locks.
   - What it does here: Wakes the waiting UPDATE or SELECT in Session B.
   - What it gives us: A deterministic handoff between workers.
-- **FOR NO KEY UPDATE** (alternative row-lock clause in the challenge): Uses a weaker mode that still conflicts with the competing non-key writer.
+- **FOR NO KEY UPDATE** (alternative row-lock clause in the variation): Uses a weaker mode that still conflicts with the competing non-key writer.
   - What it does here: Lets you test which reader/writer combinations can coexist.
   - What it gives us: A direct observation of the lock compatibility rules.
 

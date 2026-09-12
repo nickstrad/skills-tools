@@ -106,5 +106,6 @@ one later statement inside that failed block is not recovery.
 
 ## Optional variation
 After rerunning setup, deliberately issue a second invalid statement after division by zero, then
-ROLLBACK and begin a fresh transaction that reads both balances. Which command proves that the old
-failed transaction, rather than the connection, was the thing that needed replacement?
+ROLLBACK and begin a fresh transaction that reads both balances. The successful fresh read shows
+that the connection remains usable after discarding its failed transaction. Commit the read-only
+transaction to finish the comparison.

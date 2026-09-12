@@ -97,23 +97,23 @@ postgres	17	vacuum-reclaims-in-place	unchanged		primary	Unchanged space-reuse ex
 postgres	18	vacuum-full-rewrites-and-locks	unchanged		primary	Unchanged rewrite/lock schedule and optional reader-blocking comparison
 postgres	19	visibility-map-and-index-only-scans	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; complete locality/visibility-map comparison preserved
 postgres	20	autovacuum-triggers	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; bounded autovacuum poll and explicit table-option reset preserved
-postgres	21	atomic-abort	pending			
-postgres	22	read-committed-sees-each-statement	pending			
-postgres	23	lost-update-under-read-committed	pending			
-postgres	24	optimistic-concurrency-with-version-columns	pending			
-postgres	25	repeatable-read-blocks-then-fails	pending			
-postgres	26	write-skew	pending			
-postgres	27	serializable-ssi	pending			
-postgres	28	retry-loop-and-idempotency	pending			
-postgres	29	unknown-commit-outcome	pending			
-postgres	30	row-locks-are-in-the-tuple	pending			
-postgres	31	lock-queue-and-blocking-pids	pending			
-postgres	32	deadlock-detection	pending			
-postgres	33	lock-timeout-and-nowait	pending			
-postgres	34	ddl-behind-a-long-query	pending			
-postgres	35	advisory-locks-as-leases	pending			
-postgres	36	skip-locked-work-queue	pending			
-postgres	37	unique-constraint-race	pending			
+postgres	21	atomic-abort	prose/diagram only	Challenge	primary	Direct failed-transaction reuse interpretation and explicit final reader commit; main abort evidence preserved
+postgres	22	read-committed-sees-each-statement	unchanged		primary	Unchanged statement-snapshot experiment and local insert comparison
+postgres	23	lost-update-under-read-committed	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; both lock modes and complete handoff retained
+postgres	24	optimistic-concurrency-with-version-columns	unchanged		primary	Unchanged stale-edit race and explicit rollback variant that stops before merge
+postgres	25	repeatable-read-blocks-then-fails	unchanged		primary	Unchanged known-conflict abort and competitor-rollback comparison
+postgres	26	write-skew	unchanged		primary	Unchanged write-skew core plus supplied ordered row-lock comparison
+postgres	27	serializable-ssi	unchanged		primary	Unchanged SSI experiment and direct reference to complete earlier lock schedule
+postgres	28	retry-loop-and-idempotency	prose/diagram only	Challenge	primary	Remove mandatory prediction; name existing +20 and 110|1 substitutions with local retry/log interpretation
+postgres	29	unknown-commit-outcome	prose/diagram only	Challenge	primary	Remove mandatory prediction; preserve two hidden-response fixtures and new-identity comparison with explicit 85/78/63 balances and stop boundary
+postgres	30	row-locks-are-in-the-tuple	unchanged		primary	Unchanged tuple-lock and transaction-wait evidence; direct shared-holder MultiXact comparison ends both transactions
+postgres	31	lock-queue-and-blocking-pids	unchanged		primary	Unchanged three-session queue handoff and compatible FOR SHARE comparison
+postgres	32	deadlock-detection	unchanged		primary	Unchanged deadlock victim handling, conditional commit/rollback and direct ordered-acquisition comparison
+postgres	33	lock-timeout-and-nowait	unchanged		primary	Unchanged timeout/NOWAIT/SKIP LOCKED evidence and supplied bounded statement-timeout variation
+postgres	34	ddl-behind-a-long-query	unchanged		primary	Unchanged full DDL queue and timeout/retry schedules, including dropped trial column
+postgres	35	advisory-locks-as-leases	unchanged		primary	Unchanged advisory-lock scopes and supplied exact owned-session termination/reconnect comparison
+postgres	36	skip-locked-work-queue	unchanged		primary	Unchanged guarded queue/result core and claim rollback comparison; operational pause wording is a fixture deadline
+postgres	37	unique-constraint-race	unchanged		primary	Unchanged uniqueness wait/error/no-op experiment and direct upsert/rollback comparisons
 postgres	38	explain-analyze-buffers	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Retired unsupplied seq_page_cost coaching prompt and dangling syntax bullet; core cost explanation and commands preserved
 postgres	39	statistics-drive-plans	pending			
 postgres	40	index-scan-vs-seq-scan-crossover	pending			
