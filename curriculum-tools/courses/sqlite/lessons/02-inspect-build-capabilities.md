@@ -37,7 +37,7 @@ SQLite is a library that can be built with different optional features. Two prog
 - **bytecode('SELECT 1')** invokes the optional bytecode virtual table and returns opcode rows ordered by instruction address. Ordinary EXPLAIN alone would not prove that optional module exists.
 - **fts5(body) and MATCH 'capability'** create a temporary full-text table, insert text and require one search result. A substitute LIKE query would bypass the capability being tested.
 - **.help backup/recover** checks the CLI command surface, not whether a future backup or salvage will work.
-- **sqlite_compileoption_used('ENABLE_DBSTAT_VTAB')** in the challenge compares a named build flag with the successful operation; it complements rather than replaces the probe.
+- **sqlite_compileoption_used('ENABLE_DBSTAT_VTAB')** in the variation compares a named build flag with the successful operation; it complements rather than replaces the probe.
 
 ## Setup
 ```sql

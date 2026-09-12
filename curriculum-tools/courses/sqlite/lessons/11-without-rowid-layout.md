@@ -73,4 +73,8 @@ Both tables contain 2000 rows. The rowid table has a table object plus a primary
 WITHOUT ROWID trades the hidden integer table key for the declared primary key. That can remove one lookup structure for composite-key access, while secondary indexes must carry the primary-key columns needed to locate records. Unlike treating PostgreSQL CLUSTER as a durable ordering guarantee, this ordering is part of the SQLite table representation.
 
 ## Optional variation
-Add a secondary index on payload to both tables and compare the incremental pages; predict which key is clustered.
+Repeat Setup and Run to compare the secondary-index phase already supplied. Record the initial
+table/primary-key page objects, then compare the additional payload-index pages and index_xinfo
+locators after both CREATE INDEX statements. The ordinary table remains keyed by rowid; the
+WITHOUT ROWID table remains keyed by(a,b), which its secondary index carries as the row locator.
+Both tables still contain2,000 rows; extra page counts are measured layout costs.

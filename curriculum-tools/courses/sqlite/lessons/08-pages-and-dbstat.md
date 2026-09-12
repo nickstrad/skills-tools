@@ -63,4 +63,6 @@ file_bytes equals page_size multiplied by page_count and is page-aligned. dbstat
 A rowid table stores rows in a B-tree keyed by integer identity. That differs from PostgreSQL's heap plus index indirection, and it changes what a primary-key lookup traverses. dbstat describes page structure, not a count of physical disk reads or the engine's cumulative writes.
 
 ## Optional variation
-Repeat with page_size=4096 and predict whether the table needs fewer pages for the same rows.
+Rerun Setup and Run with page_size=4096, retaining VACUUM and the same2,000 rows. Compare the
+samples page counts by role with the1,024-byte run. Larger pages can hold more cells, but use
+the measured layout and total bytes rather than assuming a fixed reduction or I/O benefit.

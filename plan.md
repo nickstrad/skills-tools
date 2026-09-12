@@ -40,9 +40,11 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   PostgreSQL completion is committed in `1e64d13`.
 - All72 Linux lessons are accepted:13–24 in `953dcc0`,25–36 in `a05be21`,37–48 in `0e94bc0`,
   49–60 in `ca8d457`, and the final61–72 group as recorded below. Setup/Run behavior and revisions
-  remain unchanged;72 has exactly two comment replacements. The ledger has198 accepted rows and52 pending.
+  remain unchanged;72 has exactly two comment replacements. Linux completion is committed in `b0a3abb`.
+- SQLite01–12 are accepted with eight prose edits and four unchanged lessons. The ledger has210
+  accepted rows and40 pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+- Next: primary completes SQLite13–51/53 (40 rows). No new worker has been dispatched. Primary
   still owns final integration and serial hazardous validation if a remaining semantic change needs it.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -59,6 +61,21 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — SQLite01–12
+
+Primary accepted all12 early SQLite lessons: eight prose edits, four unchanged (04/05/09/12).
+Direct comparisons provide copied-path/count evidence, COMMIT visibility, failed-migration rollback
+and copied-file cleanup, STRICT/CHECK rejection, larger-page observations and the already-supplied
+secondary-index phase. Syntax references use variation terminology;01 corrects an irrelevant
+.shell description to the actual host-copy comparison. No Setup/Run or existing block changed,
+and metadata/revisions remain exact. All12 actual plain/ANSI/JSON views and the54-lesson source
+check pass. No runtime behavior changed; existing evidence applies, with no new lab or copy trial.
+Scratch uses `sqlite-01-12*`; the temporary review catalog is removed.
+
+The ledger has210 accepted and40 pending: SQLite13–51/53. Primary read13–15; they appear unchanged
+but are not yet accepted or edited. Scratch remains about22MB until final acceptance. Integration,
+installation, copied-history/live rollout and final cleanup/readiness remain required.
 
 ### Resumed acceptance checkpoint — Linux61–72 and Linux audit completion
 

@@ -77,4 +77,6 @@ B first prints one committed row. While A's second transaction is open, A report
 No server process does not mean no concurrency protocol. Each caller has private connection and transaction state, while SQLite coordinates access to one shared file. Distinguish this arrangement from two independent database files, which later lessons use to model separate commit histories.
 
 ## Optional variation
-Replace ROLLBACK with COMMIT and predict the next count in B; then test it.
+Rerun Setup and the two-session sequence with ROLLBACK replaced by COMMIT. B still sees1 while
+A's second row is uncommitted, then its final count becomes2 after commit. The unchanged final
+query's b_after_rollback label now describes the comparison after COMMIT.

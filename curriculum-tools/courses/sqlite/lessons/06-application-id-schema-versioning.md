@@ -84,4 +84,12 @@ The first migration commits application_id=1397836884, user_version=2, a body co
 SQLite can be an application file format, so migration and reader compatibility belong to the application, not an unseen service administrator. Atomic metadata updates prevent half-migrations; a supported-version gate prevents a different class of failure, where a structurally valid file is interpreted under the wrong contract.
 
 ## Optional variation
-On another owned copy, change user_version to an unsupported generation without changing the schema and run the acceptance query. Then remove the explicit ROLLBACK from the failed migration and inspect transaction state without committing it: why is catching the exception alone insufficient?
+On another owned copy, change user_version to an unsupported generation without changing the
+schema and run the acceptance query: it reports reader rejects file. For the failed-migration
+comparison, rerun Setup and Run only through the deliberate duplicate insert, omitting its
+immediate ROLLBACK. In that same connection inspect user_version and pending_column with the
+supplied query before continuing: the open transaction still contains version3 and that column.
+
+The default constraint error abandoned the failed statement, leaving the transaction's earlier
+work pending. Explicitly ROLLBACK before running the independent-reader checks; they again see
+version2 without pending_column. Close connections and remove only this comparison's owned copy.

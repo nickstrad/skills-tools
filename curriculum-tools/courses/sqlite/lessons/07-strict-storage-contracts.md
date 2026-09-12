@@ -71,4 +71,6 @@ The flexible insert succeeds and typeof(value) is text. The first strict insert 
 Validation is a placement decision. Ordinary SQLite affinity is more permissive than PostgreSQL's declared column types; STRICT brings a lossless storage-type contract, while CHECK and NOT NULL still express separate domain rules. These local constraints reduce bad state but do not validate a distributed history or external input protocol.
 
 ## Optional variation
-Try inserting 42.5 into strict_numbers and 101 into bounded. Predict which layer rejects each value and inspect typeof for every accepted row.
+Try inserting 42.5 into strict_numbers and 101 into bounded, then repeat the supplied typeof and
+count queries. STRICT rejects 42.5 because it cannot become an integer losslessly; the CHECK
+rejects 101 because it is outside the domain range. Neither rejected row changes the final counts.

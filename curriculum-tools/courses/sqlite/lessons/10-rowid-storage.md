@@ -33,7 +33,7 @@ SQLite rowid tables already have an internal integer identity. Declaring INTEGER
 - **CREATE UNIQUE INDEX indexed_key** (index definition): creates a second B-tree enforcing uniqueness on indexed.logical_key.
 - **WITH RECURSIVE and printf** (row generator and formatter): produce the same 1000-key workload and similar payload lengths for all tables.
 - **dbstat name, count(*), sum(pgsize)** (inspection columns and aggregates): count pages and bytes per table/index object.
-- **EXPLAIN QUERY PLAN** (query-plan command in the challenge): names SCAN or SEARCH paths and exposes use of the separate indexed_key B-tree.
+- **EXPLAIN QUERY PLAN** (query-plan command in the variation): names SCAN or SEARCH paths and exposes use of the separate indexed_key B-tree.
 
 ## Setup
 ```sql

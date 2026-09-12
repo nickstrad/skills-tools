@@ -4,6 +4,21 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## SQLite01–12 content group
+
+Primary accepted all12 complete early lessons: eight prose edits and four unchanged (04/05/09/12).
+Direct optional instructions provide copied-path/count evidence, COMMIT visibility, failed-migration
+same-connection inspection followed by rollback/reopen, STRICT/CHECK rejection and larger-page
+observations. Lesson11 points to its already-supplied secondary-index phase, avoiding an attempted
+duplicate CREATE INDEX. Syntax uses variation terminology, and01 replaces its irrelevant .shell
+description with the actual host-copy comparison. Copied-file/transaction cleanup is explicit.
+
+All Setup/Run bytes, existing blocks, identities, sessions, safety and revisions match baseline.
+All12 actual CLI plain/ANSI/JSON views pass and SQLite check reports54 lessons. The temporary
+catalog is removed. Existing runtime evidence applies; no lab or file-copy trial was allocated.
+Logs/manifests/views use `.cache/legacy-migration/sqlite-01-12*` until final acceptance. The ledger
+now has210 accepted and40 pending.
+
 ## Linux61–72 and complete Linux acceptance
 
 All72 Linux lessons are primary accepted. The final12 replace staged prompts with direct namespace

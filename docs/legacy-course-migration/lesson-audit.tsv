@@ -195,18 +195,18 @@ postgres-essentials	23	commit-and-wal	prose/diagram only	Challenge	primary	Direc
 postgres-essentials	24	wal-per-useful-write	prose/diagram only	Challenge	primary	Direct intermediate-batch WAL comparison; denominator and executable variation retained
 postgres-essentials	25	checkpoint-writeback	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct dirty-page/backend/visibility evidence and COMMIT variation; private controller ownership explicit
 postgres-essentials	26	crash-replay	prose/diagram only	SyntaxBreakdown	primary	Direct recovered-row comparison; private controller ownership explicit; clean-stop variation retained
-sqlite	1	build-sqlite-lab	pending			
-sqlite	2	inspect-build-capabilities	pending			
-sqlite	3	share-one-file-between-sessions	pending			
-sqlite	4	connection-settings-are-local	pending			
-sqlite	5	decode-database-header	pending			
-sqlite	6	application-id-schema-versioning	pending			
-sqlite	7	strict-storage-contracts	pending			
-sqlite	8	pages-and-dbstat	pending			
-sqlite	9	btree-splits	pending			
-sqlite	10	rowid-storage	pending			
-sqlite	11	without-rowid-layout	pending			
-sqlite	12	overflow-pages	pending			
+sqlite	1	build-sqlite-lab	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct closed-file copy comparison explains copied path/baseline and owned-copy cleanup; corrects irrelevant .shell syntax reference
+sqlite	2	inspect-build-capabilities	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; all actual build capability probes retained
+sqlite	3	share-one-file-between-sessions	coaching-only prompt retired	Challenge	primary	Direct COMMIT comparison supplies final count2 and explains unchanged rollback-labelled query
+sqlite	4	connection-settings-are-local	unchanged		primary	Complete two-connection persistent/local settings and third-connection inspection retained
+sqlite	5	decode-database-header	unchanged		primary	Complete stable rollback-file header/geometry comparison and alternate-page-size variation retained
+sqlite	6	application-id-schema-versioning	prose/diagram only	Challenge	primary	Direct unsupported-version and open-failed-migration comparisons specify same-connection inspection then rollback/reopen and copy cleanup
+sqlite	7	strict-storage-contracts	coaching-only prompt retired	Challenge	primary	Direct fractional-STRICT and out-of-range-CHECK errors with unchanged counts
+sqlite	8	pages-and-dbstat	coaching-only prompt retired	Challenge	primary	Direct4096byte page comparison retains Setup/VACUUM/same rows and measured-layout caveats
+sqlite	9	btree-splits	unchanged		primary	Complete bounded B-tree growth and random-order alternate-file comparison retained
+sqlite	10	rowid-storage	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; layout/index-plan commands unchanged
+sqlite	11	without-rowid-layout	coaching-only prompt retired	Challenge	primary	Directly identifies already-supplied secondary-index phase and row locator/page comparisons
+sqlite	12	overflow-pages	unchanged		primary	Complete overflow-page and logical-length evidence retained; technical prediction language is explanatory
 sqlite	13	freelist-vacuum-and-reuse	pending			
 sqlite	14	rollback-journal-lifecycle	pending			
 sqlite	15	journal-modes	pending			

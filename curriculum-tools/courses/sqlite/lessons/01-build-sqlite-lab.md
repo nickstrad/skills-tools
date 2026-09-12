@@ -36,7 +36,7 @@ This establishes an owned SQLite file and proves that setup is repeatable. Every
 - **.tables** (SQLite dot command): lists visible tables; events proves setup ran.
 - **SELECT count(*) AS baseline_rows** (SQL aggregate and alias): counts rows and names the evidence column, which must be 1.
 - **stat -c format FILE** (shell inspection; -c selects the format, %s is bytes and %n is the path): proves the file exists and records its size.
-- **.shell** (SQLite host-command escape, used in the challenge): runs a host copy command so the copied file can be inspected as a separate object.
+- **A host directory copy** (optional file comparison): creates a separate owned copy whose path can be inspected with .databases after the original CLI has exited.
 
 ## Run
 ```sh
@@ -63,4 +63,7 @@ sqlite3 reports one main database whose path ends in sqlite-lab/lab.db, .tables 
 Embedding removes a service boundary, not the need for operational ownership. The application inherits responsibility for file placement, permissions, connection policy, backups and recovery. The lab makes that responsibility concrete without repeating PostgreSQL's server-installation workflow.
 
 ## Optional variation
-Copy the directory to sqlite-lab-copy, open the copy, and predict which path .databases reports.
+After the original CLI has exited and no connection is using the lab file, copy the directory to
+a new, unused sqlite-lab-copy directory and open its lab.db. Run .databases and the baseline count
+query: main now names the copy's path while baseline_rows remains1. Close that CLI and remove
+only the copy created for this comparison.
