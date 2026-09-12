@@ -1,28 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const READ_PLAN_VISUAL = `One query, two kinds of plan evidence
-
-EXPLAIN                         EXPLAIN (ANALYZE, BUFFERS)
-planner prediction             prediction + measured execution
-       |                                  |
-Aggregate  estimated rows=1    Aggregate  actual rows=1
-  Seq Scan estimated rows=?      Seq Scan actual rows=100
-                                            rows removed=9,900
-                                            buffers accessed
-
-Read parent and child separately: one count result can require scanning many rows.`;
-
-export const STATISTICS_VISUAL =
-  `The data changes; the planner's description does not change automatically
-
-ANALYZE                 UPDATE changes the skew                 ANALYZE
-   |                              |                                 |
-stats describe 1,000 rare     9,000 rare rows exist          stats describe 9,000 rare
-   |                              |                                 |
-close estimate             stale estimate / actual gap         close estimate
-
-The second ANALYZE repairs information. It does not change the query or table data.`;
-
 export const PLANS: Module = {
   category: "query-evidence",
   title: "Read plans and repair their inputs",
@@ -40,10 +17,6 @@ export const PLANS: Module = {
       runIn: "tool",
       overview:
         "Run one aggregate query first as a planner prediction and then as measured execution. Read the aggregate parent separately from its sequential-scan child, and connect estimated rows, actual rows, rejected rows, loops, and buffer accesses to the work PostgreSQL performed. This is evidence about one controlled execution, not a storage-speed benchmark.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 16 "Query Execution Stages" (section "Simple Query Protocol"); Chapter 18 "Table Access Methods" (section "Sequential Scans"); Chapter 9 "Buffer Cache" (section "Cache Hits")',
-      readingNotes:
-        "Optional after the experiment: Chapters 16 and 18 connect query execution with sequential table access, while Chapter 9 explains shared-buffer hits. This PostgreSQL 16 experiment uses executor instrumentation to connect those mechanisms to row flow and page access.",
       caution:
         "Use the supplied learner lab only. The experiment creates and drops pe_plan_read and changes no server-wide settings. If interrupted, ROLLBACK, then run DROP TABLE IF EXISTS pe_plan_read; RESET lock_timeout; RESET statement_timeout before restarting.",
       syntaxBreakdown: code`
@@ -52,6 +25,31 @@ A query plan is a tree of work; cardinality means the number of rows a node emit
 the query and adds what the executor actually observed. Comparing those two kinds of evidence helps
 you decide whether a surprising query spent work where the planner expected it to.
 
+### Mechanism map
+
+${"```text"}
+One query, two kinds of plan evidence
+
+EXPLAIN                         EXPLAIN (ANALYZE, BUFFERS)
+planner prediction             prediction + measured execution
+       |                                  |
+Aggregate  estimated rows=1    Aggregate  actual rows=1
+  Seq Scan estimated rows=?      Seq Scan actual rows=100
+                                            rows removed=9,900
+                                            buffers accessed
+
+Read parent and child separately: one count result can require scanning many rows.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A parent and child each report their own output rows; rejected rows need a separate counter.
 - Estimated **rows** and measured **actual rows** answer different questions.
@@ -167,10 +165,6 @@ warm shared buffers or the operating-system cache. Cleanup drops pe_plan_read an
       runIn: "tool",
       overview:
         "Analyze a two-value distribution, then reverse most of its skew while table autovacuum is disabled. Execute the same predicate before and after explicit ANALYZE without changing the data between those plans. The comparison isolates how stale statistics misdescribe real cardinality and how refreshed statistics repair that input to planning.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 17 "Statistics" (sections "Basic Statistics", "Most Common Values")',
-      readingNotes:
-        "Optional after the experiment: Chapter 17 explains sampled statistics and the most-common-value frequencies used in selectivity estimates. The controlled PostgreSQL 16 fixture makes one stale description visible before refreshing it explicitly.",
       caution:
         "Use the supplied learner lab only. Autovacuum is disabled only on pe_plan_stats so the stale interval is intentional and bounded. If interrupted, ROLLBACK, then run DROP TABLE IF EXISTS pe_plan_stats; RESET lock_timeout; RESET statement_timeout before restarting.",
       syntaxBreakdown: code`
@@ -179,6 +173,29 @@ The planner does not inspect every table row before choosing a plan. It uses com
 describe an earlier sample of the data. When a workload changes a distribution faster than those
 statistics refresh, the query can return far more or fewer rows than the planner estimated.
 
+### Mechanism map
+
+${"```text"}
+The data changes; the planner's description does not change automatically
+
+ANALYZE                 UPDATE changes the skew                 ANALYZE
+   |                              |                                 |
+stats describe 1,000 rare     9,000 rare rows exist          stats describe 9,000 rare
+   |                              |                                 |
+close estimate             stale estimate / actual gap         close estimate
+
+The second ANALYZE repairs information. It does not change the query or table data.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Column statistics are a sampled description of data, not live counters maintained per row.
 - A most-common-value frequency lets PostgreSQL estimate equality predicates on a skewed column.

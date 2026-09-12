@@ -15,10 +15,6 @@ export const VISIBILITY: Module = {
       runIn: "tool",
       overview:
         "Change one account balance while another connection reads it. Observe the writer's own view, a different reader's view, and what commit or rollback makes visible. This is the starting point for reasoning about concurrent application requests.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Read Committed"); Chapter 4 "Snapshots" (section "Row Version Visibility")',
-      readingNotes:
-        "Optional after the experiment: the book explains how row versions and transaction outcomes implement these views. This lesson uses PostgreSQL 16 and deliberately avoids inspecting numeric snapshot internals; they are unnecessary for the visibility decision here.",
       syntaxBreakdown: code`
 ### In plain terms
 You already saw that UPDATE creates a new row version. PostgreSQL's multiversion concurrency
@@ -26,6 +22,29 @@ control (MVCC) chooses which version a read may use. A transaction sees its own 
 transaction cannot see those writes before they commit. An ordinary SELECT can read the older
 committed version while the writer is still open; it does not need to wait for this row update.
 
+### Mechanism map
+
+${"```text"}
+One logical row, different visible versions
+
+Session A: BEGIN --> UPDATE --> own SELECT --> COMMIT
+                       |                        |
+                 private version          accepted version
+                       |                        |
+Session B:       older committed row       fresh read can see it
+
+ROLLBACK abandons A's change instead of publishing it.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A transaction groups work between BEGIN and COMMIT or ROLLBACK. COMMIT accepts its changes;
   ROLLBACK discards their logical effects.
@@ -99,10 +118,6 @@ and the last command removes the experiment table.
       runIn: "tool",
       overview:
         "Run the same read–writer commit–read schedule twice, changing only the reader's isolation level. Decide whether a multi-query operation needs fresh data at each statement or a view that stays consistent across its reads.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Read Committed", "Repeatable Read"); Chapter 4 "Snapshots" (section "Row Version Visibility")',
-      readingNotes:
-        "Optional after the experiment: the book gives the implementation behind snapshot lifetime. The PostgreSQL 16 behavior tested here matches the stable-view distinction. Write conflicts and serialization anomalies are separate lessons later in this route.",
       syntaxBreakdown: code`
 ### In plain terms
 A snapshot defines which committed row versions a read can use. Read Committed takes a fresh
@@ -110,6 +125,27 @@ snapshot for each statement. Repeatable Read keeps the snapshot established by i
 query for the rest of that transaction. Merely typing BEGIN is not when this snapshot is established.
 Another session can commit meanwhile; the stable reader continues using an older version.
 
+### Mechanism map
+
+${"```text"}
+Same schedule: A reads --> B commits an update --> A reads again
+
+READ COMMITTED:   [snapshot 1]                 [snapshot 2]
+REPEATABLE READ:  [snapshot 1 ----------------------------]
+                  first SELECT                 same view
+
+After A ends its transaction, its next read takes a fresh view.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Two SELECTs inside one Read Committed transaction can see different committed values.
 - Repeatable Read keeps this read-only transaction's view fixed until it ends. Stable does not mean
@@ -186,10 +222,6 @@ failed: the final fresh read proves it was accepted. The final DROP removes the 
       runIn: "tool",
       overview:
         "Keep a stable reader open while another session deletes all rows and runs vacuum. Release the reader and repeat the same vacuum. Use physical tuple counts to see why a successful maintenance command can leave history behind.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Transaction Horizon"); Chapter 6 "Vacuum and Autovacuum" (section "Database Horizon Revisited")',
-      readingNotes:
-        "Optional after the experiment: the book explains the horizons that bound safe reclamation. Here a tiny table and one known reader isolate the cause; real systems may have several readers or other retention obligations. pgstattuple supplies physical evidence in PostgreSQL 16.",
       caution:
         "Use the supplied disposable learner lab and its postgres role. This experiment disables autovacuum only on pe_history and removes that table at the end. It does not change server-wide maintenance. If interrupted, ROLLBACK in both sessions, then DROP TABLE IF EXISTS pe_history in either session; this releases the retained snapshot and removes the table-specific setting.",
       syntaxBreakdown: code`
@@ -198,6 +230,28 @@ DELETE makes a row disappear from new snapshots but leaves a physical version an
 may still need. VACUUM reclaims versions only when no relevant transaction needs them. The oldest
 needed history sets a cleanup horizon: finishing the command cannot override that boundary.
 
+### Mechanism map
+
+${"```text"}
+A's stable snapshot --------------------------> ends
+          |                                       |
+          needs old rows                           releases need
+          |                                       |
+B:     DELETE commits --> VACUUM                VACUUM again
+       new reads: 0       must keep history      may reclaim it
+
+Logical disappearance and physical reclamation are separate events.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Logical row count and physical dead-version count answer different questions. A fresh reader
   can see zero rows while an older reader still sees all of them.

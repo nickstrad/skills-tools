@@ -1,13 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const DEADLOCK_VISUAL = `A holds row 1 ---- wants row 2
-     ^                    |
-     |                    v
-B wants row 1 <---- holds row 2
-
-PostgreSQL breaks the cycle: one whole attempt gets 40P01 and rolls back.
-The survivor acquires both rows and commits; either session may be the victim.`;
-
 export const DEADLOCK: Module = {
   category: "concurrency-control",
   title: "Recognize and prevent a deadlock cycle",
@@ -24,9 +16,6 @@ export const DEADLOCK: Module = {
     runIn: "tool",
     overview:
       "Make two complete transaction attempts acquire the same two rows in opposite order. Observe PostgreSQL detect the resulting wait cycle, abort one attempt with SQLSTATE 40P01, and allow the other to finish. Then prevent the cycle by choosing one lock order.",
-    reading: 'PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Deadlocks")',
-    readingNotes:
-      "Optional after running: Chapter 13 explains the deadlock detector and shows cycles between row updates. The experiment adds immediate SQLSTATE capture and final-state checks so the detector's choice is treated as a failed whole attempt rather than as one failed statement.",
     caution:
       "The deadlock error is expected only on one of the two second UPDATE statements. Enter B's second UPDATE, switch to A while B waits, and enter A's second UPDATE. Do not wait for B to return first. The 30-second lock and 45-second statement bounds leave time for PostgreSQL's detector; if another error occurs, roll back both sessions and restart from setup.",
     syntaxBreakdown: code`
@@ -35,6 +24,27 @@ A deadlock is a cycle of transactions that are each waiting for another in the s
 longer cannot solve it, so PostgreSQL aborts one transaction. Before running, predict whether the
 server promises that A or B will be chosen.
 
+### Mechanism map
+
+${"```text"}
+A holds row 1 ---- wants row 2
+     ^                    |
+     |                    v
+B wants row 1 <---- holds row 2
+
+PostgreSQL breaks the cycle: one whole attempt gets 40P01 and rolls back.
+The survivor acquires both rows and commits; either session may be the victim.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Opposite lock order can create a cycle even when every individual UPDATE is ordinary.
 - SQLSTATE 40P01 classifies the chosen transaction's complete attempt as failed. PostgreSQL may

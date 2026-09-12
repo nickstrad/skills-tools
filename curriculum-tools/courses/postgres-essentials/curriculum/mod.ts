@@ -18,8 +18,7 @@ import { JOIN_MEMORY } from "./17-join-memory.ts";
 import { WAL } from "./18-wal.ts";
 import { CHECKPOINT_WRITEBACK } from "./19-checkpoint.ts";
 import { CRASH_REPLAY } from "./20-crash-replay.ts";
-import { withEssentialsContext } from "./visuals.ts";
-export const MODULES = withEssentialsContext([
+export const MODULES = [
   VISIBILITY,
   REUSE,
   ATOMIC_WRITE,
@@ -40,4 +39,4 @@ export const MODULES = withEssentialsContext([
   WAL,
   CHECKPOINT_WRITEBACK,
   CRASH_REPLAY,
-]);
+];

@@ -1,16 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const JOIN_MEMORY_VISUAL = `One Hash Join, two transaction-local allowances
-
-50,000 probe rows ---> Hash Join ---> 50,000 joined rows
-                         ^
-50,000 build rows --> Hash table
-                         |
-       work_mem=64kB     +--> many batches + temporary blocks
-       work_mem=16MB     +--> one batch     + no temporary blocks
-
-The allowance belongs to this hash operation; concurrent nodes, workers and queries multiply demand.`;
-
 export const JOIN_MEMORY: Module = {
   category: "query-execution",
   title: "Bound memory used by a join",
@@ -28,10 +17,6 @@ export const JOIN_MEMORY: Module = {
       runIn: "tool",
       overview:
         "Run the same one-to-one hash join under two transaction-local memory allowances. The small allowance divides the build side into batches and uses temporary storage; the larger allowance keeps this bounded hash table in one batch. Read the equal row counts alongside Hash Batches and temporary-buffer evidence to size memory as a per-operation, concurrent demand.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 22 "Hashing" (section "Hash Joins"); Chapter 16 "Query Execution Stages" (section "Simple Query Protocol")',
-      readingNotes:
-        "Optional after the experiment: Chapter 22 explains one-pass and two-pass hash joins, including batches written to temporary files. Chapter 16 places work_mem at executor-operation scope. The live PostgreSQL 16 plans expose the batch count and temporary block traffic for one controlled join.",
       caution:
         "The fixture creates 100,000 rows across two disposable tables and executes the full join twice. Run every phase in order. If interrupted, run ROLLBACK; DROP TABLE IF EXISTS pe_join_orders, pe_join_accounts; RESET lock_timeout; RESET statement_timeout before rerunning setup.",
       syntaxBreakdown: code`
@@ -41,6 +26,30 @@ It then reads the probe side and uses each key to find matches. If the hash tabl
 small, PostgreSQL partitions both inputs into batches and revisits spilled batches from temporary
 storage instead of allowing the operation's memory to grow without bound.
 
+### Mechanism map
+
+${"```text"}
+One Hash Join, two transaction-local allowances
+
+50,000 probe rows ---> Hash Join ---> 50,000 joined rows
+                         ^
+50,000 build rows --> Hash table
+                         |
+       work_mem=64kB     +--> many batches + temporary blocks
+       work_mem=16MB     +--> one batch     + no temporary blocks
+
+The allowance belongs to this hash operation; concurrent nodes, workers and queries multiply demand.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A Hash node builds an in-memory lookup structure, while its Hash Join parent probes that structure.
 - Batches greater than one show that this hash operation partitioned its work; temporary blocks show

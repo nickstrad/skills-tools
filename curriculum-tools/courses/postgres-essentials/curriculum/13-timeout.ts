@@ -1,13 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const TIMEOUT_VISUAL = `Timeout cancels one statement inside BEGIN
-
-BEGIN -> tentative work -> timed statement fails -> transaction is failed
-                                                   |
-                         next SQL gets 25P02 <-----+
-                                                   |
-The error aborts the work. ROLLBACK clears the failed block for connection reuse.`;
-
 export const TIMEOUT: Module = {
   category: "concurrency-control",
   title: "Recover a connection after a database timeout",
@@ -24,9 +16,6 @@ export const TIMEOUT: Module = {
     runIn: "tool",
     overview:
       "Trigger a lock timeout and a statement timeout inside explicit transactions. Capture each error and the failed transaction state that follows, then roll back before reusing the connection. Verify that a tentative write made before a cancelled statement does not survive.",
-    reading: 'PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "No-Wait Locks")',
-    readingNotes:
-      "Optional after running: Chapter 13 compares lock_timeout with statement_timeout in its discussion of bounded lock acquisition. This experiment extends that mechanism into client handling: an error inside BEGIN leaves a failed transaction block that must be rolled back before a pooled connection is reused.",
     caution:
       "55P03, 57014 and 25P02 are expected only at the labelled commands. Capture SQLSTATE immediately each time. Keep A's holder open only through B's lock-timeout round, then roll it back. Finish every failed transaction with ROLLBACK before cleanup or connection reuse.",
     syntaxBreakdown: code`
@@ -36,6 +25,27 @@ that error also marks the transaction as failed; the connection remains inside t
 until ROLLBACK. Before running, predict whether an earlier successful UPDATE in the same transaction
 can still commit after a later statement times out.
 
+### Mechanism map
+
+${"```text"}
+Timeout cancels one statement inside BEGIN
+
+BEGIN -> tentative work -> timed statement fails -> transaction is failed
+                                                   |
+                         next SQL gets 25P02 <-----+
+                                                   |
+The error aborts the work. ROLLBACK clears the failed block for connection reuse.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - lock_timeout limits time spent acquiring a database lock. Its SQLSTATE is 55P03.
 - statement_timeout limits the whole statement. PostgreSQL cancels the statement with 57014.

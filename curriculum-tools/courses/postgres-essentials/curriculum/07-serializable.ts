@@ -1,13 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const SERIALIZABLE_VISUAL = `Serializable: same overlap, different outcome
-
-A: read 2 -- update Alice off ------------------------> COMMIT succeeds
-B: read 2 -------- update Bob off --------------------> COMMIT fails 40001
-                   disjoint row                          final count 1
-
-PostgreSQL rejects one participant because both decisions cannot fit any serial order.`;
-
 export const SERIALIZABLE: Module = {
   category: "concurrency-control",
   title: "Use Serializable for a cross-row invariant",
@@ -25,9 +17,6 @@ export const SERIALIZABLE: Module = {
       revision: 1,
       overview:
         "Repeat the same on-call schedule at Serializable: both transactions read two doctors and update different rows before A commits. PostgreSQL detects that the two decisions cannot both belong to any serial execution, so B's COMMIT returns SQLSTATE 40001 and the final rule remains true.",
-      reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Serializable")',
-      readingNotes:
-        "Optional after the experiment: the section explains PostgreSQL Serializable Snapshot Isolation and serialization anomalies. This controlled schedule makes its application consequence concrete; full-transaction retry behavior is added in the next lesson.",
       caution:
         "The 40001 is deliberate only at B's final COMMIT in this supplied schedule. Run both reads and both disjoint updates before A COMMIT, then immediately run B COMMIT. If any other statement errors, ROLLBACK both sessions and restart from setup.",
       syntaxBreakdown: code`
@@ -39,6 +28,27 @@ impossible serial order, PostgreSQL aborts one participant instead of publishing
 Before running, predict which evidence changes from the Repeatable Read experiment: the two reads,
 the two UPDATE results, a COMMIT outcome, or the final row count.
 
+### Mechanism map
+
+${"```text"}
+Serializable: same overlap, different outcome
+
+A: read 2 -- update Alice off ------------------------> COMMIT succeeds
+B: read 2 -------- update Bob off --------------------> COMMIT fails 40001
+                   disjoint row                          final count 1
+
+PostgreSQL rejects one participant because both decisions cannot fit any serial order.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Serializable can detect a dependency through reads of a shared set even when transactions write
   different rows and never wait on the same row lock.

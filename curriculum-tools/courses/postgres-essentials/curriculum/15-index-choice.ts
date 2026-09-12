@@ -1,25 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const INDEX_CROSSOVER_VISUAL = `One table, two ranges, two ways to reach heap rows
-
-narrow range -> B-tree finds a few row locations -> fetch a few heap pages
-broad range  -> sequential scan reads the heap once -> discard nonmatches
-
-The planner compares estimated work. The crossover depends on the table, row width,
-correlation, cache assumptions and cost settings; it is not a universal percentage.`;
-
-export const COMPOSITE_INDEX_VISUAL = `Identical request: tenant 1, newest 10 events
-
-(event_time, tenant_id)        (tenant_id, event_time)
-ordered across every tenant    grouped by tenant, ordered within tenant
-        |                                  |
-walk past other tenants                 jump to tenant 1
-        |                                  |
-many index entries tested                 10 entries returned
-
-Both B-trees can provide reverse time order here. Leading-column order changes
-how directly the index reaches the requested tenant.`;
-
 export const INDEX_CHOICE: Module = {
   category: "query-evidence",
   title: "Choose indexes from measured access paths",
@@ -37,10 +17,6 @@ export const INDEX_CHOICE: Module = {
       runIn: "tool",
       overview:
         "Run the same range query at narrow and broad selectivity against one analyzed table. PostgreSQL should use the B-tree to fetch a few heap rows, then prefer one sequential pass when most rows and their payload are needed. Predict the two access paths before revealing the plans, then use their row and buffer evidence to explain the choice.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 20 "Index Scans" (sections "Regular Index Scans", "Comparison of Various Access Methods"); Chapter 18 "Table Access Methods" (section "Sequential Scans")',
-      readingNotes:
-        "Optional after the experiment: Chapters 18 and 20 describe sequential and regular index access. The experiment adds PostgreSQL 16 planner evidence and a controlled comparison; it does not turn the observed crossover into a production tuning threshold.",
       caution:
         "This fixture creates about 100,000 rows and disables autovacuum only on pe_index_crossover so a background worker cannot change the comparison. Run it only in the supplied lab. If interrupted, run ROLLBACK; DROP TABLE IF EXISTS pe_index_crossover; RESET random_page_cost; RESET seq_page_cost; RESET effective_cache_size; RESET lock_timeout; RESET statement_timeout.",
       syntaxBreakdown: code`
@@ -50,6 +26,27 @@ entry can lead to a heap-page visit for the requested payload. When a query need
 sequential pass can cost less than many indexed visits. PostgreSQL estimates both alternatives and
 chooses the cheaper plan; there is no fixed selectivity percentage at which every index loses.
 
+### Mechanism map
+
+${"```text"}
+One table, two ranges, two ways to reach heap rows
+
+narrow range -> B-tree finds a few row locations -> fetch a few heap pages
+broad range  -> sequential scan reads the heap once -> discard nonmatches
+
+The planner compares estimated work. The crossover depends on the table, row width,
+correlation, cache assumptions and cost settings; it is not a universal percentage.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Selectivity is the fraction of rows a predicate is expected to match.
 - An Index Scan can cheaply locate a narrow range but still visits the heap for payload not stored
@@ -150,10 +147,6 @@ and cost assumptions. Cleanup drops pe_index_crossover and restores the session 
       runIn: "tool",
       overview:
         "Serve one tenant's newest ten events with two composite B-trees, installing only one at a time. Both index orders can emit descending event time without a sort, but only the tenant-first index can jump directly into that tenant's ordered slice. Compare identical queries by scan conditions and buffers touched before choosing the index order.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 20 "Index Scans" (sections "Regular Index Scans", "Comparison of Various Access Methods"); Chapter 25 "B-tree"',
-      readingNotes:
-        "Optional after the experiment: Chapters 20 and 25 explain B-tree traversal and ordered index access. This lesson applies those mechanisms to a multicolumn workload and deliberately avoids claiming that the less useful order must add a Sort node.",
       caution:
         "This experiment creates and replaces indexes on a disposable 100,000-row pe_event table. Run it only in the supplied lab. If interrupted, run ROLLBACK; DROP TABLE IF EXISTS pe_event; RESET lock_timeout; RESET statement_timeout.",
       syntaxBreakdown: code`
@@ -164,6 +157,31 @@ tenant_id reaches that tenant's newest entries directly. An index beginning with
 still walk in time order and avoid sorting, but may test many other tenants before finding ten
 matches.
 
+### Mechanism map
+
+${"```text"}
+Identical request: tenant 1, newest 10 events
+
+(event_time, tenant_id)        (tenant_id, event_time)
+ordered across every tenant    grouped by tenant, ordered within tenant
+        |                                  |
+walk past other tenants                 jump to tenant 1
+        |                                  |
+many index entries tested                 10 entries returned
+
+Both B-trees can provide reverse time order here. Leading-column order changes
+how directly the index reaches the requested tenant.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Column order determines which prefix of a composite B-tree can locate a contiguous slice.
 - Equality on the leading tenant column leaves event_time ordered inside that tenant's slice.

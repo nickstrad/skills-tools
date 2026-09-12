@@ -1,17 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const ATOMIC_WRITE_VISUAL = code`Two requests both intend to add to 100
-
-Client-side replacement
-A reads 100 -> computes 110 -> writes 110 -> COMMIT
-B reads 100 ----------------------------> writes 120 -> COMMIT
-                                                    final: 120
-                                          A's intended +10 is lost
-
-Database arithmetic
-A: UPDATE +10 holds row -----------------> COMMIT
-B: UPDATE +20 waits ---------------------> uses 110 -> final: 130`;
-
 export const ATOMIC_WRITE: Module = {
   category: "concurrent-writes",
   title: "Concurrent writes to one row",
@@ -28,10 +16,6 @@ export const ATOMIC_WRITE: Module = {
       runIn: "tool",
       overview:
         "Make two requests read the same balance and prepare different replacement values. Commit both replacements and watch one intended increment disappear, then repeat with arithmetic inside UPDATE while the statements deliberately overlap. This separates a client-side read-modify-write race from a single-row operation PostgreSQL can serialize safely.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Isolation Levels and Anomalies in SQL Standard", "Read Committed")',
-      readingNotes:
-        "Optional after the experiment: the book names the lost-update anomaly and explains how Read Committed handles a row changed by another transaction. This PostgreSQL 16 run makes that rule visible with one controlled row; later lessons cover explicit row locks, retries and multi-row decisions.",
       caution:
         "The second atomic UPDATE is supposed to wait briefly. Run its whole Session B block, confirm that the prompt does not return, then switch to A and commit. The 60-second lock timeout and 90-second statement timeout leave time to switch terminals but prevent an abandoned wait from running indefinitely. If interrupted, ROLLBACK in both sessions before rerunning setup.",
       syntaxBreakdown: code`
@@ -44,6 +28,31 @@ then applies the arithmetic to the committed current version rather than the sta
 Before the second round, predict whether B will leave 120 or 130. You do not need to record an
 answer; the pause and the final labelled value will test the model directly.
 
+### Mechanism map
+
+${"```text"}
+Two requests both intend to add to 100
+
+Client-side replacement
+A reads 100 -> computes 110 -> writes 110 -> COMMIT
+B reads 100 ----------------------------> writes 120 -> COMMIT
+                                                    final: 120
+                                          A's intended +10 is lost
+
+Database arithmetic
+A: UPDATE +10 holds row -----------------> COMMIT
+B: UPDATE +20 waits ---------------------> uses 110 -> final: 130
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A Read Committed transaction does not make a value saved by an application refresh itself.
   Writing that stale replacement can silently discard another committed change.

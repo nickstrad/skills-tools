@@ -1,18 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const ROW_LOCK_VISUAL = `Round 1: decide from ordinary reads
-
-A: read 1 --> decide accept --> write --> COMMIT        remaining 0, accepted 1
-B: read 1 --> decide accept -----------------> write --> remaining -1, accepted 2
-             B's decision is now stale
-
-Round 2: lock before deciding
-
-A: SELECT FOR UPDATE (reads 1 and locks) --> write --> COMMIT
-B: SELECT FOR UPDATE -------- waits -----------------> reads 0 --> decline
-
-The wait moves B's decision after A's committed change.`;
-
 export const ROW_LOCK: Module = {
   category: "concurrency-control",
   title: "Serialize decisions on one row",
@@ -29,10 +16,6 @@ export const ROW_LOCK: Module = {
       runIn: "tool",
       overview:
         "Let two callers decide whether the last unit of stock can be reserved. First, both decide from ordinary reads and preserve both arithmetic changes, yet still accept one reservation too many. Then lock the stock row before deciding so the second caller waits, reads the committed current value, and declines the invalid action.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Read Committed"); Chapter 13 "Row-Level Locks" (sections "Lock Design", "Row-Level Locking Modes")',
-      readingNotes:
-        "Optional after the experiment: Chapter 2 explains why a Read Committed statement can use a newer committed row after waiting, while Chapter 13 explains how FOR UPDATE represents and coordinates a row lock. This lesson observes the application decision and the wait directly; lock catalogs, lock modes beyond FOR UPDATE, and deadlocks appear later in the route.",
       caution:
         "Keep each locking transaction open only for the supplied decision and write. In the second round, B is meant to wait: switch promptly to A and run its update and COMMIT. If the 60-second lock bound expires, ROLLBACK in both sessions, rerun setup in A, and start the experiment again.",
       syntaxBreakdown: code`
@@ -46,6 +29,32 @@ SELECT FOR UPDATE is a locking read: it returns the row and reserves the right t
 the transaction ends. A competing locking reader waits. Under Read Committed, that reader then
 receives the committed current row, so it can make its decision from the value that actually won.
 
+### Mechanism map
+
+${"```text"}
+Round 1: decide from ordinary reads
+
+A: read 1 --> decide accept --> write --> COMMIT        remaining 0, accepted 1
+B: read 1 --> decide accept -----------------> write --> remaining -1, accepted 2
+             B's decision is now stale
+
+Round 2: lock before deciding
+
+A: SELECT FOR UPDATE (reads 1 and locks) --> write --> COMMIT
+B: SELECT FOR UPDATE -------- waits -----------------> reads 0 --> decline
+
+The wait moves B's decision after A's committed change.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A stale decision can be wrong even when each UPDATE performs correct server-side arithmetic.
   Preserving both writes is different from preserving the rule that justified them.

@@ -1,24 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const COMMIT_WAL_VISUAL = `A success response sits on a log boundary
-
-row change -> WAL inserted -> WAL written -> WAL flushed to durable storage
-                  |               |                    |
-                  +-- rollback can discard the row     +-- synchronous_commit=on waits here
-                                      synchronous_commit=off may acknowledge earlier
-
-An LSN is a position in that stream. Comparing positions shows progress, not a power-loss test.`;
-
-export const WAL_PER_WRITE_VISUAL = `Equal useful rows, different transaction boundaries
-
-200 INSERT statements                 200 INSERT statements
-200 autocommit transactions           1 explicit transaction
-          |                                      |
-          +------------ measure WAL bytes --------+
-                         compare rows + checksum
-
-Batching shares transaction-level WAL overhead; the measured ratio belongs to this controlled run.`;
-
 export const WAL: Module = {
   category: "wal-and-recovery",
   title: "Commit acknowledgement and WAL cost",
@@ -36,10 +17,6 @@ export const WAL: Module = {
       runIn: "tool",
       overview:
         "Place a logged row change in PostgreSQL's WAL stream, then compare insert, write and flush positions after commits with synchronous_commit on and off. The experiment connects a successful COMMIT to a precise local durability contract while keeping measured positions separate from claims about power loss.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (sections "Performance" and "Fault Tolerance")',
-      readingNotes:
-        "Optional after the experiment: Chapter 11 connects commit acknowledgement policy with performance and fault tolerance. Chapter 10 supplies the earlier WAL-ordering background. The live PostgreSQL 16 functions expose positions in that log; the saved pre-commit position is a measured lower bound, not the location of the transaction's commit record.",
       caution:
         "Run this on a PostgreSQL instance where fsync is on, as the setup verifies. The lesson changes synchronous_commit only inside each transaction. If interrupted, run ROLLBACK; DROP TABLE IF EXISTS pe_commit_wal; RESET lock_timeout; RESET statement_timeout before rerunning setup.",
       syntaxBreakdown: code`
@@ -50,6 +27,28 @@ finally flushed to durable storage. With synchronous_commit on, a standalone pri
 local commit record to be flushed before reporting success. With it off, PostgreSQL may report
 success earlier, while preserving database consistency if it later recovers.
 
+### Mechanism map
+
+${"```text"}
+A success response sits on a log boundary
+
+row change -> WAL inserted -> WAL written -> WAL flushed to durable storage
+                  |               |                    |
+                  +-- rollback can discard the row     +-- synchronous_commit=on waits here
+                                      synchronous_commit=off may acknowledge earlier
+
+An LSN is a position in that stream. Comparing positions shows progress, not a power-loss test.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - WAL records describe changes before the corresponding data pages may be written, so recovery can
   replay committed work after a process failure.
@@ -163,9 +162,6 @@ and restores both session guards.
       runIn: "tool",
       overview:
         "Execute 200 identical INSERT statements as 200 autocommit transactions and as one explicit transaction. Measure each WAL interval and verify equal final content, turning batching from a general recommendation into a bounded write-amplification observation.",
-      reading: 'PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "WAL Structure")',
-      readingNotes:
-        "Optional after the experiment: Chapter 10 describes WAL records and transaction commit logging. This experiment measures the complete LSN interval around actual statements and commits, whereas EXPLAIN's WAL counters alone would omit the later COMMIT record.",
       caution:
         "LSNs and WAL generation are cluster-wide. Run the two phases together on a quiet instance, do not insert a checkpoint between them, and interpret the exact byte counts only as evidence from this fixture. If interrupted, run ROLLBACK; DROP TABLE IF EXISTS pe_wal_single, pe_wal_batch; RESET synchronous_commit; RESET lock_timeout; RESET statement_timeout before rerunning setup.",
       syntaxBreakdown: code`
@@ -174,6 +170,29 @@ Every committed transaction has bookkeeping beyond its useful row changes. This 
 the 200 INSERT statements, IDs and payloads constant while changing how many transaction boundaries
 surround them. LSN subtraction measures all WAL generated in each interval, including commits.
 
+### Mechanism map
+
+${"```text"}
+Equal useful rows, different transaction boundaries
+
+200 INSERT statements                 200 INSERT statements
+200 autocommit transactions           1 explicit transaction
+          |                                      |
+          +------------ measure WAL bytes --------+
+                         compare rows + checksum
+
+Batching shares transaction-level WAL overhead; the measured ratio belongs to this controlled run.
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Autocommit makes each standalone INSERT its own transaction; an explicit BEGIN and COMMIT lets 200
   statements share one transaction boundary.

@@ -1,18 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const WRITE_SKEW_VISUAL = `Repeatable Read: overlapping decisions
-
-A: BEGIN -- read count 2 -- update Alice off -----------------> COMMIT
-B: BEGIN -- read count 2 ----------- update Bob off ----------> COMMIT
-                                      different rows             final count 0
-
-Serial order: finish A before B starts
-
-A: read count 2 -- update Alice off -- COMMIT
-B:                                      read count 1 -- decline -- COMMIT
-
-Each overlapping decision is valid for its own snapshot, but the pair breaks the shared rule.`;
-
 export const WRITE_SKEW: Module = {
   category: "concurrency-control",
   title: "Recognize write skew across rows",
@@ -30,9 +17,6 @@ export const WRITE_SKEW: Module = {
       revision: 1,
       overview:
         "Put Alice and Bob on call under the rule that at least one doctor must remain. Two Repeatable Read transactions each see two available doctors and each remove a different doctor. The writes do not touch the same row, yet their combined result violates the rule.",
-      reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Repeatable Read")',
-      readingNotes:
-        "Optional after the experiment: the section explains PostgreSQL snapshot isolation and the conflicts Repeatable Read detects. This experiment concentrates on the complementary case: a rule spanning rows can fail even though neither transaction overwrites the other's row.",
       caution:
         "Follow the terminal order exactly: both reads, both updates, A COMMIT, then B COMMIT. If a command is run out of order, ROLLBACK both sessions, rerun setup in A, and restart the experiment.",
       syntaxBreakdown: code`
@@ -45,6 +29,32 @@ This failure is called write skew: concurrent transactions read overlapping fact
 that are separately valid, and write different rows. PostgreSQL therefore sees no same-row update
 conflict at Repeatable Read, even though the decisions together break an application invariant.
 
+### Mechanism map
+
+${"```text"}
+Repeatable Read: overlapping decisions
+
+A: BEGIN -- read count 2 -- update Alice off -----------------> COMMIT
+B: BEGIN -- read count 2 ----------- update Bob off ----------> COMMIT
+                                      different rows             final count 0
+
+Serial order: finish A before B starts
+
+A: read count 2 -- update Alice off -- COMMIT
+B:                                      read count 1 -- decline -- COMMIT
+
+Each overlapping decision is valid for its own snapshot, but the pair breaks the shared rule.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A stable snapshot keeps a transaction's reads consistent with each other; it does not guarantee
   that every multi-row rule remains true after concurrent commits.

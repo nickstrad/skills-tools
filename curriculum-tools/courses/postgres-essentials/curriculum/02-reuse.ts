@@ -1,16 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const REUSE_VISUAL = `One heap allocation, four observations
-
-loaded:    4,000 visible | 0 dead     | little free | size S
-DELETE:        0 visible | 4,000 dead | little free | size S
-VACUUM:        0 visible | 0 dead     | much free   | size S
-refill:    4,000 visible | 0 dead     | little free | size S
-
-                    reusable space is consumed
-VACUUM (TRUNCATE FALSE) ----------------------------> INSERT
-         keeps the allocation                         reuses it`;
-
 export const REUSE: Module = {
   category: "vacuum-and-reuse",
   title: "Reclaiming space inside a table",
@@ -27,10 +16,6 @@ export const REUSE: Module = {
       runIn: "tool",
       overview:
         "Delete a bounded table population, vacuum it without allowing tail truncation, then insert the same rows again. Compare logical rows, physical dead versions, free bytes and allocated heap bytes at every phase. Before running it, predict whether vacuum must make the heap smaller for the refill to fit without growth.",
-      reading:
-        'PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "Files and Forks"); Chapter 6 "Vacuum and Autovacuum" (sections "Vacuum", "Vacuum Phases"); Chapter 8 "Rebuilding Tables and Indexes" (section "Full Vacuuming")',
-      readingNotes:
-        "Optional after the experiment: Chapters 1 and 6 explain relation forks and how vacuum makes dead tuple space available for reuse. Chapter 8 contrasts that in-place cleanup with a table rewrite. This lesson controls heap-tail truncation and uses pgstattuple on PostgreSQL 16 to make the difference measurable.",
       caution:
         "Use the supplied disposable learner lab and its postgres role. This experiment disables autovacuum only on pe_reuse and drops that table at the end; it does not change server-wide maintenance. If interrupted, finish any open transaction with ROLLBACK, then run DROP TABLE IF EXISTS pe_reuse before starting again.",
       syntaxBreakdown: code`
@@ -40,6 +25,30 @@ the filesystem. DELETE makes rows invisible but does not by itself make their ph
 for new rows. VACUUM removes dead versions that no snapshot needs and records the resulting room as
 free space. This experiment holds file allocation steady so you can see reuse directly.
 
+### Mechanism map
+
+${"```text"}
+One heap allocation, four observations
+
+loaded:    4,000 visible | 0 dead     | little free | size S
+DELETE:        0 visible | 4,000 dead | little free | size S
+VACUUM:        0 visible | 0 dead     | much free   | size S
+refill:    4,000 visible | 0 dead     | little free | size S
+
+                    reusable space is consumed
+VACUUM (TRUNCATE FALSE) ----------------------------> INSERT
+         keeps the allocation                         reuses it
+${"```"}
+
+### Terminals and cleanup
+Open one experiment terminal (Session A) and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run every block in Session A in the order shown.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - Visible row count, dead tuple count and free bytes describe different stages of reclamation.
 - Ordinary vacuum can make space reusable while the heap's allocated byte count stays unchanged.

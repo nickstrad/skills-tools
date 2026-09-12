@@ -1,17 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const REQUEST_IDENTITY_VISUAL = `One request key, one transactional effect
-
-A: INSERT request-12 ---------------- holds transaction ----------------> COMMIT
-B: INSERT request-12 ---- waits for A's unique-key decision ------------> inserts 0 rows
-                                                                         |
-                                                        fresh SELECT reads stored receipt
-
-Reconnect/replay: same key + same payload -> return the stored receipt
-                  same key + different payload -> reject the key reuse
-
-The ledger row is both the credit and its receipt: one row, credited total 40.`;
-
 export const REQUEST_IDENTITY: Module = {
   category: "reliable-requests",
   title: "Reconcile requests by durable identity",
@@ -28,8 +16,6 @@ export const REQUEST_IDENTITY: Module = {
     runIn: "tool",
     overview:
       "Race two deliveries of one credit request and watch PostgreSQL's unique constraint make the second delivery wait for the first transaction's outcome. Then reconnect as a caller might after lesson 11's lost response, reconcile the durable payload and receipt, and prove that replay did not add a second credit.",
-    reading:
-      'Not directly covered in PostgreSQL 14 Internals; Chapter 13 "Row-Level Locks" is the closest background on waits between transactions.',
     caution:
       "Session B is meant to wait at its labelled INSERT. Switch promptly to session A and COMMIT. The 60-second lock bound is only a guard: if it expires, ROLLBACK both sessions and rerun setup in A. Never treat a duplicate key alone as success; compare the stored account and amount with the request you are handling.",
     syntaxBreakdown: code`
@@ -43,6 +29,31 @@ The unique constraint makes PostgreSQL arbitrate competing inserts of the same k
 make every duplicate a successful replay. A caller must read the winner and accept it only when
 the stored account and amount match the request it is reconciling.
 
+### Mechanism map
+
+${"```text"}
+One request key, one transactional effect
+
+A: INSERT request-12 ---------------- holds transaction ----------------> COMMIT
+B: INSERT request-12 ---- waits for A's unique-key decision ------------> inserts 0 rows
+                                                                         |
+                                                        fresh SELECT reads stored receipt
+
+Reconnect/replay: same key + same payload -> return the stored receipt
+                  same key + different payload -> reject the key reuse
+
+The ledger row is both the credit and its receipt: one row, credited total 40.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A unique request key can make one transactional database effect durable once. Concurrent
   deliveries cannot both create the ledger row with that key.

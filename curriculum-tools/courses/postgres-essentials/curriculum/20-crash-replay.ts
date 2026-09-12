@@ -1,18 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const CRASH_REPLAY_VISUAL =
-  `Owned private PostgreSQL server; the learner server keeps running
-
-baseline CHECKPOINT --> logged changes --> immediate stop --> restart / WAL redo
-                           |                                     |
-row 1: COMMIT 110 ----------+----------------------------------> 110
-row 2: UPDATE 900, ROLLBACK +----------------------------------> 100
-row 3: UPDATE 700, left open+----------------------------------> 100
-row 4: COMMIT flush marker 1+----------------------------------> 1
-
-The marker flushes earlier WAL, including the unfinished update.
-Replaying a change does not make its transaction committed or visible.`;
-
 export const CRASH_REPLAY: Module = {
   category: "durability-recovery",
   title: "Recover transaction outcomes after process failure",
@@ -29,9 +16,6 @@ export const CRASH_REPLAY: Module = {
     runIn: "shell",
     overview:
       "Run a supplied controller that creates a small private PostgreSQL server, performs committed, aborted and unfinished writes, then stops that server immediately. Inspect its restart log alongside fresh queries to connect WAL replay with transaction visibility. The controller creates and removes the entire fixture within this experiment.",
-    reading: 'PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "Recovery")',
-    readingNotes:
-      "Optional after the experiment: Chapter 10 explains the checkpoint starting point and recovery from WAL. Here PostgreSQL 16 performs real process-crash recovery, while a deliberately small inventory makes the visibility of each transaction outcome inspectable.",
     caution:
       "Use one shell terminal. Python 3 and PostgreSQL 16 server tools must be installed; root runs the private server as the postgres operating-system user, while a normal user owns it directly. The controller deliberately crashes only its newly allocated /tmp/pe-crash-* cluster, ignores inherited PostgreSQL connection variables and accepts no existing target path. Allow roughly 100 MB of disposable disk space and keep 2 GiB free. Ctrl-C runs cleanup; check for the owned cluster removed record before rerunning. A STOP or missing cleanup record needs investigation. This process failure leaves the host and storage running.",
     syntaxBreakdown: code`
@@ -41,6 +25,28 @@ Recovery replays logged work from an earlier checkpoint after an unclean server 
 outcome is a separate part of the story: a replayed version is not automatically a committed version
 that a new reader may see. Predict the recovered values of the three business rows before running.
 
+### Mechanism map
+
+${"```text"}
+Owned private PostgreSQL server; the learner server keeps running
+
+baseline CHECKPOINT --> logged changes --> immediate stop --> restart / WAL redo
+                           |                                     |
+row 1: COMMIT 110 ----------+----------------------------------> 110
+row 2: UPDATE 900, ROLLBACK +----------------------------------> 100
+row 3: UPDATE 700, left open+----------------------------------> 100
+row 4: COMMIT flush marker 1+----------------------------------> 1
+
+The marker flushes earlier WAL, including the unfinished update.
+Replaying a change does not make its transaction committed or visible.
+${"```"}
+
+### Terminals and cleanup
+Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
+the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
+creates a private cluster. On normal exit, check the printed the controller's owned cluster removal record; on Ctrl-C, wait for cleanup
+to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
+and check that the owned resource is removed before trying again.
 ### What you are learning
 - A checkpoint is a recovery starting point, not the most recent committed transaction. Writes
   committed after the baseline checkpoint can survive through their flushed WAL.

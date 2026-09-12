@@ -1,15 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const RETRY_VISUAL = `One request from Bob, two complete transaction attempts
-
-Attempt 1: BEGIN -> read 2 -> decide leave -> UPDATE -> COMMIT fails: 40001
-                       A also leaves and commits           |
-                                                    discard attempt
-                                                          |
-Attempt 2: BEGIN -> read 1 -> decide stay  -> no UPDATE -> COMMIT succeeds
-
-The request was reconsidered. Bob did not leave on the second attempt.`;
-
 export const RETRY: Module = {
   category: "concurrency-control",
   title: "Retry a decision on fresh state",
@@ -26,9 +16,6 @@ export const RETRY: Module = {
     runIn: "shell",
     overview:
       "Run a supplied client that handles the serialization failure from the last lesson. Its first attempt lets Bob leave an on-call rota, but COMMIT fails after Alice leaves. Watch a fresh attempt repeat the read and change the decision: Bob must stay so someone remains on call.",
-    reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Serializable")',
-    readingNotes:
-      "Optional after running: Chapter 2 explains serialization failures and the need to retry. The bounded Python client, attempt evidence and controlled scheduling are supplied course code; the book does not provide this client implementation.",
     caution:
       "Run the commands in a shell, not inside psql. The client uses the learner lab by default, creates a unique pe_retry_* schema and removes that exact schema before returning. It needs only Python 3 and psql, already installed here. Ctrl-C closes its connections and runs cleanup. Any STOP message or missing cleanup record needs investigation; a timeout or disconnected client is never automatically replayed.",
     syntaxBreakdown: code`
@@ -42,6 +29,26 @@ The client applies the same rule as lessons 8–9: someone may leave only when m
 is on call. It supplies two database connections and the terminal switching for you. Read the
 attempt records, rather than learning the Python process-control plumbing.
 
+### Mechanism map
+
+${"```text"}
+One request from Bob, two complete transaction attempts
+
+Attempt 1: BEGIN -> read 2 -> decide leave -> UPDATE -> COMMIT fails: 40001
+                       A also leaves and commits           |
+                                                    discard attempt
+                                                          |
+Attempt 2: BEGIN -> read 1 -> decide stay  -> no UPDATE -> COMMIT succeeds
+
+The request was reconsidered. Bob did not leave on the second attempt.
+${"```"}
+
+### Terminals and cleanup
+Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
+the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
+creates a private cluster. On normal exit, check the printed the controller's schema removal record; on Ctrl-C, wait for cleanup
+to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
+and check that the owned resource is removed before trying again.
 ### What you are learning
 - The retry boundary includes BEGIN, reading current state, deciding, writing if allowed, and
   COMMIT. Successful UPDATE output is provisional until COMMIT succeeds.

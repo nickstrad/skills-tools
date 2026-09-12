@@ -1,19 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const CHECKPOINT_VISUAL = `A checkpoint changes page persistence, not transaction visibility
-
-Writer transaction       Shared buffers / storage       Other connection
-  UPDATE pending ------> dirty relation pages
-  sees pending                                          sees original
-                           |
-Other connection: CHECKPOINT
-                           v
-                       pages written; dirty count falls
-  transaction stays open                               still sees original
-  ROLLBACK -------------------------------------------> sees original
-
-Writing a page does not commit the transaction that changed it. WAL and MVCC preserve the boundary.`;
-
 export const CHECKPOINT_WRITEBACK: Module = {
   category: "durability-and-recovery",
   title: "Separate checkpoints from transaction outcome",
@@ -30,10 +16,6 @@ export const CHECKPOINT_WRITEBACK: Module = {
     runIn: "shell",
     overview:
       "Run a supplied controller that updates a bounded table inside an open transaction, then checkpoints from another connection. Relation-specific dirty buffers fall while the writer stays open and its uncommitted value remains private. This distinguishes writing shared pages from deciding a transaction's visible outcome.",
-    reading:
-      'PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Background Writing", "WAL Setup").',
-    readingNotes:
-      "Chapter 10 explains the checkpoint and background-writer machinery that moves dirty buffers toward durable storage, plus the WAL ordering that makes those writes safe. Run the experiment first to establish the surprising fact: a checkpoint can write pages changed by an open transaction without making that transaction visible.\n\nThe controller uses PostgreSQL 16 and pg_buffercache for relation-specific measurement; the book describes PostgreSQL 14 internals and does not make this transaction-visibility comparison for you.",
     caution:
       "Run this from a shell on a host with PostgreSQL 16 server binaries. The controller never accepts a data-directory or endpoint argument: it creates a unique /tmp/pe-checkpoint-* cluster, disables background-writer page cleaning only there, and removes it in cleanup. As root it runs PostgreSQL as the postgres OS user; as a normal user it runs under that user. A missing cleanup line means you should check for that exact printed fixture prefix before rerunning.",
     syntaxBreakdown: code`
@@ -48,6 +30,30 @@ Before running, predict whether a page can be written while the transaction that
 still open. Then use all three observations—dirty-buffer count, backend state, and external value—
 to test your prediction.
 
+### Mechanism map
+
+${"```text"}
+A checkpoint changes page persistence, not transaction visibility
+
+Writer transaction       Shared buffers / storage       Other connection
+  UPDATE pending ------> dirty relation pages
+  sees pending                                          sees original
+                           |
+Other connection: CHECKPOINT
+                           v
+                       pages written; dirty count falls
+  transaction stays open                               still sees original
+  ROLLBACK -------------------------------------------> sees original
+
+Writing a page does not commit the transaction that changed it. WAL and MVCC preserve the boundary.
+${"```"}
+
+### Terminals and cleanup
+Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
+the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
+creates a private cluster. On normal exit, check the printed the controller's owned cluster removal record; on Ctrl-C, wait for cleanup
+to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
+and check that the owned resource is removed before trying again.
 ### What you are learning
 - A checkpoint advances PostgreSQL's recovery boundary by writing dirty buffers after the required
   WAL. It is a storage event, not a transaction-outcome command.

@@ -1,18 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const UNKNOWN_OUTCOME_VISUAL = `One increment request crosses two response boundaries
-
-Caller                 Service connection                 PostgreSQL
-  | -- add 10 --------> | -- BEGIN / UPDATE / COMMIT ----> |
-  |                     | <--------- COMMIT accepted ----- |
-  |   X reply withheld  |                                 | balance 110
-  |                     | connection closes               |
-  | no outcome          |                                 |
-  | UNKNOWN             |                                 |
-
-Fresh inspection: 110. Deliberately repeat add 10: 120.
-Missing acknowledgement describes the caller's knowledge, not a rollback.`;
-
 export const UNKNOWN_OUTCOME: Module = {
   category: "concurrency-control",
   title: "Reconcile uncertain outcomes",
@@ -29,8 +16,6 @@ export const UNKNOWN_OUTCOME: Module = {
     runIn: "shell",
     overview:
       "Run a supplied client that commits an increment but withholds the application's response from its caller. Reconnect to inspect the surviving write, then deliberately repeat the increment and see two effects. This separates a missing response from the known transaction abort you handled in lesson 10.",
-    reading:
-      'Not covered by PostgreSQL 14 Internals (application response protocol); closest background: Chapter 2 "Isolation".',
     caution:
       "Use a shell. The client creates and removes its own unique pe_unknown_* schema in the learner lab, using Python 3 and psql. It deliberately repeats only its own fixture write. Ctrl-C closes its request connections and runs cleanup; check the schema removal record. A STOP or missing cleanup record needs investigation before rerunning.",
     syntaxBreakdown: code`
@@ -45,6 +30,29 @@ its own response. The simulated caller gets no outcome. You can see more than th
 the experiment separately prints a fresh database inspection. This is application response loss;
 we are not cutting a network connection during COMMIT or crashing PostgreSQL.
 
+### Mechanism map
+
+${"```text"}
+One increment request crosses two response boundaries
+
+Caller                 Service connection                 PostgreSQL
+  | -- add 10 --------> | -- BEGIN / UPDATE / COMMIT ----> |
+  |                     | <--------- COMMIT accepted ----- |
+  |   X reply withheld  |                                 | balance 110
+  |                     | connection closes               |
+  | no outcome          |                                 |
+  | UNKNOWN             |                                 |
+
+Fresh inspection: 110. Deliberately repeat add 10: 120.
+Missing acknowledgement describes the caller's knowledge, not a rollback.
+${"```"}
+
+### Terminals and cleanup
+Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
+the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
+creates a private cluster. On normal exit, check the printed the controller's schema removal record; on Ctrl-C, wait for cleanup
+to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
+and check that the owned resource is removed before trying again.
 ### What you are learning
 - A known abort, such as lesson 10's 40001, and an unknown outcome need different handling. A
   missing reply alone gives no permission to assume a rollback and repeat a non-idempotent write.

@@ -1,13 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const BLOCKER_VISUAL = `A holds a row lock                 B wants the same row
-
-BEGIN -> UPDATE -> transaction open    UPDATE ----- waits -----+
-       |                                                   |
-       +-> pg_blocking_pids(B pid) = [A pid]               |
-COMMIT ----------------------------------------------------+
-                                                 B completes`;
-
 export const BLOCKER: Module = {
   category: "concurrency-control",
   title: "Trace a lock wait to its owner",
@@ -24,10 +16,6 @@ export const BLOCKER: Module = {
     runIn: "tool",
     overview:
       "Hold a row change open in one session and watch another session wait for that row. Query PostgreSQL's live activity from the holder to prove the wait, follow the blocker PID edge to the responsible transaction, then commit the holder and observe the waiting update finish.",
-    reading:
-      'PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Wait Queue"); Chapter 12 "Relation-Level Locks" (section "Wait Queue"); Chapter 15 "Locks on Memory Structures" (section "Monitoring Waits")',
-    readingNotes:
-      "Optional after running: Chapters 12–13 explain why conflicting work queues behind a transaction, and Chapter 15 explains wait monitoring. This experiment uses PostgreSQL 16's pg_blocking_pids function and pg_stat_activity to turn those mechanisms into a live blocker edge.",
     caution:
       "B is meant to pause at its UPDATE. Switch promptly to A for the diagnostic and COMMIT. The supplied 60-second lock timeout bounds an abandoned wait; if it fires unexpectedly, roll back both sessions, rerun setup in A, and begin again.",
     syntaxBreakdown: code`
@@ -37,6 +25,27 @@ progress. PostgreSQL reports both the kind of wait and the process ID, or PID, o
 Before running, predict whether matching application names or PostgreSQL's PID edge is stronger
 evidence of which transaction controls B's progress.
 
+### Mechanism map
+
+${"```text"}
+A holds a row lock                 B wants the same row
+
+BEGIN -> UPDATE -> transaction open    UPDATE ----- waits -----+
+       |                                                   |
+       +-> pg_blocking_pids(B pid) = [A pid]               |
+COMMIT ----------------------------------------------------+
+                                                 B completes
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A waiting UPDATE exposes a Lock wait event. The event says where B is paused; it does not by
   itself identify the transaction that B needs.

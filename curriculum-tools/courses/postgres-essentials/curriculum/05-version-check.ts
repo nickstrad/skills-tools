@@ -1,23 +1,5 @@
 import { code, type Module } from "../../../src/types.ts";
 
-export const VERSION_CHECK_VISUAL = `Both editors read the same saved revision
-
-                 version 1, body "Draft"
-                    /                 \\
-A reads v1 ------------------------- B reads v1
-   |                                  |
-   | UPDATE ... WHERE version = 1     | UPDATE ... WHERE version = 1
-   | rows = 1; saved version becomes 2| rows = 0; stale edit rejected
-   v                                  v
-"A: corrected title", version 2    reread A's version 2 and reconsider B's edit
-                                      |
-                                      | merge A's text + reviewed B addition
-                                      | UPDATE ... WHERE version = 2
-                                      v
-                 "A: corrected title + B: reviewed note", version 3
-
-Zero rows is the conflict signal. The stale body is never blindly written.`;
-
 export const VERSION_CHECK: Module = {
   category: "concurrency-control",
   title: "Reject stale edits before reconsidering them",
@@ -35,9 +17,6 @@ export const VERSION_CHECK: Module = {
       revision: 1,
       overview:
         "Let two editors read version 1 of the same document without holding a transaction open. A saves first. B then tries to save from the stale version, detects the conflict from an affected-row count of zero, rereads A's work, and makes a supplied merge decision before saving version 3.",
-      reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Read Committed")',
-      readingNotes:
-        "Optional after the experiment: Chapter 2 explains the Read Committed statement views and update coordination beneath these commands. The version column, affected-row check, and merge decision are an application protocol layered on that behavior rather than a PostgreSQL isolation level.",
       syntaxBreakdown: code`
 ### In plain terms
 A version check is optimistic conflict detection: editors work without holding a database lock
@@ -49,6 +28,37 @@ Zero affected rows is a normal application conflict signal here, not a PostgreSQ
 error. B must reread the current body and reconsider its intended change. Merely replacing B's old
 version token with the new one would let B overwrite a change it has never reviewed.
 
+### Mechanism map
+
+${"```text"}
+Both editors read the same saved revision
+
+                 version 1, body "Draft"
+                    /                 \
+A reads v1 ------------------------- B reads v1
+   |                                  |
+   | UPDATE ... WHERE version = 1     | UPDATE ... WHERE version = 1
+   | rows = 1; saved version becomes 2| rows = 0; stale edit rejected
+   v                                  v
+"A: corrected title", version 2    reread A's version 2 and reconsider B's edit
+                                      |
+                                      | merge A's text + reviewed B addition
+                                      | UPDATE ... WHERE version = 2
+                                      v
+                 "A: corrected title + B: reviewed note", version 3
+
+Zero rows is the conflict signal. The stale body is never blindly written.
+${"```"}
+
+### Terminals and cleanup
+Open 2 experiment terminals, labelled Session A and Session B and connect each psql session with:
+${"```sh"}
+psql -X -h /tmp -p 5440 -U postgres -d lab -P pager=off
+${"```"}
+The flags skip personal startup settings, select the learner socket, port, role and database, and
+keep output in the terminal. Finish any earlier transaction with **ROLLBACK** before setup. Run setup once in A, keep both connections open, and follow the Session A/B labels. If B is intentionally waiting, switch to A and run its next block.
+If you reach the fifteen-minute core limit or get stuck, ROLLBACK in the open sessions and follow
+the lesson's exact cleanup command so its named pe_* table and session settings are removed.
 ### What you are learning
 - A version column turns the revision an editor read into a precondition on its later write. Every
   cooperating writer must advance the token, or another writer cannot detect that intervening
