@@ -96,3 +96,12 @@ Seventeen preserved PostgreSQL reference lessons mention `pgcoach inspect`/`hint
 were already unsupported by the previous wrapper. The reference README and tutor skill explain
 this inherited limitation; the migration did not change lesson experiments or silently add a
 new progression stage.
+
+## Final resource state
+
+All migration scratch and copied databases were removed after acceptance (about 689 MiB), including
+the frozen corpus and duplicate temporary Go cache. Normal Go caches and learner legacy backups
+remain. Final checks found about 15 GB disk and 6.8 GiB RAM available; the original learner
+postmaster 348739 still answered `lab|/labs/pglab/primary|f|1`. No owned validation server or
+`/tmp/*tutor*` scratch remained. The completed [migration plan](../../archive/plans/go-tutor-migration.md)
+retains the detailed acceptance record and final model-to-task assignment policy.

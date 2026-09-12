@@ -24,6 +24,7 @@ metadata and has its own inventory.
 - [Systemscoach archive](systemscoach/): superseded on 2026-09-12; tool retired; see its README.
 - [Learning path archive](learning-path/): replaced by `tutor roadmap` and its JSON snapshot.
 - [Retired Deno engine](deno-engine/): source and historical controllers retained in Git commit `9fc73b2`.
+- [Completed Go tutor migration](plans/go-tutor-migration.md): task mapping, accepted work packages, parity and final cleanup.
 - [School migration records](course-history/school/knowledge/): historical workflow and reading-field migration evidence.
 
 ## Old-to-new locations

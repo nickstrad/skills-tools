@@ -1,8 +1,8 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — Go implementation and Phase 7 complete; primary retiring old toolchain and auditing knowledge, installation and cleanup.**
-(Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
+**Status: complete — all 37 work packages accepted; final cleanup and learner readiness verified on 2026-09-12.**
+This is the completed migration record. The resume protocol below is historical; no work remains.
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
 with no conversation history can resume from it alone; see §A before doing anything.
@@ -83,7 +83,7 @@ a separate handoff document.
 | WP8.3 Machine install and sweep | O | done | final integration commit | Minimal-PATH startup/course/roadmap/routes/install checks pass; owned install inventory exact; no active TS/config or non-lab Python; historical/deferred exceptions documented. |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
 | WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | done | ff2b69c + resume acceptance | Primary shared-file test: 1130 golden outputs match across all five courses before/after init; read-only DB/WAL hashes unchanged. All baseline course rows/timestamps and 15 backup hashes match. |
-| WP8.4 Final acceptance | F | in progress | | Parity/data/race/real-tool gates accepted; final tests after source retirement and cleanup pending. |
+| WP8.4 Final acceptance | F | done | final completion commit | Final build/vet/race, roadmap round-trip, minimal-PATH, source sweep, backup/history audit and live learner readiness pass. Scratch retired; about 15 GB free. |
 
 **Decision and finding log.** Append dated entries when Nick answers a question, a decision in §2
 changes, or a WP discovers something later WPs must know (driver quirks, parity exceptions,
@@ -214,6 +214,26 @@ learner progress rows that changed during the work).
 - 2026-09-12 — Minimal-PATH smoke and install --check pass from /tmp. The launcher now clears
   only stale GOPATH/GOCACHE values under the pruned gRPC .tools tree; unrelated overrides survive.
   Normal Go cache writes needed host permission once; installed runtime removal remains deferred.
+
+- 2026-09-12 — Final acceptance and cleanup complete. Final source build, vet, formatting and
+  race checks pass after retiring converter/parity-only files; final CLI race package took 6.968 s.
+  Committed evidence is indexed in `docs/knowledge/go-tutor-migration.md`. The original golden
+  archive hash was rechecked before retirement. Removed `$WORK` (73,600 KiB), temporary Go cache
+  (619,936 KiB), resume scratch (11,664 KiB), and four subagent-owned audit files: about 689 MiB
+  reclaimed. No `/tmp/*tutor*` scratch remains; only small committed reports (about 20 KiB) remain.
+  Keep normal Go caches and learner legacy backups. Final disk about 15 GB available, 39% used;
+  memory 6.8 GiB available. Learner postmaster 348739 remains the only server with its original
+  `/labs/pglab/primary` path; post-cleanup read-only query returns `lab|/labs/pglab/primary|f|1`.
+  Final shared DB SHA256 at acceptance:
+  `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`.
+  Original course records and all 15 legacy backup hashes match their baseline; changes to the
+  shared database during resume were only the roadmap import/preamble correction. No completion
+  was recorded. The pre-existing Holders helper export was retained and reviewed; its comment
+  now accurately distinguishes consolidation from the conservative progress verifier.
+  Plan archived under `archive/plans/go-tutor-migration.md`; no remaining WP or retained bulky
+  acceptance input remains. Native Python fixtures, bootstrap runtime installation and inherited
+  reference-stage prose remain the explicitly documented limitations, not unfinished migration
+  implementation.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 

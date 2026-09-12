@@ -2,8 +2,9 @@
 
 Read [`docs/README.md`](docs/README.md) before working in this repository. It indexes the durable
 research and operational notes that already exist; use those documents instead of repeating
-expensive discovery work. While the Go tutor migration is active, [`plan.md`](plan.md) is its source
-of truth for package ownership, sequencing, model choices, validation, and acceptance.
+expensive discovery work. The completed [Go migration record](archive/plans/go-tutor-migration.md)
+preserves its model choices, sequencing, validation, and acceptance; use current task instructions
+for new work.
 
 ## VM resources and cleanup — first operational task
 
