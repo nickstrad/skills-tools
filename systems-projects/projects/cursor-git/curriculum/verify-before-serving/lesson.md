@@ -119,5 +119,5 @@ unset COURSE CURSOR_LAB CURSOR read_status
 ```
 
 At the 20-minute cap, run cleanup even if an earlier observation differed. It removes only the
-launcher's marked temporary root and its supplied helper. Open `systemscoach cursor-git 7 review`
-for the consistency decision.
+launcher's marked temporary root and its supplied helper. The interpretation below connects the
+evidence to the consistency decision.

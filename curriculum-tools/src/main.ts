@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadRoute, renderRoute } from "./route.ts";
 import {
   type Course,
   type Lesson,
@@ -94,6 +95,9 @@ function usage(): string {
 Usage:
   tutor courses
   tutor <course> init [--db PATH]
+  tutor <course> [NUMBER] lesson [--topic TEXT] [--ansi|--plain]
+  tutor <course> NUMBER done [--note TEXT]
+  tutor <course> route [--json]
   tutor <course> next [--topic TEXT] [--json]
   tutor <course> show <NUMBER> [--json|--ansi|--plain]
   tutor <course> pretty [NUMBER | --topic TEXT] [--ansi|--plain]
@@ -112,7 +116,8 @@ Every course command accepts --db PATH to use a different progress database.
 (--ansi forces colours, --plain disables them).
 --topic matches every word against lesson tags, category, and title (e.g. --topic "buffer cache");
 'topics' lists the tag vocabulary with progress so a reading topic can be mapped onto lessons.
-Displaying a lesson never marks it done. Run 'tutor <course> done <NUMBER>' after the experiment.`;
+The normal flow is NUMBER lesson, then NUMBER done. A lesson includes its explanation and results.
+Displaying a lesson never marks it done. The older pretty/show/done NUMBER commands remain available.`;
 }
 
 function parseArgs(args: string[]) {
@@ -427,7 +432,7 @@ function fence(text: unknown, lang: string): string {
 }
 
 /** Render a lesson as Markdown: metadata block, then one `##` section per field. */
-function renderLesson(row: Row, course: Course): string {
+function renderLesson(row: Row, course: Course, progressPath?: string): string {
   const x = cleanLesson(row);
   const runIn = x.runIn === "tool"
     ? course.tool
@@ -451,7 +456,7 @@ function renderLesson(row: Row, course: Course): string {
   if (x.readingNotes) {
     section(
       "Optional reference context",
-      `You do not need to stop for this reference. Continue with the experiment; only a Study checkpoint at the end asks you to pause before the next lesson.\n\n${x.readingNotes}`,
+      `Optional depth; all required context is in this lesson.\n\n${x.readingNotes}`,
     );
   }
   section("Syntax breakdown", x.syntaxBreakdown);
@@ -460,12 +465,14 @@ function renderLesson(row: Row, course: Course): string {
   section("Run", fence(x.code, lang));
   section("Expected result", x.expectedResult);
   section("Systems lens", x.systemsLens);
-  if (x.challenge) section("Challenge", x.challenge);
+  if (x.challenge) section("Optional variation", x.challenge);
   if (x.studyCheckpoint) {
     const checkpoint = x.studyCheckpoint as StudyCheckpoint;
     const body = [
-      "Stop here after completing the experiment. Complete the Core excerpts before continuing.",
-      `### Core\n${checkpoint.core.map((item) => `- ${item.source} — ${item.locator}`).join("\n")}`,
+      "These retained reference excerpts are optional. You can continue without a reading stop.",
+      `### Selected excerpts\n${
+        checkpoint.core.map((item) => `- ${item.source} — ${item.locator}`).join("\n")
+      }`,
     ];
     if (checkpoint.optionalDepth?.length) {
       body.push(
@@ -477,9 +484,11 @@ function renderLesson(row: Row, course: Course): string {
       );
     }
     body.push(`### Why here\n${checkpoint.rationale}`);
-    section("Study checkpoint — stop before the next lesson", body.join("\n\n"));
+    section("Optional reading", body.join("\n\n"));
   }
   if (x.notes) section("Your note", x.notes);
+  const flags = progressPath ? " --db '" + progressPath.replaceAll("'", "'\\''") + "'" : "";
+  parts.push(`When you consider it complete: \`tutor ${course.id} ${x.ordinal} done${flags}\`.`);
   return parts.join("\n\n");
 }
 
@@ -566,7 +575,40 @@ export async function run(
     return 0;
   }
   const courseId = first;
-  const [command, ...rest] = rest0;
+  let [command, ...rest] = rest0;
+  if (/^[1-9]\d*$/.test(command ?? "")) {
+    const ordinal = command;
+    if (rest.length !== 1 || !["lesson", "done"].includes(rest[0])) {
+      io.error("Error: use tutor <course> NUMBER lesson|done\n\n" + usage());
+      return 2;
+    }
+    if (parsed.flags.has("--topic")) {
+      io.error("Error: --topic selects the next lesson and cannot be combined with NUMBER");
+      return 2;
+    }
+    command = rest[0];
+    rest = [ordinal];
+  }
+  if (command === "lesson") command = "pretty";
+  if (command === "route") {
+    try {
+      courseDir(courseId); // Validate the identifier before resolving any paths.
+      if (rest.length || parsed.flags.has("--topic")) {
+        throw new Error("route does not accept a lesson number or --topic");
+      }
+      const route = await loadRoute(TOOL_ROOT, courseId, dbPath(courseId, parsed.flags));
+      const output = parsed.flags.has("--json")
+        ? JSON.stringify(route, null, 2)
+        : renderRoute(route);
+      io.log(
+        parsed.flags.has("--ansi") && !parsed.flags.has("--json") ? styleMarkdown(output) : output,
+      );
+      return 0;
+    } catch (error) {
+      io.error(`Error: ${(error as Error).message}`);
+      return 2;
+    }
+  }
   let course: Course;
   try {
     course = await loadCourse(courseId);
@@ -596,7 +638,7 @@ export async function run(
       (!parsed.flags.has("--plain") && Deno.stdout.isTerminal());
     const outputLesson = (row: Row, asJson: boolean) => {
       if (asJson) return io.log(JSON.stringify(cleanLesson(row), null, 2));
-      const markdown = renderLesson(row, course);
+      const markdown = renderLesson(row, course, parsed.flags.get("--db") as string | undefined);
       io.log(ansi ? styleMarkdown(markdown) : markdown);
     };
     if (command === "next" || (command === "pretty" && rest.length === 0)) {

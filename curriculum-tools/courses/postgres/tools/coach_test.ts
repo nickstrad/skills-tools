@@ -173,7 +173,7 @@ Deno.test("pgcoach rejects invalid input and reports topic misses and completion
     if (await runCoach(["--topic", "no-such-coaching-topic", "--db", db], missing.io) !== 0) {
       throw new Error(missing.err.join("\n"));
     }
-    if (!missing.out.join("\n").includes("No PostgreSQL lessons match")) {
+    if (!missing.out.join("\n").includes("No lessons match topic")) {
       throw new Error(missing.out.join("\n"));
     }
     const listed = capture();

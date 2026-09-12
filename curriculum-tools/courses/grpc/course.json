@@ -1,0 +1,22 @@
+{
+  "id": "grpc",
+  "name": "gRPC and Protocol Buffers",
+  "description": "Small CLI experiments in messages, RPCs, compatibility and failure",
+  "tool": "bash",
+  "minVersion": "5.1",
+  "revision": 1,
+  "repl": {
+    "mode": "shell",
+    "command": [
+      "bash",
+      "--noprofile",
+      "--norc"
+    ],
+    "echo": "printf '%s %s\\n' '{marker}' \"$?\"",
+    "quit": "exit",
+    "env": {
+      "LC_ALL": "C",
+      "LANG": "C"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+syntax = "proto3";
+package wire;
+message Record {
+  reserved 2;
+  int32 count = 1;
+  string replacement = 2;
+}

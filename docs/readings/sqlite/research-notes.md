@@ -1,16 +1,20 @@
 # SQLite readings research notes
 
-Research pass completed 2026-09-04 for the 54-lesson SQLite Systems course. The course is
+Research pass completed 2026-09-04 for the 54-lesson SQLite Systems reference course. Updated
+2026-09-12: every reading below is now optional; the former checkpoint requirements and budgets
+are historical. Use [the future-course plan](../../../future-courses/sqlite/course.md) for the
+concise route and [the optional source map](study-checkpoint-plan.md) for selected references.
+Teach essential mechanisms inside the lesson, before commands. The course is
 experiment-led, so a source is recommended only when it adds a durable mechanism, boundary, or
 operational decision that the lab cannot efficiently derive by itself. The URLs below are the
 canonical SQLite documentation or a primary peer-reviewed paper; no third-party tutorial is needed
 to fill a demonstrated gap.
 
-## Recommended core inventory
+## Selected optional source inventory
 
-The companion [study checkpoint plan](study-checkpoint-plan.md) places six bounded stops after
-lessons 13, 19, 25, 31, 37, and 41. The estimates below are for the named sections, not the whole
-web page.
+The companion [optional source map](study-checkpoint-plan.md) retains six groups linked to
+reference lessons 13, 19, 25, 31, 37, and 41. The old reading estimates below are for the named
+sections, not required learner time or the whole web page.
 
 ### Database File Format — after lesson 13 (20–30 minutes)
 
@@ -161,10 +165,9 @@ transaction itself coordinates external services or distributed lock ownership.
 
 ## Selection and version policy
 
-The six core stops total approximately 95–130 minutes—roughly 1.5–2.25 hours depending on pace and
-note-taking. A stop is justified only when its named sections explain a mechanism or operational
-boundary immediately after a lab exposes it. Ordinary references and optional depth remain
-non-blocking. Version-specific claims (planner heuristics, benchmark numbers, test-suite counts,
+The former six stops totaled approximately 95–130 minutes. They are now optional reference;
+do not add that time to the concise course or require note-taking. Version-specific claims
+(planner heuristics, benchmark numbers, test-suite counts,
 historical WAL warnings, and the WAL-reset bug) are excluded from the durable core, but
 safety-relevant current-version warnings must not be erased merely because they are inconvenient.
 The 3.53.4 compatibility floor intentionally includes the WAL-reset fix.

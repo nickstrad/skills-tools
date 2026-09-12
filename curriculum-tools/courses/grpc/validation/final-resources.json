@@ -1,0 +1,7 @@
+{
+  "owned_counter_processes": [],
+  "owned_validation_roots": [],
+  "free_disk_bytes": 16798691328,
+  "learner_postgres": "read-only query succeeded: lab, /labs/pglab/primary, primary",
+  "retained_tools": "course .tools and lab/bin; reusable for learner practice"
+}

@@ -12,6 +12,10 @@ export type Guide = {
   /** Opt-in pilot; other lessons retain their existing flow until batch review. */
   pilot?: {
     question: string;
+    /** Mechanism diagram shown before the experiment, using terminal-safe characters. */
+    visual: string;
+    /** Concise evidence, explanation and application for the second view. */
+    review: string;
     minutes: [number, number];
     cap: number;
     readingMinutes?: [number, number];

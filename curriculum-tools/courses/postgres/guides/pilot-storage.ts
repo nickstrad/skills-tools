@@ -12,10 +12,7 @@ in a separate table, leaving a pointer in the main table (the heap).
 We will inspect their storage, compare two reads of row 2, then compare renaming its label with
 replacing its body. A buffer is a cached page; accessing one need not mean reading a storage device.`,
     predict:
-      `Make a quick mental guess before running the read phase: for id = 2, will selecting the short
-label and counting body characters with length(body) use about the same number of shared buffers, or will one need more?
-Consider which operation needs only the heap row and which may need the external value. Exact counts
-are unnecessary; compare your guess with the named EXPLAIN output when it appears.`,
+      "As you run, compare the buffer work for reading only the label with reading the body, then compare changing the label with replacing the body.",
     inspect:
       `Look at the outputs in order. First compare chars with stored_bytes, then the printed heap and
 toast sizes, the heap page's lp/lp_len values, and the TOAST chunk fields chunks, first_seq, last_seq,
@@ -48,6 +45,17 @@ separate store? Consider one benefit and one cost of the decision.`,
     pilot: {
       question:
         "How does PostgreSQL keep a very large value manageable, and when does reading or replacing it require extra page work?",
+      visual: `Main table (heap)                   TOAST table
++----+-------+--------------+       +---------+---------+-----+
+| id | label | body pointer | ----> | chunk 0 | chunk 1 | ... |
++----+-------+--------------+       +---------+---------+-----+
+       ^ narrow read                  ^ body access`,
+      review:
+        `Compare chars with stored_bytes: equal-length text can occupy very different space because repeated text compresses well. For row 2, compare the top execution node's shared hit/read counters for label and length(body), excluding Planning buffers. Reading the body can require pages beyond the heap row; a shared read is not proof of device I/O.
+
+The label update can reuse the external body; replacing the body creates fresh external storage. Compare the visible chunks and allocated bytes before and after each update. Neither unchanged file size nor unchanged chunk count proves that no writes occurred. Physical page slots are not SQL row IDs.
+
+For a document list that rarely displays bodies, keep the projection narrow. Measure representative payload access before deciding to move bodies to another store.`,
       minutes: [35, 45],
       cap: 60,
       phases: [
@@ -117,10 +125,7 @@ changed in memory that has not yet been flushed to its relation file. A shared h
 already in shared_buffers; a shared read means it was not, while the operating system may still
 satisfy that read from memory.`,
     predict:
-      `Make a quick mental guess: for the identical st_cold count(*) scan, will the second EXPLAIN
-show fewer shared reads than the first? Then guess what CHECKPOINT will do to st_events' dirty count
-without assuming it evicts the relation. Use the named EXPLAIN and pg_buffercache outputs to compare
-your guesses; exact hit/read totals can vary with other cache activity.`,
+      "Compare the two scans, then check whether writing dirty pages removes them from the cache. The counters can vary with background activity.",
     inspect:
       `Read the outputs in sequence. Start with st_cold's size, pages, and shared_buffers setting,
 then compare the two EXPLAIN top execution nodes' shared hit/read values. Do not add parent and child counters or include Planning buffers; an omitted counter is zero. For st_events, compare buffers
@@ -151,6 +156,17 @@ justify the memory tradeoff.`,
     pilot: {
       question:
         "How do shared-buffer hits, misses, dirty pages, and checkpoints relate to cache residency and write-back?",
+      visual: `Query --> shared_buffers -- miss --> OS cache --> storage
+             |   ^                    (may hit)
+          UPDATE |
+             v   | remains cached
+          dirty page -- CHECKPOINT --> relation file`,
+      review:
+        `Compare the two scans' top execution-node shared hit/read counts. Repeating a scan can reuse resident pages; both scans may already be all hits. Do not sum parent and child buffer counters. A shared read is a PostgreSQL cache miss; the operating system may still supply the page from memory.
+
+Compare st_events' buffers and dirty counts around UPDATE and CHECKPOINT. Changed pages can become dirty, then be written while remaining cached. Background writes can clear dirty flags before your sample, so exact counts vary.
+
+A cache-hit ratio alone cannot justify increasing shared_buffers. Check the working set and request latency, and distinguish read pressure from dirty-page write-back.`,
       minutes: [35, 50],
       cap: 60,
       readingMinutes: [15, 25],

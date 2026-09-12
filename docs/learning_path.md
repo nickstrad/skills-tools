@@ -1,732 +1,312 @@
-# CLI-First Systems Engineering Learning Projects
+# Systems learning path
 
-This learning path builds practical systems-engineering intuition through small,
-observable experiments. Each project uses a CLI as an interface to a systems
-primitive—not as a checklist of syntax to memorize.
+Updated 2026-09-12. Focus: databases and distributed systems, supported by useful Linux foundations.
+Continue PostgreSQL now; bring in Linux observations as needed, then study SQLite. Return for deeper
+Linux/container work before progressing through networking, Valkey, DuckDB, object storage, NATS and etcd.
 
-The collection is aimed at understanding:
+The Go follow-ups are **optional project choices**, not extra course requirements. Pick one after
+the relevant topic, using earlier lessons where helpful. Aim for **30–60 minutes in 2–4 short sessions**
+with supplied setup: one mechanism, one failure or race, and one result to verify. These are planning
+estimates, not tested timings. Setup-heavy branches assume their labs are already ready.
 
-- performant and data-intensive applications;
-- databases and storage systems;
-- distributed systems;
-- Linux infrastructure;
-- observability and performance engineering; and
-- agent and sandbox infrastructure in the spirit of E2B and Daytona.
+Keep projects to tiny datasets and a few local processes. Extend supplied Go fixtures rather than
+building complete platforms. Early projects exercise local boundaries used by distributed systems;
+later ones connect services. They do not establish independent-machine fault tolerance.
 
-Choose project size from its distinctive mechanisms and intended engineering decisions, using the
-scales below. Lessons should minimize application code and prefer commands, SQL, configuration, shell pipelines,
-inspection, benchmarking, process manipulation, failure experiments, and
-observation of files, processes, and network activity.
+Discuss the approach and scope before creating a selected project. Use Go for these follow-ups,
+including PostgreSQL projects; this does not change the existing pgcoach lesson-script convention.
+All projects below are proposals, not claims of authored or validated exercises.
 
-## Recommended sequence
+## Main path
 
-Updated 2026-09-04 following the learner's request to adopt the roadmap review. This is the
-project flow and software-selection guide. PostgreSQL, SQLite, and Linux have checked-in course
-material; the other projects and integration exercises below are planned scope, not claims of
-implemented or validated lessons. The thematic catalog later in this file is not execution order.
+Linux is a companion track, not a prerequisite to finish before PostgreSQL. The remaining topics
+follow the order below. Docker can package labs from the start; its section is the later internals pass.
 
-Apply the [learner profile](learner-profile.md): Nick holds KCNA, has shipped software on Kubernetes
-for roughly seven years, and is familiar with Docker. His own quickspin and task-orchestrator
-repositories provide additional implementation experience. The [experience review](knowledge/prior-project-experience.md)
-identifies coursework to compress; those repositories are not assignments to copy or rebuild.
-Use familiar deployment tools immediately and spend teaching time on mechanisms and failure modes
-that are new. Host-init administration is outside this learning path.
+### Linux foundations and resource management
 
-| Stage | Focus | Purpose and progression |
-| --- | --- | --- |
-| 1 | Targeted Linux foundations + strace | Fill specific gaps needed for database experiments. Familiar shell, process, and container usage needs only a recap when useful. |
-| 2 | PostgreSQL → SQLite | Learn transactional storage deeply, then contrast embedded storage and application ownership of concurrency, maintenance, and recovery. Introduce fio around storage questions. |
-| 3 | Linux resource management + container internals | Investigate actual CPU, memory, process, and I/O boundaries using familiar Docker/Compose tools. Skip a general Docker introduction. |
-| 4 | Networking + nftables; deeper Kubernetes alongside | Investigate packet paths, policy, reconciliation, and lifecycle behavior. Kubernetes is available for labs now, without completing every earlier course first. |
-| 5 | Valkey | Contrast durable relational state with memory budgets, expiration, eviction, caching, and fast shared data structures. |
-| 6 | DuckDB → local object storage | Move from analytical execution and Parquet layout to separation of compute, metadata, and bulk storage. Use perf to investigate execution costs. |
-| 7 | NATS, including JetStream | Study delivery, acknowledgments, replay, slow consumers, and backpressure. |
-| 8 | etcd | Study coordination explicitly: revisions, conditional transactions, leases, watches, quorum, and partitions. |
-| 9 | Selected cross-system experiments | Choose the commit/delivery, analytical-pipeline, or isolation investigation below when it exposes an unfamiliar boundary. No repeat platform build is required. |
-| 10 | Specialization branches | Choose Firecracker for VM isolation, advanced Kubernetes for control-plane internals, or Kafka for partitioned logs. These are independent destinations, not three compulsory courses. |
+**Tool:** Linux CLI tools expose processes, files, memory, sockets and isolation.
 
-The learner has already started PostgreSQL. Continue that work and pull in the Linux foundations
-that make the current experiment clearer; do not require completion of the entire Linux course
-before returning to databases. Preserve PostgreSQL → SQLite as the deliberate database sequence.
-Stage 1 is an early pass through Linux fundamentals, with deeper resource and isolation work later;
-it does not require duplicating lessons or changing their stored order.
-Nick's subsequently reported OSTEP/How Linux Works readings, repeated DDIA readings, and
-[website/résumé background](knowledge/learner-background-sources.md) reinforce this targeted approach.
-For concrete scope, see the [optional eight-lesson Linux route](knowledge/linux-database-integration.md#nicks-optional-early-linux-route):
-continue PostgreSQL and pull in observations as needed, or use a short optional pass. A separate
-Linux course split is not currently prescribed.
-
-Start synthesis incrementally: a supplied worker can use Docker Compose now, the analytical pipeline
-follows object storage, and isolation investigations use familiar containers with selected Linux
-mechanisms. Messaging can extend the worker later. Isolation experiments and Firecracker do not
-depend on completing the data or messaging branches.
-For the learner's sandbox interests, Firecracker can precede Kubernetes. Learn etcd before advanced
-Kubernetes control-plane failure and recovery; ordinary Kubernetes usage does not require the etcd
-course. Kubernetes is not a Firecracker prerequisite. Choose synthesis by its unfamiliar boundary,
-not by a requirement to implement another basic scheduler, worker, or sandbox platform.
-
-## Local labs and software choices
-
-Prefer a Linux machine or VM with local binaries, private data directories, and explicit ports.
-A remotely accessed Linux VM is still a suitable local-services lab: exercises should not require
-managed cloud databases, cloud object storage, billing configuration, or provider provisioning.
-Use the learner's existing Docker Compose and Kubernetes familiarity to make labs repeatable.
-Keep kernel experiments on a suitable Linux host rather than assuming every container exposes
-the needed facilities. Use kind when a disposable local cluster is useful; a simple binary or
-Compose setup is sufficient when Kubernetes would add no explanatory value.
-
-| Role | Default software | Scope boundary |
-| --- | --- | --- |
-| Transactional and analytical storage | PostgreSQL, SQLite, DuckDB CLIs | Keep the distinct architectures; use the same small workloads for comparisons. |
-| In-memory shared state | Valkey server + valkey-cli | One implementation for the Redis/Valkey slot; Redis is an optional later comparison. |
-| Object storage | SeaweedFS local S3 endpoint, initially weed mini | Learn the object API and publication protocols; defer SeaweedFS's other subsystems. |
-| Messaging | NATS server + NATS CLI, including JetStream | One messaging foundation; make delivery and external effects explicit. |
-| Coordination | etcd + etcdctl | Start with one member, then a bounded three-member local lab with separate state and ports. |
-| Service lifecycle and packaging | Docker + Compose; Kubernetes when useful | Assume routine usage; investigate process lifecycle, isolation, and application readiness. |
-| Network investigation | iproute2, nftables, ss, tcpdump, curl, dig, OpenSSL | Add a small nginx reverse-proxy exercise; do not create a second broad administration course. |
-| Measurement | Supplied bounded load driver, native counters, strace, fio, perf | Reuse tools across courses; bpftrace is a later optional workshop. |
-| Orchestration and deeper study | Kubernetes with kind + kubectl | Usable from the outset; teach unfamiliar internals and failure behavior rather than deployment basics. |
-| Sandbox branch | Firecracker | Requires a Linux environment with usable KVM; verify before scheduling the branch. |
-| Partitioned-log branch | Apache Kafka local lab | Use one implementation; Redpanda is an optional contrast, not another mandatory course. |
-
-These are curriculum defaults, not an instruction to install every service up front. Pin versions
-or image digests when authoring runnable labs and test the exact capabilities an experiment needs.
-Keep the service count, dataset, runtime, and failure scope bounded. Multiple processes or
-containers on one host can expose protocol failures; they do not establish independent-machine
-availability or cloud durability. Keep provider-specific behavior as an optional comparison only
-when it answers a concrete question that the local lab cannot.
-
-Selection references checked 2026-09-04: [Valkey quick start](https://valkey.io/topics/quickstart/),
-[SeaweedFS quick start](https://github.com/seaweedfs/seaweedfs#quick-start),
-[nginx proxy introduction](https://nginx.org/en/docs/beginners_guide.html),
-[kind](https://kind.sigs.k8s.io/), and [Kafka local quickstart](https://kafka.apache.org/quickstart/).
-The object-storage and Firecracker sections below record the important selection constraints.
-
-## The lesson pattern
-
-Lessons should generally move through this loop:
+**Course / goals:** Study ownership, lifetime, resource budgets and namespace views; learn to connect symptoms to scoped evidence. Use foundations alongside databases and deeper resource work afterward. [44-lesson v2 proposal](../future-courses/linux-v2/course.md).
 
 ```text
-command
-  ↓
-observe state
-  ↓
-manipulate state
-  ↓
-inspect internals
-  ↓
-introduce load or failure
-  ↓
-explain behavior
-  ↓
-understand the abstraction
+client -> worker -> files / sockets
+            |
+         CPU + memory budget
 ```
 
-The goal is to develop a mental model of what each primitive provides,
-how it behaves under load, where its boundaries are, and how it composes with
-other primitives.
+**Potential Go follow-ups — choose one:**
 
-## Scale the project; grow the learner's ownership
+- **Bounded fan-out:** cap a supplied Go launcher's concurrency; verify useful progress and complete child cleanup.
+- **Pipe backpressure:** pause a Go consumer; observe its producer stall and recover without unbounded buffering.
+- **Log handoff:** add reopen support to a supplied Go worker; prove rotation releases the deleted log.
 
-Use three flexible planning scales. These are examples, not lesson quotas or a requirement to expand
-an existing project. The narrower the tool's unique contribution, the smaller the project can be.
-Specific project recommendations later in this file take precedence over these rough ranges.
+### PostgreSQL
 
-| Scale | Typical scope | Progression and final evidence |
-| --- | --- | --- |
-| Focused, often 8–18 lessons | One or two mechanisms or an operating boundary; for example a compact tracing or service-lifecycle study. | Guided setup and observation, controlled variations, then one independent diagnosis or measured decision using a familiar workload. |
-| Standard, often 20–45 lessons | Several related mechanisms; for example Docker or analytical execution in DuckDB. | Repeat the guided-to-independent progression within modules, include a few synthesis experiments, then one bounded integration exercise. |
-| Deep, often 50–100+ lessons | Foundational systems with multiple interacting subsystems; for example PostgreSQL or Linux. | Preserve internals depth, combine mechanisms at several checkpoints, and finish with a system or incident exercise covering correctness, performance and recovery. |
+**Tool:** A client/server relational database with MVCC, WAL, indexes and replication.
 
-Within each scale, move from **read → predict → run supplied code → inspect → explain → vary →
-apply**. A prediction can be a reasoned guess. Early experiments supply complete commands and
-definitions; later ones ask the learner to choose a measurement, adapt a familiar command, design a
-race, or defend a tradeoff. Keep runnable hints and a worked solution available. Increase ownership
-of the investigation, not dependence on memorized syntax.
-
-Scaffolding follows familiarity with the mechanism rather than lesson number. Introduce a new
-mechanism with guidance even late in a deep project. For known mechanisms, a small course can reach
-independent diagnosis quickly. Do not turn the seven actions into seven separate lessons or force
-every experiment to take seven conversational turns; combine stages when useful and respect a
-request for the full lesson.
-
-Before writing a project, state what the learner will eventually own: an invariant, workload,
-capacity claim, recovery procedure, or architecture decision. Work backwards to the experiments
-needed to justify it. Prefer a recurring workload for synthesis and small disposable examples for
-individual mechanisms. CLI and shell tools are enough; application scaffolding earns a place only
-when it exposes a boundary that the CLI cannot.
-
-The assistant can prepare controlled failure variants, inspect evidence, challenge a proposed
-explanation and supply graduated hints. Later incidents should present symptoms before disclosing
-the cause. Assess the learner's causal reasoning and evidence, with completion recorded only on
-their explicit request. Detailed authoring and presentation rules live in
-[`curriculum-tools/docs/AUTHORING.md`](../curriculum-tools/docs/AUTHORING.md).
-
-## Depth and overlap rule
-
-Apply "deep once, contrast thereafter" across the entire learning path. Teach a
-systems concept from first principles in the project that exposes it most
-clearly, then use later projects to reveal different implementations,
-operational boundaries, failure modes, or trade-offs. Matching vocabulary is not
-automatically redundant: a later experiment earns its place when it produces
-materially different evidence and changes the learner's model.
-
-After two substantially different implementations have separated a general
-principle from one product's design, further projects should normally assume the
-principle and concentrate on what is new. Do not omit a tool's internals merely
-because familiar labels such as transactions, logs, indexes, isolation, resource
-limits, or health checks reappear; do avoid another ground-up explanation when
-the mechanism and lesson outcome add no meaningful contrast.
-
-## Track 1: Databases, data, and storage
-
-### 1. PostgreSQL — essentials route with a deep reference
-
-**Current direction, 2026-09-06:** a fixed **40-lesson essentials route**, each lesson targeting
-20–30 minutes, after Nick’s eight completed reference lessons. He prefers smaller meaningful
-chunks over 24 dense lessons and wants the goal specified before authoring. The
-[full route and intended outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) is now
-written down. Its first six lessons are authored: visibility, snapshot lifetime, retention, space
-reuse, atomic arithmetic and row-locked decisions. Nick enjoyed the first batch and requested the
-next three; the next feedback point is essentials lesson 6; the old 9–12 pilot is not required.
-
-`pgcoach` opens essentials by default. Its `lesson` view explains the concepts and diagrams before
-execution; `review` interprets results and gives insights. Lessons 7–40 remain planned. Preserve
-original progress and the 92-lesson course as optional reference via `pgcoach --reference`.
-
-Possible architecture reference: [On building scalable control planes](articles/scalable-control-planes.md)
-connects this project's replication, freshness, write-capacity, and recovery questions to service
-behavior. Use it to motivate selected experiments, without adding a managed database dependency.
-
-Progression:
+**Course / goals:** Build depth in transactions, storage, recovery and query behavior; reason about concurrency, retries and durable outcomes. [40-lesson route](../curriculum-tools/courses/postgres-essentials/PLAN.md), with 26 authored.
 
 ```text
-SQL → schemas and catalogs → processes and connections → pages → indexes
-→ MVCC → transactions → locking → WAL → query planning → vacuum
-→ checkpoints → replication → performance
+request -> COMMIT -> reply lost
+retry   -> operation ID -> existing result
 ```
 
-### 2. SQLite — deep project
+**Potential Go follow-ups — choose one:**
 
-SQLite provides the contrasting embedded-database design space. Explore how a
-local, durable database file supports relational workloads without a database
-server.
+- **Retryable command:** drop a post-commit response; retry with an operation ID and verify one database effect.
+- **Reservation race:** let two Go clients compete for one item; enforce and check the inventory invariant.
+- **Recoverable claim:** kill a worker after claiming a row; reclaim it and reject results from its stale generation.
 
-Progression:
+### SQLite
+
+**Tool:** An embedded relational database accessed through local files.
+
+**Course / goals:** Contrast PostgreSQL with application-owned transactions, single-writer concurrency, WAL/checkpoints and recovery. [32-lesson Essentials proposal](../future-courses/sqlite/course.md).
+
+**Potential Go follow-ups — choose one:**
+
+- **Durable HTTP outbox:** restart a Go sender after a lost acknowledgment; replay IDs safely to a supplied deduplicating collector.
+- **Restartable feed client:** commit each applied update and cursor together; crash between batches and resume.
+- **Writer admission:** compare two competing writers with a bounded Go gateway to one local SQLite file.
+
+### Docker / container internals
+
+**Tool:** A container runtime and image workflow built on Linux isolation and resource controls.
+
+**Course / goals:** Connect writable layers, volumes, process lifetime and limits to application behavior. Skip routine Docker usage; investigate unfamiliar internals.
+
+**Potential Go follow-ups — choose one:**
+
+- **Commit during shutdown:** terminate the earlier Go/PostgreSQL service during a request; reconcile the client's uncertain result.
+- **State after recreation:** compare a Go service's writable-layer and volume-backed state after container recreation.
+
+### Networking and application requests
+
+**Tool:** Linux networking plus iproute2, ss, tcpdump, curl, dig, OpenSSL and a small nginx fixture.
+
+**Course / goals:** Trace DNS, TCP, TLS and HTTP failures; understand deadlines, retries, connection reuse and packet paths.
+
+**Potential Go follow-ups — choose one:**
+
+- **Deadline relay:** propagate one total deadline through a Go proxy to a delayed upstream; verify cancellation.
+- **Retry budget:** inject lost responses into the earlier operation-ID service; bound attempts and count actual effects.
+- **Stale pooled connection:** restart an upstream; observe a Go client's connection reuse, errors and bounded recovery.
+
+### nftables
+
+**Tool:** Linux packet filtering, NAT and connection tracking, controlled through nft.
+
+**Course / goals:** Learn stateful policy and directional failure after routes/veth networks; connect rules to actual request outcomes.
+
+**Potential Go follow-ups — choose one:**
+
+- **One-way partition:** block replies between two Go peers in owned namespaces; heal and reconcile uncertain requests.
+- **Stateful policy change:** compare an existing Go stream with a new connection after changing filtering rules.
+
+### Valkey
+
+**Tool:** An in-memory data-structure server, used through valkey-cli and Go clients.
+
+**Course / goals:** Study expiration, eviction, atomic operations, caching, persistence and replication; decide what can be lost, rebuilt or safely shared.
+
+**Potential Go follow-ups — choose one:**
+
+- **Cache stampede gate:** coordinate fills across two Go frontends; measure PostgreSQL requests during concurrent misses.
+- **Stale-fill race:** delay an old cache fill; use versions to reject its publication after a newer value.
+- **Shared rate limit:** enforce one atomic request budget across two Go API processes; verify combined admissions.
+
+### DuckDB
+
+**Tool:** An embedded analytical SQL engine that queries data including Parquet files.
+
+**Course / goals:** Study columnar execution, scans, pushdown, aggregation, parallelism and spilling; explain analytical work and incomplete results.
+
+**Potential Go follow-ups — choose one:**
+
+- **Two-worker aggregate:** query two fixed Parquet shards through Go workers; merge sums/counts and reject incomplete results.
+- **Import receipt:** atomically record a batch ID with its imported rows; restart around commit and avoid duplicates.
+- **Query admission:** bound concurrent analytical jobs in a Go wrapper; compare completion and spill evidence.
+
+### Object storage
+
+**Tool:** Bucket/key object APIs; the current local lab default is SeaweedFS's S3 endpoint.
+
+**Course / goals:** Study immutable payloads, checksums, retries and manifest publication; separate bulk storage from metadata and rebuildable caches.
 
 ```text
-SQL → database files → pages → B-trees → indexes → transactions → locking
-→ WAL → query planning → virtual tables → FTS → durability
-→ concurrency limitations
+Go writer -> immutable objects
+          -> publish version in PostgreSQL
+Go reader -> published version -> DuckDB
 ```
 
-Keep this architectural comparison in view:
+**Potential Go follow-ups — choose one:**
 
-| PostgreSQL                       | SQLite              |
-| -------------------------------- | ------------------- |
-| Client/server database           | Embedded database   |
-| Concurrent multi-process service | Local durable state |
+- **Manifest publisher:** upload immutable objects, then advance a PostgreSQL version pointer; interrupt publication and check reader visibility.
+- **Retryable chunk upload:** reuse content-derived IDs after a lost response; verify checksums and one published manifest.
+- **Rebuildable cache:** delete a Go reader's local cache; reconstruct a fixed manifest and verify its dataset with DuckDB.
 
-SQLite is the deliberate second implementation for transactional storage, so its
-file header, pager, B-tree, rollback-journal, single-writer locking, WAL
-sidecar, checkpoint, backup, and recovery experiments are useful contrast, not
-duplication. When a lesson revisits a general application pattern already taught
-with PostgreSQL, it should assume that concept and concentrate on the different
-SQLite mechanism or local/offline operating boundary.
+### NATS / JetStream
 
-The [control-plane article note](articles/scalable-control-planes.md) can motivate a measured
-deployment-boundary decision. Application experience with SQLite does not replace this course's
-pager, journal, locking, and recovery evidence.
+**Tool:** Subject-based messaging; JetStream adds persistent streams, consumers and replay.
 
-### 3. DuckDB
-
-DuckDB introduces analytical database architecture without requiring another
-database server or operational environment. It preserves a convenient “download
-a binary, open a CLI, query data” workflow while exposing a fundamentally
-different workload.
-
-Explore:
+**Course / goals:** Study acknowledgments, redelivery, competing consumers and backlog; separate message delivery from receiver effects.
 
 ```text
-analytical SQL → columnar processing → vectorized execution → aggregation
-→ large scans → Parquet → CSV → query plans → predicate pushdown
-→ projection pushdown → compression → parallel execution
-→ memory management → spilling to disk
+publisher -> stream -> worker -> database effect
+                         |
+                    acknowledgment
 ```
 
-Create millions of rows and compare point lookups, aggregations, `GROUP BY`,
-full scans, and filtered scans in SQLite, PostgreSQL, and DuckDB. Inspect the
-plans and behavior of each system.
+**Potential Go follow-ups — choose one:**
 
-The important distinction is:
+- **Outbox to inbox:** connect PostgreSQL through Go publishers/consumers; lose acknowledgments and deduplicate receiver effects.
+- **Worker crash window:** crash after a database effect but before acknowledgment; verify safe redelivery to another Go consumer.
+- **Slow consumer:** pause a Go receiver; bound in-flight work and verify every accepted ID after backlog recovery.
+
+### etcd
+
+**Tool:** A replicated key-value store with revisions, conditional transactions, watches and leases.
+
+**Course / goals:** Study coordination, quorum, stale ownership and watch recovery; require the protected receiver to enforce fencing.
 
 ```text
-OLTP-style, row-oriented architecture  ↔  OLAP-style, analytical architecture
+lease -> current owner -> generation token
+                             |
+                    sink rejects stale writes
 ```
 
-Keep DuckDB compact: roughly 30–36 high-signal lessons. Its primary job is to
-teach columnar storage, vectorized and pipelined execution, blocking operators,
-memory-bounded algorithms, spilling, scan parallelism, and Parquet layout and
-pushdown. Avoid re-teaching shared concepts such as basic SQL, transaction
-vocabulary, query-plan terminology, and generic durability principles from first
-principles when earlier courses have already established them. This is not a
-reason to omit DuckDB internals: use comparative experiments to teach DuckDB's
-own storage, concurrency, MVCC, WAL, checkpoint, and index behavior where its
-embedded analytical architecture produces a different mechanism, trade-off, or
-observable result.
+**Potential Go follow-ups — choose one:**
 
-Under this rule, PostgreSQL supplies the deepest treatment of transactional
-storage, while SQLite provides the second implementation needed to separate the
-general principles from PostgreSQL's design. DuckDB therefore needs only about
-4–6 focused experiments on transactions, concurrency, WAL, checkpoints,
-recovery, and indexes—enough to expose its architectural boundary, not another
-ground-up sequence. As a rough allocation, spend 75% of the course on
-distinctive OLAP execution, storage, memory, parallelism, and file-layout
-behavior; 15% on those transactional and durability contrasts; and 10% on
-cross-engine capstones.
+- **Fenced owner:** on takeover, advance the PostgreSQL sink's accepted generation; resume the stale Go worker and reject its writes.
+- **Recoverable watcher:** disconnect a Go watch client; resume by revision or rebuild after compaction and verify convergence.
+- **Competing publishers:** race two Go updates against one expected revision; require the loser to reread before retrying.
 
-### 4. Valkey
+## Supporting workshops
 
-Use an in-memory data-structure server to understand fast, reusable state and
-when it is a better primitive than a relational database.
+Pull these into a relevant workload when needed. They are not four additional mandatory courses.
 
-Use Valkey as the default implementation, with Redis only as an optional comparison. Build a
-bounded standard project around data structures, memory overhead, expiration, eviction, cache
-invalidation, stampedes, atomic operations, pipelines, rate limiting, persistence, and replication
-failure. End with a measured decision about which state may be cached, lost, or reconstructed.
+### strace
 
-Queues, streams, and distributed locks can provide focused contrasts. Put the deepest delivery
-semantics sequence in NATS and coordination in etcd. Avoid three ground-up treatments of the same
-application protocol; retain a Valkey experiment when its mechanism or failure boundary differs.
+**Tool:** A CLI tracer for system calls, returned errors and signals.
 
-### 5. Object storage — local S3-compatible lab
+**Course / goals:** Use during file, connection and sync investigations; connect syscall evidence to application behavior and recognize tracing limits.
 
-Study object storage as a fundamental systems primitive. Default to SeaweedFS's local S3 endpoint;
-its documented `weed mini` command starts the lab from one binary. Restrict the project to object
-storage rather than touring the surrounding filesystem, catalog, or cluster features.
-[SeaweedFS quick start](https://github.com/seaweedfs/seaweedfs#quick-start).
+**Potential Go follow-ups — choose one:**
 
-MinIO was the learner's example of the desired local experience. Its community repository was
-archived on 2026-04-25 and states that it is no longer maintained, so it is not the default for a
-new course. Reassess software at implementation time rather than building the curriculum around
-an unmaintained dependency. [MinIO repository](https://github.com/minio/minio).
+- **Find the blocked hop:** trace a Go client/worker pair; distinguish blocked reads from connection errors and prove recovery.
+- **File publication:** inspect a Go write/sync/rename sequence; add the missing synchronization call and verify its target.
 
-Start with `PUT` and `GET`, buckets and keys, metadata, range requests, multipart uploads,
-checksums, retries, and immutable payloads. Then investigate publication through a manifest,
-conditional updates, and the database/object-store commit boundary. Add versioning, lifecycle,
-and retention experiments only after verifying support in the pinned backend. API compatibility
-does not by itself establish the consistency, conditional-write, or durability guarantees a
-protocol needs. Keep AWS-specific identity, storage classes, and operations optional.
+### fio
 
-Develop intuition for architectures such as:
+**Tool:** A configurable I/O workload generator with throughput and latency reports.
+
+**Course / goals:** Use around database storage questions; compare access patterns, queue depth and synchronization with bounded files and workloads.
+
+**Potential Go follow-ups — choose one:**
+
+- **I/O interference:** use a small Go harness for two bounded fio jobs; vary background concurrency and compare foreground latency.
+- **Sync batching:** compare two fio synchronization settings through a Go wrapper; report latency and completed work.
+
+### perf
+
+**Tool:** Linux CPU counters and sampled stack profiling, subject to host permissions.
+
+**Course / goals:** Locate hotspots in familiar workloads; compare useful throughput and latency after one controlled change.
+
+**Potential Go follow-ups — choose one:**
+
+- **Batching tradeoff:** profile Go peers exchanging fixed records; compare CPU cost and latency before and after batching.
+- **Hot routing path:** profile a supplied Go router; change one hotspot and repeat the same request load.
+
+### bpftrace
+
+**Tool:** A scripting CLI for dynamic Linux tracing using eBPF probes.
+
+**Course / goals:** Optional after strace/perf; investigate specific kernel events and latency distributions with scoped filters and measured overhead.
+
+**Potential Go follow-ups — choose one:**
+
+- **Locate the tail:** correlate a supplied Go service's delayed requests with workload-filtered syscall or scheduler timing.
+- **I/O contention probe:** trace a Go service beside a bounded writer; reduce interference and check useful request progress.
+
+## Optional branches
+
+Choose a branch by interest. Firecracker can follow Linux/networking without Kafka or Kubernetes.
+Kubernetes labs can be used earlier; only its deeper control-plane storage work depends on etcd.
+
+### Firecracker
+
+**Tool:** A KVM-based microVM monitor controlled through an API.
+
+**Course / goals:** After Linux isolation, networking and nftables, study guest lifecycle, storage/network boundaries and snapshot behavior using supplied images. Requires usable KVM.
 
 ```text
-compute → local cache → object storage
-
-PostgreSQL metadata ──→ locally stored objects
+host: process + KVM + network
+                |
+          guest: Go workload
 ```
 
-Object storage is neither a filesystem nor a relational database. Focus on why
-modern systems separate compute, metadata, and durable bulk storage.
+**Potential Go follow-ups — choose one:**
 
-The learner's [Cursor article note](articles/cursor-git-at-any-scale.md) is a motivating reference
-for connecting database principles to another domain. Use its questions to inspire small local
-experiments; a Git hosting implementation is not a prerequisite for understanding object storage.
+- **Snapshot replay:** restore a prepared microVM running a Go client; verify repeated operation IDs do not repeat sink effects.
+- **Aborted-job cleanup:** extend a supplied Go launcher; cancel a guest job, reclaim owned resources and launch again successfully.
 
-## Track 2: Linux and performance
+### Kubernetes internals
 
-Linux remains deep. The four diagnostic tools below are focused workshops, introduced when a
-workload needs them and reused thereafter. Do not make four long standalone courses compulsory.
-Every workshop should end with a diagnosis or measured decision about a familiar workload.
+**Tool:** A distributed orchestration/control system exposed through its API and kubectl.
 
-### 6. Linux systems CLI — very deep project
+**Course / goals:** Use disposable kind labs for conflicts, watches, reconciliation, readiness and termination. Study etcd before deep control-plane storage/recovery.
 
-This should be one of the largest projects. Treat Linux as the substrate
-underneath the other tools, not merely as an administration course.
+**Potential Go follow-ups — choose one:**
 
-Useful interfaces include:
+- **Conflicting reconcilers:** race two Go updates to one ConfigMap; handle resource-version conflicts without losing intended changes.
+- **In-flight termination:** terminate a Pod running the earlier Go operation-ID service; reconcile its outstanding request.
+- **Watch interruption:** disconnect a Go client, relist and resume watching; verify convergence to current object state.
 
-```text
-ps  pstree  /proc  lsof  lsns  free  vmstat  iostat  ip  ss
-mount  findmnt  ulimit  nice  taskset  kill
-```
+### Apache Kafka
 
-Progress from processes to virtual memory, file descriptors, files, sockets,
-signals, scheduling, filesystems, devices, namespaces, and resource management.
+**Tool:** A partitioned replicated log with producers, offsets and consumer groups.
 
-### 7. strace
+**Course / goals:** After NATS, study ordering scope, reassignment, retention and replay; reconcile broker offsets with external effects.
 
-Expose the boundary between userspace programs and the kernel. Start with:
+**Potential Go follow-ups — choose one:**
 
-```sh
-strace ls
-```
-
-Then trace SQLite, DuckDB, and PostgreSQL workloads:
-
-```sh
-strace sqlite3 test.db
-strace -e trace=file ...
-strace -e trace=network ...
-strace -p <postgres-pid>
-```
-
-Use the following model when interpreting traces:
-
-```text
-application → system calls → Linux kernel → filesystem / VM / network / devices
-```
-
-### 8. fio
-
-Build physical intuition for storage performance by comparing sequential and
-random reads and writes, block sizes from 4 KiB through 1 MiB, queue depth, and
-synchronous versus asynchronous behavior.
-
-Measure IOPS, throughput, latency, and tail latency. Connect the results to
-SQLite pages, PostgreSQL’s 8 KiB pages, WAL, database scans, random index
-access, checkpoints, and DuckDB analytical scans.
-
-### 9. perf
-
-Learn where CPU time goes: utilization, cycles, instructions, context switches,
-cache behavior, profiling, hotspots, and call stacks. Prefer real workloads from
-the database projects, and eventually profile PostgreSQL, SQLite, DuckDB, and
-Valkey.
-
-### 10. bpftrace
-
-Move from process-level observation to dynamic Linux and kernel observability.
-Progress through syscalls, kernel functions, scheduling, block I/O, TCP, latency
-distributions, and process behavior.
-
-The conceptual progression is:
-
-```text
-strace → perf → bpftrace
-```
-
-Use bpftrace to investigate the databases and services introduced earlier. Keep it optional until
-an investigation benefits from its visibility. Verify tracing and performance-counter access on
-the lab host; a denied capability is an untested mechanism, not a successful experiment.
-
-### Measurement discipline across projects
-
-Teach measurement alongside workloads, beginning with databases and revisiting it for services.
-Use a supplied bounded load driver and native counters before adding more infrastructure. Distinguish
-offered load, completed work, errors, queue depth, and latency distributions; count timeouts and
-retries rather than hiding them inside a successful-request percentile. Explain when a client that
-waits for each response reduces offered load as the service slows and masks overload.
-
-Control one meaningful variable, record workload and resource budgets, separate warm-up from
-measurement, and compare instrumented with uninstrumented runs where tracing may change behavior.
-Introduce a small metrics collection and correlation exercise within a synthesis project. A large
-dashboard, tracing, or monitoring platform is not required. The final evidence should identify a
-bottleneck, a bounded intervention, and whether useful throughput or latency actually improved.
-
-## Track 3: Isolation and agent infrastructure
-
-### 11. Docker — focused internals workshops
-
-The learner is familiar with Docker and has implemented Docker-backed software. Use focused
-internals workshops. Assume routine build/run/exec/logs,
-container CRUD, API-client wiring, and basic lifecycle concepts. Provide a brief reminder when an
-experiment needs one; do not infer completion of existing lessons from this experience.
-
-Use a focused set of selected internals experiments instead: image and writable-layer accounting,
-OverlayFS copy-up, mount propagation, namespace composition, PID 1 and descendant cleanup, cgroup
-throttling/OOM evidence, and network policy boundaries. Choose only mechanisms the learner cannot
-yet explain from evidence. Basic limit-setting or an API call succeeding is not enough to show
-what the kernel enforces under contention or failure.
-
-Include a small containerd/OCI runtime investigation when it clarifies the distinction between
-an image, runtime task, process, and Pod sandbox. It is an optional bridge to Kubernetes/runtime
-internals, not a new mandatory course in another container CLI. Connect the measurements to Linux
-directly; keep unseen details fully explained even when commands look familiar.
-
-Entry-point reference: [KCNA and prior experience](articles/kcna-reference.md). Use it together with
-the source review to avoid repeating container and deployment introductions.
-
-### 12. Networking, including application requests
-
-Use the request path to diagnose gaps: DNS resolution, TCP establishment and closure, HTTP, TLS verification,
-connection reuse, timeouts, and retries. Use `dig`, `ss`, `tcpdump`, `curl`, and OpenSSL to distinguish
-name-resolution, connection, certificate, and application failures. Add a bounded nginx
-reverse-proxy lab with a supplied configuration and local test certificates, covering upstream
-failure and timeout propagation without requiring a public domain or cloud certificate service.
-Compress familiar application-networking and proxy setup; prioritize actual packet paths,
-connection tracking, namespace boundaries, failure injection, and measured timeout behavior.
-
-Use `ip addr`, `ip link`, `ip route`, `ip neigh`, `ip netns`, `ss`, `bridge`,
-and `tc` to progress through interfaces, routing, network namespaces, veth
-pairs, bridges, TAP devices, NAT, and traffic shaping.
-
-Eventually construct networks manually with namespaces and veth pairs. This is
-foundational for sandbox infrastructure.
-
-### 13. nftables — part of the networking progression
-
-Use `nft` to explore packet filtering, forwarding, NAT, connection tracking,
-workload isolation, and egress policy. Connect these ideas directly to
-containers, sandbox networking, and microVM networking.
-
-Teach this immediately after routes and namespace networks, before the Docker networking synthesis.
-It belongs in the same learning progression as networking, not a disconnected late firewall course.
-Use owned namespaces for failure injection and filtering so experiments do not disrupt host access.
-
-### 14. Firecracker — advanced / later
-
-Do not begin with Firecracker. Build the required foundation first:
-
-```text
-Linux processes
-  ↓
-namespaces
-  ↓
-cgroups
-  ↓
-Linux networking
-  ↓
-TAP / veth
-  ↓
-nftables
-  ↓
-Firecracker
-```
-
-Then explore microVM lifecycle, kernel and rootfs setup, the API, virtual
-devices, networking, storage, snapshots, and fast restoration. The ultimate goal
-is to understand the primitives behind fast isolated agent and code sandboxes.
-
-This is the preferred early specialization for sandbox interests once the Linux and networking
-prerequisites are comfortable. Kubernetes, Kafka, and the analytical pipeline are not prerequisites.
-Firecracker requires access to `/dev/kvm`; check the host before scheduling this work and use a
-suitable Linux machine or VM with supported virtualization access.
-[Firecracker prerequisites](https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md).
-
-Optional design connection: the [control-plane article note](articles/scalable-control-planes.md)
-suggests distinguishing guest execution from management-path availability in a bounded lab.
-
-### 15. Kubernetes — experienced-user path
-
-Use `kubectl` to study Kubernetes as a distributed control system rather than
-primarily as a deployment tool.
-
-Assume routine kubectl, manifests, Pods, Deployments, Services, and shipping applications.
-KCNA and roughly seven years of production use make another introductory deployment course
-unnecessary. Kubernetes is available as a lab environment immediately; deeper study can proceed
-alongside Linux and databases, with prerequisites scoped to the mechanism being investigated.
-Use kind for disposable experiments. [kind documentation](https://kind.sigs.k8s.io/).
-
-There is still substantial material worth learning: reconciliation under stale observations,
-resource-version conflicts, watch recovery, deletion/finalizers, scheduling and admission versus
-live usage, kubelet/runtime boundaries, readiness and termination ordering, CNI packet paths,
-storage attachment, and node/control-plane failure. Use a short evidence-based discussion to
-select unfamiliar topics rather than presume mastery or repeat basics. Learn etcd before deep
-control-plane storage and recovery experiments. A custom manager/worker implementation supplies
-useful vocabulary, but does not establish knowledge of Kubernetes's particular mechanisms.
-
-Keep deep optional investigations without a fixed 60–80-lesson prerequisite. Reuse lifecycle and
-resource experiments from Linux and Docker as contrasts. Local cluster evidence does not establish
-independent-host failure tolerance.
-
-Related references: [KCNA](articles/kcna-reference.md) calibrates the entry point;
-[On building scalable control planes](articles/scalable-control-planes.md) supplies optional
-questions about ongoing workload availability, management dependencies, and recovery.
-
-## Track 4: Distributed systems
-
-### 16. etcd
-
-Make etcd one of the highest-value CLI-first distributed-systems projects. Use
-`etcdctl` to explore KV operations, revisions, watches, transactions, leases,
-ephemeral state, cluster membership, leader election, quorum, Raft, and failure
-behavior.
-
-Run multiple nodes and deliberately kill nodes, kill leaders, restart members,
-and lose quorum. Observe what the CLI reveals about consensus.
-
-Use separate local member directories and ports, then controlled network isolation for partition
-experiments. Keep the course focused on coordination and the application's responsibility to
-enforce ownership; a lease demonstration alone does not prove an external resource is fenced.
-
-Use the [control-plane article note](articles/scalable-control-planes.md) when comparing unavailable
-coordination with the behavior of already-running workloads. Keep the experiment local and bounded.
-
-### 17. NATS
-
-Use the NATS CLI to build a lightweight understanding of messaging. Progress
-through pub/sub, subjects, request/reply, queue groups, JetStream, streams,
-consumers, persistence, and delivery semantics.
-
-Use NATS server and CLI locally. Make the contrast between transient Core NATS delivery and
-JetStream persistence/replay explicit. End with a slow-consumer and lost-ack investigation that
-measures backlog, redelivery, and actual receiver effects. [JetStream documentation](https://docs.nats.io/concepts/jetstream).
-
-This is the main messaging foundation. Reuse PostgreSQL's retry and idempotency knowledge when
-testing the separate database and broker commits; a broker delivery guarantee does not establish
-exactly-once effects in an external database.
-
-### 18. Apache Kafka — optional partitioned-log branch
-
-Introduce this after basic messaging concepts are comfortable. Explore topics,
-logs, partitions, offsets, producers, consumers, consumer groups, ordering,
-retention, replication, leader/follower behavior, and failures.
-
-The objective is understanding the distributed-log abstraction, not learning
-Kafka administration for its own sake.
-
-Choose Apache Kafka as the default local implementation if this branch is taken, following its
-[local quickstart](https://kafka.apache.org/quickstart/). Redpanda is an optional implementation
-contrast. Do not require both. After NATS, justify the branch through partition-level ordering,
-consumer-group redistribution, retention/replay, and replication tradeoffs. Introduce multiple
-brokers only when the experiment needs them; keep production administration outside the core.
-
-## Optional, lower-priority project
+- **Offset/effect crash window:** store an effect and processed offset in PostgreSQL; crash before broker offset commit and deduplicate replay.
+- **Per-key ordering:** send a tiny keyed dataset from Go producers to two partitions; verify ordering within each key.
+- **Consumer reassignment:** stop one of two Go consumers; verify reassignment and final event-ID coverage.
 
 ### Git internals
 
-A focused optional study, often 8–12 experiments, can use Git as a case study in
-immutable and content-addressed storage. Explore:
+**Tool:** A content-addressed object store with commit graphs, refs and packfiles.
 
-```text
-blob → tree → commit → content hashing → refs → packfiles
-→ garbage collection → fetch / push
-```
+**Course / goals:** Optional storage case study: separate immutable content from mutable publication and understand replica reconstruction.
 
-The value is understanding the storage model, not memorizing Git commands.
+**Potential Go follow-ups — choose one:**
 
-The [Cursor article note](articles/cursor-git-at-any-scale.md) can motivate a final comparison
-between a local storage format and a service architecture. The learner's interest in the article
-does not require expanding Git into another deep prerequisite course.
+- **Competing ref publishers:** race Go wrappers using git update-ref with an expected old ID; verify one publication wins.
+- **Lost push acknowledgment:** interrupt acknowledgment between two owned bare repos; inspect the remote ref before retrying.
 
-## Why DuckDB before ClickHouse?
+## Planning and references
 
-Prefer DuckDB at this stage. It teaches the analytical database abstraction
-without introducing unnecessary operational complexity. The resulting
-three-database progression is especially useful:
+Keep lessons near ten minutes, with context and a small terminal diagram before commands, followed
+by evidence, interpretation and cleanup. Teach a mechanism deeply once; later tools should add a
+meaningful contrast. No mandatory report, homework or separate review stage; only explicit `done`
+changes course completion.
 
-```text
-                  PostgreSQL
-              client/server OLTP
-                       │
-                       │
-SQLite ────────────────┼──────────────── DuckDB
-embedded OLTP-ish                         embedded OLAP
-local relational                           analytical engine
-```
+PostgreSQL Essentials is partly authored. SQLite Essentials and Linux v2 remain proposals; their
+older courses remain available as references. The other topic rows are scope suggestions.
+Define and agree a bounded [course plan](../future-courses/README.md) before authoring batches;
+discuss lesson-tool alternatives before creating lessons. This menu selects no capstone yet.
 
-All three can be explored extensively from a Linux droplet using SQL and CLI
-experiments. A particularly valuable exercise is to run the same workload in
-SQLite, PostgreSQL, and DuckDB, inspect each system, and explain why the results
-differ.
+Detailed software choices, research, measurement rules and earlier synthesis proposals are preserved
+in [Learning path reference notes](learning_path-reference.md). The [learner profile](learner-profile.md)
+and [article notes](articles/README.md) explain the background and interests shaping the path.
+The [systems project ideas](../systems-projects/docs/project-ideas.md) offer broader inspiration;
+the small follow-ups here do not require reproducing those architectures or Nick's own projects.
 
-ClickHouse can follow later:
-
-```text
-DuckDB
-  ↓
-understand columnar and OLAP concepts
-  ↓
-ClickHouse
-  ↓
-apply those ideas to a server-oriented, large-scale analytical system
-```
-
-## Cross-project reuse is required
-
-Later projects should reuse earlier tools whenever that makes an experiment more
-explanatory. Examples include:
-
-- trace SQLite, PostgreSQL, and DuckDB with `strace`;
-- use `fio` to explain database I/O behavior;
-- use `perf` to compare SQLite, DuckDB, and PostgreSQL execution;
-- use `bpftrace` to observe database I/O and networking;
-- inspect Docker with Linux process and network commands;
-- reproduce portions of Docker networking with `ip`, `netns`, and veth;
-- use nftables to isolate workloads;
-- operate Valkey, PostgreSQL, and etcd as local processes or containers;
-- kill etcd, NATS, and Kafka nodes and observe recovery;
-- use DuckDB to analyze generated logs, metrics, and data;
-- store bulk data in the local S3-compatible object store and test publication and recovery.
-
-### Selected cross-system experiments
-
-These are planned synthesis exercises. Run them incrementally with supplied scripts and small
-workloads; each new component must expose a boundary worth investigating. Keep runnable hints and
-worked solutions. The learner owns the invariant, measurements, recovery evidence, and design
-decision rather than a large application codebase.
-
-The learner already owns scheduler and sandbox projects. These exercises must earn their place
-through a new, bounded correctness or performance question. Supply the workload; do not require
-rebuilding those projects, importing them into this repo, or replacing the curriculum with their
-roadmaps. Basic worker dispatch, container CRUD, and a generic reconciliation demonstration may be
-omitted when already familiar. Preserve only the cross-system behavior the learner still needs
-to investigate.
-
-| Project | Starting point and extension | Required final evidence |
-| --- | --- | --- |
-| Worker commit/delivery boundary | Use a supplied PostgreSQL worker with Docker Compose. Optionally use kind to examine Pod termination or rescheduling. Add NATS after messaging foundations to expose independent broker/database commits. | Reconcile an unknown commit, replay delivery without duplicating the specified receiver effect, recover abandoned work after worker death, and bound retries and overload. Record actual useful completions and backlog. |
-| Local analytical pipeline | After DuckDB and object storage, export a small relational dataset to Parquet, publish it locally, and query it with DuckDB. | Compare file sizes and layouts; interrupt publication; detect missing objects; prove which dataset version readers see; restore a usable published dataset. Report query work and elapsed time with stated cache conditions. |
-| Isolation failure investigation | Use supplied process trees and traffic probes in familiar containers. Select unfamiliar Linux resource/network behavior, then optionally contrast it with Firecracker. No runtime adapter or control-plane implementation is required. | Demonstrate bounded CPU/memory use, permitted and denied traffic, termination of the owned process tree, resource cleanup, and a subsequent successful job. Distinguish a resource limit from an isolation guarantee. |
-
-The analytical pipeline can use the [Cursor article insights](articles/cursor-git-at-any-scale.md)
-to motivate a publication or reconstruction question. Treat the local protocol as a separately
-specified exercise, not a reproduction of Cursor's production guarantees. Git internals can remain
-optional while object storage contributes to a meaningful system.
-
-The [scalable control-plane note](articles/scalable-control-planes.md) can guide the worker
-experiment's acknowledgment and management-dependency questions. Select a bounded excerpt only
-when it adds to the learner's existing orchestration experience.
-
-For a future database-course revision, the separate
-[Linux/database integration proposal](knowledge/linux-database-integration.md) identifies where
-Linux observations could enter database lessons and how the existing Linux course would adapt.
-It is a proposal, not a current lesson migration or progress policy.
-
-The long-term composition is:
-
-```text
-Linux
- + processes
- + cgroups
- + namespaces
- + networking
- + nftables
- + storage
- + Firecracker
-```
-
-This composition should make agent sandbox infrastructure understandable as a
-set of concrete primitives rather than a black box.
-
-## The ultimate learning direction
-
-Every project should move approximately through:
-
-```text
-USE
- ↓
-INSPECT
- ↓
-UNDERSTAND
- ↓
-MEASURE
- ↓
-STRESS
- ↓
-BREAK
- ↓
-OBSERVE FAILURE
- ↓
-EXPLAIN TRADE-OFFS
- ↓
-COMBINE WITH OTHER PRIMITIVES
-```
-
-The desired outcome is not “I know a lot of CLI commands.” It is:
-
-> I have a mental toolbox of systems primitives. I understand what each
-> primitive provides, approximately how it works, its performance
-> characteristics, where its boundaries are, how it fails, and when I would
-> compose it with other primitives to design a system.
+Primary behavior references for the proposed follow-ups include [SQLite transactions](https://www.sqlite.org/lang_transaction.html)
+for atomic local apply/cursor updates, [JetStream](https://docs.nats.io/concepts/jetstream) for
+acknowledgment and replay, [etcd guarantees](https://etcd.io/docs/v3.6/learning/api_guarantees/)
+for revision/watch behavior, and [git update-ref](https://git-scm.com/docs/git-update-ref) for
+conditional ref publication. Verify the chosen APIs, failure points and actual outcomes when a
+project is selected; coordination alone does not fence an external sink.

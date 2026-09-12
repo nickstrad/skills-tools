@@ -138,5 +138,5 @@ same deterministic commits, so no state needs to be retained.
 ```
 
 The experiment separated two events that a replication design must order: install immutable
-payload, then conditionally publish a mutable name. Open the review to connect that separation to
+payload, then conditionally publish a mutable name. The interpretation below connects that separation to
 concurrent writers and object-storage publication.

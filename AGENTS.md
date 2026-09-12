@@ -30,6 +30,17 @@ Kubernetes production experience, Docker familiarity, and own repositories infor
 shorten; they do not imply that every internals topic is already mastered or authorize copying his
 projects into coursework. Host-init administration is outside the requested learning path.
 
+Nick studies around parenting and a full-time job and currently completes a PostgreSQL Essentials
+lesson in roughly ten minutes. Prefer fixed, bounded routes of short mechanism-driven lessons. Put
+all context needed for the experiment in the lesson before its commands, use terminal-readable
+diagrams whenever they clarify a mechanism, and keep external reading optional. The learner uses
+`<course CLI> route` to see completed, available, and planned entries and
+`<course CLI> <number> lesson|done` to display or complete an authored lesson. There is no separate
+review, homework,
+checkpoint, or answer-submission stage, and only an explicit `done` records completion. A valid
+`future-courses/<folder>/course.md` route may be displayed before implementation, but its planned
+entries have status only and never create progress.
+
 ## PostgreSQL course and book
 
 The canonical PostgreSQL book material is under
@@ -51,6 +62,15 @@ the canonical book folder above. Do not duplicate the PDF or research files in t
 
 ## Course editing rules
 
+- Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
+  using its [template](future-courses/TEMPLATE.md). A route fixes the bounded scope and lesson
+  outcomes; it must not trigger scaffolding, a full build, validation infrastructure, or detailed
+  per-lesson syntax. Implement only after direction is agreed, in small batches.
+- Create `course.md` immediately and keep research, rationale, feedback, decisions, and open questions
+  updated there during discussion. Explain the grouping, sequence, lesson boundaries, and length;
+  explicitly invite Nick's suggestions, revise, and record his final-outline sign-off before
+  implementation. Drafting needs no approval; implementation needs sign-off and a batch request.
+  Material outline changes require renewed approval; silence is not approval.
 - For requests to create the next lesson batch, follow
   [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary-agent design,
   bounded Sol implementation where useful, primary review and real validation, chunked
@@ -61,6 +81,9 @@ the canonical book folder above. Do not duplicate the PDF or research files in t
 - Edit `curriculum/*.ts`; never hand-edit generated `lessons.json` or learner `progress.sqlite`.
 - Preserve experiment behavior unless the task explicitly asks for a semantic change. Metadata-only
   rewrites must not change setup, commands, expected results, safety levels, sessions, or slugs.
+- Author one complete `lesson` output: short mechanism explanation, useful ASCII/ANSI diagram,
+  setup and commands, expected evidence, interpretation, and cleanup. Diagrams must remain readable
+  without colour. The shared tutor renders this for every course; do not create a bespoke renderer.
 - Run Deno from `curriculum-tools/` with `/root/.deno/bin/deno` when it is not on `PATH`.
 - Keep unrelated working-tree changes intact. Multiple agents may own separate module files at the
   same time; never edit a file assigned to another agent.

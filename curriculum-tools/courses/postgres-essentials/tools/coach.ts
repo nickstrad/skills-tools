@@ -97,24 +97,22 @@ function command(n: number, stage: string, db?: string) {
 }
 export function batchCheck(): string {
   return `**Batch check:** Before we prepare lesson ${catalog.length + 1}, briefly tell me ` +
-    "whether the first view and diagrams gave enough context, whether review added insight, and " +
-    "whether each lesson fit 20–30 minutes. A quick chat is enough. We will adjust the UX while " +
+    "whether the explanation and diagrams gave enough context and how long the lessons took. " +
+    "Your recent pace is about ten minutes; a quick chat is enough. We will adjust the lessons while " +
     "continuing this 40-lesson route; there is no separate practice batch or required report.";
 }
 
-export function render(lesson: Selected, stage: string, db?: string): string {
+export function render(lesson: Selected, _stage: string, db?: string): string {
   const parts = [
     `# PostgreSQL Essentials ${lesson.ordinal}/${ROUTE.length}: ${lesson.title}`,
-    `**Core:** 20–30 min (estimate ${lesson.estimatedMinutes} min) · **Sessions:** ${lesson.sessions} · **PostgreSQL:** ${lesson.minVersion}+`,
+    `**Pacing:** recent learner pace ~10 min; original estimate ${lesson.estimatedMinutes} min · **Sessions:** ${lesson.sessions} · **PostgreSQL:** ${lesson.minVersion}+`,
   ];
   const twoSessions = lesson.sessions === 2;
   const shell = lesson.runIn === "shell";
   const privateCluster = ["checkpoint-writeback", "crash-replay"].includes(lesson.slug);
   const language = shell ? "sh" : "sql";
   const terminals = twoSessions ? "both sessions" : "session A";
-  const first = stage === "lesson" || stage === "full";
-  const second = stage === "review" || stage === "full";
-  if (first) {
+  {
     parts.push(lesson.overview);
     // The canonical teaching text and visual precede all commands, including setup.
     const [concepts, syntax] = lesson.syntaxBreakdown.split("### Piece by piece");
@@ -143,17 +141,17 @@ export function render(lesson: Selected, stage: string, db?: string): string {
             : "All commands run in A. Begin with no open transaction, then follow any BEGIN, COMMIT or ROLLBACK commands as shown."),
       "## Setup — A\n\n" + fence(lesson.setup ?? "", language),
       "## Experiment\n\n" + experiment(lesson.code, language),
-      "**Reflect briefly:** Connect one changed result to the diagram. Then open review to compare with the explanation; no written answer is needed.",
+      "Compare your result with the explanation below; no written answer is needed.",
       shell
-        ? "If you reach 30 minutes or get stuck, stop and ask for help. Ctrl-C interrupts the supplied controller and runs its cleanup; " +
+        ? "If you reach 15 minutes or get stuck, use the safe stop and ask for help. Ctrl-C interrupts the supplied controller and runs its cleanup; " +
           (privateCluster
             ? "check for the owned cluster removal record."
             : "check for the schema removal record.")
-        : `If you reach 30 minutes or get stuck, stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
+        : `If you reach 15 minutes or get stuck, use the safe stop and ask for help. To stop early, ROLLBACK in ${terminals}, ` +
           "then follow this lesson's cleanup commands to restore settings and drop its named pe_* table. Rerun setup next time.",
     );
   }
-  if (second) {
+  {
     parts.push(
       "## What the experiment showed\n\n" + lesson.expectedResult,
       "## What to take from it\n\n" + lesson.systemsLens,
@@ -164,11 +162,10 @@ export function render(lesson: Selected, stage: string, db?: string): string {
         "**Quick check:** Does the result make sense, and did this fit your time budget? Mention any friction in our chat; otherwise continue.",
       );}
   }
-  if (stage === "full" && lesson.reading) {
+  if (lesson.reading) {
     parts.push("## Optional reference\n\n" + lesson.reading, lesson.readingNotes ?? "");
   }
-  if (stage === "lesson") parts.push("Next: `" + command(lesson.ordinal, "review", db) + "`");
-  if (second) {
+  {
     parts.push("When you consider it complete: `" + command(lesson.ordinal, "done", db) + "`");
     if (lesson.ordinal < catalog.length) {
       parts.push("Next lesson: `" + command(lesson.ordinal + 1, "lesson", db) + "`");
@@ -183,25 +180,17 @@ export function render(lesson: Selected, stage: string, db?: string): string {
   return parts.filter(Boolean).join("\n\n");
 }
 
-const HELP = "pgcoach [NUMBER] [lesson|review|full] [--db PATH] [--topic TEXT]\n" +
+const HELP =
+  "pgcoach [NUMBER] lesson [--db PATH] [--topic TEXT] — complete lesson and interpretation\n" +
   "pgcoach NUMBER done [--db PATH] — explicitly record completion\n" +
-  "pgcoach route — all 40 planned lessons and availability\n" +
-  "start is an alias for lesson; omitting NUMBER selects the next unfinished available lesson.\n" +
+  "pgcoach route [--db PATH] — all 40 planned lessons, availability, and completed lessons\n" +
+  "Omitting NUMBER selects the next unfinished available lesson; the default command is lesson.\n" +
   "pgcoach --reference NUMBER full — the original 92-lesson reference";
 
 export async function runEssentials(args: string[], io: Output = console): Promise<number> {
   try {
     if (args.length === 1 && ["--help", "help"].includes(args[0])) {
       io.log(HELP);
-      return 0;
-    }
-    if (args.length === 1 && args[0] === "route") {
-      io.log(
-        "# PostgreSQL Essentials — 40 lessons, 20–30 minutes each\n\n" +
-          ROUTE.map((l, i) =>
-            `${i + 1}. ${l.title} — ${i < catalog.length ? "available" : "planned"}`
-          ).join("\n"),
-      );
       return 0;
     }
     const positional: string[] = [];
@@ -221,12 +210,42 @@ export async function runEssentials(args: string[], io: Output = console): Promi
       } else if (arg.startsWith("--")) throw new Error("Unknown option " + arg);
       else positional.push(arg);
     }
+    if (positional.length === 1 && positional[0] === "route") {
+      if (topic) throw new Error("--topic cannot be combined with route");
+      const completed: number[] = [];
+      const routeErrors: string[] = [];
+      const routeCode = await runTutor(
+        [COURSE, "list", "--done", "--json", ...(db ? ["--db", db] : [])],
+        {
+          log: (value) =>
+            completed.push(...(JSON.parse(value) as Selected[]).map((lesson) => lesson.ordinal)),
+          error: (value) => routeErrors.push(value),
+        },
+      );
+      // A route is useful before progress has been initialized. In that case, there are simply no
+      // completed lessons to mark yet.
+      if (routeCode && !routeErrors.join("\n").includes("progress database is not initialized")) {
+        throw new Error(routeErrors.join("\n") || "Could not read course progress");
+      }
+      const done = new Set(completed);
+      io.log(
+        "# PostgreSQL Essentials — 40 lessons; recent learner pace about 10 minutes\n\n" +
+          "[done] marks a completed lesson.\n\n" +
+          ROUTE.map((l, i) =>
+            `${i + 1}. ${done.has(i + 1) ? "[done] " : ""}${l.title} — ${
+              i < catalog.length ? "available" : "planned"
+            }`
+          ).join("\n"),
+      );
+      return 0;
+    }
     let ordinal: number | undefined;
     if (/^[1-9]\d*$/.test(positional[0] ?? "")) ordinal = Number(positional.shift());
     let stage = positional.shift() ?? "lesson";
-    if (stage === "start") stage = "lesson";
-    if (positional.length || !["lesson", "review", "full", "done"].includes(stage)) {
-      throw new Error("Use lesson, review, full or an explicit NUMBER done");
+    // Old saved commands still open the complete lesson; there is no separate review stage.
+    if (["start", "review", "full"].includes(stage)) stage = "lesson";
+    if (positional.length || !["lesson", "done"].includes(stage)) {
+      throw new Error("Use lesson or an explicit NUMBER done");
     }
     if (ordinal && topic) throw new Error("--topic cannot be combined with NUMBER");
     if (stage === "done" && ordinal === undefined) {

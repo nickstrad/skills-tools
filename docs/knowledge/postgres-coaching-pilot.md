@@ -1,5 +1,32 @@
 # PostgreSQL coaching: validate small batches before broad rollout
 
+**Superseded entry path, 2026-09-06:** Nick rejected a separate old-lesson UX pilot. The active
+path is now the fixed [40-lesson essentials route](../../curriculum-tools/courses/postgres-essentials/PLAN.md),
+with its first three lessons authored and feedback after essentials 3. `pgcoach` opens that course;
+old pilot details below apply only to explicit reference access. See
+[essentials implementation findings](postgres-essentials.md) for routing and validation.
+
+**Current path clarification (2026-09-05):** aim for roughly 24 further essentials lessons at
+20–30 minutes each, refining the count and selection through feedback. The broader route is
+optional later depth. This is a recorded direction, not an assembled catalog. The end of `lesson`
+invites a mental connection between one result and the mechanism; `review` includes a light
+clarity/pacing check. The batch conversation after lesson 12 explicitly revisits whether this
+approach is working and guides the next small batch toward the shorter route.
+
+**2026-09-05 update:** learner feedback replaces the many short stages with `lesson → review` for
+lessons 9–12. `start` and the default open `lesson`. Concepts and terminal diagrams appear before
+the SQL; `review` supplies a concise authored interpretation, without repeating every former prompt.
+Earlier stages remain direct entry points. The target is now 20–30 minutes, but current unsplit
+experiment estimates and core readings remain visible until the content is shortened. The batch
+plan records the accepted shorter-course direction. Rendering tests cover the start alias, diagrams
+before setup, unchanged executable blocks/session order, reading locators, navigation and progress.
+The two-view check passed all nine coach/pilot tests plus scoped formatting, lint and type checks.
+Live lesson/review rendering preserved progress SHA256
+`395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6`.
+No SQL experiment changed or was re-executed for this presentation change; no lab fixture was
+allocated. The learner database responded to a read-only readiness query and about 16 GB remained
+free. Installed postgres-tutor instructions resolve to the updated repository skill by symlink.
+
 The first revised coaching batch is lessons 9–12, with a visible review before lesson 13. Updated
 2026-09-05. The [batch plan](../../curriculum-tools/courses/postgres/designs/09-coach-pilot-batches.md)
 records scope and future learner decisions; its UX and timing are awaiting a learner trial.

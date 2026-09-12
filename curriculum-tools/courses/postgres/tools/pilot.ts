@@ -2,7 +2,7 @@ import type { Guide } from "../guides/types.ts";
 import type { SelectedLesson } from "./coach.ts";
 import { coachCommand, shellQuote } from "./coach_commands.ts";
 
-export const PILOT_FLOW = ["start", "run", "inspect", "explain", "reveal", "apply"];
+export const PILOT_FLOW = ["lesson", "review"];
 export const REVIEW_BEFORE = "two-sessions-see-different-versions";
 export const PILOT_LAST = "snapshot-anatomy";
 
@@ -12,12 +12,14 @@ export function batchReview(): string {
 You have reached the end of the four-lesson pilot, lessons 9–12. Bring this back to our chat before
 starting the next batch:
 
-- Could pgcoach and your experiment terminals carry the lesson, or where did you need outside help?
-- Did each step arrive with enough context, and did comparing results with your guess help?
-- Did the time estimates fit an evening? What should we keep, shorten or explain differently?
+- Did the first view and its diagrams give you enough understanding to run the experiment?
+- Can you connect one observed result to the mechanism, and did review add a useful insight?
+- Did the work fit 20–30 minutes? What should we shorten or explain differently?
 
-A quick conversation is enough. We will revise the approach and prepare only the next small batch
-after that conversation.`;
+A quick conversation is enough; no written report is needed. Our current direction is roughly
+24 further essentials lessons of 20–30 minutes, adjusted using your feedback. The shorter route
+has not yet been assembled. We will prepare the next small batch toward that route after this chat;
+the broader course remains available for optional depth.`;
 }
 
 /** Drop legacy coaching comments, never executable SQL or session-routing labels. */
@@ -63,13 +65,14 @@ function timing(guide: Guide): string {
   ) {
     if (value[0] <= 0 || value[1] < value[0]) throw new Error("invalid pilot time estimate");
   }
-  if (pilot.cap < pilot.minutes[1]) throw new Error("pilot core exceeds its sitting cap");
-  return `**Core:** about ${range(pilot.minutes)} · **Wrap up by:** ${pilot.cap} min.\n` +
+  return `**Sitting budget:** 20–30 min. **Current unsplit experiment:** about ${
+    range(pilot.minutes)
+  }.\n` +
     `**Optional variation:** +${range(pilot.variation.minutes)} · ` +
     (pilot.readingMinutes
       ? `**Core reading after this lesson:** +${range(pilot.readingMinutes)}.`
       : "No core reading stop here.") +
-    "\nThese are trial estimates for thinking and running, not a speed test. At about 40 minutes, skip optional depth and head toward wrap-up. If one blocker takes 10–15 minutes, use help or stop for the evening.";
+    "\nThese experiments still need splitting to fit one sitting. At 30 minutes, wrap up; if stopping early, run ROLLBACK in each psql session. Rerun setup when returning. Estimates include thinking and running.";
 }
 
 function terminals(lesson: SelectedLesson): string {
@@ -104,6 +107,28 @@ function readingStop(lesson: SelectedLesson): string {
 
 function footer(lesson: SelectedLesson, stage: string, db?: string): string {
   const command = (value: string) => coachCommand(lesson.ordinal, value, db);
+  if (["lesson", "review", "run"].includes(stage)) {
+    const parts = stage === "review"
+      ? ["Reopen experiment: `" + command("lesson") + "` (no need to rerun setup)."]
+      : ["Next: `" + command("review") + "`"];
+    if (stage === "review") {
+      parts.push(
+        "When finished: `pgtutor done " + lesson.ordinal +
+          (db ? " --db " + shellQuote(db) : "") + "`",
+      );
+      if (lesson.slug !== PILOT_LAST) {
+        parts.push(
+          "Next lesson" + (lesson.studyCheckpoint ? " after core reading" : "") +
+            ": `" + coachCommand(lesson.ordinal + 1, "lesson", db) + "`",
+        );
+      }
+    }
+    parts.push(
+      "Optional: `" + command("syntax") + "` · `" + command("vary") + "` · `" + command("full") +
+        "`",
+    );
+    return "---\n\n" + parts.join("\n\n");
+  }
   const at = PILOT_FLOW.indexOf(stage);
   const parts: string[] = [];
   if (at > 0) parts.push("Previous: `" + command(PILOT_FLOW[at - 1]) + "`");
@@ -150,6 +175,7 @@ export function renderPilot(
   guide: Guide,
   db?: string,
 ): string {
+  if (stage === "start") stage = "lesson";
   const pilot = guide.pilot!;
   const parts = [
     `# Lesson ${lesson.ordinal}: ${lesson.title}`,
@@ -157,20 +183,16 @@ export function renderPilot(
     `**Run in:** psql · **Sessions:** ${lesson.sessions} · **Safety:** ${lesson.safetyLevel} · **PostgreSQL:** ${lesson.minVersion}+`,
   ];
   if (lesson.caution) parts.push("## Caution\n\n" + lesson.caution);
-  if (stage === "start") {
-    parts.push(timing(guide), "## Terminals\n\n" + terminals(lesson));
+  if (stage === "lesson") {
+    parts.push(timing(guide));
     parts.push(
       "## Before you run\n\n" + guide.brief,
-      "## Make a quick guess\n\n" + guide.predict,
-      "Think it through briefly; no typed answer needed. We will compare the result with your guess as we go.",
+      fence(pilot.visual, "text"),
+      guide.predict,
+      "## Terminals\n\n" + terminals(lesson),
     );
-    parts.push(
-      "After lesson 12, stop for a brief conversation about how this flow worked before we prepare the next batch.",
-    );
-  } else if (stage === "run") {
-    parts.push(
-      "Use the psql terminal(s) from start. Work through the blocks below in order. Each introduction explains why that block is here.",
-    );
+  }
+  if (stage === "lesson" || stage === "run") {
     if (lesson.setup) {
       parts.push(
         "## Setup — Session A, once\n\nThis resets only the named experiment tables. Finish any earlier transaction first.\n\n" +
@@ -181,9 +203,17 @@ export function renderPilot(
       parts.push("## " + phase.title + "\n\n" + phase.context + "\n\n" + fence(phase.code));
     }
     parts.push(
-      "Keep the output in your terminal for the comparisons in inspect. No separate record is needed.\n\nMore syntax detail, if wanted: `" +
-        coachCommand(lesson.ordinal, "syntax", db) + "`.",
+      "**Before review:** Pick one result that changed and connect it to the diagram or explanation above. A brief mental check is enough; review will help with anything still unclear.",
     );
+  } else if (stage === "review") {
+    parts.push("## What the result means\n\n" + pilot.review);
+    if (lesson.slug !== PILOT_LAST) {
+      parts.push(
+        "**Quick check:** Does the result make sense now, and did the lesson fit your time budget? If something felt unclear or too long, mention it in our chat; otherwise carry on. We will review the approach together after lesson 12.",
+      );
+    }
+    if (readingStop(lesson)) parts.push(readingStop(lesson));
+    if (lesson.slug === PILOT_LAST) parts.push(batchReview());
   } else if (stage === "inspect" || stage === "explain" || stage === "apply") {
     parts.push("## " + stage[0].toUpperCase() + stage.slice(1) + "\n\n" + guide[stage]);
     if (stage !== "apply") {
@@ -232,6 +262,7 @@ export function renderPilot(
       timing(guide),
       "## Terminals\n\n" + terminals(lesson),
       "## Overview\n\n" + (lesson.overview ?? guide.brief),
+      fence(pilot.visual, "text"),
       "## Syntax reference\n\n" + lesson.syntaxBreakdown,
     );
     if (lesson.reading) parts.push("## Optional reference\n\n" + lesson.reading);

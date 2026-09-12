@@ -1,7 +1,7 @@
-# Progressive ownership at the appropriate project scale
+# Concise mechanism-driven course design
 
-2026-09-04. Use this when designing or revising a course after the PostgreSQL systems-engineering
-pivot.
+Updated 2026-09-12. Use this when defining or revising a course after the PostgreSQL
+systems-engineering pivot.
 
 ## What happened
 
@@ -11,27 +11,32 @@ consumed time that could instead test workload decisions. The old author skill r
 for every new course, and the wrapper template printed the expected result before asking the learner
 to predict it.
 
-The user chose guided experiments with supplied code and progressively more ownership of
-measurement, explanation and design. They explicitly want this scaled to small projects as well as
-deep courses, and want future agents to reuse the approach.
+Nick later clarified that he studies around parenting and a full-time job, completes current
+PostgreSQL Essentials lessons in roughly ten minutes, and wants future courses bounded before
+implementation. A lesson should give him the mechanism, commands, expected evidence,
+interpretation, and cleanup in one output. External reading, written answers, separate review views,
+and study checkpoints are not required stages.
 
 ## Why it matters
 
-Course length, conceptual depth and learner independence are separate choices. More lessons do not
-establish independence; withholding syntax does not establish understanding. A focused project can
-end with a meaningful independent diagnosis, while an unfamiliar mechanism late in a large course
-still needs explanation and runnable commands.
+Course length and conceptual depth are separate choices. More lessons do not establish
+understanding, and withholding syntax or explanation is not useful friction. Short lessons can
+still teach internals when each centers one observable mechanism and supplies enough context to
+interpret it.
 
-Showing a solution before asking for a prediction changes the exercise into recall. Likewise,
-printing a simulated external effect or assuming readiness after a sleep establishes less than the
-surrounding prose may claim. Assessment should rest on observable state transitions and explicitly
-scoped guarantees.
+Likewise, printing a simulated external effect or assuming readiness after a sleep establishes less
+than the surrounding prose may claim. Conclusions should rest on observable state transitions and
+explicitly scoped guarantees.
 
 ## How to apply
 
-- Use `docs/learning_path.md` for flexible focused/standard/deep scales and cross-project overlap.
-  Use `curriculum-tools/docs/AUTHORING.md` for the canonical teaching and presentation contract. Do
-  not copy PostgreSQL's total size or its specific task-runner workload into every course.
+- Define future courses in [`future-courses/`](../../future-courses/) with the inexpensive
+  [template](../../future-courses/TEMPLATE.md). Fix a small mechanism-driven route and its outcomes
+  before implementation, without building scaffolding, validators, or deep per-lesson syntax.
+  Implement an agreed route in small batches.
+- Use `docs/learning_path.md` for sequence and cross-project overlap, and
+  `curriculum-tools/docs/AUTHORING.md` for the lesson contract. Do not copy PostgreSQL's total size or
+  workload into every course.
 - The 2026-09-04 roadmap revision places Linux observations and container lifecycle experiments
   early, selects local software defaults, and makes advanced infrastructure a set of branches. Reuse
   diagnostic workshops within workloads and build synthesis projects incrementally. A thematic tool
@@ -43,11 +48,19 @@ scoped guarantees.
   distinction between a stated interest, an article's claims, and an experiment we propose. The
   Linux/database folding proposal in `linux-database-integration.md` is future design input; it does
   not authorize implicit completion or removal of existing lessons.
-- Plan backwards from final evidence: a diagnosis, measured capacity, validated recovery, invariant
-  or architecture decision. Name what the learner chooses at intermediate synthesis points.
-- Follow read/predict/run/inspect/explain/vary/apply flexibly. Supply code for new concepts and
-  graduated hints for variations. Keep full lessons accessible and progress explicitly controlled by
-  the learner. Use authored prompts and supported interfaces rather than invented CLI commands.
+- Plan backwards from final evidence: a diagnosis, measured capacity, validated recovery, invariant,
+  or architecture decision. A plan needs lesson titles, mechanisms, outcomes, and decisive evidence,
+  not finished commands for every future lesson.
+- Put all required context before the experiment and keep explanations short but sufficient. Supply
+  complete commands for unfamiliar mechanisms. Use ASCII/ANSI terminal diagrams liberally when they
+  clarify state transitions, ownership, timelines, layouts, contention, or log flow; label them,
+  connect them to the coming evidence, and keep them readable without colour.
+- Present one complete lesson through the generic `tutor <course> <number> lesson` flow; only
+  `tutor <course> <number> done` changes progress. Do not require a separate review, pause,
+  checkpoint, homework, or answer-submission stage. References and deeper variations remain optional.
+- Use `tutor <course> route` to show completed, available, and planned entries. The shared engine may
+  render a valid `future-courses/<folder>/course.md` route before implementation; planned status
+  never seeds progress or pretends that lesson content exists.
 - Consolidate repeated outcomes; retain an experiment when it provides materially different
   evidence. Use tiny examples for mechanisms and a recurring workload for their composition.
 - Distinguish observed behavior, documented guarantee and inference. Test the boundary actually
@@ -56,11 +69,11 @@ scoped guarantees.
   changed lessons and validate reseeding on a copy. Global revision bumps can unintentionally
   re-serve completed foundations that were not changed.
 
-The author skill is symlinked from `/root/.codex/skills/curriculum-author` to the checked-in
-`curriculum-tools/skills/curriculum-author`; edit that repository source. PostgreSQL's staged CLI is
-course-local during its refactor. The shared wrapper template supports guided presentation through
-existing structured CLI output, so new courses need not implement a new renderer to adopt the
-teaching method.
+The shared tutor engine owns presentation for every course. Future content renders through
+`tutor <course> route|<number> lesson|done`; do not build a new per-course renderer or a SQLite-specific
+adapter. `pgcoach` remains the friendly entry point for PostgreSQL Essentials. Its older
+`review`/`full`/`start` spellings are compatibility aliases for the complete lesson, not additional
+learner stages.
 
 ## Implementation ownership during coupled refactors
 

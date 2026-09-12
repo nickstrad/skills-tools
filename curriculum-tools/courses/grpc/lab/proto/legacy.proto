@@ -1,0 +1,5 @@
+syntax = "proto3";
+package practice;
+message AddRequest { int32 increment = 1; }
+message CounterReply { int32 value = 1; }
+service Counter { rpc Add(AddRequest) returns (CounterReply); }

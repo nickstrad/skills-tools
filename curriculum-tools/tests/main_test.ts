@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
-import { run, TOOL_ROOT } from "../src/main.ts";
+import { listCourses, run, TOOL_ROOT } from "../src/main.ts";
 import { buildLessons, type Course, type Module } from "../src/types.ts";
 
 function capture() {
@@ -17,6 +17,72 @@ function capture() {
 }
 
 const COURSE = "postgres";
+
+Deno.test("every course shares numbered lesson/done with read-only display and pre-experiment diagrams", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "shared-lesson-flow-" });
+  try {
+    for (const course of await listCourses()) {
+      const path = `${dir}/${course.id} learner's progress.sqlite`;
+      if (await run([course.id, "init", "--db", path], capture().io)) {
+        throw new Error(`could not initialize ${course.id}`);
+      }
+      const connection = new DatabaseSync(path);
+      const diagram = "    reader --> snapshot --> retained pages";
+      connection.prepare(
+        "UPDATE lessons SET syntax_breakdown = syntax_breakdown || ? WHERE ordinal=1",
+      )
+        .run("\n\n### Visual model\n\n" + diagram);
+      const first = connection.prepare("SELECT * FROM lessons WHERE ordinal=1").get()!;
+      connection.close();
+      const before = await Deno.readFile(path);
+      const shown = capture();
+      if (await run([course.id, "1", "lesson", "--db", path, "--plain"], shown.io)) {
+        throw new Error(shown.stderr.join("\n"));
+      }
+      const text = shown.stdout.join("\n");
+      const runAt = text.indexOf("\n## Run\n");
+      const setupAt = text.indexOf("\n## Setup\n");
+      if (text.indexOf(diagram) < 0 || text.indexOf(diagram) > (setupAt < 0 ? runAt : setupAt)) {
+        throw new Error(`${course.id}: visual model did not precede the experiment`);
+      }
+      for (const field of ["code", "expected_result", "systems_lens"]) {
+        if (!text.includes(String(first[field]))) throw new Error(`${course.id}: lost ${field}`);
+      }
+      if (
+        !text.includes(`tutor ${course.id} 1 done --db '`) ||
+        text.includes("stop before the next lesson")
+      ) {
+        throw new Error(`${course.id}: missing completion or unwanted reading gate`);
+      }
+      const after = await Deno.readFile(path);
+      if (before.length !== after.length || before.some((byte, i) => byte !== after[i])) {
+        throw new Error(`${course.id}: showing a lesson mutated progress`);
+      }
+      const next = capture();
+      await run([course.id, "lesson", "--db", path], next.io);
+      if (!next.stdout.join("\n").includes("Lesson ID: 1")) {
+        throw new Error("display completed lesson");
+      }
+      if (await run([course.id, "1", "done", "--db", path], capture().io)) {
+        throw new Error(`${course.id}: explicit completion failed`);
+      }
+      const completed = capture();
+      await run([course.id, "show", "1", "--json", "--db", path], completed.io);
+      if (JSON.parse(completed.stdout[0]).status !== "done") {
+        throw new Error("completion not persisted");
+      }
+      for (
+        const args of [["1", "review"], ["1", "done", "2"], ["1", "lesson", "--topic", "pages"]]
+      ) {
+        if (await run([course.id, ...args, "--db", path], capture().io) === 0) {
+          throw new Error(`invalid numbered command accepted: ${args}`);
+        }
+      }
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
 
 async function initTemp(): Promise<{ dir: string; path: string }> {
   const dir = await Deno.makeTempDir();
@@ -724,7 +790,7 @@ Deno.test("pretty prints an optional reference between Meta and Overview when a 
     if (breakdown < notes) throw new Error(text);
     if (
       !text.includes(
-        "only a Study checkpoint at the end asks you to pause before the next lesson.\n\noverlap text",
+        "Optional depth; all required context is in this lesson.\n\noverlap text",
       )
     ) {
       throw new Error(text);
@@ -739,7 +805,7 @@ Deno.test("pretty prints an optional reference between Meta and Overview when a 
   }
 });
 
-Deno.test("pretty prints a study checkpoint after Challenge and before Your note", async () => {
+Deno.test("legacy checkpoint sources render as optional reading without blocking the lesson", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
@@ -769,20 +835,23 @@ Deno.test("pretty prints a study checkpoint after Challenge and before Your note
       throw new Error(out.stderr[0]);
     }
     const text = out.stdout[0];
-    const challenge = text.indexOf("\n## Challenge\n");
+    const challenge = text.indexOf("\n## Optional variation\n");
     const checkpoint = text.indexOf(
-      "\n## Study checkpoint — stop before the next lesson\n",
+      "\n## Optional reading\n",
     );
     const note = text.indexOf("\n## Your note\n");
     if (!(challenge >= 0 && challenge < checkpoint && checkpoint < note)) {
       throw new Error(text);
     }
     if (
-      !text.includes("\n### Core\n- Book — Section 2") ||
+      !text.includes("\n### Selected excerpts\n- Book — Section 2") ||
       !text.includes("\n### Optional depth\nRead these only if you want to go deeper.") ||
       !text.includes("\n### Why here\nThe experiment made the ordering visible.")
     ) {
       throw new Error(text);
+    }
+    if (text.includes("Stop here") || text.includes("before continuing")) {
+      throw new Error("required reading gate remains");
     }
     const corrupted = new DatabaseSync(path);
     corrupted.prepare(

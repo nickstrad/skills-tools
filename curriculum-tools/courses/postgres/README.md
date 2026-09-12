@@ -4,8 +4,9 @@ The 92-lesson deep course progresses from pages/MVCC through concurrency, measur
 recovery, replication, durable protocols and independent incident diagnosis. Its task-runner
 capstone requires complete request/effect reconciliation and a measured admission/concurrency
 decision. [PLAN.md](PLAN.md) gives the current outline; [lesson-map.md](lesson-map.md) maps original
-identities, consolidations and the seven reading stops. [validation/](validation/) contains actual
-execution records, expected failure classifications and measurement limits.
+identities, consolidations and seven legacy reading stops, now rendered as optional references.
+[validation/](validation/) contains actual execution records, expected failure classifications and
+measurement limits.
 
 ## First operational task: resources and cleanup
 
@@ -26,21 +27,23 @@ declaring the goal done.
 ## Use the current essentials course
 
 The learner path is now [PostgreSQL Essentials](../postgres-essentials/README.md), with a fixed
-[40-lesson sequence](../postgres-essentials/PLAN.md) of 20–30 minute chunks. Its actual first six
-lessons are ready; there is no requirement to take the old 9–12 coaching pilot.
+[40-lesson sequence](../postgres-essentials/PLAN.md). Its first 26 lessons are available. The stored
+20–30-minute figures are historical author estimates; Nick currently reports roughly ten minutes per
+lesson. There is no requirement to take the old 9–12 coaching pilot.
 
 ```sh
 bin/pgcoach route
 bin/pgcoach 1 lesson
-bin/pgcoach 1 review
 bin/pgcoach 1 done
 ```
 
 `pgcoach` defaults to the new course. Its numbering and progress are separate from this original
-92-lesson reference. `pgcoach --reference NUMBER full` opens reference material; use
-`tutor postgres ...` for reference progress/navigation. Do not use old completion numbers for new
-lessons. The new flow teaches concepts and terminal diagrams before running; review explains the
-observations. The next feedback point is after essentials lesson 6.
+92-lesson reference. Use `tutor postgres NUMBER lesson` for reference content and
+`tutor postgres route` for reference progress/navigation; legacy `pgcoach --reference` forms remain.
+Do not use old completion numbers for new lessons. `lesson` includes the concepts, labelled terminal
+diagram, commands, expected evidence, interpretation, and cleanup. Older `review`, `full`, and
+`start` spellings are compatibility aliases, not separate stages. Only explicit `NUMBER done`
+records completion.
 
 ## Original reference experiments
 
@@ -71,6 +74,7 @@ render with the code actually executed. Shared-host measurements do not establis
 election/consensus, network partitions or independent host availability.
 
 The book research is canonical under `docs/books/postgresql-14-internals/` in the repository; this
-course's docs symlink points there. Use its current citation/checkpoint maps and settled research
-before opening the PDF. Do not duplicate the PDF or research into the course tree. General findings,
-validation pitfalls and cleanup lessons belong in docs/knowledge and its index.
+course's docs symlink points there. Use its citation and legacy checkpoint maps as research before
+opening the PDF; their references are optional and do not pause progress. Do not duplicate the PDF
+or research into the course tree. General findings, validation pitfalls and cleanup lessons belong
+in docs/knowledge and its index.

@@ -126,4 +126,4 @@ Cleanup stops the recorded process and removes this lab's data, payloads and log
 about 20 seconds. At the time cap, use the same block even if you stopped before publication. Resume
 later by starting a fresh fixture. Do not retain an idle server between lessons.
 
-Open `systemscoach cursor-git 2 review` and explain the two distinct boundaries in a sentence.
+The interpretation below connects the two distinct boundaries; no written response is required.

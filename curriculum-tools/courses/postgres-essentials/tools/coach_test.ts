@@ -44,7 +44,8 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
     );
     const shown = render(lesson, "lesson", "/tmp/a learner's progress.sqlite");
     const language = lesson.runIn === "shell" ? "sh" : "sql";
-    const blocks = [...shown.matchAll(new RegExp("```" + language + "\\n([\\s\\S]*?)\\n```", "g"))]
+    const core = shown.split("## What the experiment showed")[0];
+    const blocks = [...core.matchAll(new RegExp("```" + language + "\\n([\\s\\S]*?)\\n```", "g"))]
       .map((m) => m[1]);
     assert(
       blocks.length >= 2 && blocks[0] === lesson.setup &&
@@ -62,14 +63,15 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
       shown.indexOf("### In plain terms") < shown.indexOf("## Setup"),
       "concepts introduced too late",
     );
-    const review = render(lesson, "review");
     assert(
-      review.includes(lesson.expectedResult) && review.includes(lesson.systemsLens),
-      "review lost evidence",
+      shown.includes(lesson.expectedResult) && shown.includes(lesson.systemsLens),
+      "complete lesson lost evidence or interpretation",
     );
-    // An independent optional variation must be able to recreate its fixture.
-    const coreReview = review.split("## Optional variation")[0];
-    assert(!coreReview.includes(lesson.setup!), "core review repeats setup");
+    assert(
+      !shown.includes("open review") && !shown.includes(" review --db"),
+      "separate review step remains",
+    );
+    assert(shown.includes(" done --db"), "lesson does not lead to explicit completion");
     assert(!shown.includes("Core reading"), "unbudgeted reading introduced");
     if (lesson.runIn === "shell") {
       assert(
@@ -83,7 +85,7 @@ Deno.test("fixed 40-lesson route starts with the available actual lessons and co
         "private server cleanup was described as schema cleanup",
       );
     }
-    if (lesson.challenge) assert(review.includes(lesson.challenge), "optional variation hidden");
+    if (lesson.challenge) assert(shown.includes(lesson.challenge), "optional variation hidden");
   }
 });
 
@@ -101,10 +103,26 @@ Deno.test("selection, completion and batch boundary use only essentials progress
       await runTutor(["postgres-essentials", "init", "--db", db], capture().io) === 0,
       "init failed",
     );
-    const before = await Deno.readFile(db);
-    const historyBefore = history(db);
     assert((await call([])).includes("Essentials 1/40"), "default selected wrong route");
     assert(await call(["1", "start"]) === await call(["1", "lesson"]), "start alias changed");
+    assert(await call(["1", "full"]) === await call(["1", "lesson"]), "full alias changed");
+    assert(
+      await call(["1", "review"]) === await call(["1", "lesson"]),
+      "review still splits the lesson",
+    );
+    await call(["1", "done"]);
+    await call(["3", "done"]);
+    const before = await Deno.readFile(db);
+    const historyBefore = history(db);
+    const route = await call(["route"]);
+    assert(
+      route.includes("[done] marks a completed lesson"),
+      "route lacks completion marker legend",
+    );
+    assert(route.includes("1. [done] An uncommitted write"), "completed lesson is unmarked");
+    assert(route.includes("2. Choose a fresh statement"), "unfinished lesson missing");
+    assert(!route.includes("2. [done]"), "unfinished lesson is marked done");
+    assert(route.includes("3. [done] An old reader"), "second completed lesson is unmarked");
     for (let n = 1; n <= catalog.length; n++) {
       for (const stage of ["lesson", "review", "full"]) {
         const text = await call([String(n), stage]);

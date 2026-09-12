@@ -43,12 +43,11 @@ const help = `systemscoach courses                 list systems project courses 
 systemscoach use TOPIC                  select a project for short commands
 systemscoach [TOPIC] route              full agenda, availability and completion
 systemscoach [TOPIC] [N] lesson         next unfinished lesson when N is omitted
-systemscoach [TOPIC] [N] review         review the same next unfinished lesson
 systemscoach [TOPIC] N done             explicitly record completion
 systemscoach check TOPIC               validate route and available lesson files
 
 Examples: systemscoach wal-git 1 lesson; systemscoach 1 done; systemscoach wal-git route
-Reading never records completion. Use an explicit N to review a completed lesson.
+Reading never records completion. lesson includes interpretation; done is explicit.
 Ask the systemscoach skill to interview you about a topic/write-up, propose an agenda,
 and author a small batch after you approve it. The CLI does not generate lessons.
 Environment: SYSTEMSCOACH_ROOT (project folder), SYSTEMSCOACH_STATE (isolated progress folder).
@@ -120,8 +119,8 @@ func (c Coach) load(id string) (Project, error) {
 	}
 	seen := map[string]bool{}
 	for i, l := range p.Lessons {
-		if !slugPattern.MatchString(l.Slug) || seen[l.Slug] || strings.TrimSpace(l.Title) == "" || strings.TrimSpace(l.Outcome) == "" || l.Revision < 1 || l.Minutes < 15 || l.Minutes > 25 {
-			return p, fmt.Errorf("invalid lesson %d: unique slug, title, outcome, revision >= 1 and 15–25 minutes required", i+1)
+		if !slugPattern.MatchString(l.Slug) || seen[l.Slug] || strings.TrimSpace(l.Title) == "" || strings.TrimSpace(l.Outcome) == "" || l.Revision < 1 || l.Minutes < 1 || l.Minutes > 25 {
+			return p, fmt.Errorf("invalid lesson %d: unique slug, title, outcome, revision >= 1 and 1–25 minutes required (new lessons target 10–15)", i+1)
 		}
 		for _, dep := range l.Prerequisites {
 			if !seen[dep] {
@@ -135,6 +134,9 @@ func (c Coach) load(id string) (Project, error) {
 			}
 			for _, view := range []string{"lesson", "review"} {
 				body, err := os.ReadFile(c.page(id, l.Slug, view))
+				if view == "review" && errors.Is(err, os.ErrNotExist) {
+					continue // New lessons can include interpretation in lesson.md.
+				}
 				if err != nil {
 					return p, err
 				}
@@ -301,7 +303,7 @@ func (c Coach) run(args []string) error {
 		action, args = args[0], args[1:]
 	}
 	if len(args) > 0 || !isAction(action) || action == "route" {
-		return errors.New("usage: systemscoach [TOPIC] [N] lesson|review|done")
+		return errors.New("usage: systemscoach [TOPIC] [N] lesson|done")
 	}
 	if action == "done" && n == 0 {
 		return errors.New("done requires an explicit lesson number")
@@ -321,7 +323,7 @@ func (c Coach) run(args []string) error {
 			}
 		}
 		if n == 0 {
-			fmt.Fprintln(c.out, "All lessons in this route are complete. You can review any lesson by number.")
+			fmt.Fprintln(c.out, "All lessons in this route are complete. You can reopen any lesson by number.")
 			return nil
 		}
 	}
@@ -344,19 +346,23 @@ func (c Coach) run(args []string) error {
 		if err := writeReceipt(c.receipt(topic, l), append(b, '\n')); err != nil {
 			return err
 		}
-		fmt.Fprintf(c.out, "Completed %s %d: %s\nReview: systemscoach %s %d review\n", topic, n, l.Title, topic, n)
+		fmt.Fprintf(c.out, "Completed %s %d: %s\nRoute: systemscoach %s route\n", topic, n, l.Title, topic)
 		return nil
 	}
-	body, err := os.ReadFile(c.page(topic, l.Slug, action))
+	// The old review command is an alias, not a separate learning stage.
+	body, err := os.ReadFile(c.page(topic, l.Slug, "lesson"))
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(c.out, "# %s %d/%d: %s\n\nCore: %d minutes, including setup, reflection and cleanup.\n\n%s\n", p.Title, n, len(p.Lessons), l.Title, l.Minutes, body)
-	if action == "lesson" {
-		fmt.Fprintf(c.out, "\nReview: systemscoach %s %d review\n", topic, n)
-	} else {
-		fmt.Fprintf(c.out, "\nWhen you consider it complete: systemscoach %s %d done\n", topic, n)
+	interpretation, err := os.ReadFile(c.page(topic, l.Slug, "review"))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
+	fmt.Fprintf(c.out, "# %s %d/%d: %s\n\nCore: %d minutes, including context, experiment and cleanup.\n\n%s\n", p.Title, n, len(p.Lessons), l.Title, l.Minutes, body)
+	if len(interpretation) > 0 {
+		fmt.Fprintf(c.out, "\n## Interpretation and optional worked solution\n\nRead after the learner task above.\n\n%s\n", interpretation)
+	}
+	fmt.Fprintf(c.out, "\nWhen you consider it complete: systemscoach %s %d done\n", topic, n)
 	return nil
 }
 

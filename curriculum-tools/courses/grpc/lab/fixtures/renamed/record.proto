@@ -1,0 +1,7 @@
+syntax = "proto3";
+package wire;
+message Record {
+  int32 total = 1;
+  string label = 2;
+  optional int32 limit = 3;
+}

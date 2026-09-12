@@ -1,32 +1,38 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-11. The active route is 40 small lessons, with its first 26 implemented. The
+Updated 2026-09-12. The active route is 40 small lessons, with its first 26 implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
 ## What happened
 
 Nick rejected spending time on old lessons merely to test coaching UX. He asked for actual first
-lessons of a specified shorter course, then clarified that 40 meaningful 20–30 minute chunks were
-preferable to 24 dense sessions. The first three introduce committed visibility, compare statement
-and transaction snapshots, and test the old-reader cleanup horizon. These match rows 1–3 of the
-published route exactly. No TOAST/cache/numeric-XID detour is required.
+lessons of a specified shorter course, then chose 40 meaningful chunks over 24 dense sessions. The
+20–30 minute estimates recorded at the time were nominal; he now reports roughly ten minutes per
+current lesson while studying around parenting and a full-time job. No TOAST/cache/numeric-XID
+detour is required.
 
 `pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
 renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
 and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Twenty-one real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
+Twenty-six real lessons are built; future entries are held in `route.ts` and PLAN.md. Rendering or
 finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
 addresses essentials; legacy pgtutor commands still belong to the original course.
+
+On 2026-09-12 the learner flow became one complete `lesson` output: mechanism context, a useful
+terminal diagram, setup and commands, expected evidence, interpretation, optional references or
+variations, and cleanup. Older `review`, `full`, and `start` spellings remain hidden aliases to this
+output. The generic tutor now supports the same `tutor <course> <number> lesson|done` contract for
+every course, so future courses need no custom renderer.
 
 ## Why it matters
 
 Authoring a short flow around unrelated old lessons did not satisfy the learner's goal. Scope and
-UX need to advance together. Putting a two-view wrapper around an unsplit 50-minute experiment
-does not make it a 30-minute lesson. Each new lesson has one bounded comparison, supplied syntax,
-concepts and a terminal diagram before the experiment, and a review of evidence and limits.
-References are optional, with no hidden required book excerpts. A mental reflection follows the
-experiment; the next batch discussion follows essentials lesson 3 rather than old lesson 12.
+UX need to advance together. A wrapper cannot make an oversized experiment concise. Each new
+lesson has one bounded comparison, supplied syntax, short mechanism context, a labelled diagram
+before commands when useful, expected evidence, interpretation, and cleanup. Plain text must carry
+the diagram's meaning; ANSI colour is optional. References are optional, with no hidden book work,
+review stage, checkpoint, homework, or written response.
 
 Two-course identity also prevents accidental completion of a different lesson with the same number.
 The installed postgres-tutor skill is a symlink to the updated repository source and routes both
@@ -34,11 +40,14 @@ navigation and progress to essentials by default. `pgcoach --reference` retains 
 
 ## How to apply
 
-- Follow the fixed plan when authoring lessons 4 onward. Record agreed changes to scope; do not
+- Follow the fixed plan when authoring remaining lessons. Record agreed changes to scope; do not
   improvise an unrelated next topic or add an extra UX prerequisite batch.
-- Keep the commands printed by the first view identical to the built setup/code. Route tests cover
-  this, available-lesson identity matching, diagrams before setup, explicit completion, progress-byte
-  preservation, pending lessons and the installed launcher.
+- Keep commands printed by `lesson` identical to the built setup/code. Route tests cover this,
+  available-lesson identity matching, diagrams before setup, explicit completion, progress-byte
+  preservation, pending lessons, and the installed launcher.
+- Keep `pgcoach route` and `tutor postgres-essentials route` aligned: completed lessons, authored
+  available lessons, and planned lessons are different statuses. Planned rows are navigation, not
+  progress records.
 - Validate each new experiment on a private PostgreSQL cluster. The first batch ran in two real
   sessions; the final third lesson was rerun after removing noisy VERBOSE vacuum output. Tuple
   counts still prove retention/reclamation directly. Check exact outcomes, not just timeouts.
@@ -48,7 +57,12 @@ navigation and progress to essentials by default. `pgcoach --reference` retains 
   assertions, controller and report under the course's `validation/` directory.
 
 The [first batch validation report](../../curriculum-tools/courses/postgres-essentials/validation/README.md)
-records the measured results and limits. All timing estimates still await learner experience.
+records the measured results and limits. Its timing estimates are historical; learner pace is now
+reported at roughly ten minutes.
+
+The remaining sections are historical batch acceptance and validation records. Mentions of the old
+two-view presentation describe what was tested at that time; they do not restore a separate learner
+stage.
 
 
 ## Second batch accepted

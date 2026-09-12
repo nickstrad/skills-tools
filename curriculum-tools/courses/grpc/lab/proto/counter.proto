@@ -1,0 +1,25 @@
+syntax = "proto3";
+package practice;
+option go_package = "grpcpractice/generated;pb";
+
+message Empty {}
+message AddRequest {
+  int32 amount = 1;
+  string request_id = 2;
+  int32 reply_delay_ms = 3;
+}
+message CounterReply {
+  int32 value = 1;
+  bool deduplicated = 2;
+  string caller = 3;
+}
+message WatchRequest {
+  int32 count = 1;
+  int32 fail_after = 2;
+}
+message Tick { int32 sequence = 1; }
+service Counter {
+  rpc Add(AddRequest) returns (CounterReply);
+  rpc Get(Empty) returns (CounterReply);
+  rpc Watch(WatchRequest) returns (stream Tick);
+}

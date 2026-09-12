@@ -1,0 +1,7 @@
+interface:
+  display_name: "gRPC and Protocol Buffers Tutor"
+  short_description: "Hands-on gRPC and Protocol Buffers experiments with tracked progress"
+  default_prompt: "Use $grpc-tutor to show my next unfinished gRPC and Protocol Buffers lesson."
+
+policy:
+  allow_implicit_invocation: true

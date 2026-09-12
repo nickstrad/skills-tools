@@ -1,7 +1,7 @@
 import { code, type Module } from "../../../src/types.ts";
 
-// First module of every course: give the learner a disposable environment they fully control,
-// then teach the tool habits (timing, multiple sessions, inspecting internals) the experiments need.
+// Implement only after the future-courses/<id>/course.md route is agreed and a batch is requested.
+// Supply the smallest owned environment needed for this lesson's mechanism.
 export const LAB: Module = {
   category: "lab-setup",
   title: "Build a disposable {{name}} lab",
@@ -28,15 +28,22 @@ matters. Define each technical term the first time it appears.
 ### What you are learning
 - One concept per bullet, with one or two sentences saying what it means.
 
+### Visual model
+Replace this with a labeled terminal diagram of the mechanism, before setup and commands.
+Lean toward diagrams for ownership, timelines, transitions, queues, and storage layouts.
+Use an indented Markdown code block so it remains readable without ANSI color:
+
+    learner terminal --> owned process --> private lab files
+
+Connect the labels to what the learner will observe. The shared renderer displays this content;
+do not build a course-specific UI.
+
 ### Piece by piece
 - **{{tool}} --version** (shell program and flag)
-  - What it is: the program the course runs experiments in, asked only to print its version.
-  - What it does here: proves the binary on PATH is the one the lessons were validated on.
-  - What it gives us: a version string to compare with the course's minVersion before going on.
+  Prints the runtime version to compare with the validated minimum; probe required capabilities
+  separately when version alone is insufficient.
 - **export TUTOR_LAB=...** (shell variable)
-  - What it is: an environment variable every later lesson uses to find the lab directory.
-  - What it does here: fixes the location once so no lesson hard-codes a path.
-  - What it gives us: a directory that can be deleted to reset the whole course.`,
+  Sets the owned lab path. Explain exact cleanup targets; never remove unrelated learner files.`,
       code: code`
 export TUTOR_LAB=$HOME/{{id}}-lab
 mkdir -p "$TUTOR_LAB"
@@ -48,7 +55,7 @@ learner can tell a working setup from a broken one.`,
 Name the systems idea this makes concrete. Every lesson must earn its place by teaching something
 about how storage, concurrency, durability, replication, or query execution really works.`,
       challenge: code`
-Offer one prediction to make or variation to try before moving on.`,
+Offer one optional variation; it must not block completion of the core lesson.`,
     },
   ],
 };

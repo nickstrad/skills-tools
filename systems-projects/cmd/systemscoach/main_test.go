@@ -72,6 +72,11 @@ func TestReadOnlyViewsAndExplicitCompletion(t *testing.T) {
 	if !strings.Contains(out.String(), "printf 'inspect me\\n'") {
 		t.Fatal("rendered commands changed")
 	}
+	out.Reset()
+	call(t, c, "alpha", "1", "lesson")
+	if !strings.Contains(out.String(), "alpha lesson body") || !strings.Contains(out.String(), "alpha review body") || strings.Contains(out.String(), "Review: systemscoach") {
+		t.Fatal("lesson must contain interpretation without a separate review step")
+	}
 	rejected(t, c, "alpha", "done")
 	call(t, c, "alpha", "1", "done")
 	p, _ := c.load("alpha")
@@ -177,9 +182,14 @@ func TestDraftAndInvalidRoutes(t *testing.T) {
 	p.Lessons[0].Minutes = 30
 	saveProject(t, c, p)
 	rejected(t, c, "check", "alpha")
-	p.Lessons[0].Minutes = 20
+	p.Lessons[0].Minutes = 10
 	saveProject(t, c, p)
 	if err := os.Remove(c.page("alpha", "first", "review")); err != nil {
+		t.Fatal(err)
+	}
+	call(t, c, "check", "alpha")
+	call(t, c, "alpha", "1", "lesson")
+	if err := os.Remove(c.page("alpha", "first", "lesson")); err != nil {
 		t.Fatal(err)
 	}
 	rejected(t, c, "check", "alpha")

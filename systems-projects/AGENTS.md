@@ -10,12 +10,19 @@ primary dataset. Preserve the learner's /labs/pglab, progress and unrelated work
 visibility may be restricted: an empty pgrep is not proof the host has no live cluster.
 
 Use [design-workflow](docs/design-workflow.md), [authoring](docs/authoring.md) and the systemscoach
-skill for this project track. The current 40-lesson PostgreSQL course provides the lesson/review
-teaching reference, not a length target. Keep lessons 15–25 minutes and author only agreed batches.
+skill for this project track. New projects begin as inexpensive Markdown plans under the root
+[`future-courses/`](../future-courses/) tree; create `project.json` and project-local implementation
+files only after the route is agreed and implementation is requested. New lessons target 10–15
+minutes; keep valid older 15–25-minute metadata honest rather than rewriting it. Author only agreed
+batches.
 Read the [learner profile](../docs/learner-profile.md) and [saved interests](../docs/articles/README.md).
 Apply the [meaningful learner work contract](docs/knowledge/learner-work.md) to every systemscoach
 lesson: reserve a useful command, core edit or diagnostic investigation for the learner, with
-observable evidence and optional hints/solutions. A fully supplied walkthrough alone does not qualify.
+observable evidence and optional hints/solutions. Put the mechanism explanation and a useful,
+labelled plain-text terminal diagram before the task. Include interpretation and a clearly labelled
+worked reference below the task in the same lesson output. A fully supplied walkthrough alone does
+not qualify; only explicit `done` writes a receipt. `review` is a compatibility alias, not a required
+stage.
 Read the dedicated [systems knowledge store](docs/knowledge/README.md) before systems work and
 update it with reusable, evidence-backed findings after each completed task or course batch.
 Keep project source research and validation records beside the project; link them from shared notes.

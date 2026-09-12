@@ -2,6 +2,14 @@
 
 Design and validation boundaries established on 2026-09-04 for SQLite after PostgreSQL.
 
+Planning update, 2026-09-12: the learner reports roughly ten minutes per PostgreSQL Essentials
+lesson and now prioritizes a bounded SQLite internals course with all necessary context before the
+experiment. The [32-lesson future-course plan](../../future-courses/sqlite/course.md) is the active
+planning artifact; the supporting [Essentials proposal](../readings/sqlite/essentials-proposal.md)
+maps reuse, optional material, and new execution/resource-lifetime experiments. The existing
+54-lesson course and its validation remain unchanged reference material. The new route is planned,
+not implemented or measured.
+
 ## What happened
 
 The course review applied `docs/learning_path.md`: learn shared concepts deeply once, then use the
@@ -28,6 +36,13 @@ should earn its place through a concrete SQLite difference or a new application 
 
 ## How to apply
 
+- Use the shared `tutor <course> route|<number> lesson|done` interface; SQLite needs no
+  course-specific renderer. The plan-only route has planned status and no progress. A lesson gives
+  context, commands, evidence, interpretation, and cleanup in one output.
+  There is no required external reading, review view, study checkpoint, or homework.
+- Put a labelled terminal diagram before commands when pager state, connection ownership, lock
+  timing, B-tree/page layout, journal/WAL flow, or resource lifetime becomes easier to see. Keep it
+  readable without ANSI colour and connect it to the evidence the learner will inspect.
 - Preserve sound page, journal, locking and recovery experiments. Improve their interpretation
   without silently changing behavior or marking editorial work as a new lesson revision.
 - Keep per-connection settings in the connection doing the work. Contrast durable WAL mode with

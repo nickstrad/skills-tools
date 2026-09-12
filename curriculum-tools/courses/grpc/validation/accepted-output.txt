@@ -1,0 +1,217 @@
+
+=== #1 message-to-bytes [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] syntax = "proto3";
+  [A] package wire;
+  [A] message Record {
+  [A]   int32 count = 1;
+  [A]   string label = 2;
+  [A]   optional int32 limit = 3;
+  [A] }
+  [A]  08 96 01 12 02 68 69
+  [A] count: 150
+  [A] label: "hi"
+  [A] 1: 150
+  [A] 2 {
+  [A]   13: 105
+  [A] }
+  [A] total: 150
+  [A] label: "hi"
+
+=== #2 absent-versus-zero [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] 0 /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.3Urmr5PU/absent.bin
+  [A] 0 /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.3Urmr5PU/implicit.bin
+  [A] 2 /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.3Urmr5PU/optional.bin
+  [A] 2 total
+  [A] Absent and implicit zero have identical bytes.
+  [A]  18 00
+  [A] limit: 0
+
+=== #3 read-an-evolved-message [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] syntax = "proto3";
+  [A] package wire;
+  [A] message Record { int32 count = 1; }
+  [A] syntax = "proto3";
+  [A] package wire;
+  [A] message Record {
+  [A]   int32 count = 1;
+  [A]   string label = 2;
+  [A]   optional int32 limit = 3;
+  [A] }
+  [A] count: 7
+  [A] 2: "new"
+  [A] 3: 0
+  [A] count: 7
+  [A] label: "new"
+  [A] limit: 0
+  [A] syntax = "proto3";
+  [A] package wire;
+  [A] message Record {
+  [A]   reserved 2;
+  [A]   int32 count = 1;
+  [A]   string replacement = 2;
+  [A] }
+  [A] /root/Software/skills-tools/curriculum-tools/courses/grpc/lab/fixtures/reserved/record.proto:4:12: Field "replacement" uses reserved number 2.
+  [A] /root/Software/skills-tools/curriculum-tools/courses/grpc/lab/fixtures/reserved/record.proto:4:12: Suggested field numbers for wire.Record: 3
+  [A] Exit status: 1
+
+=== #4 discover-and-call [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] syntax = "proto3";
+  [A] package practice;
+  [A] option go_package = "grpcpractice/generated;pb";
+  [A] message Empty {}
+  [A] message AddRequest {
+  [A]   int32 amount = 1;
+  [A]   string request_id = 2;
+  [A]   int32 reply_delay_ms = 3;
+  [A] }
+  [A] message CounterReply {
+  [A]   int32 value = 1;
+  [A]   bool deduplicated = 2;
+  [A]   string caller = 3;
+  [A] }
+  [A] message WatchRequest {
+  [A]   int32 count = 1;
+  [A]   int32 fail_after = 2;
+  [A] }
+  [A] message Tick { int32 sequence = 1; }
+  [A] service Counter {
+  [A]   rpc Add(AddRequest) returns (CounterReply);
+  [A]   rpc Get(Empty) returns (CounterReply);
+  [A]   rpc Watch(WatchRequest) returns (stream Tick);
+  [A] }
+  [A] /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.edKPWop7/counter.pb.go:60:type AddRequest struct {
+  [A] /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.edKPWop7/counter_grpc.pb.go:30:type CounterClient interface {
+  [A] /tmp/grpc-course-validation.s2lm6_u9/grpc-practice.edKPWop7/counter_grpc.pb.go:86:type CounterServer interface {
+  [A] Local server: 127.0.0.1:46737
+  [A] grpc.reflection.v1.ServerReflection
+  [A] grpc.reflection.v1alpha.ServerReflection
+  [A] practice.Counter
+  [A] practice.Counter is a service:
+  [A] service Counter {
+  [A]   rpc Add ( .practice.AddRequest ) returns ( .practice.CounterReply );
+  [A]   rpc Get ( .practice.Empty ) returns ( .practice.CounterReply );
+  [A]   rpc Watch ( .practice.WatchRequest ) returns ( stream .practice.Tick );
+  [A] }
+  [A] {
+  [A]   "value": 2,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] Local server: 127.0.0.1:43911
+  [A] Failed to list services: server does not support the reflection API
+  [A] Exit status: 1
+  [A] {
+  [A]   "value": 3
+  [A] }
+  [A] {
+  [A]   "value": 4,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] Error invoking method "practice.Counter/Add": error getting request data: message type practice.AddRequest has no known field named increment
+  [A] Exit status: 1
+
+=== #5 status-metadata-and-streams [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] Local server: 127.0.0.1:35787
+  [A] ERROR:
+  [A]   Code: InvalidArgument
+  [A]   Message: amount must be 1..10 and reply_delay_ms 0..2000
+  [A] Exit status: 67
+  [A] {
+  [A]   "value": 2,
+  [A]   "caller": "terminal"
+  [A] }
+  [A] Resolved method descriptor:
+  [A] rpc Get ( .practice.Empty ) returns ( .practice.CounterReply );
+  [A] Request metadata to send:
+  [A] (empty)
+  [A] Response headers received:
+  [A] content-type: application/grpc
+  [A] Response contents:
+  [A] {
+  [A]   "value": 2,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] Response trailers received:
+  [A] (empty)
+  [A] Sent 1 request and received 1 response
+  [A] {
+  [A]   "sequence": 1
+  [A] }
+  [A] {
+  [A]   "sequence": 2
+  [A] }
+  [A] {
+  [A]   "sequence": 3
+  [A] }
+  [A] {
+  [A]   "sequence": 1
+  [A] }
+  [A] {
+  [A]   "sequence": 2
+  [A] }
+  [A] ERROR:
+  [A]   Code: Unavailable
+  [A]   Message: fixture stopped after partial output
+  [A] Exit status: 78
+
+=== #6 timeout-and-retry [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] Local server: 127.0.0.1:35379
+  [A] ERROR:
+  [A]   Code: DeadlineExceeded
+  [A]   Message: context deadline exceeded
+  [A] Exit status: 68
+  [A] {
+  [A]   "value": 1,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] {
+  [A]   "value": 2,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] {
+  [A]   "value": 2,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] ready=127.0.0.1:35379 reflection=true
+  [A] 2026/09/05 23:00:42 effect value=1 request_id="" duplicate=false caller="anonymous"
+  [A] 2026/09/05 23:00:43 reply cancelled; effect remains value=1
+  [A] 2026/09/05 23:00:43 effect value=2 request_id="" duplicate=false caller="anonymous"
+  [A] Local server: 127.0.0.1:39053
+  [A] ERROR:
+  [A]   Code: DeadlineExceeded
+  [A]   Message: context deadline exceeded
+  [A] Exit status: 68
+  [A] {
+  [A]   "value": 1,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] {
+  [A]   "value": 1,
+  [A]   "deduplicated": true,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] ERROR:
+  [A]   Code: AlreadyExists
+  [A]   Message: request_id already used with a different amount
+  [A] Exit status: 70
+  [A] {
+  [A]   "value": 1,
+  [A]   "caller": "anonymous"
+  [A] }
+  [A] ready=127.0.0.1:39053 reflection=true
+  [A] 2026/09/05 23:00:43 effect value=1 request_id="job-42" duplicate=false caller="anonymous"
+  [A] 2026/09/05 23:00:44 reply cancelled; effect remains value=1
+  [A] 2026/09/05 23:00:44 effect value=1 request_id="job-42" duplicate=true caller="anonymous"
+
+6/6 lessons completed without timeout

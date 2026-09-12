@@ -114,4 +114,4 @@ unset CURSOR_LAB CURSOR S3 replay_status
 ```
 
 At the 25-minute cap, this cleanup also removes the deliberately damaged disposable store. Do not
-retain an incomplete lab. Recreate the fixture when resuming, then open lesson 5's review.
+retain an incomplete lab. Recreate the fixture when resuming; interpretation is included below.

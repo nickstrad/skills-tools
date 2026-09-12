@@ -1,141 +1,106 @@
 ---
 name: curriculum-author
-description: Create or extend a hands-on systems curriculum for a database or infrastructure tool (DuckDB, SQLite, Redis, Kafka...) in the tutor engine, matching the PostgreSQL course's experiment-driven pedagogy. Use when the user asks to add a course, write or revise lessons or modules, validate lessons against the real tool, or install a course's wrapper skill.
+description: Plan or incrementally author hands-on systems courses in the tutor engine. Use for future course proposals, lesson/module creation or revision, real-tool validation, and course wrapper installation. Planning alone does not implement a course.
 ---
 
 # Curriculum author
 
-The tutor engine lives in the directory containing this file's grandparent
-(`TUTOR=/root/Software/skills-tools/curriculum-tools` unless the user says otherwise). One engine,
-one course per tool under `$TUTOR/courses/<id>/`:
+The engine is `/root/Software/skills-tools/curriculum-tools` (TUTOR). Read the repository
+`docs/README.md`, relevant knowledge entries, learner profile, and `$TUTOR/docs/AUTHORING.md`. The
+learner studies around work and children: aim for about ten minutes per new lesson, with a
+fifteen-minute core ceiling including context, setup, experiment, interpretation, and cleanup. Keep
+unfamiliar mechanisms well explained. Existing reference courses are not a default size.
 
-```text
-courses/<id>/course.json            id, name, tool, minVersion, revision
-courses/<id>/curriculum/mod.ts      MODULES array = lesson order
-courses/<id>/curriculum/NN-*.ts     one Module per file, lessons as typed drafts
-courses/<id>/lessons.json           BUILT artifact, never hand-edit
-courses/<id>/skill/<id>-tutor/      the wrapper skill for that course
-courses/<id>/progress.sqlite        learner progress, never touch
-```
+## Plan before implementing
 
-Read `$TUTOR/docs/AUTHORING.md` before writing any lesson; it defines the lesson contract and the
-pedagogy. Use `$TUTOR/courses/postgres/curriculum/` as the reference implementation. Read
-`$TUTOR/../docs/learning_path.md` for project scale and cross-project overlap. PostgreSQL is a deep
-reference, not the default size for every tool. Choose focused, standard or deep scope from
-distinctive mechanisms and the final engineering decision; preserve the user's requested scope.
+For a proposal or future course, write `future-courses/<id>/course.md` at the repository root using
+`future-courses/TEMPLATE.md`, and add it to that folder's index. State goal, prior knowledge,
+distinctive mechanisms, lesson count and time rationale, ordered titles/stable slugs, one experiment
+and outcome per lesson, visual teaching plan, sources, exclusions, and implementation status. Use
+`docs/learning_path.md` for sequence and overlap. Reuse prior research; look up unresolved facts in
+primary sources. Keep planning inexpensive.
 
-Also read the repository knowledge base before starting: `$TUTOR/../docs/knowledge/README.md` is an
-index of findings from earlier course work (tooling quirks, how to read the validation harness,
-per-course lesson pitfalls, the subagent workflow). Open the files relevant to your tool and task.
+Create `course.md` immediately as the persistent working draft, then update research, assumptions,
+the outline, learner feedback, decisions, and open questions as the conversation progresses. Do not
+wait for approval to save a draft or leave the evolving plan only in conversation memory. Explain
+why the researched topics have this grouping, order, lesson boundaries, and count. Present the
+proposal and explicitly ask Nick for suggestions. Revise it, then ask for sign-off on the final
+outline. Keep status proposed until he explicitly approves; record the date, approved outline
+revision, and user direction. Do not infer sign-off from silence or a planning request.
+Implementation also needs a batch request, which may accompany approval. Material changes to
+approved scope/count/order need renewed sign-off; unchanged batches do not. This design approval is
+separate from the retired lesson review step.
 
-## Workflow
+A plan does not require finished commands, module stubs, new dependencies, a lab, generated
+catalogs, progress data, or a validation suite. Do not scaffold or implement merely because the
+learner wants to define the route. Keep one canonical route and link to it from implementation
+documents. Existing courses may retain their canonical PLAN.md.
 
-1. **Scaffold** a new course (skip if it exists):
-   `cd $TUTOR && deno task new-course <id> "<Name>" <tool> "<one-line description>" <minVersion>`
-2. **Plan the modules** before writing lessons, using the user's goal and any already approved
-   direction. Choose the number from the project scale rather than a fixed module/lesson quota. Each
-   module is a sequence of experiments that builds one mental model. Write the plan to
-   `courses/<id>/PLAN.md` with one numbered entry per lesson: fixed slug, what the lesson causes and
-   observes, key commands, the expected outcome, the systems lens and the learner's decision.
-   Specify final evidence, synthesis points and the progression from supplied experiments to
-   independent investigation with runnable hints. Fixed slugs let modules be written in parallel and
-   referenced as prerequisites before they exist. Then create one stub file per module
-   (`export const NAME: Module = { category, title,
-   lessons: [] }`) and register all of them in
-   `curriculum/mod.ts` in teaching order, so parallel authors only ever edit their own file and the
-   course always builds.
-3. **Write lessons** as `Draft` objects in `curriculum/NN-<module>.ts` using the `code` tag from
-   `src/types.ts` (raw template, so backslash commands survive). Every lesson MUST cause a
-   phenomenon and then observe it: setup, action, observation, expected result, systems lens.
-   Read-only "look at this view" lessons are only acceptable as the observation half of an
-   experiment. Prefer two-session experiments for anything about concurrency.
-4. **Register** each module in `curriculum/mod.ts` in teaching order. Prerequisites are slugs and
-   must point backwards.
-5. **Build and check**: `deno task build <id>` then `deno task check`. The build rejects duplicate
-   slugs, forward prerequisites, empty fields, and invalid enums.
-6. **Validate against the real tool.** Never ship code you have not run. Create the lab the first
-   lesson describes, then run every lesson with `tools/validate.ts` (see `docs/VALIDATION.md`),
-   which drives one real REPL process per session. Record the actual output and make
-   `expectedResult` match it. Fix or drop anything that does not reproduce. To conserve the
-   orchestrating model's budget when delegation is authorized and useful, give each subagent a
-   bounded design with owned files, the PLAN.md section, reference module, harness docs and its own
-   scratch database (`PGDATABASE=lab_<module>` overrides the harness env), and require a per-lesson
-   report with the real output lines that prove the phenomenon. Then verify: read the module, rerun
-   two or three lessons yourself (multi-session ones first), and run `deno task check`. Modules that
-   restart, crash, or replicate the lab must run serially, never alongside another author.
-7. **Initialize and smoke-test in isolated progress**: use `--db PATH` with `init`, `modules` and
-   `pretty 1`. Preserve real learner progress. Increment changed lessons' explicit revisions; change
-   the course-wide default only when the entire course intentionally needs re-serving. Preserve
-   surviving slugs and map retirements/reordering without transferring completion to a different
-   task. Check progress migration on a copy when identities or order change.
-8. **Install the wrapper skill**: copy or symlink `courses/<id>/skill/<id>-tutor` into the user's
-   skills directory (for example `~/.claude/skills/` or `~/.codex/skills/`) and report the path. The
-   wrapper skill is generated from `templates/course/skill/`; keep its progress invariants intact.
-9. **Record findings** in the knowledge base. Anything you learned that another author would
-   otherwise rediscover (a tool quirk that broke a lesson, a harness behaviour, a validation trick)
-   goes in a new `$TUTOR/../docs/knowledge/<topic>.md` plus a row in its `README.md` index, in the
-   format the index describes. Update an existing file when it already covers the topic. This is
-   part of finishing the work, not a follow-up.
+## Implement only the requested batch
 
-## Quality bar for every lesson
+1. Read the agreed route and `docs/lesson-batch-workflow.md`. Use current user instructions for
+   model/delegation choices. Usually author 3–4 short lessons; do not build the whole future course.
+2. Scaffold only if implementation is requested and the course does not exist:
+   `cd $TUTOR && deno task new-course <id> "<Name>" <tool> "<description>" <minVersion>`. Keep
+   availability distinct from the planned route.
+3. Edit `courses/<id>/curriculum/*.ts` as typed Draft objects using the raw `code` tag. Register
+   modules in `curriculum/mod.ts`; prerequisites use earlier slugs. Preserve learner experiments for
+   metadata-only edits. Never hand-edit generated `lessons.json` or learner progress.
+4. Build the changed course and run relevant structural checks. Validate each new or changed
+   experiment against the real tool in an owned lab; check actual outcomes, not only process exit.
+   Run independently and in sequence where state could leak. Use `docs/VALIDATION.md` and the
+   course-specific findings. Delegate bounded files only when authorized; review the resulting
+   evidence yourself.
+5. Smoke-test the shared `tutor <id> <n> lesson|done` flow with an explicit temporary `--db PATH`.
+   Showing content never completes it. Preserve stable identities; bump revisions only for material
+   lesson changes and check progress migration on a copy when necessary.
+6. Install or synchronize the course wrapper skill if required. Record non-obvious findings in
+   `docs/knowledge/` and its index, update authored availability, and report validation limits.
+   Clean all owned labs/evidence and verify learner readiness before finishing.
 
-- `reading` (optional): one-line citation of where the course's canonical book covers this lesson
-  (chapter number, exact title, section when sure); say plainly when the book does not cover it. It
-  prints as metadata at the top of the write-up.
-- `readingNotes` (optional, only when `reading` cites a chapter): one or two short paragraphs on how
-  the experiment overlaps with that chapter, what the book adds, where the lesson differs, and
-  whether to read it before or after. Omitted when the book does not cover the lesson.
-- `overview`: what you are about to observe and why a systems engineer cares (2-4 sentences).
-- `syntaxBreakdown`: the learning template from `docs/AUTHORING.md`, written for a reader who knows
-  basic SQL but not the tool's internals, in Markdown: `### In plain terms` (what the experiment
-  answers and why it matters, jargon defined inline), `### What you are learning` (the concepts, one
-  bullet each), and `### Piece by piece` (every command, flag, function, backslash command, view,
-  setting, or unusual clause: what it is, what it does here, what it gives us and how to read its
-  output). Full sentences; no five-word blurbs.
-- `setup` (optional): idempotent preparation; the learner may re-run it.
-- `code`: the experiment in execution order. Multi-session steps are labelled `-- Session A` /
-  `-- Session B` (use the tool's comment syntax); note where a step blocks and what unblocks it.
-- `expectedResult`: concrete, checkable, including the specific error text or counter that proves
-  the point. If timing-dependent, say what varies.
-- `systemsLens`: the general principle (log-structured storage, snapshot isolation, quorum,
-  backpressure, GC horizons, fencing, idempotency...) and where else it shows up.
-- `challenge` (optional): a prediction to make or a variation to run.
-- Coaching should follow read/predict/run/inspect/explain/vary/apply where useful. Give complete
-  commands for unfamiliar mechanisms, then increase ownership of measurement and interpretation.
-  Author specific prompts and graduated runnable hints; respect full-lesson requests. New concepts
-  still need guidance late in a course, and small courses still deserve an independent final task.
-  Use supported fields/interfaces; a PostgreSQL-specific coaching tool is not automatically present
-  in other courses. AUTHORING.md owns the full teaching contract.
-- `safetyLevel`, `runIn`, `sessions`, `estimatedMinutes`: honest.
-- `tags`: 2-5 labels from the course's vocabulary in `PLAN.md` (the canonical book's chapter names
-  first, then systems concepts) so `tutor <id> pretty --topic "..."` can serve the next unfinished
-  lesson on whatever the learner is currently reading about.
-- Nothing in a lesson may target a database or directory the learner did not create in the lab.
+Read `docs/knowledge/vm-resource-cleanup.md` before allocating labs. Account for peak backup,
+replica, archive, and evidence copies, preserve `/labs/pglab` and unrelated work, and retire owned
+resources after validation. Historical scratch paths are not instructions to rebuild old labs.
 
-## Lessons from the PostgreSQL pass
+## Shared lesson design
 
-These are kept here because every author hits them; the knowledge base holds the longer list,
-including the SQLite and Linux findings.
+Every lesson causes a phenomenon and observes it. The generic CLI owns presentation:
+`tutor <course> <n> lesson` prints one complete lesson; explicit `<n> done` records completion. Do
+not implement course-specific renderers, quiz stages, review steps, or required reading stops. The
+existing `pgcoach` entry point remains supported.
 
-- The harness only detects timeouts. A lesson whose SQL errors still "passes", so grep every
-  validation run for `ERROR` before trusting it, and read the output against `expectedResult`
-  yourself; subagents routinely report PASS on lessons that printed an error mid-way.
-- Validate each lesson on its own, not only in module order. A lesson may only depend on state that
-  its own `setup` recreates or that an explicit prerequisite lesson leaves behind and says so.
-- Lessons that crash, restart, or reconfigure the server cannot run through the harness; split them
-  into a tool part, a shell part, and a tool part, validate the pieces by hand, and run that module
-  alone on the cluster.
-- Two-session lessons that inspect catalogs need a third session when one session holds a
-  repeatable-read snapshot: it cannot see rows the other session created after the snapshot.
-- Tool-specific traps are worth recording in `PLAN.md` conventions as they are found (for
-  PostgreSQL: `xid` has no ordering operator, use `age(xid)`; same-cluster logical subscriptions
-  hang unless the slot is created first; `\watch` must be bounded; statistics resets should be
-  scoped so parallel authors do not erase each other's counters).
-- Quote real numbers in `expectedResult` and say which ones move between runs and by how much; costs
-  and record types reproduce exactly, timings and sampled estimates do not.
+The pre-experiment reading carries all essential context: what question is being tested, unfamiliar
+terms, why it matters, a terminal diagram, and the purpose of unfamiliar commands. ASCII/ANSI art is
+a first-class teaching aid. Lean toward including labeled diagrams for ownership, timelines, state
+transitions, queues, page/tree layouts, and log flow. Keep them readable without color and connect
+their labels to observed evidence. Put them in `syntaxBreakdown` before setup and commands; an
+indented Markdown code block avoids backtick escaping in raw TypeScript templates.
 
-## Do not
+- `overview`: a short statement of the experiment's question and purpose.
+- `syntaxBreakdown`: concise Markdown with In plain terms, a Visual model when useful, What you are
+  learning, and Piece by piece. Explain unfamiliar flags and evidence without repeating a three-part
+  definition for every familiar command.
+- `setup` and `code`: exact, rerunnable commands; label Session A/B steps and where waits end.
+- `expectedResult`: concrete output/state that proves the point; identify permitted variability.
+- `systemsLens`: brief interpretation, implications, limits, and useful prior-course contrast.
+- `challenge`, `reading`, and `readingNotes`: optional depth, never unfinished core work.
+- `safetyLevel`, `runIn`, `sessions`, `minVersion`, and `estimatedMinutes`: honest metadata.
+- `tags`: a small useful vocabulary for topic navigation; no taxonomy quota.
+- No required written answers, notes, architecture report, or separate capstone unless requested.
 
-- Do not hand-edit `lessons.json` or `progress.sqlite`.
-- Do not write lessons that only print catalog contents.
-- Do not mark lessons done on the learner's behalf; that is the wrapper skill's job, on request.
+Supply unfamiliar code throughout, normally Go outside the current pgcoach course; pgcoach uses the
+learner's recorded Deno/pg preference for new clients. Independence can mean choosing evidence or a
+remedy in one short incident, not writing an application. If a lesson exceeds its time budget,
+narrow the question or fixture rather than shortening the explanation past usefulness.
+
+## Validation pitfalls to retain
+
+- The generic harness detects timeouts, not all SQL failures. Read output, classify intentional
+  errors, and compare data outcomes with expectedResult.
+- A lesson must recreate its own state or explicitly name a prerequisite that does so.
+- Real two-session experiments must keep separate live connections and deterministic ordering.
+- Crash/restart/replication lessons require serial owned fixtures and reliable teardown.
+- Feature-probe the actual runtime and any language binding; version text alone may not establish
+  required optional extensions.
+- Distinguish process failure from power loss, plans from measured work, and engine counters from
+  physical device behavior. Do not claim a stronger guarantee than the experiment establishes.

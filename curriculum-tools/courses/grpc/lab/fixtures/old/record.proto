@@ -1,0 +1,3 @@
+syntax = "proto3";
+package wire;
+message Record { int32 count = 1; }

@@ -1,0 +1,40 @@
+{
+  "whole_course": "6/6",
+  "isolated": "6/6",
+  "minutes": 65,
+  "existing_progress_unchanged": {
+    "/root/Software/skills-tools/curriculum-tools/courses/linux/progress.sqlite": "e56a2dc1fca2d1d9470567b69154f7f3b14957e7efb1f32b147c597a707ca29d",
+    "/root/Software/skills-tools/curriculum-tools/courses/postgres/progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "/root/Software/skills-tools/curriculum-tools/courses/sqlite/progress.sqlite": "c714b24935a8f888c991474fdc11f536c6470d1703c290b31b428206a4e86ffc"
+  },
+  "isolated_status": {
+    "course": "grpc",
+    "total": 6,
+    "done": 0,
+    "todo": 6,
+    "skipped": 0,
+    "stale": 0
+  },
+  "scratch_removed": true,
+  "owned_servers_remaining": 0,
+  "sources_sha256": {
+    "course.json": "8e80c60a87fa86f1cb9f43a8094a47984aa8068e18b8193904a26da2c9294d22",
+    "curriculum/01-protobuf.ts": "0f61488a0f2b0c611f837564b719ab4d554bb1b0dae09ab7ae8cea7cafe1e6ce",
+    "curriculum/02-grpc.ts": "e3753e63ad6dc0feed452c7a4541216a8713247649fd7fd1546e17259bd6dad3",
+    "curriculum/common.ts": "4c3eef3768b1882141212c0e11c92f870b8e815a9d78a1995308cc72ceaea923",
+    "curriculum/mod.ts": "1c65fab93008fb11d56a7cb5fc5adbda6ed81f5e615fe266acce1214f28d0973",
+    "lab/env.sh": "457cf5b2e2dd600333e036ec31a62ff6e7f96c03ad9a55a7e3c1071a40d11f8e",
+    "lab/fixtures/current/record.proto": "49281b91891e9d41612667db3f4000d90cf4c53208c8fab658490612899f59ed",
+    "lab/fixtures/old/record.proto": "3468c9c1d4ee5a5e034c6e603ad7de3acde6d5123c1a7ed4e90fd7956a1acfc0",
+    "lab/fixtures/renamed/record.proto": "fd0bfe2dc85a26fe4d4e27b29486e5c7d473c17e27c98261c24f32e72633e730",
+    "lab/fixtures/reserved/record.proto": "98730ad3bfdff4841ce86f03ad38d18f4c1e3616f73ba4cc4aaf5a382a4ef343",
+    "lab/go.mod": "3a30e60a19a813dcf9c7b3f7e89ccca9115e2d350f7d71d0b439c6ad132c1301",
+    "lab/go.sum": "06e816a13d269c624816ca4e9dd456a2381f31db25c9a07e7f6b95d5fabe47c8",
+    "lab/install.sh": "fb7d7542e4df62d9469d9f3f5b341a66cf5426a2b0a04f14cafedf5429a0848e",
+    "lab/proto/counter.proto": "71a92c15504fb2d4bfac8e608df96ee314ff4db38aed2a07e38c01584aca6e5d",
+    "lab/proto/legacy.proto": "b0203993983003d6237f822cddb7ca430bc3cb21f518f060e16d27910260ecbe",
+    "lab/server.go": "1a07024ba662af902ce3a7a809b0f3b537a5e36a565c75d236d5dda8b8cb5da3",
+    "lab/validate.py": "026fbabb30e97d3fbaba48f97c0075b7e968d6e46c29fca2929209bb35cb8f37",
+    "lessons.json": "f25ea3957d73b707ea6d71942cef04ed3bace6759cdd1d513829cd6d5731b580"
+  }
+}

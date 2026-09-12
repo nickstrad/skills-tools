@@ -1,19 +1,19 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, updated 2026-09-11. **Lessons 1–26 are authored and available.** The full
+Current learner direction, updated 2026-09-12. **Lessons 1–26 are authored and available.** The full
 sequence below fixes the intended scope; 27–40 are planned, not placeholder lessons. Nick explicitly
-prefers smaller meaningful chunks over compressing the same work into 24 long sessions. Target
-**20–30 minutes per lesson**, including context, setup, experiment, reflection and cleanup. Timings
-remain estimates until learner feedback. Changes to scope must be recorded here, not invented as we
-go. Refine presentation while the learner progresses through this actual course.
+prefers smaller meaningful chunks over 24 dense sessions and currently reports roughly ten minutes
+per lesson. The older **20–30 minute** figures were nominal author estimates, not measured pace.
+Changes to scope must be recorded here, not invented as we go. Implement the remaining route in
+small batches.
 
 Assume basic SQL and the eight completed reference lessons: lab, psql, extensions, processes, pages,
 row versions and HOT. No requirement to repeat them or take the old TOAST/cache/XID pilot. Each
-lesson teaches the mechanism and useful terminal diagram before commands in `lesson`; `review`
-interprets evidence, implications and limits. Optional references are not hidden homework. No typed
-guesses, reports or extra coaching stages. Nick enjoyed the first batch and requested lessons 4–6. A
-brief clarity and pacing check follows the latest available lesson, currently 26. Feedback improves
-the course while the fixed route continues.
+`lesson` output includes the mechanism, useful terminal diagram, setup and commands, expected
+evidence, interpretation, and cleanup. Put diagrams before commands, label them, connect them to the
+evidence, and keep them readable without colour. Optional references and variations are not
+homework. There are no typed guesses, reports, review view, pause, or checkpoint stage; only
+explicit `pgcoach NUMBER done` records completion.
 
 ## Fixed sequence and intended outcomes
 
@@ -75,15 +75,15 @@ Later sequences build on these foundations: 4 on 3; 5–12 on visibility and pri
 13–15 on transaction lifetime; 16–22 develop query evidence in order; 23–29 develop durability and
 recovery in order; 30–33 build replication on WAL; 34–38 combine earlier concurrency/durability
 mechanisms; 39–40 integrate them. Future authored prerequisites must name earlier stable slugs. Do
-not silently expand a 30-minute lesson into several unbudgeted experiments: narrow or explicitly
-revise this route if validation or learner timing shows it is too large.
+not silently expand a lesson into several experiments: narrow or explicitly revise this route if
+validation or learner timing shows it is too large.
 
-Supply code for unfamiliar mechanisms throughout. Increase independence through interpretation, then
-choice of observation and remedy in 39–40. Final evidence is a checked operation history, restored
-useful work and an explanation of what the chosen intervention does not establish. No application
-scaffolding is required. Later replication/recovery lessons use supplied owned fixtures with
-teardown included in their time budget. A single-host lab tests process/transaction boundaries, not
-independent-host availability or cloud durability.
+Supply code and all required explanation for unfamiliar mechanisms throughout. Lessons 39–40 may ask
+for a choice of observation and remedy after teaching the available evidence. Final evidence is a
+checked operation history, restored useful work, and an explanation of what the chosen intervention
+does not establish. No application scaffolding is required. Later replication/recovery lessons use
+supplied owned fixtures with teardown included. A single-host lab tests process/transaction
+boundaries, not independent-host availability or cloud durability.
 
 ## What stays optional
 
@@ -95,12 +95,15 @@ Retain PostgreSQL storage internals already learned; do not repeat them just to 
 ## Identity, implementation and validation
 
 `curriculum/*.ts` is source; `lessons.json` is generated and contains only real available lessons.
-`route.ts` holds the exact ordered titles/slugs for `pgcoach route`; tests check all available
-entries against the built catalog. A separate `postgres-essentials` course ID keeps numbering 1–40
-and new progress separate from the original 92-lesson catalog. `pgcoach` opens essentials by
-default; `pgcoach --reference NUMBER full` preserves old access. Old completion records are never
-copied to new lesson identities. Only explicit `pgcoach NUMBER done` or tutor completion commands
-write status.
+`route.ts` holds the exact ordered titles/slugs for `pgcoach route`; the shared
+`tutor postgres-essentials route` also labels completed, available, and planned entries. Tests check
+all available entries against the built catalog. A separate `postgres-essentials` course ID keeps
+numbering 1–40 and new progress separate from the original 92-lesson catalog. `pgcoach` opens
+essentials by default; the reference remains available through `tutor postgres NUMBER lesson` and
+legacy `pgcoach --reference` forms. Old completion records are never copied to new lesson
+identities. Only explicit `pgcoach NUMBER done` or `tutor <course> NUMBER done` commands write
+status. Every tool course is accessible through the generic tutor lesson renderer; the existing
+pgcoach presentation remains compatible, not an adapter future courses must reimplement.
 
 Canonical book research remains under `docs/books/postgresql-14-internals/`; no PDF copy is needed.
 The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Batch two adds storage,
@@ -111,7 +114,13 @@ Maintain at least 2 GB free, budget <200 MB peak for this batch, and verify lear
 and unchanged reference progress before finishing. No backup, replica or archive is needed for
 lessons 1–15.
 
-## Third batch: detect conflicts and reconsider the decision
+## Historical implemented-batch notes
+
+The sections below record the design and acceptance context of earlier batches. Mentions of a
+`review` view describe how those batches were first shipped; that content now appears in the single
+complete `lesson` output and is not a second learner stage.
+
+### Third batch: detect conflicts and reconsider the decision
 
 Lessons 7–10 follow [the committed batch design](designs/07-10.md). Lesson 7 adds a conditional
 version-token save and an explicit reviewed merge. Lessons 8–9 compare the same two-doctor invariant
@@ -120,12 +129,12 @@ known-aborted attempt is retried from BEGIN; the fresh read changes its decision
 optimistic-concurrency, conflict-detection, repeatable-read, serializable, retries and transactions.
 The next batch starts at 11, the unknown-commit-outcome boundary.
 
-The core uses two psql terminals for 7–9 and one shell terminal for 10. Optional variations are
-shown in review and remain outside the 20–30 minute core budget. Exact commands and supplied client
-failure paths are validated on a private server; standalone runs establish setup isolation. No
-required writing or application scaffolding is added.
+The core uses two psql terminals for 7–9 and one shell terminal for 10. Optional variations were
+originally shown in review and remained outside the nominal core estimate. Exact commands and
+supplied client failure paths are validated on a private server; standalone runs establish setup
+isolation. No required writing or application scaffolding is added.
 
-## Fourth batch: reconcile uncertainty and finish transaction lifetimes
+### Fourth batch: reconcile uncertainty and finish transaction lifetimes
 
 Lessons 11–15 follow [the batch design](designs/11-15.md). Lesson 11 withholds an application
 response after a real commit, then compares a fresh inspection and an explicitly unsafe repeat.
@@ -140,13 +149,14 @@ response experiment tests a service/caller boundary on a live server, not crash 
 row itself is the one specified database effect; external effects are outside its guarantee. Keep
 timing estimates separate from automated experiment runtime.
 
-## Fifth batch: measure query work before choosing a remedy
+### Fifth batch: measure query work before choosing a remedy
 
 Lessons 16–21 follow [the batch design](designs/16-21.md). They introduce plan evidence, stale
 statistics, selectivity-dependent scan choice, composite index order, visibility checks behind
 index-only scans, and a transaction-local sort memory comparison. Each uses one psql terminal,
-resets its own bounded table, and supplies an independently runnable optional variation in review.
-The next availability boundary is lesson 22, where joins add another memory consumer.
+resets its own bounded table, and supplies an independently runnable optional variation now included
+in the complete lesson output. The next availability boundary is lesson 22, where joins add another
+memory consumer.
 
 Tags add explain, query-plans, buffers, cardinality, analyze, statistics, indexes, cost-model,
 performance, b-tree, visibility-map, query-execution, sorting, work-mem and temporary-io. Core
@@ -154,7 +164,7 @@ comparisons use measured rows, buffers, Heap Fetches and sort methods; elapsed t
 evidence, not a benchmark. The validation budget for parallel author fixtures is below 1GB combined,
 with normal teardown after each run. Learner pacing remains provisional.
 
-## Sixth batch: follow memory and durability boundaries
+### Sixth batch: follow memory and durability boundaries
 
 Lessons 22–26 follow [the batch design](designs/22-26.md). Lesson 22 extends query memory evidence
 with hash join batches; 23 distinguishes inserted, written and flushed WAL positions; 24 compares

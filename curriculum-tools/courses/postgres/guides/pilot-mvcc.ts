@@ -7,7 +7,7 @@ export const guides: Record<string, Guide> = {
     brief:
       "Setup creates or resets mv_accounts: Alice is id = 1, Bob is id = 2, and Carol is id = 3, each starting with balance = 100. Two psql sessions are used to show when PostgreSQL assigns a real transaction ID (xid). BEGIN keeps a transaction open and COMMIT finishes it. A read-only transaction can have a virtual identity and a snapshot without reserving a numeric xid. Session A will count rows, sum balances, then update Alice; B will update Bob while A stays open. The function pg_current_xact_id_if_assigned() observes an existing numeric xid without forcing one, while pg_current_xact_id() requests one. The pg_locks view lets us connect this identity to a held lock.",
     predict:
-      "When do you expect Session A to first show a numeric xid: at BEGIN, after its reads, or after UPDATE? Make a quick guess. Later compare B's number with A's too; unrelated writers may create gaps, so exact adjacency is not required.",
+      "Watch when each session first gets a numeric xid. Compare the observing function with the function that explicitly requests an ID.",
     inspect:
       "Using the output already produced by the labelled sessions, compare xid_outside_any_transaction and xid_after_two_reads with xid_after_first_write. Compare the before/after pg_locks rows filtered by pg_backend_pid(): virtualxid identifies the session's cheap transaction identity, while transactionid names a real xid lock. In Session B, compare b_xid_before_write with b_xid_after_write. At the end, compare read_only_transaction_xid with forced_xid and notice which call caused allocation.",
     explain:
@@ -23,6 +23,19 @@ export const guides: Record<string, Guide> = {
     pilot: {
       question:
         "When does PostgreSQL reserve a real transaction ID, and what does a read-only transaction have instead?",
+      visual: `Session A: BEGIN --> reads --> UPDATE --> COMMIT
+numeric xid: none    none      assigned
+
+Session B:                 UPDATE ----------> COMMIT
+numeric xid:               another ID
+
+Allocation order does not establish commit order.`,
+      review:
+        `Compare xid_after_two_reads with xid_after_first_write: the first is NULL, while the write has an assigned numeric xid. In pg_locks, virtualxid can appear before transactionid. A virtual identity lets PostgreSQL track a transaction without immediately allocating a permanent numeric ID.
+
+Session B gets its own xid when it writes. Other writers may consume IDs between your sessions. Finally, compare the read-only check with forced_xid: pg_current_xact_id() itself requests allocation; pg_current_xact_id_if_assigned() only observes it.
+
+Use the observing function when investigating allocation. Calling the allocating function changes the state you are trying to measure.`,
       minutes: [25, 35],
       cap: 60,
       phases: [
@@ -42,7 +55,7 @@ export const guides: Record<string, Guide> = {
           from: "-- Session A\ncommit;",
           title: "Session A: publish its row version",
           context:
-            "Return to Session A and run COMMIT. This ends A's writing transaction, publishes its account-1 version to later snapshots, and releases its transaction locks. There is no new measurement in this small boundary; it establishes the order for B's commit and the final read-only check.",
+            "Commit Session A’s write to publish it to later snapshots and release its locks. Next, switch to Session B.",
         },
         {
           from: "-- Session B\ncommit;",
@@ -74,7 +87,7 @@ export const guides: Record<string, Guide> = {
     brief:
       "Setup creates or resets mv_accounts: Alice is id = 1, Bob is id = 2, and Carol is id = 3, each starting with balance = 100. Two psql sessions are used to print PostgreSQL's bounded snapshot representation while Session B adds 10 to Carol’s balance and stays open. BEGIN keeps each transaction open and COMMIT ends it. A snapshot is printed as xmin:xmax:xip_list: xids below xmin were no longer in progress when the snapshot was taken, xids at or above xmax are too new for that snapshot, and xids in the middle need the explicit in-progress list; commit versus abort still determines visibility. Session A performs one extra committed write after B starts so B is no longer the newest xid and can be represented in that middle list.",
     predict:
-      "The supplied SQL names pg_current_snapshot(), pg_current_xact_id(), pg_snapshot_xmin(), pg_snapshot_xmax(), pg_snapshot_xip(), and array_agg(). Before running it, predict where B's b_xid will appear in A's snapshot while B is open, and what balance A will read for id = 3. Also predict what changes in the fresh snapshot and Carol row after B commits. The extra committed update by A is there to move xmax beyond B's xid; do not assume exact xid values.",
+      "Match B’s transaction ID to the snapshot while its update is uncommitted, then compare Carol’s balance before and after B commits.",
     inspect:
       "Use the output already in the terminals. Match Session B's b_xid from pg_current_xact_id() against Session A's snapshot_while_b_runs, its snap_xmin/snap_xmax columns, and the in_progress array produced by pg_snapshot_xip() plus array_agg(). Then compare A's SELECT for Carol while B is open with A's snapshot_after_b_commits and final Carol SELECT. Read the snapshot text and row together. If B is absent from the in-progress list, check that B is still uncommitted and that A completed its separate account-1 update; confirm A and B really are different psql connections.",
     explain:
@@ -89,6 +102,20 @@ export const guides: Record<string, Guide> = {
     ],
     pilot: {
       question: "How do xmin, xmax, and the in-progress list bound a consistent read?",
+      visual: `Transaction IDs at the instant A takes its snapshot
+
+              xmin                         xmax
+---------------|----------------------------|------------>
+ no longer     | inspect the in-progress     | too new for
+ in progress   | list: B is still running    | this snapshot
+
+Commit/abort status also matters; "older" does not mean committed.`,
+      review:
+        `Find B's b_xid in A's in_progress output while B remains uncommitted. A's extra committed write advances the upper boundary so B can appear inside the middle band. Carol remains at 100 for A's read; after B commits, A's fresh Read Committed statement sees 110.
+
+The snapshot records which transactions were still running and which IDs were too new when it was taken. A later commit does not rewrite that snapshot. The later statement in this experiment obtains a new one. Absolute IDs vary with other activity.
+
+Choose a stable view when several reads must reconcile; choose fresh statement views when seeing newer commits matters. The optional Repeatable Read experiment tests the stable-view contrast.`,
       minutes: [30, 45],
       cap: 60,
       phases: [

@@ -10,23 +10,28 @@ pending audit with an explicit removal point. Check free space at validation che
 up again before declaring the whole task complete. Never remove learner lab state or progress as
 validation cleanup.
 
-The goal of every course is to make a systems idea concrete by _causing_ it and _observing_ it, not
-by reading about it. A lesson is an experiment:
+The goal of every course is to make a systems idea concrete by _causing_ it and _observing_ it. Nick
+studies around parenting and a full-time job and currently completes PostgreSQL Essentials lessons
+in roughly ten minutes. Prefer short, bounded lessons centered on one mechanism. A lesson is one
+complete study unit:
 
-1. **Setup**: idempotent preparation (create a table, generate rows, open a second terminal).
-2. **Action**: do the thing (update a row, kill the server, pause replay, race two sessions).
-3. **Observation**: look at the evidence (a page dump, a WAL record, a lock row, an error code).
-4. **Expected result**: what the evidence should show, concretely enough to catch a mistake.
-5. **Systems lens**: the general principle, and where it shows up in other systems.
+1. **Context**: explain the mechanism, terms, purpose, and experiment before commands.
+2. **Mechanism map**: when useful, show a labelled terminal diagram of state, ownership, order,
+   layout, contention, or flow and connect it to the evidence the learner will inspect.
+3. **Setup and action**: prepare idempotently, then cause the phenomenon.
+4. **Observation and expected evidence**: show exactly what to inspect and what proves the point.
+5. **Interpretation**: connect the evidence to the mechanism, limits, and systems principle.
+6. **Cleanup**: leave owned resources safe and ready for the next lesson.
 
 Order modules so each one builds a mental model the next one needs. Storage before MVCC before
 isolation before locking; the log before checkpoints before replication before CDC; and so on.
-Finish with patterns that combine the pieces and a capstone that simulates an incident.
+Combine mechanisms only when synthesis materially improves the course; a separate capstone is not a
+quota.
 
 The learner is a software engineer who wants to design and operate distributed systems, not a DBA.
 They know basic SQL and a shell but not the tool's internals, so every lesson must explain its own
-moving parts (see "Writing the syntax breakdown"). Prefer experiments that expose invariants,
-orderings, failure modes, and trade-offs over tuning advice.
+moving parts (see "Writing the pre-experiment explanation"). Prefer experiments that expose
+invariants, orderings, failure modes, and trade-offs over tuning advice.
 
 Calibrate assumed knowledge with the repository's
 [`learner profile`](../../docs/learner-profile.md). Nick has substantial Kubernetes/Docker
@@ -34,106 +39,107 @@ experience and owns the repositories reviewed there. Compress familiar usage and
 architecture; keep full explanations for unfamiliar mechanisms. The projects are experience
 evidence, not required implementations to copy or rebuild.
 
-## Project scope and learner ownership
+## Plan cheaply, then implement in small batches
 
-Choose a focused, standard or deep scope using
-[`docs/learning_path.md`](../../docs/learning_path.md#scale-the-project-grow-the-learners-ownership).
-There is no default requirement for 8–15 modules or 70–90 lessons. Plan from the tool's distinctive
-contribution and the engineering decisions the learner should be able to defend. Apply “deep once,
-contrast thereafter” across projects. Do not remove distinctive internals merely to make a course
-shorter, or add a topic tour to reach a target count.
+Before scaffolding a future course, write an inexpensive Markdown route under
+[`future-courses/`](../../future-courses/) using its [template](../../future-courses/TEMPLATE.md).
+Plan from the tool's distinctive mechanisms and the engineering decisions they support. Apply “deep
+once, contrast thereafter” across projects. Keep the route fixed and intentionally small; do not add
+a topic tour to reach a quota or remove a distinctive mechanism merely to shorten it.
 
-Every PLAN.md should identify:
+A future-course plan should state the scope, assumed knowledge, ordered lesson titles, mechanism and
+outcome of each lesson, decisive evidence, major safety boundaries, and final capability. It should
+not contain finished command-by-command syntax, create module stubs, allocate labs, build the
+course, or demand validation scaffolding. Those belong to implementation after the direction is
+agreed.
 
-- The scope, assumed earlier knowledge and concrete final evidence.
-- Which experiments introduce mechanisms, which vary them and which combine them.
-- What the learner chooses independently at each synthesis point, and the hints available.
-- A recurring workload where helpful, explicit failure boundaries and measurement limits.
+Create `course.md` immediately as the persistent working draft. Update research, assumptions,
+learner feedback, decisions, and open questions there throughout the conversation. Explain the
+grouping, order, lesson boundaries, and length; present the proposal and explicitly ask Nick for
+suggestions. Revise the outline, then obtain and record his final-outline sign-off before
+implementation. Creating or editing the draft does not need approval; implementation needs both
+sign-off and a batch request. Material outline changes require renewed approval, not unchanged
+batches. See the
+[planning approval workflow](../../future-courses/README.md#research-propose-revise-sign-off).
 
-Use **read → predict → run → inspect → explain → vary → apply** as a flexible teaching sequence.
-Supply complete core commands when a mechanism is new. Ask for a prediction before revealing its
-specific result, then provide the commands and their full explanation. Ask the learner to identify
-evidence and propose a causal explanation before revealing the worked answer. A variation changes
-one meaningful condition; an application question asks for a decision with a workload and tradeoff.
-Use the existing challenge field or an implemented course-local coaching view for these prompts; do
-not add unsupported lesson fields or assume every course has PostgreSQL's staged CLI.
+Implement only the next small batch. Supply complete core commands whenever a mechanism is new and
+put all required explanation before the experiment. Optional predictions or variations can deepen a
+lesson, but they are not additional interaction stages or completion requirements. An
+expected-result section must distinguish measured facts, documented guarantees, and inference. A
+printed “success” message is not proof of an external effect; exercise the actual commit, process,
+or resource boundary on which the conclusion depends.
 
-Increase responsibility for choosing experiments and defending conclusions as concepts become
-familiar. Do not require syntax recall, withhold needed safety instructions, or introduce several
-unknown mechanisms in an allegedly independent exercise. A learner can always request runnable
-hints, a worked solution or the full lesson. The sequence need not create seven messages or inflate
-the number of lessons.
-
-For a focused course, one final diagnosis and a short evidence-backed decision may be enough. A
-standard course can use several module syntheses and one integration experiment. A deep course can
-progress through multiple integrations and finish with a workload that must remain correct through
-failure, recovery and load. Repetition earns its place through new evidence or a new responsibility.
-
-Write incident prompts so a learner can investigate symptoms before seeing the cause. Keep the
-setup, solution and explanatory evidence accessible to the tutor and available on request. An
-expected-result section must distinguish measured facts, documented guarantees and inference. A
-printed “success” message is not proof of an external effect; exercise the actual commit, process or
-resource boundary on which the conclusion depends. Predictions, explanations and reading do not
-implicitly mark progress.
+All courses use the generic learner flow `tutor <course> <number> lesson|done`;
+`tutor <course> lesson` opens the next unfinished lesson. `tutor <course> route` distinguishes
+completed, available, and planned entries. A valid `future-courses/<folder>/course.md` may supply a
+plan-only route before implementation; planned rows never create progress or claim that a lesson
+exists. Do not create a course-specific renderer or adapter. `pgcoach` remains the PostgreSQL
+Essentials entry point. Only explicit `done` changes progress; showing a lesson, optional reading,
+or discussion never does. There is no mandatory review, pause, study checkpoint, homework, note, or
+answer-submission stage.
 
 ## The lesson contract
 
 See `src/types.ts` for the `Lesson` type. Field notes:
 
-| Field             | Meaning                                                                                                                                                                                                                                                                                                         |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `slug`            | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                                                                                                                                                                                          |
-| `tags`            | 2-5 kebab-case topic labels. `tutor <id> next --topic TEXT` serves the next unfinished lesson whose tags/category/title match every word, and `topics` lists them. Align tags with the chapters of the canonical book for the tool plus systems concepts, and keep a vocabulary list in `courses/<id>/PLAN.md`. |
-| `reading`         | Optional. Where the course's canonical book covers this lesson, printed as an **Optional reference** at the top of the write-up. See "The reading line".                                                                                                                                                        |
-| `readingNotes`    | Optional. How the experiment overlaps with the cited chapter, printed as optional reference context after the overview. Omit when the book does not cover the lesson. See "The reading line".                                                                                                                   |
-| `studyCheckpoint` | Optional. A deliberate pause after the experiment with bounded core excerpts and optional depth material. It is generic enough for books, papers, blogs, documentation, and videos; see "Study checkpoints".                                                                                                    |
-| `runIn`           | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                                                                                                                                                                                    |
-| `sessions`        | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                                                                                                                                                                                |
-| `safetyLevel`     | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.                                                                                                                                                                 |
-| `minVersion`      | Version string the lesson was validated on; defaults to `course.json`.                                                                                                                                                                                                                                          |
-| `revision`        | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                                                                                                                                                                                     |
+| Field             | Meaning                                                                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `slug`            | Stable kebab-case id; other lessons reference it in `prerequisites`. Renaming a slug orphans progress.                                                                              |
+| `tags`            | 2-5 kebab-case topic labels used by topic search. Align them with the canonical book and systems concepts; keep a vocabulary list in `courses/<id>/PLAN.md`.                        |
+| `reading`         | Optional. Where the course's canonical book covers this lesson, printed as an **Optional reference** at the top of the write-up. See "Optional references".                         |
+| `readingNotes`    | Optional. Brief experiment overlap with the cited chapter, printed as optional context after the overview. Omit when the book does not cover the lesson. See "Optional references". |
+| `studyCheckpoint` | Legacy optional-reading metadata. The renderer may show its bounded references, but it does not require a stop or create progress state. Do not add it to new concise routes.       |
+| `runIn`           | `tool` (inside psql/duckdb/sqlite3...), `shell`, or `mixed`.                                                                                                                        |
+| `sessions`        | Number of concurrent tool sessions. Label steps `-- Session A` / `-- Session B`.                                                                                                    |
+| `safetyLevel`     | `read-only`, `writes-data`, `ddl`, `locking`, `privileged`, `dangerous`. `dangerous` means the lesson deliberately crashes or corrupts the lab.                                     |
+| `minVersion`      | Version string the lesson was validated on; defaults to `course.json`.                                                                                                              |
+| `revision`        | Defaults to `course.json` revision. Bump to re-serve a lesson that changed.                                                                                                         |
 
 `code` is a raw tagged-template helper: backslashes are literal, so `\timing` and `\d` survive.
 Avoid literal backticks and `${` inside a `code` template.
 
-## Writing the syntax breakdown
+## Writing the pre-experiment explanation
 
 The learner knows basic SQL and a shell, not the tool's internals, and reads the lesson cold,
-without the context you had while writing it. `syntaxBreakdown` is where that context goes. Write it
-in plain language, in full sentences, and never compress an involved idea into a five-word blurb; a
-reader must be able to follow the experiment without piecing together why each command is there.
-Lesson text is Markdown (`tutor <id> pretty` prints Markdown and styles it with ANSI colours when
-stdout is a terminal), so use the headings and bullets below exactly; backticks cannot appear inside
-a `code` template, so name commands in **bold** rather than code spans.
+without the context you had while writing it. `syntaxBreakdown` is where that context goes. Keep it
+concise, use plain language, and include everything needed to run and interpret the experiment.
+Lesson text is Markdown and the generic renderer may enhance it with ANSI colours when stdout is a
+terminal. Meaning must never depend on colour. Backticks cannot appear inside a `code` template, so
+name commands in **bold** rather than code spans.
 
 ```markdown
 ### In plain terms
 
-Two to five sentences for someone with no internals background: what question the experiment
-answers, what will happen in front of them, and why anyone building or operating software would
-care. Define every technical term the first time it appears, in the same sentence.
+Two to four sentences: the question, what the learner will cause and observe, and why it matters.
+Define unfamiliar terms inline.
+
+### Mechanism map
+
+When the mechanism benefits from a picture, include a compact indented text diagram here, before any
+setup or commands. Prefer using one rather than leaving ownership, ordering, timelines, page/tree
+layout, contention, or log/checkpoint flow implicit. Label the actors and arrows, then add one or
+two sentences connecting the picture to the exact evidence the experiment will show. ASCII must
+carry the meaning; ANSI colour is optional enhancement only. Omit this heading when a diagram would
+be decoration rather than explanation.
+
+Use four-space indentation inside a TypeScript code template: literal backtick fences would close
+the template string. Standalone Markdown plans can use fenced text diagrams.
 
 ### What you are learning
 
-- Two to five bullets, one concept each: name the concept, then one or two sentences saying what it
-  means. This is the list the learner should be able to explain afterwards.
+- Two to four short bullets, one concept each. Explain what each means in this experiment.
 
 ### Piece by piece
 
-- **NAME AS IT APPEARS IN THE CODE** (what kind of thing it is: shell program, flag, SQL function,
-  psql backslash command, catalog view, configuration setting, extension, SQL clause)
-  - What it is: one or two sentences.
-  - What it does here: what running it in this lesson causes or shows. Flags get their own nested
-    bullets, one per flag.
-  - What it gives us: why the experiment needs it and how to read its output, naming the column,
-    line, or number to look at.
+- **NAME AS IT APPEARS IN THE CODE** — say briefly what the unfamiliar command, flag, view, setting,
+  function, or clause does here and which output proves the point.
 ```
 
 Rules for `Piece by piece`:
 
-- Cover every command, flag, function, backslash command, view, setting, extension, or clause in
-  `setup`, `code`, and `challenge` that a reader who knows only basic SQL would not already
-  understand, in the order they appear. Explain flags individually, not the command as a whole.
+- Cover every unfamiliar or mechanism-critical command, flag, function, backslash command, view,
+  setting, extension, or clause in `setup`, `code`, and any core variation, in the order used.
+  Explain related flags together when that is clearer and shorter.
 - Skip plain `SELECT`/`INSERT`/`UPDATE`/`DELETE`/`CREATE TABLE` unless a clause is doing something
   unusual (`FOR UPDATE SKIP LOCKED`, `ON CONFLICT`, `RETURNING`, `\gset`, a `DO $$` block...).
 - When a value must be substituted (a PID, an LSN, a file name, a port) say where it comes from.
@@ -144,7 +150,7 @@ Write `caution` in the same voice: state the risk, what to do, and why, without 
 already knows the moving parts. A caution that needs a later module's concept should say "module 08
 explains this" rather than use the concept unexplained.
 
-## The reading line
+## Optional references
 
 `reading` is optional metadata that prints as an **Optional reference** line right after the
 `Meta`/`Topics` lines. Use it when the course has a canonical book: a citation only (book, chapter
@@ -152,25 +158,17 @@ number and exact title, section when you are sure of it), no explanatory prose. 
 cover the lesson, say so plainly and name the closest background chapter. Keep the course's chapter
 digest in `courses/<id>/docs/` so every author cites the same titles.
 
-When a lesson cites a chapter, also fill `readingNotes`: one or two short paragraphs on how the
-experiment overlaps with the book. Say which mechanism, structure, or section the lesson shows live,
-what the book explains that the experiment does not, where the lesson goes beyond or differs from
-the book (a newer tool version, a different view name), and whether to read the chapter before or
-after running the lesson. Leave it out when there is no overlap; a citation that says "not covered"
-never carries notes. The renderer labels these notes as optional and tells the learner to continue
-unless the lesson ends with a study checkpoint.
+When a lesson cites a chapter, `readingNotes` may briefly say how the experiment overlaps with it,
+what the book adds, where the lesson differs, and whether it is most useful before or after the
+experiment. Leave it out when there is no overlap; a citation that says "not covered" never carries
+notes. References are never homework or prerequisites.
 
-## Study checkpoints
+## Legacy study-checkpoint metadata
 
-Use `studyCheckpoint` sparingly when a learner should pause after completing an experiment and
-consolidate what they just observed before moving to the next lesson. The checkpoint is an optional
-lesson field, not a separate lesson or a progress state. Its presence means “stop here”; the tutor
-does not try to verify that the learner studied the material.
-
-Each checkpoint has a non-empty `core` array and may have an `optionalDepth` array. Core items are
-the short path that the learner should complete before continuing. Optional-depth items are clearly
-labelled as enrichment and must not be prerequisites for later lessons. Every item has a `source`
-and a bounded `locator`:
+Existing courses may contain `studyCheckpoint` records from an earlier design. The renderer treats
+all of their items as optional reading and does not tell the learner to stop. Preserve them when
+maintaining historical lesson identity, but do not add them to a new concise route. Every retained
+item still has a `source` and bounded `locator`:
 
 ```ts
 studyCheckpoint: {
@@ -181,17 +179,13 @@ studyCheckpoint: {
     { source: "Project documentation", locator: "‘Recovery’ subsection" },
     { source: "Conference talk", locator: "12:30–18:00" },
   ],
-  rationale: "The experiment exposed the ordering; these excerpts explain why it is required.",
+  rationale: "The experiment exposed the ordering; these excerpts explain why it matters.",
 }
 ```
 
-Scope each item to sections, subsections, page ranges, article headings or anchors, and video
-timestamps. Do not assign an entire book, chapter, paper, or long video as a checkpoint. Aim for
-roughly 15–35 minutes of core study so the course remains experiment-led; put broader background in
-`optionalDepth` or leave it as an ordinary `reading` citation. Keep `reading` and `readingNotes` for
-the existing canonical-book citation and experiment-overlap explanation; they do not create a stop.
-Rendered checkpoints appear after the Challenge and before Your note, with the instruction to stop
-before the next lesson.
+Scope retained items to sections, page ranges, headings, anchors, or timestamps. Do not make any
+item a prerequisite for later lessons. `core` and `optionalDepth` are historical schema names only;
+both render as optional material and neither changes progress.
 
 ## Build, validate, ship
 
@@ -199,13 +193,16 @@ before the next lesson.
 deno task build <id>          # curriculum/*.ts -> lessons.json (validates structure)
 deno task check               # fmt, lint, type-check every course
 bin/tutor <id> init           # seed or refresh the progress database, keeping progress
-bin/tutor <id> pretty 1
+bin/tutor <id> 1 lesson
 ```
 
 Structural validation is not enough. Run every lesson against the real tool in a scratch lab before
 shipping, and make `expectedResult` describe what actually happened.
 
 ## Adding a course
+
+Do this only after its Markdown route under `future-courses/` is agreed. Planning alone never runs
+this command.
 
 ```sh
 deno task new-course duckdb "DuckDB Systems" duckdb "Columnar engine internals" 1.1

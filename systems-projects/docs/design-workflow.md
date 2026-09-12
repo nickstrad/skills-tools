@@ -5,10 +5,10 @@ After completing planning or course work, update the store when new reusable evi
 emerge; source-specific research stays beside the project and is linked from shared notes.
 
 This builder is a separate project track. Tool courses develop internals knowledge; systemscoach
-composes tools into a small architecture and investigates its guarantees. It borrows the current
-[PostgreSQL Essentials flow](../../curriculum-tools/courses/postgres-essentials/PLAN.md), with the
-learner's new 15–25 minute budget. Forty lessons is not a target. The old long PostgreSQL route is
-not the planning baseline.
+composes tools into a small architecture and investigates its guarantees. New lessons follow the
+concise single-output teaching contract and target 10–15 minutes including learner work, evidence,
+interpretation, and cleanup. Existing 15–25-minute estimates remain valid historical metadata.
+Forty lessons is not a target, and the old long PostgreSQL route is not the planning baseline.
 
 ## Interview once, then propose
 
@@ -36,27 +36,29 @@ Propose one minimum core path and a small optional extension list. For each cand
   Prediction, installation or launching a finished helper alone cannot earn a lesson slot.
 - What new insight does it add beyond earlier lessons? Combine redundant steps; split overlong ones.
 
-Often a narrow mechanism fits 4–8 lessons; a more involved project may need 8–12. These are planning
-heuristics, not quotas or hard caps. Choose fewer whenever the causal story is complete. If the core
-is larger, explain why and offer a narrower cut before expanding. Do not convert every item in a
-company article into a lesson. Tool-internals gaps get a bounded just-in-time pointer to a separate
-tutor, not a new prerequisite course buried in this project.
+Choose the smallest route whose causal story is complete. Do not convert every item in a company
+article into a lesson or start from a lesson-count band. If scope grows, explain the additional
+mechanism and offer a narrower cut. Tool-internals gaps get a bounded just-in-time pointer to a
+separate tutor, not a prerequisite course buried in this project.
 
-## Lock in the complete agenda before authoring
+## Lock in a cheap Markdown route before implementation
 
-Persist `projects/<topic>/PLAN.md` using the plan template and `project.json` with `status: draft`.
-The route contains every proposed lesson, stable slug, estimated minutes and observable outcome;
-all entries initially have `available: false`. Show it through `systemscoach <topic> route`.
+Persist the proposed route under the repository root
+[`future-courses/<topic>/course.md`](../../future-courses/) using the shared template. Record the
+systems question, topology, meaningful learner work, ordered lesson titles and stable slugs,
+observable outcomes, visual teaching plan, safety boundary, and exclusions. Do not create
+`project.json`, empty lesson files, scaffolding, labs, or validation infrastructure during planning.
 
-The proposal explains the topology, one or two central mechanisms, explicit invariant, main failure
-and recovery, supplied pieces versus learner-owned logic, resource/installation estimates, and final
-stopping rule. Count all activity within 15–25 minutes per lesson. Separate one-time dependency
-installation estimates so first-run downloads are not hidden in a five-minute setup allowance.
+The proposal explains the topology, central mechanisms, invariant, main failure and recovery,
+supplied pieces versus learner-owned logic, resource/installation estimates, and stopping rule.
+Target 10–15 minutes for each new lesson, including explanation, learner attempt, evidence,
+interpretation, and cleanup. Separate one-time dependency installation estimates.
 
-Obtain the learner's agreement to this concrete agenda, as requested in their workflow. Record the
-agreement in PLAN.md and set `status: approved`. Only then author the requested first batch, usually
-2–3 lessons. Do not automatically take a saved example as approval. Later scope changes need an
-updated proposal; straightforward implementation choices within the agreed agenda do not.
+Obtain the learner's agreement to this concrete agenda. Do not take a saved example as approval.
+Only when implementation is requested, convert the agreed route to `projects/<topic>/project.json`
+and project-local `PLAN.md`, preserving slugs and outcomes and recording agreement. The JSON route
+then drives `systemscoach <topic> route`, including planned/available/completed status. Author only
+the requested small batch. Existing JSON projects and their receipts are not migrated.
 
 ## Manual protocol before essential code
 
@@ -74,7 +76,7 @@ explaining an ordering alone does not. Go is preferred for code; Deno is second 
 
 Plan time for an attempt, evidence inspection and a small correction. First shorten supplied
 demonstrations and remove redundant cases. Add intermediate lessons only when useful work still
-exceeds 25 minutes or combines distinct concepts that need separate practice; each added lesson
+exceeds 15 minutes or combines distinct concepts that need separate practice; each added lesson
 must have its own learner action and observable result. Do not inflate course length by default.
 
 For a Cursor-inspired project, evaluate a local S3-compatible object store, Git plumbing, an explicit
@@ -92,7 +94,7 @@ notifications and a fresh serving replica must remain separate states in the exp
 
 ## Batches and stopping
 
-For each requested batch: design, supply scaffolding, author lesson/review, run real experiments,
+For each requested batch: design, supply scaffolding, author the complete lesson, run real experiments,
 inspect evidence, clean owned fixtures, publish availability and report the boundary. Follow the
 [authoring contract](authoring.md). Keep a temporary project HANDOFF.md if work spans turns; remove
 it after the completed batch, retaining its actual validation findings. Read the repository batch
@@ -102,5 +104,5 @@ A project is complete when the learner can explain the invariant, force the impo
 recover, and state the production tradeoff. A short conversation or mental explanation suffices;
 notes and a one-page postmortem are optional. No production readiness, portfolio polish, dashboards,
 HTTP API, deployment automation or full-company clone is required. Optional branches never silently
-become core prerequisites. A batch review asks whether the lesson was clear, fit the time budget,
-and was worth thinking about; adapt the next requested batch accordingly.
+become core prerequisites. Informal feedback may improve the next requested batch; it is not a
+separate learner stage.

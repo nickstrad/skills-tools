@@ -4,6 +4,23 @@ Created 2026-09-09. [Entry point](../../systems-projects/README.md),
 [skill](../../systems-projects/skills/systemscoach/SKILL.md),
 [format](../../systems-projects/docs/format.md).
 
+## Current concise contract (2026-09-12)
+
+Future systems projects begin as inexpensive Markdown routes under
+[`future-courses/`](../../future-courses/). Planning records the bounded mechanism, stable slugs,
+meaningful learner work, outcomes, visual teaching plan, and exclusions; it does not create a
+project JSON route, scaffolding, lab, or validation suite. Only after agreement and an
+implementation request is the plan converted into Systemscoach's existing `project.json` and
+project-local `PLAN.md`. Existing projects, routes, and completion receipts are not migrated.
+
+New lessons target 10–15 minutes, including a meaningful command/edit/investigation, small attempt,
+evidence, interpretation, and cleanup. Existing 15–25-minute metadata remains valid history. The
+`lesson` output is complete: it teaches the mechanism and useful terminal diagram before the task,
+then includes evidence guidance, interpretation, an “attempt first” worked reference, and cleanup.
+Legacy `review.md` remains an optional source file folded into that output; `review` is a read-only
+compatibility alias, not a separate stage. Only explicit `done` writes the project engine's JSON
+receipt.
+
 ## Ongoing systems knowledge
 
 The dedicated [systems knowledge store](../../systems-projects/docs/knowledge/README.md) is the
@@ -33,15 +50,15 @@ Preserve concurrent learner activity: inspect changed timestamps/status read-onl
 restoring a baseline or claiming every file stayed byte-identical. Record the exception and whether
 any task command wrote that database.
 
-## What changed and why
+## Initial builder design and why
 
-The learner requested a separate systems-project track inspired by engineering write-ups. It borrows
-the current 40-lesson PostgreSQL Essentials lesson/review experience, with 15–25 minutes per lesson,
-but plans the smallest useful project rather than a tool tour or fixed course size. Topic interview
-and agreement on the complete agenda precede lesson authoring; later lessons are produced only in
-requested small batches. Native CLIs do the real work; supplied plumbing lets necessary learner Go
-focus on structures and protocol decisions. Deno is second choice. This track is not subject to
-pgcoach's Deno client preference merely because a project contains PostgreSQL.
+The learner requested a separate systems-project track inspired by engineering write-ups. The
+initial 2026-09-09 design used a 15–25-minute lesson/review flow while still planning the smallest
+useful project rather than a tool tour. The current contract above supersedes that presentation and
+pacing policy without rewriting historical estimates. Native CLIs do the real work; supplied
+plumbing lets necessary learner Go focus on structures and protocol decisions. Deno is second
+choice. This track is not subject to pgcoach's Deno client preference merely because a project
+contains PostgreSQL.
 
 The user supplied all contents of an ideas document, so no Drive fetch or bulk source research was
 needed to preserve it. All 15 examples and their links are in
@@ -61,11 +78,11 @@ the skill to `${CODEX_HOME:-$HOME/.codex}/skills`, or explicit alternate directo
 for collisions before creating links and never replaces unrelated files. A directly invoked compiled
 binary needs SYSTEMSCOACH_ROOT set; the launcher sets that automatically.
 
-`systemscoach <topic> route` shows the full draft/approved agenda, availability and completion.
-`use <topic>` explicitly chooses the default. `[<topic>] N lesson|review` only renders; it neither
-runs the exercise nor changes progress. `N done` is the only completion operation and requires a
-number plus authored availability. Automatic selection stops at the first unfinished planned step.
-After done, use an explicit number to review that completed lesson.
+`systemscoach <topic> route` shows the full approved implementation agenda, availability, and
+completion. `use <topic>` explicitly chooses the default. `[<topic>] N lesson` renders the complete
+lesson; `review` is a compatibility alias and neither form runs the exercise nor changes progress.
+`N done` is the only completion operation and requires a number plus authored availability.
+Automatic selection stops at the first unfinished planned step.
 
 Completion identity is topic + stable slug + revision. Small per-lesson JSON receipts are atomically
 published with a no-replace hard link from a temporary file in the same directory. This keeps
@@ -74,7 +91,7 @@ the original receipt; changed revisions need new completion while preserving his
 local Linux storage choice, not distributed coordination or a general database durability claim.
 All tests override roots/state with temporary directories; read-only views create no progress files.
 
-`check` rejects invalid routes, draft publication, missing views, duplicate slugs, forward
+`check` rejects invalid routes, draft publication, missing lesson content, duplicate slugs, forward
 prerequisites and out-of-budget lessons. It checks structure, not source claims or experiment
 correctness. Authors must run and inspect real effects before setting availability.
 

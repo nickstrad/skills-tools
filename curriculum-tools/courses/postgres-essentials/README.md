@@ -1,8 +1,10 @@
 # PostgreSQL Essentials
 
-The current path is **40 meaningful lessons of 20–30 minutes**, after the eight PostgreSQL lessons
-already completed. The [full sequence and intended outcomes](PLAN.md) fixes the scope. **The first
-26 are available**; the remaining 14 are planned and will be authored in small batches.
+The current path is **40 bounded lessons**, after the eight PostgreSQL reference lessons already
+completed. The [full sequence and intended outcomes](PLAN.md) fixes the scope. **The first 26 are
+available**; the remaining 14 are planned and will be authored in small batches. The plan's
+20–30-minute figures are older author estimates; Nick currently reports about ten minutes per
+lesson.
 
 1. An uncommitted write is private to its transaction.
 2. Choose a fresh statement view or a stable transaction view.
@@ -41,17 +43,22 @@ tour is needed before starting them. Lessons 25–26 supply their own temporary 
 ```sh
 pgcoach route
 pgcoach 1 lesson
-pgcoach 1 review
 pgcoach 1 done
 pgcoach
 ```
 
-The launcher is `../postgres/bin/pgcoach` if it is not on PATH. `lesson` contains the concepts,
-terminal diagram, purpose, setup and commands; `review` explains observed evidence and insights.
-`full` adds optional reading references. Only explicit `NUMBER done` records completion. A mental
-reflection follows the experiment; a brief feedback chat after lesson 26 guides the next batch.
-Optional variations appear in review. There are no typed answers, required notes or separate
-pause/resume state.
+The launcher is `../postgres/bin/pgcoach` if it is not on PATH. `lesson` is the complete unit:
+concise mechanism explanation, a labelled terminal diagram when useful, setup and commands, expected
+evidence, interpretation, optional references or variations, and cleanup. Diagrams appear before
+commands and remain readable without ANSI colour. Only explicit `NUMBER done` records completion.
+There are no typed answers, required notes, homework, reading checkpoints, separate review stage, or
+pause/resume state. Older `review`, `full`, and `start` spellings remain hidden compatibility
+aliases for `lesson`.
+
+The same reusable flow is available to every course through `tutor <course> <number> lesson|done`;
+`tutor <course> lesson` opens its next unfinished lesson. New courses do not need their own
+renderer. `tutor <course> route` shows completed, available, and planned entries, matching
+`pgcoach route`.
 
 To initialize or refresh the available lesson catalog while preserving completions, run this from
 `curriculum-tools/`:
@@ -61,9 +68,10 @@ bin/tutor postgres-essentials init
 ```
 
 The original 92-lesson course and its progress are preserved. It remains accessible with
-`pgcoach --reference NUMBER full` and `tutor postgres ...`. The new essentials numbering is 1–40;
-the original eight completions are prerequisites by learner context, not completions of these new
-experiments. `pgtutor` is a legacy wrapper; use the printed `pgcoach NUMBER done` for essentials.
+`tutor postgres NUMBER lesson` and legacy `pgcoach --reference` forms. The new essentials numbering
+is 1–40; the original eight completions are prerequisites by learner context, not completions of
+these new experiments. `pgtutor` is a legacy wrapper; use the printed `pgcoach NUMBER done` for
+essentials.
 
 ## Lab and validation
 
@@ -80,9 +88,10 @@ Lessons 12–14 deliberately wait: switch to the other terminal as instructed. L
 expected SQL errors with immediate SQLSTATE evidence; follow the recovery commands before reusing
 the connection. The error inventory and cleanup are part of each experiment.
 
-The 20–30 minute ranges include reading, commands, reflection and cleanup but await learner timing
-feedback. Optional book references do not add mandatory homework. PostgreSQL 16 validation and
-cleanup evidence are under `validation/`; `validate.py` allocates and removes a private cluster.
+The old 20–30 minute ranges included explanation, commands, interpretation, and cleanup, but were
+not measured learner timings; observed pace is now roughly ten minutes. Optional book references do
+not add homework. PostgreSQL 16 validation and cleanup evidence are under `validation/`;
+`validate.py` allocates and removes a private cluster.
 
 Lessons 25–26 use one shell with supplied PostgreSQL 16 controllers. They create unique private
 clusters, perform the checkpoint or crash experiment, stop the private servers and remove their

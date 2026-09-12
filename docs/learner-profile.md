@@ -1,7 +1,7 @@
 # Learner context for course planning
 
-Updated 2026-09-04 from the learner's own statements, personal site, and résumé. Use this to select depth and avoid repeating
-familiar material; it does not mark any lesson complete.
+Updated through 2026-09-12 from the learner's own statements, personal site, and résumé. Use this
+to select depth and avoid repeating familiar material; it does not mark any lesson complete.
 
 ## Experience
 
@@ -66,22 +66,46 @@ this roadmap at the learner's request.
 
 ## Preferences
 
-- PostgreSQL current path (2026-09-06): **40 further essentials lessons of 20–30 minutes**,
+- Concise course flow (2026-09-12): Nick studies alongside parenting and a full-time job and
+  reports that current PostgreSQL Essentials lessons take roughly ten minutes. Future courses
+  should have a small, fixed, mechanism-driven route agreed in Markdown before implementation.
+  Each lesson should put all required explanation before the experiment, then include complete
+  commands, expected evidence, interpretation, and cleanup. External reading and deeper variations
+  are optional; there is no mandatory homework, study checkpoint, separate review view, typed
+  response, or implicit completion. Use `<course CLI> route` to see completed, available, and
+  planned entries and `<course CLI> <number> lesson|done` to study or explicitly complete authored
+  work. A plan-only route is viewable before implementation but never creates progress. Implement
+  agreed plans in small batches rather than constructing a full course at planning time. See
+  [`future-courses/`](../future-courses/) and its
+  [template](../future-courses/TEMPLATE.md).
+- Course-design sign-off (2026-09-12): create `course.md` upfront as a persistent working draft, then
+  update research, rationale, feedback, decisions, and open questions as discussion continues.
+  Explain the scope, length, grouping, sequence, and lesson boundaries. Explicitly ask Nick for
+  suggestions, revise, and obtain his approval of the final outline before implementing. Drafting
+  does not need approval; a request to research or plan does not authorize building lessons.
+- Terminal diagrams (2026-09-12): treat ASCII/ANSI terminal art as a first-class pre-experiment
+  teaching aid. Lean toward a diagram when state transitions, process or connection ownership,
+  timelines, page/tree layouts, contention, or log/checkpoint flow benefit from one. Label it and
+  connect it briefly to the evidence the learner will see. It must remain clear as plain text;
+  colour is only an optional enhancement.
+- Course lesson scripts (2026-09-08): when future lessons need a supplied script or client,
+  use **Deno with the `pg` (node-postgres) package in the pgcoach course**. Nick has a Deno
+  project using a PostgreSQL library at work, so reading Deno in this course provides useful
+  practice. **Default to Go in all other courses, even when they include PostgreSQL**, unless
+  Nick directs otherwise. These defaults apply going forward; existing scripts are not part of
+  a requested migration.
+- PostgreSQL route decision (2026-09-06, retained as history): **40 further essentials lessons
+  originally estimated at 20–30 minutes**,
   following the eight completed reference lessons. Nick explicitly chose smaller meaningful chunks
   over 24 longer lessons, requested the full sequence in advance, and rejected using old lessons
-  solely to test UX. Nick enjoyed the flow of lessons 1–3 and requested the next three on 2026-09-06.
-  Lessons 1–6 now cover visibility, retention, space reuse, atomic writes and row-locked decisions. The fixed
+  solely to test UX. The fixed
   [route and outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) governs subsequent
-  work. The 2026-09-07 batch adds lessons 7–10 on version checks, write skew, Serializable
-  and whole-transaction retry. The next requested batch adds 11–15 on unknown outcomes, durable
-  request identity, blockers, deadlocks and timeouts; 16–40 remain planned. `pgcoach` defaults to this new course and separate
-  progress. The original 92-lesson course is reference material via `pgcoach --reference`.
-  Use two substantial views: **lesson** teaches the mechanism, terminology and purpose, with
-  useful terminal diagrams before commands; **review** interprets results and adds insights and
-  limits. Budget setup, explanation, execution, reflection and cleanup together. Invite brief
-  mental reflection after the experiment and a light clarity/time check after review. Discuss
-  feedback after essentials lesson 6 while preparing the next course batch; no unrelated pilot,
-  written answers or reports. Timings remain estimates pending learner experience.
+  work. Lessons 1–26 are now authored; 27–40 remain planned. `pgcoach` defaults to this course and
+  its separate progress. The original 92-lesson course remains reference material.
+  This history explains the fixed route; it does not preserve the retired two-view presentation.
+  The current `lesson` output now includes interpretation, with required explanation and any useful
+  terminal diagram before commands. The old estimate remains in course history, while Nick's reported pace is roughly ten
+  minutes.
 - PostgreSQL coaching clarification (2026-09-05): lessons 1–7 were completed with the old
   non-pgcoach flow; only lesson 8 was completed with the old pgcoach flow, with ChatGPT help.
   Learning happens outside work alongside marriage and children. Show realistic core lesson estimates and a simple time cap; keep optional depth
@@ -90,8 +114,8 @@ this roadmap at the learner's request.
   explain each step's purpose, and connect the results back to a quick mental guess. Practice and
   reflection are the outcome: no required notes, written answers, `-n` note phrases,
   answer-submission commands or pause/resume system. Personal note-taking is the learner's choice.
-  Prefer revising a small batch, trying it, then briefly discussing what worked before preparing
-  the next batch. The assistant can record design decisions; the learner need not write reports.
+  Prefer revising a small batch and trying it before preparing the next batch. The assistant can
+  record design decisions; the learner need not write reports.
   See the
   [coaching flow review](../curriculum-tools/courses/postgres/designs/08-coach-flow-navigation.md).
 - CLI-based experiments: shell, SQL, APIs, configuration, logs, process/file/network evidence.

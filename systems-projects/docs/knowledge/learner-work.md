@@ -16,25 +16,26 @@ HTTP request, changing a consequential setting, implementing a small replay deci
 diagnostic commands to distinguish plausible causes of a failure. A diagnostic task must have a
 concrete uncertainty to resolve; simply running a provided inspection script is insufficient.
 
-Supply setup, fixtures, transport, process control and cleanup. Teach unfamiliar concepts and syntax;
-a related worked example can precede the learner's task. Define its boundary and observable success
-criteria. Keep the exact solution separate from the default lesson path, with graduated hints and
-an accessible worked answer in review or a reference. Give full answers when requested. No forced
-quizzes, submissions, progress gates, blank-page boilerplate assignments or mandatory Go everywhere.
-During coaching, do not silently complete the learner's reserved work.
+Supply setup, fixtures, transport, process control and cleanup. Teach unfamiliar concepts and syntax
+before the task; a related worked example can precede it. Define its boundary and observable success
+criteria. Put optional hints and the exact worked answer below the task under a clear “attempt first”
+label, or link a separate reference. The single `lesson` output also contains the causal
+interpretation. `review` is only a compatibility alias, not a required step. Give full answers when
+requested. No forced quizzes, submissions, progress gates, blank-page boilerplate assignments, or
+mandatory Go everywhere. During coaching, do not silently complete the learner's reserved work.
 
 Predictions, reflection and observation still help, but alone do not meet this requirement. Neither
 does running a finished client, copying its complete solution, renaming a variable or making an
 irrelevant edit. Code exercises must control the real experiment; native command tasks must leave
 a relevant choice, construction or adaptation to the learner.
 
-Plan the attempt, a small debugging allowance, explanation and cleanup within 15–25 minutes total.
-Shorten demonstrations and redundant cases first. Add an intermediate lesson only when the useful
-task still cannot fit or needs its own conceptual step. Each added lesson must earn its place with
-a separate learner action and evidence. There is no fixed coding ratio. Nick subsequently clarified that he prefers a couple of short
-sessions over lessons running long, and explicitly requested splitting original Cursor Git lessons
-5 and 8. Honor that ten-lesson target without waiting for an overrun; in future planning, favor a
-clean short stopping point over squeezing multiple useful tasks into one session.
+For new lessons, plan the explanation, attempt, small debugging allowance, evidence, interpretation,
+and cleanup within 10–15 minutes total. Existing 15–25-minute metadata remains an honest record and
+need not be rewritten. Shorten demonstrations and redundant cases first. Add an intermediate lesson
+only when the useful task still cannot fit or needs its own conceptual step. Each added lesson must
+earn its place with a separate learner action and evidence. There is no fixed coding ratio. Nick had
+already requested splitting original Cursor Git lessons 5 and 8 rather than letting them run long;
+the current concise policy generalizes that preference without changing existing lesson identities.
 
 ## Applying and checking the norm
 
@@ -54,7 +55,7 @@ ten-lesson target route (splitting original lessons 5 and 8). The temporary proj
 At this policy checkpoint, existing lesson pages have not yet been retrofitted; lessons 1–3 remain
 available in their earlier form and 4–8 remain unpublished drafts.
 
-## Policy checkpoint validation, 2026-09-09
+## Historical policy checkpoint validation, 2026-09-09
 
 This task changes guidance and templates, not executable lessons or the CLI. Skill validation,
 local link checks and `systemscoach check cursor-git` passed, as did `git diff --check`. The installed

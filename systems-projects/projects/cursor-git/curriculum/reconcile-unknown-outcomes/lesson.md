@@ -107,5 +107,5 @@ unset CURSOR_LAB CURSOR S3 publish_status
 
 At 20 minutes, use the same cleanup regardless of which operation you reached. It stops only the
 recorded store and removes the binary, objects and logs. Resume from a fresh deterministic fixture.
-Open `systemscoach cursor-git 4 review`; explain the difference between the committed outcome and
-the caller's knowledge of it in one sentence.
+The interpretation below distinguishes the committed outcome from the caller's knowledge of it.
+No written response is required.

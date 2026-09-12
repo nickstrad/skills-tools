@@ -1,6 +1,6 @@
 ---
 name: systemscoach
-description: Interview, scope, plan, author in small batches, and coach CLI-first local systems projects inspired by engineering write-ups. Use for systemscoach lesson, review, done, route, topic selection, or project-building requests. Teach distributed-systems mechanisms through short experiments; use the separate tool tutors for PostgreSQL, SQLite, DuckDB, Redis and other tool-internals courses.
+description: Interview, scope, plan, author in small batches, and coach CLI-first local systems projects inspired by engineering write-ups. Use for systemscoach lesson, done, route, topic selection, or project-building requests. Teach distributed-systems mechanisms through short experiments; use the separate tool tutors for PostgreSQL, SQLite, DuckDB, Redis and other tool-internals courses.
 ---
 
 # Systemscoach
@@ -16,11 +16,13 @@ other curricula and the dedicated systems store for project-builder and systems-
 ## Learning contract
 
 Nick wants worthwhile systems thinking, not a production clone or a Go exercise collection.
-Use the **current 40-lesson PostgreSQL Essentials course's lesson/review flow** as the teaching
-reference, never its lesson count or the old 92-lesson reference's scope. Each systems lesson
-has **15–25 minutes total** for explanation, setup, prediction, experiment, reflection and cleanup.
+Use the **current PostgreSQL Essentials single-lesson flow** as a teaching reference, never its
+lesson count or the old 92-lesson reference's scope. New systems lessons target **10–15 minutes
+total** for context, learner work, interpretation and cleanup. Preserve honest existing estimates.
 Choose the minimum sequence that makes the chosen mechanism and its important failure concrete.
-Teach unfamiliar terms before asking predictions. Supply usable setup and small terminal diagrams.
+Teach unfamiliar terms before asking predictions. Supply usable setup and first-class terminal diagrams before commands. Lean toward including
+ASCII/ANSI art for state, ownership, timelines, queues and storage layout; keep it readable without
+color and connect its labels to observed evidence.
 No mandatory written answers, reports, notes, quizzes or progress gates. A brief mental/verbal
 postmortem is enough. The saved ideas' one-page postmortem is optional.
 
@@ -33,9 +35,9 @@ ones. Read `$SYSTEMS/docs/knowledge/learner-work.md` for the contract and its pr
 
 Explain enough to begin, optionally demonstrate a related case, then state the learner's task,
 edit/command boundary and observable success criteria before giving its solution. Supply graduated
-hints; put the worked answer in review or a clearly separate reference, available on request without
-a forced attempt or quiz. Keep infrastructure supplied. Meaningful native commands count; not every
-lesson needs Go. Budget time for the learner's attempt and debugging inside 15–25 minutes. Shorten
+hints; put interpretation and any worked solution clearly below the learner task in the same
+lesson output, or in an optional reference. No separate review step or forced attempt is required. Keep infrastructure supplied. Meaningful native commands count; not every
+lesson needs Go. Budget time for the learner's attempt and debugging inside 10–15 minutes. Shorten
 demonstrations first; split a lesson only when its useful work still will not fit.
 
 Use local services and their CLIs for the real data path and observation. Supply launch/configuration,
@@ -58,9 +60,12 @@ learner interests, proposed local approximations and validated results. Do not b
 just to store the examples. Do not mistake the Cursor example for an approved first course.
 
 Propose the smallest worthwhile agenda, its systems questions, observable failures, final evidence,
-local resources, supplied scaffolding and intentional omissions. Persist a **draft** full route in
-`projects/<topic>/project.json` plus `PLAN.md`. `systemscoach <topic> route` must show all steps before
-any lessons exist. Ask the learner to lock in or revise the concrete agenda. This agreement is part
+local resources, supplied scaffolding and intentional omissions. For inexpensive advance planning, define the route in the repository's
+`future-courses/<topic>/course.md` using its template. Do not create lab code, validators or lesson
+stubs. The generic `tutor <course-id> route` can display these Markdown plans without implementation.
+When implementing an agreed systems project, materialize its route in `projects/<topic>/project.json`
+and link its PLAN.md to the planning source. `systemscoach <topic> route` shows that runtime route
+with completion and planned/available status; it uses the separate systems project engine. Ask the learner to lock in or revise the concrete agenda. This agreement is part
 of the user's requested learning workflow; do not begin the first batch until they agree. Existing
 explicit agreement suffices; do not ask again. Store its provenance in PLAN.md and set status approved.
 
@@ -97,14 +102,14 @@ Execute `$SYSTEMS/bin/systemscoach` with the learner's requested arguments (or i
   interview, not invent a course.
 - `use <topic>`: select topic explicitly for short commands.
 - `<topic> route`: complete roadmap, including planned steps and completion.
-- `[<topic>] <n> lesson`: concepts, diagram, learner task, hints, evidence checks and cleanup.
-- `[<topic>] <n> review`: evidence interpretation, invariant, tradeoff and optional depth.
+- `[<topic>] <n> lesson`: complete context, diagram, learner task, hints, evidence, interpretation and cleanup.
 - `[<topic>] <n> done`: record completion **only when explicitly requested**.
 - `[<topic>] lesson`: first unfinished step; planned steps stop at the authoring boundary.
 
 Reads do not update progress or selection. Never infer completion from command success, reading,
-review or conversation. Tests must set SYSTEMSCOACH_STATE to a fresh scratch directory. Use explicit
-lesson numbers for review after done so the learner sees the lesson they just finished. The coach
+or conversation. Tests must set SYSTEMSCOACH_STATE to a fresh scratch directory. The old review
+command is only a compatibility alias for the complete lesson. Existing review.md content is
+included below the task; new lessons may keep interpretation in lesson.md. The coach
 renders commands; it does not execute experiments. Do not run a learner exercise for them unless asked.
 When coaching, help with the next useful step and offer hints before volunteering the full answer;
 provide the full answer when requested. Do not silently fill the learner's reserved edits.

@@ -7,7 +7,20 @@ import { PILOT_FLOW, pilotPhases, runnable } from "./pilot.ts";
 const lessons: SelectedLesson[] = JSON.parse(
   await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
 );
-const stages = [...PILOT_FLOW, "vary", "hint1", "hint2", "syntax", "full"];
+const stages = [
+  ...PILOT_FLOW,
+  "start",
+  "run",
+  "inspect",
+  "explain",
+  "reveal",
+  "apply",
+  "vary",
+  "hint1",
+  "hint2",
+  "syntax",
+  "full",
+];
 function capture() {
   const lines: string[] = [];
   return { lines, io: { log: (s: string) => lines.push(s), error: (s: string) => lines.push(s) } };
@@ -38,9 +51,25 @@ Deno.test("only four pilot lessons opt in; phase rendering preserves SQL and ses
     assert(blocks[0] === lesson.setup, "setup missing or altered");
     assert(blocks.slice(1).join("\n") === joined, "rendered core differs from checked phases");
     const start = renderStage(lesson, "start", guide);
-    assert(!start.includes(lesson.setup!), "prediction disclosed setup commands");
+    assert(start === renderStage(lesson, "lesson", guide), "start is not the lesson alias");
+    assert(start.includes(lesson.setup!), "lesson omitted setup");
+    assert(!start.includes(guide.pilot!.review), "lesson disclosed review");
+    assert(start.includes(guide.pilot!.visual), "mechanism diagram missing before experiment");
+    assert(
+      start.indexOf(guide.pilot!.visual) < start.indexOf(lesson.setup!),
+      "diagram arrives after setup",
+    );
+    const review = renderStage(lesson, "review", guide);
+    assert(review.includes(guide.pilot!.review), "authored interpretation missing");
+    assert(!review.includes(lesson.setup!), "review asks learner to rerun setup");
+    const lessonBlocks = [...start.matchAll(/```sql\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+    assert(
+      JSON.stringify(lessonBlocks) === JSON.stringify(blocks),
+      "lesson changed runnable material",
+    );
     assert(start.includes("psql -X -h /tmp -p 5440"), "connection missing");
-    assert(start.includes("60 min"), "cap missing");
+    assert(start.includes("20–30 min"), "sitting budget missing");
+    assert(start.includes("Current unsplit experiment"), "existing time estimate hidden");
     if (lesson.sessions === 2) {
       assert(start.includes("two other terminals"), "A/B provision missing");
     }
@@ -84,12 +113,12 @@ Deno.test("pilot feedback, reading stops and navigation do not demand written re
           "wrong next stage",
         );
       }
-      if (stage === "apply" && lesson.ordinal === 12) {
+      if (["apply", "review"].includes(stage) && lesson.ordinal === 12) {
         assert(
           output.includes("Stop here — review the coaching before lesson 13"),
           "review stop missing",
         );
-        assert(!footer.includes("pgcoach 13 start"), "review bypassed by footer");
+        assert(!footer.includes("pgcoach 13"), "review bypassed by footer");
       }
     }
     const run = renderStage(lesson, "run", guide);
@@ -102,7 +131,7 @@ Deno.test("pilot feedback, reading stops and navigation do not demand written re
     renderStage(readingLesson, "start", GUIDES[readingLesson.slug]).includes("Core reading after"),
     "reading not budgeted",
   );
-  for (const stage of ["apply", "full"]) {
+  for (const stage of ["review", "apply", "full"]) {
     const output = renderStage(readingLesson, stage, GUIDES[readingLesson.slug]);
     for (const item of readingLesson.studyCheckpoint!.core) {
       assert(output.includes(item.locator), "reading excerpt lost");
@@ -115,7 +144,7 @@ Deno.test("pilot feedback, reading stops and navigation do not demand written re
   );
 });
 
-Deno.test("all pilot views preserve progress; lesson 13 start is the batch review", async () => {
+Deno.test("legacy pilot views preserve progress; the shared lesson flow bypasses old stage gates", async () => {
   const dir = await Deno.makeTempDir({ prefix: "pgcoach-pilot-test-" });
   const db = dir + "/progress.sqlite";
   const call = async (args: string[]) => {
@@ -133,10 +162,23 @@ Deno.test("all pilot views preserve progress; lesson 13 start is the batch revie
     }
     const baseline = await Deno.readFile(db);
     for (let n = 9; n <= 12; n++) for (const stage of stages) await call([String(n), stage]);
-    for (const args of [["start"], ["13", "start"], ["start", "--topic", "mvcc"]]) {
+    for (
+      const args of [["start"], ["13", "start"]]
+    ) {
       assert(
         (await call(args)).includes("Stop here — review the coaching before lesson 13"),
         "boundary skipped",
+      );
+    }
+    for (const args of [["13", "lesson"], ["lesson", "--topic", "mvcc"]]) {
+      const text = await call(args);
+      assert(
+        text.includes("## Expected result") && text.includes("## Systems lens"),
+        "lesson is incomplete",
+      );
+      assert(
+        !text.includes("Stop here — review the coaching"),
+        "legacy gate blocks shared lesson flow",
       );
     }
     const after = await Deno.readFile(db);

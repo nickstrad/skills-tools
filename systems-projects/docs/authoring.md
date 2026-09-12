@@ -8,32 +8,35 @@ Read the repository [authoring contract](../../curriculum-tools/docs/AUTHORING.m
 [resource lifecycle](../../docs/knowledge/vm-resource-cleanup.md). Use its pedagogy, not its
 TypeScript data model: systemscoach has its own [small file format](format.md).
 
-## One causal experiment, two useful views
+## One causal experiment, one complete lesson
 
 `curriculum/<slug>/lesson.md` introduces the question, unfamiliar terms, invariant and terminal
-state/sequence diagram **before commands**. Supply setup, session labels, prediction, a meaningful learner task,
-inspection and cleanup. Explain unfamiliar flags and where output/PIDs/version tokens come from.
-State precisely what blocks and which other terminal unblocks it. Observations should let the
-learner assess success; reserve the fuller causal interpretation for review. Both views together,
-including reflection and cleanup, fit 15–25 minutes. The page must be usable cold in a terminal.
+state/sequence diagram **before commands**. Lean toward using a labelled diagram for ownership,
+state transitions, timelines, queues, layouts, contention, or log flow; connect it to the evidence
+and keep it readable without colour. Supply setup, session labels, a meaningful learner task,
+inspection, interpretation, worked reference, and cleanup. Explain unfamiliar flags and where
+output/PIDs/version tokens come from. State precisely what blocks and which terminal unblocks it.
 
-`review.md` explains the measured result and competing outcome, why the failure happens, how
-recovery restores the invariant, one decision/tradeoff and the single-host approximation's limits.
-Add a short optional variation or deeper source locator only if useful. Avoid repeating the entire
-setup or making review a quiz. Commands required for a safe exit must remain in the lesson view.
-If the learner stops at 25 minutes, give a bounded safe-stop/resume path.
+New lessons target 10–15 minutes including the learner's attempt and a small debugging allowance.
+Keep valid 15–25-minute metadata on existing lessons; it records their original honest estimate.
+Give a bounded safe-stop/resume path at the stated limit.
 
-Use the [lesson](../templates/lesson.md) and [review](../templates/review.md) templates as prompts,
-not mandatory padding. No pure installation lesson, command tour, line-count target, or coding-only
-milestone. Apply the [learner work contract](knowledge/learner-work.md) to every lesson. Name a
-specific command to construct/adapt, causal configuration change, core edit or diagnostic question
-whose investigation the learner controls. Prediction and running a completed helper alone are not
-sufficient. Supply plumbing and unfamiliar syntax; leave the meaningful decision for the learner.
+Existing projects may keep `review.md` as an optional separate source file. The CLI folds it into
+the complete lesson display, and `review` is a compatibility alias for that same output. New lessons
+may put interpretation and the worked reference directly below the learner task in `lesson.md`; no
+separate review file or CLI stage is required.
 
-The default page explains the mechanism, gives the starting state and task boundary, then provides
-observable acceptance checks. A short worked example may precede a related learner task. Keep the
-exact task solution in review or a separate reference, clearly linked and available on request;
-provide graduated hints without requiring a quiz, written submission or permission to see answers.
+Use the [lesson](../templates/lesson.md) template as a prompt, not mandatory padding. No pure
+installation lesson, command tour, line-count target, or coding-only milestone. Apply the
+[learner work contract](knowledge/learner-work.md) to every lesson. Name a specific command to
+construct/adapt, causal configuration change, core edit, or diagnostic question whose investigation
+the learner controls. Prediction and running a completed helper alone are not sufficient. Supply
+plumbing and unfamiliar syntax; leave the meaningful action for the learner.
+
+The page explains the mechanism, gives the starting state and task boundary, then provides
+observable acceptance checks. A short worked example may precede a related learner task. Put
+optional hints and the exact task solution after the task under a clear “attempt first” label, so the
+single output is complete without silently doing the learner's work during coaching.
 Code tasks use an isolated editable workspace and must control the real experiment. Command tasks
 must require a relevant choice or adaptation, not transcription of the entire answer. Include time
 for learner attempts and debugging in the total budget; split only when shortening cannot make it fit.
@@ -66,6 +69,6 @@ one VM demonstrate protocol/process failures, not independent-host availability 
 Stop owned processes even on failure. Remove reproducible bulky fixtures after acceptance. Preserve
 learner live labs, state, progress, and unrelated changes. Do not install every candidate service.
 
-Only set `available: true` after both views, scaffolding and real evidence are reviewed. Run
-`systemscoach check <topic>` and smoke lesson/review/done in isolated SYSTEMSCOACH_STATE, never
+Only set `available: true` after the complete lesson, scaffolding and real evidence are reviewed. Run
+`systemscoach check <topic>` and smoke lesson/done plus the review compatibility alias in isolated SYSTEMSCOACH_STATE, never
 learner progress. Structural validation cannot establish protocol correctness.

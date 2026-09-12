@@ -8,6 +8,9 @@ import { batchReview, renderPilot, REVIEW_BEFORE } from "./pilot.ts";
 const COURSE = "postgres";
 const COACH = "/root/Software/skills-tools/curriculum-tools/courses/postgres/bin/pgcoach";
 const STAGES = new Set([
+  "lesson",
+  "done",
+  "review",
   "start",
   "run",
   "inspect",
@@ -46,10 +49,10 @@ export type SelectedLesson = {
 };
 type Parsed = { ordinal?: number; stage: string; db?: string; topic?: string };
 function usage(): string {
-  return "Guided PostgreSQL Systems lessons.\n\nUsage:\n  pgcoach [NUMBER] [STAGE] [--db PATH] [--topic TEXT]\n\n" +
-    "Stages: start (default), run, inspect, explain, vary, apply, hint1, hint2, reveal, full, syntax\n\n" +
-    "Without NUMBER, pgcoach selects the next unfinished lesson. --topic selects the next unfinished\n" +
-    "lesson matching every topic word. Lessons 9–12 use the pilot flow; review it before lesson 13. Use full for a complete lesson.";
+  return "PostgreSQL Systems reference.\n\nUsage:\n  pgcoach --reference [NUMBER] lesson [--db PATH] [--topic TEXT]\n" +
+    "  pgcoach --reference NUMBER done [--db PATH]\n\n" +
+    "lesson includes context, commands and interpretation. Completion is explicit.\n" +
+    "Older stage names remain available for reference compatibility.";
 }
 function parseArgs(args: string[]): Parsed {
   const positional: string[] = [];
@@ -69,7 +72,7 @@ function parseArgs(args: string[]): Parsed {
     } else if (arg.startsWith("--")) throw new Error("unknown option: " + arg);
     else positional.push(arg);
   }
-  let ordinal: number | undefined, stage = "start";
+  let ordinal: number | undefined, stage = "lesson";
   if (positional.length === 1) {
     if (/^[1-9]\d*$/.test(positional[0])) ordinal = Number(positional[0]);
     else stage = positional[0];
@@ -81,6 +84,9 @@ function parseArgs(args: string[]): Parsed {
     stage = positional[1];
   } else if (positional.length > 2) throw new Error("expected at most a lesson number and a stage");
   if (!STAGES.has(stage)) throw new Error("unknown stage: " + stage);
+  if (stage === "done" && ordinal === undefined) {
+    throw new Error("completion needs an explicit lesson number");
+  }
   if (ordinal !== undefined && topic !== undefined) {
     throw new Error("--topic selects the next lesson and cannot be combined with NUMBER");
   }
@@ -185,6 +191,11 @@ export function renderStage(
   db?: string,
 ): string {
   if (guide.pilot) return renderPilot(lesson, stage, guide, db);
+  if (stage === "lesson" || stage === "review") {
+    return identity(lesson) + "\n\nThis lesson still uses the earlier coaching flow. Open `" +
+      COACH + " " + lesson.ordinal + " start" + (db ? " --db " + shellQuote(db) : "") +
+      "`, or use `full` for the complete lesson.";
+  }
   const intro = identity(lesson);
   if (stage === "syntax") return intro + "\n\n" + lesson.syntaxBreakdown;
   if (stage === "start") {
@@ -266,6 +277,13 @@ export async function runCoach(args: string[], io: Output = console): Promise<nu
     io.error("Error: " + (error as Error).message + "\n\n" + usage());
     return 2;
   }
+  if (options.stage === "lesson" || options.stage === "done") {
+    return await runTutor([
+      COURSE,
+      ...(options.ordinal === undefined ? ["lesson"] : [String(options.ordinal), options.stage]),
+      ...tutorFlags(options),
+    ], io);
+  }
   const selected = await selectLesson(options);
   if (selected.kind === "error") {
     io.error("Error: " + selected.message);
@@ -275,7 +293,7 @@ export async function runCoach(args: string[], io: Output = console): Promise<nu
     io.log(selected.message);
     return 0;
   }
-  if (options.stage === "start" && selected.lesson.slug === REVIEW_BEFORE) {
+  if (["start", "lesson"].includes(options.stage) && selected.lesson.slug === REVIEW_BEFORE) {
     io.log(batchReview());
     return 0;
   }

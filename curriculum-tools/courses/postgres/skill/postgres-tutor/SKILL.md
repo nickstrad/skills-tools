@@ -5,8 +5,9 @@ description: "Guide PostgreSQL Essentials lessons, the fixed 40-lesson route, an
 
 # PostgreSQL tutor
 
-The current learner course is **PostgreSQL Essentials: 40 further lessons of 20–30 minutes**. The
-first **26** are authored and available. They follow the first 26 entries in
+The current learner course is **PostgreSQL Essentials: 40 further lessons**. Nick reports roughly
+ten minutes per lesson; the stored 20–30 minute author estimates predate that feedback. The first
+**26** are authored and available. They follow the first 26 entries in
 `/root/Software/skills-tools/curriculum-tools/courses/postgres-essentials/PLAN.md`, not a UX pilot.
 The old reference lessons 9–12 are no longer the entry path. Nick has completed reference 1–8; those
 are background, not completions of these new lesson identities.
@@ -20,8 +21,7 @@ CLI executes lesson SQL; the learner runs the supplied commands in their termina
 ## Route requests
 
 - Next unfinished available lesson: `COACH` or `COACH start`.
-- Numbered lesson: `COACH NUMBER lesson`; results and insights: `COACH NUMBER review`.
-- Complete view and optional references: `COACH NUMBER full`.
+- Numbered complete lesson, including results and interpretation: `COACH NUMBER lesson`.
 - Full intended course sequence, including planned entries: `COACH route`.
 - Search, available modules, topics or status: `TUTOR search TEXT`, `TUTOR modules`, `TUTOR topics`,
   `TUTOR status --json`. Search returns authored lessons only.
@@ -49,22 +49,26 @@ lifetime; 16–21 develop measured query work. The latest authored batch is:
 25. **A checkpoint writes pages without ending transactions.**
 26. **Reconcile committed and aborted work after a crash.**
 
-Use two substantial views. `lesson` gives the mechanism, terminology, diagram and purpose before
-commands, including the terminal setup. Essential teaching must not be postponed until `review`.
-`review` explains what the actual evidence showed, its implications and its limits. Follow the brief
-mental reflection and clarity/time cues naturally; do not require typed predictions, written
-answers, reports or per-stage acknowledgements. Give targeted help if the result is confusing.
+Use one complete `lesson` view, followed only by explicit `done`. The mechanism, terminology,
+terminal diagram and command purpose precede setup; expected evidence, interpretation and cleanup
+are included in that same output. No separate review step or required typed prediction, written
+answer, report, or book-reading stop. Give targeted help if the result is confusing.
 
-The 20–30 minute target includes all core work, with no required book-reading detour. Estimates
-remain provisional until learner feedback. At 30 minutes follow the safe cleanup instructions; there
-is no saved pause/resume system. The next session can rerun the idempotent setup.
+Terminal diagrams are first-class pre-experiment teaching aids. Lean toward including them for
+ownership, page layouts, waits, snapshots and log flow. Keep labels and alignment readable without
+color, and connect the picture to the evidence. Preserve all supplied experiment commands.
+
+New lessons target about ten minutes including context and cleanup, with a fifteen-minute core
+ceiling. Existing estimates remain historical, not a claim that every authored lesson now takes ten
+minutes. At fifteen minutes use the safe-stop instructions if needed. The next session can rerun
+idempotent setup.
 
 Nick enjoyed the flow in lessons 1–3. After lesson 26, discuss whether the concepts and diagrams
-were sufficient upfront, whether review added insight, and whether the pacing worked. Use that
-feedback while preparing the next actual course lessons, starting with row 27 of the fixed plan. Do
-not insert an unrelated UX-only batch. Only 1–26 currently exist: do not invent commands for a
-planned lesson or say all 40 are complete when the available batch is finished. Record agreed scope
-changes in the plan before authoring.
+were sufficient upfront and whether the pacing worked. Use that feedback while preparing the next
+actual course lessons, starting with row 27 of the fixed plan. Do not insert an unrelated UX-only
+batch. Only 1–26 currently exist: do not invent commands for a planned lesson or say all 40 are
+complete when the available batch is finished. Record agreed scope changes in the plan before
+authoring.
 
 ## Original reference course
 

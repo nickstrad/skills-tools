@@ -165,5 +165,5 @@ unset COURSE CURSOR_LAB CURSOR EXPECTED_BASE EXPECTED_A EXPECTED_B lost_status b
 ```
 
 At the 25-minute cap, run cleanup. It stops the owned store and removes all three rebuilt caches,
-the temporary recovery object, helper, logs, and store data. Open `systemscoach cursor-git 8 review`
-for the final architecture decision.
+the temporary recovery object, helper, logs, and store data. The interpretation below connects this
+evidence to the final architecture decision.

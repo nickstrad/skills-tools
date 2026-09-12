@@ -10,9 +10,14 @@ otherwise rediscover.
 
 The current PostgreSQL path and its identity/validation rules are in
 [postgres-essentials.md](postgres-essentials.md): 40 planned lessons, first 26 available.
+Current course-planning policy is in [progressive-course-design.md](progressive-course-design.md):
+small fixed Markdown routes, complete single-view lessons, explicit completion, optional reading,
+and shared tutor rendering. Proposed courses live under [`future-courses/`](../../future-courses/).
 
 | File                                                                           | What it covers                                                                                                                                                             |
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [concise-course-cli.md](concise-course-cli.md) | Shared route/lesson/done, read-only completion markers, Markdown plans, optional legacy reading, diagrams, and systemscoach compatibility. |
+| [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |
 | [repo-tooling.md](repo-tooling.md)                                             | Deno location, scoped `fmt`/`lint`/`check` commands, formatter effects on Markdown, Docker test rig, and how to build a non-root test user.                                |
 | [validation-harness.md](validation-harness.md)                                 | How `tools/validate.ts` drives a course, why "completed" is not "passed", how to isolate parallel runs, and how to read evidence.                                          |
@@ -35,7 +40,7 @@ The current PostgreSQL path and its identity/validation rules are in
 | [postgres-coaching-pilot.md](postgres-coaching-pilot.md) | Four-lesson coaching rollout, conversational feedback boundary, command-preservation checks and learner-catalog limits. |
 | [PostgreSQL coaching flow review](../../curriculum-tools/courses/postgres/designs/08-coach-flow-navigation.md) | Lesson-8 UX findings, proposed self-contained coaching, informal reflection and bounded lesson-time estimates; implementation remains pending.                             |
 | [postgres-project1-review.md](postgres-project1-review.md)                     | Review of unfinished PostgreSQL lessons 8–96 for systems engineering goals: consolidations, protocol and performance gaps, and source-backed corrections.                  |
-| [progressive-course-design.md](progressive-course-design.md)                   | Flexible project scales, supplied-code coaching and progressive learner ownership; use when planning courses after the PostgreSQL pivot.                                   |
+| [progressive-course-design.md](progressive-course-design.md)                   | Concise route planning, complete lesson output, terminal diagrams, shared CLI rendering, and explicit completion.                                                         |
 | [prior-project-experience.md](prior-project-experience.md)                     | Pinned source review of Nick's quickspin and task-orchestrator repositories to identify coursework to omit or compress without copying his projects.                       |
 | [learner-background-sources.md](learner-background-sources.md)                 | Website, résumé, and prior-reading context for calibrating depth, with self-reported experience distinguished from source-verified implementation.                         |
 | [linux-database-integration.md](linux-database-integration.md)                 | Proposal for teaching selected Linux mechanisms inside PostgreSQL/SQLite and adapting the standalone Linux course without duplicating lessons or inferring completion.     |

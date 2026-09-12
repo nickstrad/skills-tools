@@ -139,4 +139,4 @@ unset CURSOR_LAB WINNER LOSER REF retry_status
 
 At the 25-minute cap, clean whichever scenario is active; shutdown can take about 20 seconds.
 Each scenario restarts from a deterministic fixture. Do not leave a stopped store or copied payloads
-for the next lesson. Open `systemscoach cursor-git 3 review` for the decision and the batch check-in.
+for the next lesson. The interpretation and optional batch check-in follow below.

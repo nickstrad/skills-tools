@@ -4,7 +4,7 @@ export type StudyResource = {
   locator: string;
 };
 
-/** A deliberate pause after an experiment, with a short core path and optional depth. */
+/** Legacy reading metadata, now displayed as optional excerpts rather than a required pause. */
 export type StudyCheckpoint = {
   core: StudyResource[];
   optionalDepth?: StudyResource[];
@@ -32,7 +32,7 @@ export type Lesson = {
    * does not cover the lesson).
    */
   readingNotes?: string;
-  /** A bounded study pause shown after the experiment and before the next lesson. */
+  /** Optional reading excerpts retained for compatibility with older curricula. */
   studyCheckpoint?: StudyCheckpoint;
   /** What you are about to observe and why it matters. */
   overview: string;
@@ -40,7 +40,8 @@ export type Lesson = {
    * The learning template for the lesson, in Markdown, written for a reader who knows basic SQL
    * but not the tool's internals: "### In plain terms", "### What you are learning", and
    * "### Piece by piece" (every command, flag, function, view, setting, or clause: what it is,
-   * what it does here, what it gives us). See docs/AUTHORING.md.
+   * what it does here, what it gives us). Include a "### Visual model" with a plain-text terminal
+   * diagram before command explanations when it helps; lean toward inclusion. See docs/AUTHORING.md.
    */
   syntaxBreakdown: string;
   /** Idempotent preparation to run before the experiment (optional). */
