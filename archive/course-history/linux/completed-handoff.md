@@ -1,3 +1,6 @@
+> Historical completed handoff, archived 2026-09-12. Its old restart commands are provenance;
+> use current repository guidance for new work.
+
 # Linux refactor restart handoff
 
 Updated 2026-09-04. User authorized the refactor, overall/per-change designs, Terra/high

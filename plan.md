@@ -80,7 +80,7 @@ a separate handoff document.
 | WP7.4 Remaining documentation | S | done | resume documentation commit | Active docs use direct Markdown parsing and unified CLI/DB; historical validation body preserved; 71 links and five course checks pass. |
 | WP8.1 Archive-then-delete Deno engine | S | done | archive A: 9fc73b2; retirement B: see log | 150 source/catalog/controller files archived byte-identically, then removed; README records Git retrieval. Native Python lab fixtures preserved. |
 | WP8.2 Knowledge cleanup | S | done | resume knowledge commit | Luna/high edits refined by primary; historical records archived, active advice updated, scoped links pass. Source removal prerequisite complete. |
-| WP8.3 Machine install and sweep | O | in progress | | Unified links installed; final minimal-environment and source/reference sweep next. |
+| WP8.3 Machine install and sweep | O | done | final integration commit | Minimal-PATH startup/course/roadmap/routes/install checks pass; owned install inventory exact; no active TS/config or non-lab Python; historical/deferred exceptions documented. |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
 | WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | done | ff2b69c + resume acceptance | Primary shared-file test: 1130 golden outputs match across all five courses before/after init; read-only DB/WAL hashes unchanged. All baseline course rows/timestamps and 15 backup hashes match. |
 | WP8.4 Final acceptance | F | in progress | | Parity/data/race/real-tool gates accepted; final tests after source retirement and cleanup pending. |
@@ -201,6 +201,19 @@ learner progress rows that changed during the work).
   the retired TypeScript or validation-controller paths. Retire the one-time Go converter
   command/test alongside the catalogs. VM/bootstrap/Docker Deno installation stays deferred
   under §8; source removal does not imply uninstalling runtimes from the machine.
+
+- 2026-09-12 — Final sweep corrections: refreshed obsolete roadmap preamble via CLI after
+  comparing all existing roadmap fields with the snapshot; re-audited all learner history.
+  Updated active learner-profile language policy, archived the already-completed Linux handoff,
+  and clarified `--isolated` help as file isolation. The 17 PostgreSQL reference lessons with
+  `pgcoach inspect`/`hint2` prose were already unsupported by the previous Deno wrapper (its
+  normalizer accepted only start/review/run/full/syntax, and its engine had no inspect/hint2).
+  Preserve byte parity as Decision 10 requires; document this inherited limitation in the
+  reference README and unified tutor skill rather than silently rewriting experiments or adding
+  stages. Source lesson files remain byte-identical to resume commit a959159.
+- 2026-09-12 — Minimal-PATH smoke and install --check pass from /tmp. The launcher now clears
+  only stale GOPATH/GOCACHE values under the pruned gRPC .tools tree; unrelated overrides survive.
+  Normal Go cache writes needed host permission once; installed runtime removal remains deferred.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 

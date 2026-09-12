@@ -135,7 +135,7 @@ func Consolidate(opts ConsolidateOptions) ([]ConsolidateReport, error) {
 		if entries, err := os.ReadDir(backup); err == nil && len(entries) > 0 {
 			return reports, fmt.Errorf("%s: backup directory %s is not empty; move it aside first", id, backup)
 		}
-		if pids := holders(src); len(pids) > 0 {
+		if pids := Holders(src); len(pids) > 0 {
 			return reports, fmt.Errorf("%s: close the learner's progress writer before consolidating (pid %s holds %s)", id, strings.Join(pids, ", "), src)
 		}
 		report, err := consolidateOne(opts.Target, id, src, opts.Replace)
@@ -151,8 +151,11 @@ func Consolidate(opts ConsolidateOptions) ([]ConsolidateReport, error) {
 	return reports, nil
 }
 
-// holders lists the pids (other than this process) with the database, its -wal or its -shm open.
-func holders(path string) []string {
+// Holders lists the pids (other than this process) that have the database, its -wal or its -shm
+// open, by scanning /proc. Consolidate uses it to refuse an observed open source; a leftover WAL
+// alone does not prove a live writer. Callers need visibility of the host's processes. The
+// progress verifier separately uses conservative sidecar and source-stability checks.
+func Holders(path string) []string {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return nil

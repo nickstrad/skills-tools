@@ -8,6 +8,11 @@ REPO=$(dirname "$(dirname "$SELF")")
 TOOLS=$REPO/curriculum-tools
 export TUTOR_ROOT="$TOOLS"
 
+# Older gRPC lab sessions exported these course-local Go paths. The lab was pruned;
+# use Go's defaults instead of recreating it. Preserve unrelated user overrides.
+case "${GOPATH:-}" in "$TOOLS"/courses/grpc/.tools/*) unset GOPATH ;; esac
+case "${GOCACHE:-}" in "$TOOLS"/courses/grpc/.tools/*) unset GOCACHE ;; esac
+
 if [ -n "${TUTOR_BIN:-}" ]; then
   exec "$TUTOR_BIN" "$@"
 fi

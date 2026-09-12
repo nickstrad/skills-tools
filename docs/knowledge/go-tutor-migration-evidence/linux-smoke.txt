@@ -1,0 +1,11 @@
+
+=== #2 identify-kernel-and-userspace [shell, 1 session(s)] ===
+  -- Session A --
+  [A] kernel_uname=6.8.0-138-generic
+  [A] proc_version_prefix=Linux version 6.8.0-138-generic
+  [A] userspace_id=ubuntu
+  [A] readlink_self_exe=/usr/bin/readlink
+  [A] shell_exe=/usr/bin/bash
+  [A] kernel_release_consistent=yes
+
+1/1 lessons completed without timeout

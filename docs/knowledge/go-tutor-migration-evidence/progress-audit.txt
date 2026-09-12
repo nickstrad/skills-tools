@@ -1,0 +1,37 @@
+grpc backup "" hash unchanged=true
+grpc backup "-wal" hash unchanged=true
+grpc backup "-shm" hash unchanged=true
+grpc lessons: 6 baseline rows equal (ids normalized by slug)
+grpc progress: 6 baseline rows equal (ids normalized by slug)
+grpc attempts: 6 baseline rows equal (ids normalized by slug)
+grpc prerequisites: 5 baseline rows equal (ids normalized by slug)
+linux backup "" hash unchanged=true
+linux backup "-wal" hash unchanged=true
+linux backup "-shm" hash unchanged=true
+linux lessons: 72 baseline rows equal (ids normalized by slug)
+linux progress: 0 baseline rows equal (ids normalized by slug)
+linux attempts: 0 baseline rows equal (ids normalized by slug)
+linux prerequisites: 83 baseline rows equal (ids normalized by slug)
+postgres backup "" hash unchanged=true
+postgres backup "-wal" hash unchanged=true
+postgres backup "-shm" hash unchanged=true
+postgres lessons: 99 baseline rows equal (ids normalized by slug)
+postgres progress: 8 baseline rows equal (ids normalized by slug)
+postgres attempts: 8 baseline rows equal (ids normalized by slug)
+postgres prerequisites: 150 baseline rows equal (ids normalized by slug)
+postgres-essentials backup "" hash unchanged=true
+postgres-essentials backup "-wal" hash unchanged=true
+postgres-essentials backup "-shm" hash unchanged=true
+postgres-essentials lessons: 26 baseline rows equal (ids normalized by slug)
+postgres-essentials progress: 22 baseline rows equal (ids normalized by slug)
+postgres-essentials attempts: 23 baseline rows equal (ids normalized by slug)
+postgres-essentials prerequisites: 25 baseline rows equal (ids normalized by slug)
+sqlite backup "" hash unchanged=true
+sqlite backup "-wal" hash unchanged=true
+sqlite backup "-shm" hash unchanged=true
+sqlite lessons: 48 baseline rows equal (ids normalized by slug)
+sqlite progress: 0 baseline rows equal (ids normalized by slug)
+sqlite attempts: 0 baseline rows equal (ids normalized by slug)
+sqlite prerequisites: 47 baseline rows equal (ids normalized by slug)
+roadmap topics=[[19]] followups=[[49]]
+PASS: all course data and timestamps equal baseline; temporary copies removed on exit

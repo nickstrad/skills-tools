@@ -42,6 +42,9 @@ separate review, required prediction, written response, or reading checkpoint.
   include planned entries that are not yet authored.
 - `postgres` is the PostgreSQL Systems reference. It has its own course-scoped progress; reference
   lesson numbers and completions do not transfer to PostgreSQL Essentials.
+  Some preserved reference prose mentions obsolete `pgcoach inspect`/`hint2` stages. Do not invoke
+  them or add a progression gate; use the complete lesson and give focused help with its evidence
+  or optional variation. See the reference course README for the historical limitation.
 - `sqlite` is the SQLite Systems reference. `TUTOR_SQLITE_DB` is needed only for real-tool
   validation; ordinary route, lesson, and progress requests do not need it.
 - `linux` is the Linux Systems reference.

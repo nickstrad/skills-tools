@@ -1,0 +1,12 @@
+?   	skills-tools/tutor/cmd/tutor	[no test files]
+ok  	skills-tools/tutor/internal/cli	6.968s
+ok  	skills-tools/tutor/internal/course	(cached)
+ok  	skills-tools/tutor/internal/fsutil	(cached)
+ok  	skills-tools/tutor/internal/harness	(cached)
+ok  	skills-tools/tutor/internal/links	(cached)
+ok  	skills-tools/tutor/internal/progress	(cached)
+ok  	skills-tools/tutor/internal/render	(cached)
+ok  	skills-tools/tutor/internal/roadmap	4.685s
+ok  	skills-tools/tutor/internal/route	1.752s
+ok  	skills-tools/tutor/internal/scaffold	(cached)
+?   	skills-tools/tutor/internal/testutil	[no test files]

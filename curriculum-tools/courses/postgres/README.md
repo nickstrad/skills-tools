@@ -1,5 +1,12 @@
 # PostgreSQL Systems course
 
+The reference lesson text is preserved from the earlier course. Lesson 9 and optional variations
+in lessons 55–62 and 69–76 mention retired `pgcoach inspect` or `hint2` stages; these were already
+unsupported by the last wrapper before the Go migration. They are not required progression steps
+or current commands. Use the complete `tutor postgres NUMBER lesson` view and its expected-result
+section. Historical extended variations remain in the archived PostgreSQL guides and source
+history; ask for help with a particular variation instead of invoking the retired stages.
+
 The 92-lesson deep reference course progresses from pages/MVCC through concurrency, measured
 performance, recovery, replication, durable protocols and independent incident diagnosis. Its
 task-runner capstone requires complete request/effect reconciliation and a measured

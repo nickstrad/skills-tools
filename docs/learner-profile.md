@@ -88,20 +88,19 @@ this roadmap at the learner's request.
   timelines, page/tree layouts, contention, or log/checkpoint flow benefit from one. Label it and
   connect it briefly to the evidence the learner will see. It must remain clear as plain text;
   colour is only an optional enhancement.
-- Course lesson scripts (2026-09-08): when future lessons need a supplied script or client,
-  use **Deno with the `pg` (node-postgres) package in the pgcoach course**. Nick has a Deno
-  project using a PostgreSQL library at work, so reading Deno in this course provides useful
-  practice. **Default to Go in all other courses, even when they include PostgreSQL**, unless
-  Nick directs otherwise. These defaults apply going forward; existing scripts are not part of
-  a requested migration.
+- Course lesson scripts (2026-09-12 current policy): use Go for new course tooling, supplied
+  clients and fixtures, including PostgreSQL; native tool commands remain the experiment language.
+  The earlier 2026-09-08 Deno/node-postgres preference reflected Nick's work project and is
+  historical context, superseded by the Go tutor migration. Existing native lab fixtures are
+  outside that migration's language-port scope.
 - PostgreSQL route decision (2026-09-06, retained as history): **40 further essentials lessons
   originally estimated at 20–30 minutes**,
   following the eight completed reference lessons. Nick explicitly chose smaller meaningful chunks
   over 24 longer lessons, requested the full sequence in advance, and rejected using old lessons
   solely to test UX. The fixed
   [route and outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) governs subsequent
-  work. Lessons 1–26 are now authored; 27–40 remain planned. `pgcoach` defaults to this course and
-  its separate progress. The original 92-lesson course remains reference material.
+  work. Lessons 1–26 are now authored; 27–40 remain planned. `tutor postgres-essentials` serves this course with
+  course-scoped progress in the shared database. The original 92-lesson course remains reference material.
   This history explains the fixed route; it does not preserve the retired two-view presentation.
   The current `lesson` output now includes interpretation, with required explanation and any useful
   terminal diagram before commands. The old estimate remains in course history, while Nick's reported pace is roughly ten
@@ -109,7 +108,7 @@ this roadmap at the learner's request.
 - PostgreSQL coaching clarification (2026-09-05): lessons 1–7 were completed with the old
   non-pgcoach flow; only lesson 8 was completed with the old pgcoach flow, with ChatGPT help.
   Learning happens outside work alongside marriage and children. Show realistic core lesson estimates and a simple time cap; keep optional depth
-  separate. pgcoach plus the experiment terminal(s) should usually provide all needed context, with
+  separate. The tutor lesson plus the experiment terminal(s) should usually provide all needed context, with
   ChatGPT/readings available for deeper exploration. Introduce concepts before asking about them,
   explain each step's purpose, and connect the results back to a quick mental guess. Practice and
   reflection are the outcome: no required notes, written answers, `-n` note phrases,

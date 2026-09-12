@@ -277,7 +277,7 @@ Navigation and progress maintenance:
 Course maintenance:
   tutor %s init [--db PATH]                    create or refresh the progress database
   tutor %s check                               validate the lesson files against the plan
-  tutor %s validate [--isolated] [slug|N ...]    run experiments against a private lab
+  tutor %s validate [--isolated] [slug|N ...]    run experiments; optionally isolate evidence files
   tutor %s progress verify                     check a refresh on a database copy
 
 Flags:

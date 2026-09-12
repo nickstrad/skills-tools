@@ -1,0 +1,91 @@
+Evidence: /tmp/tutor-validation-709633351
+
+=== #1 build-sqlite-lab [shell, 1 session(s)] ===
+  -- Session A --
+  [A] main: /tmp/tutor-validation-709633351/build-sqlite-lab/sqlite-lab/lab.db r/w
+  [A]  name
+  [A] ------
+  [A] events
+  [A] ╭───────────────╮
+  [A] │ baseline_rows │
+  [A] ╞═══════════════╡
+  [A] │             1 │
+  [A] ╰───────────────╯
+  [A] lab.db bytes=8192 path=/tmp/tutor-validation-709633351/build-sqlite-lab/sqlite-lab/lab.db
+
+=== #2 inspect-build-capabilities [tool, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] ╭────────────────╮
+  [A] │ sqlite_version │
+  [A] ╞════════════════╡
+  [A] │ 3.53.4         │
+  [A] ╰────────────────╯
+  [A] ╭────────────────────╮
+  [A] │  compile_options   │
+  [A] ╞════════════════════╡
+  [A] │ ENABLE_DBPAGE_VTAB │
+  [A] │ ENABLE_DBSTAT_VTAB │
+  [A] │ ENABLE_FTS5        │
+  [A] │ THREADSAFE=1       │
+  [A] ╰────────────────────╯
+  [A] ╭───────────────╮
+  [A] │     name      │
+  [A] ╞═══════════════╡
+  [A] │ dbstat        │
+  [A] │ fts5          │
+  [A] │ sqlite_dbpage │
+  [A] ╰───────────────╯
+  [A] ╭───────────────────╮
+  [A] │ dbstat_probe_rows │
+  [A] ╞═══════════════════╡
+  [A] │                 2 │
+  [A] ╰───────────────────╯
+  [A] ╭──────┬────────────╮
+  [A] │ pgno │ page_bytes │
+  [A] ╞══════╪════════════╡
+  [A] │    1 │       4096 │
+  [A] ╰──────┴────────────╯
+  [A] ╭───────────╮
+  [A] │  opcode   │
+  [A] ╞═══════════╡
+  [A] │ Init      │
+  [A] │ Integer   │
+  [A] │ ResultRow │
+  [A] │ Halt      │
+  [A] │ Goto      │
+  [A] ╰───────────╯
+  [A] ╭─────────────╮
+  [A] │ fts_matches │
+  [A] ╞═════════════╡
+  [A] │           1 │
+  [A] ╰─────────────╯
+  [A] .backup ?DB? FILE        Backup DB (default "main") to FILE
+  [A]    Options:
+  [A]        --append            Use the appendvfs
+  [A]        --async             Write to FILE without journal and fsync()
+  [A] .recover                 Recover as much data as possible from corrupt db.
+  [A]    --ignore-freelist        Ignore pages that appear to be on db freelist
+  [A]    --lost-and-found TABLE   Alternative name for the lost-and-found table
+  [A]    --no-rowids              Do not attempt to recover rowid values
+  [A]                             that are not also INTEGER PRIMARY KEYs
+
+=== #3 share-one-file-between-sessions [tool, 2 session(s)] ===
+  -- setup --
+  [A] -- The wrapper has already opened $TUTOR_SQLITE_DB
+  -- Session A --
+  -- Session B --
+  [B] id|body
+  [B] 1|committed from A
+  -- Session A --
+  [A] a_count
+  [A] 2
+  -- Session B --
+  [B] b_count
+  [B] 1
+  -- Session A --
+  -- Session B --
+  [B] b_after_rollback
+  [B] 1
+
+3/3 lessons completed without timeout
