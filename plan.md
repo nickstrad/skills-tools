@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — WP9.2 verified; Luna/high implementing WP5.2; primary reviewing WP7.1 and Sol updating WP7.2.**
+**Status: in progress — WP9.2 verified; Sol taking over WP5.2; primary reviewing WP7.1 and Sol updating WP7.2.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -68,19 +68,19 @@ a separate handoff document.
 | WP4.2 roadmap package and command | O | done | 07d2ede + wiring commit | package by an opus subagent, `internal/cli/roadmap.go` by the primary; uses `<root>/tutor.sqlite` already (the Phase 9 file); real machine import happens in WP4.3 |
 | WP4.3 Archive Markdown roadmap | S | done | a959159 | Archive and relinks committed; status reconciled on resume. |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
-| WP5.2 validate and progress verify | S | in progress | | Luna/high owns new CLI command files/tests; primary wiring/review. |
-| WP5.3 Real-tool smoke, old tools removed | S | todo | | |
-| WP5.4 VALIDATION.md | S | todo | | |
+| WP5.2 validate and progress verify | O | in progress | | Luna/high draft transferred to Sol for completion and correctness tests; primary wiring/review. |
+| WP5.3 Real-tool smoke, old tools removed | O | todo | | |
+| WP5.4 VALIDATION.md | S | in progress | | Luna/high authoring_docs; primary review. |
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
-| WP6.3 Delete systemscoach | S | todo | | |
+| WP6.3 Delete systemscoach | O | todo | | |
 | WP7.1 tutor skill | O | in progress | | Sol drafting new skill; primary owns review and retirement of old skill directories. |
 | WP7.2 AGENTS.md | O | in progress | | Sol owns repository guidance; primary review. |
-| WP7.3 Author skill and AUTHORING.md | S | todo | | |
-| WP7.4 Remaining documentation | S | todo | | |
+| WP7.3 Author skill and AUTHORING.md | S | in progress | | Luna/high authoring_docs; primary review. |
+| WP7.4 Remaining documentation | S | in progress | | Luna/high remaining_docs; primary review. |
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |
 | WP8.2 Knowledge cleanup | S | todo | | |
-| WP8.3 Machine install and sweep | S | todo | | |
+| WP8.3 Machine install and sweep | O | todo | | |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
 | WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | done | ff2b69c + resume acceptance | Primary shared-file test: 1130 golden outputs match across all five courses before/after init; read-only DB/WAL hashes unchanged. All baseline course rows/timestamps and 15 backup hashes match. |
 | WP8.4 Final acceptance | F | todo | | |
@@ -168,6 +168,12 @@ learner progress rows that changed during the work).
   through `tutor roadmap import` and re-audited all learner data afterwards: unchanged, with
   19 roadmap topics and 49 follow-ups now available. No learner catalogs were refreshed.
 
+- 2026-09-12 — Nick approved the primary's refined model-to-task mapping: Sol for sensitive
+  progress/concurrency/validation implementation, Luna/high for well-specified docs/mechanical
+  work, primary for architecture, hard fixes, integration and independent acceptance. WP5.2's
+  Luna draft is transferred to Sol with explicit ownership; WP5.3/WP6.3/WP8.3 also move to O.
+  Current §0 mapping supersedes the initial blanket mapping and any historical tier assignments.
+
 ## B. Verified current state (2026-09-12, commit 368734b)
 
 A fresh agent should trust this table and re-verify only what a WP touches.
@@ -189,21 +195,30 @@ A fresh agent should trust this table and re-verify only what a WP touches.
 
 ## 0. How this plan is meant to be executed
 
-**Delegation tiers.** Every work package (WP) carries a tier:
+**Delegation tiers.** Current task risk determines the model, even when an older work package
+was fully specified. Completed assignments below remain historical provenance.
 
-- **S (Luna/high; `gpt-5.6-luna`, reasoning `high`)** — fully specified. Inputs, outputs, exact formats, tests and acceptance
-  commands are written down; the agent should not need to invent behavior. If a Luna agent hits
-  an unspecified case it must stop and report, not improvise.
-- **O (Sol; `gpt-5.6-sol`)** — directed. The goal, constraints, interfaces and acceptance are fixed; internal
-  structure or wording is left to the agent because over-specifying it before doing it is wasteful.
-- **F (the current primary agent)** — difficult or subtle work the primary does itself: the
-  lesson file grammar, the progress seed/identity logic, the validation harness, final acceptance.
+| Tier | Model | Task fit |
+| --- | --- | --- |
+| S | `gpt-5.6-luna`, reasoning `high` | Bounded documentation, reference/link cleanup, mechanical conversion and edits with explicit acceptance criteria. Escalate ambiguous behavior to the primary. |
+| O | `gpt-5.6-sol` | Implementation involving learner progress/data preservation, concurrency, validation correctness, or operational retirement/install checks; directed writing requiring substantial judgment. |
+| F | Current primary agent | Architecture, hardest implementation and fixes, integration, independent validation, final acceptance, commits and keeping this plan current. |
 
-**Current assignment policy (Nick, 2026-09-12).** Sonnet assignments map to Luna subagents at
-high reasoning; Opus assignments map to Sol. The current primary owns validation, integration,
-this plan and the most difficult implementation. S/O/F are stable work-tier labels, not a
-requirement to use Claude. Completed historical assignments remain provenance. Subagents have
-exclusive file ownership and report back without committing; the primary reviews and commits.
+**Current assignment policy (Nick, 2026-09-12, refined during resume).** Use Sol for sensitive
+implementation and Luna/high for well-specified documentation and mechanical edits. The earlier
+blanket Sonnet → Luna/high and Opus → Sol mapping is superseded for unfinished work. An explicit
+specification alone does not make progress or validation code a Luna task. Subagents have exclusive
+file ownership, run their scoped checks and report without committing. The primary independently
+reviews and validates every result, handles unresolved difficult cases, and updates this plan.
+
+Active remaining assignments:
+
+- Sol: WP5.2 validation/progress verification, WP5.3 real-tool smoke and retirement, WP6.3 tool
+  retirement, WP7.1–7.2 directed skills/guidance, WP8.3 machine install and reference sweep.
+- Luna/high: WP5.4 validation documentation, WP7.3–7.4 authoring/repository documentation,
+  WP8.1 mechanical archive/removal after primary approval of the accepted file inventory, WP8.2
+  knowledge cleanup. Primary executes irreversible retirement only after checking preservation.
+- Primary: WP8.4 final audit/cleanup and every remaining difficult correction or integration.
 
 **Final pass on every WP.** The primary agent reviews each completed WP before commit using the
 generic checklist below plus the WP's *Review focus* line. Nothing is committed unreviewed.
@@ -967,7 +982,7 @@ CLI) — run after WP3.1
   `tests/validation_test.ts` cases using a Bash fixture.
 - Commit: "Port the validation harness to Go".
 
-**WP5.2 — `validate` and `progress verify` commands** · tier S · depends: WP5.1, WP3.1, WP9.2
+**WP5.2 — `validate` and `progress verify` commands** · tier O · depends: WP5.1, WP3.1, WP9.2
 
 - Owns: `internal/cli/validate.go`, `internal/cli/progress_verify.go`, tests.
 - `validate`: flags `--from` (default 1), `--to` (default 999999), `--timeout` (ms, default
@@ -988,7 +1003,7 @@ CLI) — run after WP3.1
   on a copied fixture database with a reordered course. Commit: "Add validate and progress
   verify commands".
 
-**WP5.3 — Real-tool smoke and old tool removal** · tier S · depends: WP5.2
+**WP5.3 — Real-tool smoke and old tool removal** · tier O · depends: WP5.2
 
 - Owns: deletes `curriculum-tools/tools/`, `src/validator.ts`, `courses/sqlite/tools/`,
   `courses/postgres/tools/`, `courses/postgres-essentials/tools/`, `tests/validation_test.ts`;
@@ -1048,7 +1063,7 @@ CLI) — run after WP3.1
 - Acceptance: a link checker over `archive/systemscoach/**/*.md` reports zero broken relative
   links. Commit: "Archive systemscoach documentation and cursor-git project".
 
-**WP6.3 — Delete the tool and its links** · tier S · depends: WP6.1, WP6.2, WP3.4
+**WP6.3 — Delete the tool and its links** · tier O · depends: WP6.1, WP6.2, WP3.4
 
 - Owns: delete `systems-projects/` entirely (including `.state/`, `bin/`, `cmd/`, `go.mod`,
   `install.sh`, `.gitignore`); root `README.md` "Systems projects" section removal is done in
@@ -1219,7 +1234,7 @@ Documentation: no separate package. WP5.4, WP7.1–7.4 and WP8.2 describe the si
 - Commit: "Retire and update knowledge for the Go tutor". Review focus: every remaining
   knowledge file's commands run (`grep -o 'tutor [a-z-]* [a-z]*'` sample executed).
 
-**WP8.3 — Machine install and reference sweep** · tier S · depends: WP8.2
+**WP8.3 — Machine install and reference sweep** · tier O · depends: WP8.2
 
 - `bin/tutor install`; `bin/tutor install --check` exit 0; `ls -la /usr/local/bin | grep -E
   'tutor|coach'` shows only `tutor`; both skill directories contain only `curriculum-author`,
