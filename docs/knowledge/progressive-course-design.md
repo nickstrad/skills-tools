@@ -34,7 +34,7 @@ explicitly scoped guarantees.
   [template](../../future-courses/TEMPLATE.md). That guide owns scope, discussion and sign-off;
   the [batch workflow](../lesson-batch-workflow.md) owns implementation. Do not build scaffolding,
   validators or deep per-lesson syntax during planning.
-- Use `docs/learning_path.md` for sequence and cross-project overlap, and
+- Use `tutor roadmap` for sequence and cross-project overlap, and
   `curriculum-tools/docs/AUTHORING.md` for the lesson contract. Do not copy PostgreSQL's total size or
   workload into every course.
 - The 2026-09-04 roadmap revision places Linux observations and container lifecycle experiments

@@ -41,7 +41,7 @@ experiment that answers one question.
 | Replication and cache invalidation | How can a reader establish the freshness it promises? | Pause a consumer and suppress a wake-up. Require a durable version check before serving; compare returned versions before and after catch-up. |
 | Recovery and maintenance | What bounds the work needed to reconstruct state? | Replay a tiny application event log into a fresh SQLite file. Add a snapshot and compare recovery work, then test whether retained history still supports the stated recovery target. |
 
-Use the [learning roadmap](../learning_path.md) to place any adopted experiment. These ideas
+Use the learning roadmap (`tutor roadmap`) to place any adopted experiment. These ideas
 can motivate existing lessons or a later cross-project exercise; they do not require a full
 Git hosting service or a new deep Git course.
 

@@ -12,7 +12,8 @@ not implemented or measured.
 
 ## What happened
 
-The course review applied `docs/learning_path.md`: learn shared concepts deeply once, then use the
+The course review applied the roadmap principle (now `tutor roadmap`; the Markdown original is
+archived at `archive/learning-path/learning_path.md`): learn shared concepts deeply once, then use the
 second engine to expose a different mechanism or ownership boundary. Adding more generic
 transaction, indexing, or outbox examples did not by itself advance that objective. The useful gaps
 were connection policy, error scope, foreground maintenance, independent commit histories, restored

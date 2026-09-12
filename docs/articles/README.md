@@ -21,8 +21,9 @@ Recorded from the learner's requests on 2026-09-04:
 - Look for opportunities to connect internals experiments to architecture decisions and
   real systems, while retaining the repo's guided, experiment-driven approach.
 
-The adopted project-flow and software recommendations live in
-[`../learning_path.md`](../learning_path.md). Keep that roadmap authoritative for sequencing
+The adopted project-flow and software recommendations live in the learning roadmap
+(`tutor roadmap`; detailed software research is archived in
+`../../archive/learning-path/learning_path-reference.md`). Keep that roadmap authoritative for sequencing
 and default tools; article notes supply motivation and optional experiment ideas.
 
 ## Index

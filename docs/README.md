@@ -49,11 +49,13 @@ those projects. The [website and résumé notes](knowledge/learner-background-so
 professional background, further project exposure, and provenance for the learner's OS/Linux/DDIA
 readings.
 
-[`learning_path.md`](learning_path.md) lists separate topics, tool descriptions, course goals and
-2–4 short optional Go follow-ups per topic, with compact terminal diagrams. Use it when choosing
-what to learn or author next; its future projects are not yet implemented courses.
-[`learning_path-reference.md`](learning_path-reference.md) preserves detailed software choices,
-research, measurement rules and earlier synthesis proposals. The
+The learning roadmap lives in the shared learner database: `bin/tutor roadmap` lists the topics by
+track with course progress, `bin/tutor roadmap show <slug>` prints a topic's goals, terminal diagram
+and 2–4 optional Go follow-ups, and the committed snapshot is
+`curriculum-tools/roadmap/roadmap.json`. Use it when choosing what to learn or author next; its
+planned topics are not yet implemented courses. The archived Markdown roadmap and its
+[reference notes](../archive/learning-path/README.md) preserve detailed software choices, research,
+measurement rules and earlier synthesis proposals. The
 [Linux/database integration proposal](knowledge/linux-database-integration.md) is a separate
 reference for a possible future course refactor.
 

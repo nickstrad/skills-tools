@@ -80,7 +80,7 @@ selects; none require Meta-scale infrastructure or a distributed key-value store
 | Safe rollout (`14-patterns`, `15-incidents`) | How do you route 5% of traffic and get it back instantly? | Move a fraction of a supplied workload to a new path via configuration only, verify both paths under load, then exercise the kill switch and time the rollback. |
 | Failover policy (`failover-workload`, roadmap stage 8: etcd) | Should failover trigger on failure or before overload? | Degrade one owned backend gradually and compare a health-check-based switch with a utilization-based one. Record the requests lost in each. |
 
-Use the [learning roadmap](../learning_path.md) to place any adopted idea. Several of these fit
+Use the learning roadmap (`tutor roadmap`) to place any adopted idea. Several of these fit
 the existing networking and capacity stages better than a new course; the connection-cost and
 cache-invalidation experiments attach directly to lessons that already exist.
 

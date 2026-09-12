@@ -29,7 +29,7 @@ Our course-selection implications:
   packet evidence, failure behavior, or measurement changes the learner's understanding.
 
 See the [learner profile](../learner-profile.md), [project experience review](../knowledge/prior-project-experience.md),
-and [roadmap](../learning_path.md). This reference helps set the entry point; it does not assign
+and the learning roadmap (`tutor roadmap`). This reference helps set the entry point; it does not assign
 readings or alter existing course progress.
 
 ## Limits and open questions

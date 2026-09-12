@@ -38,7 +38,7 @@ four-lesson groups. Reordering places additions beside their prerequisites. All 
 are retained; only planned numbering changes. No catalog or learner progress is migrated.
 
 The [learner profile](../../docs/learner-profile.md),
-[roadmap](../../docs/learning_path.md), and
+learning roadmap (`tutor roadmap`), and
 [Linux/database integration note](../../docs/knowledge/linux-database-integration.md) support
 teaching kernel mechanisms once and using database-specific contrasts where they add evidence.
 The [existing 72-lesson course](../../curriculum-tools/courses/linux/PLAN.md) supplies tested

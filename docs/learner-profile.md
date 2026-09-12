@@ -125,7 +125,7 @@ this roadmap at the learner's request.
   problems. Use [saved articles](articles/README.md) as possible motivation.
 - Integration exercises should investigate boundaries among known technologies with supplied
   workloads. They should not require substantial new application development or cloning his repos.
-- Follow the [roadmap](learning_path.md) for project order and tool defaults; preserve existing
+- Follow the learning roadmap (`tutor roadmap`) for project order and tool defaults; preserve existing
   course material and progress unless a specific refactor is requested.
 
 On 2026-09-12 Nick retired the bundled PostgreSQL Internals material and book-driven course

@@ -69,7 +69,7 @@ commands; none require a distributed key-value store to be installed.
 | Coordination (roadmap stage 8: etcd) | What does a quorum-replicated log give that a single node cannot? | Run the bounded three-member etcd lab, use a compare-and-swap transaction, then isolate a member and lose quorum. Distinguish read availability from committed progress. |
 | Partitioning and routing (roadmap: Kafka branch, object storage) | Why introduce a logical shard between the key and the storage unit? | Move a logical partition's data between two owned backends while a client keeps using the same logical name through a mapping file. Inspect what the client had to know. |
 
-Use the [learning roadmap](../learning_path.md) to place any adopted idea. These belong as
+Use the learning roadmap (`tutor roadmap`) to place any adopted idea. These belong as
 motivation for existing lessons or a later cross-project exercise; none justify a new
 distributed key-value store course.
 

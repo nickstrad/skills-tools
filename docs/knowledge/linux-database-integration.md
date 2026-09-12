@@ -9,7 +9,7 @@ The learner asked for a standalone note describing how some Linux material could
 PostgreSQL and/or SQLite and how that would adjust the existing Linux course. They requested a
 document for possible future refactoring, not changes to current lessons.
 
-The [roadmap](../learning_path.md) now recommends an early pass through Linux foundations alongside
+The learning roadmap (`tutor roadmap`) now recommends an early pass through Linux foundations alongside
 database work. The existing [Linux plan](../../curriculum-tools/courses/linux/PLAN.md) describes
 72 stable lessons in 12 modules and explicitly allows learners without database prerequisites.
 Any future integration should preserve that entry path.

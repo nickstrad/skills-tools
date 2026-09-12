@@ -15,7 +15,8 @@ By the end, defend when SQLite belongs in a system: its file and connection cont
 admission policy, durability and checkpoint policy, recoverable backup procedure, local/offline
 protocol, measured workload limits, and conditions for choosing a different architecture.
 
-Apply [the repository learning path](../../../docs/learning_path.md): **deep once, contrast
+Apply the repository roadmap principle (`tutor roadmap`; research context in
+`archive/learning-path/learning_path.md`): **deep once, contrast
 thereafter**. Retain the SQLite internals that separate general storage principles from PostgreSQL's
 implementation. Consolidate repeated application-pattern introductions; spend that time on
 independent commits, lost acknowledgments, stale owners, ordered histories and restores.
