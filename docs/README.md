@@ -64,8 +64,10 @@ reference for a possible future course refactor.
 
 ## Repository knowledge
 
-The in-progress [legacy-course migration acceptance](legacy-course-migration/validation.md) records
-reviewed behavior and runtime checks; its250-row ledger and root `plan.md` identify remaining work.
+The completed [legacy-course migration acceptance](legacy-course-migration/validation.md) records
+all250 lesson audits, public names/aliases/skip behavior, runtime checks, history-preserving live
+rollout and final cleanup. Its catalog delta and acceptance manifest preserve the checked evidence;
+root `plan.md` retains the completed plan.
 
 [`knowledge/README.md`](knowledge/README.md) indexes reusable findings about the tutor engine,
 validation harness, course authoring workflow, and tool-specific pitfalls.

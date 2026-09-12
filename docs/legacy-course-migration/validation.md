@@ -1,8 +1,35 @@
 # Legacy course migration acceptance
 
-Implementation is in progress. This report records accepted checks; `plan.md` owns remaining work.
+Implementation and live rollout are complete. This report records accepted checks; `plan.md` retains
+the completed plan. Earlier group checkpoints below are historical and have no remaining work.
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
-The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
+The [250-row ledger](lesson-audit.tsv) records every accepted lesson and its exact allowed changes.
+
+## Final live acceptance and cleanup — 2026-09-12
+
+All250 rows are accepted. After an engine-consistent backup, copied refresh/repeated alias checks
+and host-visible writer quiescence, sequential public legacy and Essentials init succeeded. Live
+catalog and prerequisites exactly match the accepted copy (excluding selected catalog update times).
+All251 original lesson IDs,36 progress rows,37 attempts, notes, timestamps, completed revisions,
+roadmap/schema state and untouched gRPC rows/prerequisites remain unchanged. Active catalogs are
+92/54/72/26/6 with11 retained retired entries and no suffixed stored course IDs.
+
+Installed canonical/alias first, last and complex lessons, routes, next, Essentials and roadmap
+render correctly without changing the learner database hash. SQLite54 now renders the complete
+walkthrough. Essentials next remains23; pre-existing stale PG08 remains stale (completed2/current4).
+No learner done/skip operation ran. All15 legacy backup hashes match. Actual install/check and
+source/installed skill-byte comparisons pass, with existing symlinks retained.
+
+Final database SHA256: `6db18433f9c5a6266de2e5fb317a776dec56529cdb5a156c1db85466e7378bde`.
+Preserved logical history SHA256: `82b553f0cac066a0e297b788eb15ba014e0f5388ea15e52f5a1ee04880ec3995`.
+The [acceptance manifest](acceptance-manifest.json) records checks, retained inventory hashes,
+all legacy backup hashes and verified removal of1263 scratch files/33,204,496 bytes/29 directories.
+Rollback/copy databases, redundant renders and temporary helper files are removed after acceptance;
+no required evidence or outstanding check remains. Course-local runtime reports remain available.
+
+Only the learner `/labs/pglab/primary` cluster remains. Final read-only readiness returns
+`lab|/labs/pglab/primary|f|1`, with approximately14GB free disk and6.8GiB available memory. No owned
+author process, stopped cluster, mount, cgroup or listener remains from this work.
 
 ## Final integration and copy acceptance
 

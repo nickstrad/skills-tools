@@ -1,74 +1,46 @@
 # Legacy courses in the simple tutor CLI
 
-Updated: 2026-09-12. Status: implementation resumed; content acceptance in progress.
-This file is the primary-owned plan and continuing handoff.
+Updated: 2026-09-12. Status: complete — implemented, validated, installed and rolled out.
+This file retains the completed plan and its acceptance history.
 
-## Resume here — current authoritative checkpoint
+## Final authoritative acceptance
 
-The overall objective remains **implement this entire plan**; it is not complete. The user asked
-to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
+The entire plan is implemented. No acceptance work remains. The checkpoints below are historical;
+their pending-work statements and temporary paths are superseded by this final acceptance.
 
-- P1 public names and P2/P3 aliases/history/skip behavior are committed in `d0c5511` and `8ee20a9`.
-  Primary-focused suites pass. No live learner catalog refresh has occurred.
-- Primary accepted15 lesson edits, committed in `d0d482d`: Linux01–12, PostgreSQL09, SQLite52/54. Exact allowed differences
-  and pending rows are in `docs/legacy-course-migration/lesson-audit.tsv` (250 rows total).
-  `docs/legacy-course-migration/validation.md` records command parity, rendering and real SQLite
-  results. SQLite52/54 main SQL/database behavior is preserved; their revisions remain3.
-- P7 active guidance changes are reviewed and included in the documentation checkpoint commit,
-  including primary corrections to completion wording, the `undone N` example and the SQLite54
-  outline. No installer command has been run yet.
-- Sol's P5 first-six PostgreSQL edits (38/46/54/55/56/57) are now **primary accepted**.
-  Primary reviewed the removed prompts and existing comparison switches, supplied local outcome
-  interpretation for55–57, and verified exact main commands/metadata plus plain/ANSI/JSON views.
-  The full92-row
-  preliminary audit is `curriculum-tools/.cache/legacy-migration/postgres-audit.tsv`.
-- All three workers have stopped. Sol completed the 92-row preliminary inventory, checked the
-  PostgreSQL structure and rendered all six edited lessons; primary acceptance is now recorded.
-  Worker temporary databases and renders are removed, with no active worker processes or labs.
-- PostgreSQL88–91 core continuations are now primary accepted at revision5 after12 serial real-tool
-  trials and independent outcome audits. PostgreSQL92's existing optional branch has direct wording
-  with exact Run/revision4 parity. See the current continuation checkpoint below.
-- Essentials/gRPC audits are accepted: all32 reviewed and rendered;19 Essentials prose edits,
-  7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
-- PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
-- PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
-- PostgreSQL01–08 are also accepted: five prose edits, three unchanged, committed as `dafcf23`.
-- PostgreSQL10–20 are accepted in `abf7a63`: eight prose edits, three unchanged.
-- PostgreSQL21–37 are accepted in `1780e76`: four prose edits,13 unchanged.
-- PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
-- All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
-  PostgreSQL completion is committed in `1e64d13`.
-- All72 Linux lessons are accepted:13–24 in `953dcc0`,25–36 in `a05be21`,37–48 in `0e94bc0`,
-  49–60 in `ca8d457`, and the final61–72 group as recorded below. Setup/Run behavior and revisions
-  remain unchanged;72 has exactly two comment replacements. Linux completion is committed in `b0a3abb`.
-- All54 SQLite lessons are accepted, completing all250 authored lesson audits. The final eight
-  have direct comparisons and local outcomes;53 has no invariant-writing prerequisite. A final
-  contextual search also corrected three PostgreSQL syntax references (17/18/33) to variation.
-  The ledger has250 accepted rows and zero pending.
-  Exact exceptions and evidence are below and in the validation report.
-- Final tests/vet/full race/build pass. All250 exact parsed-field deltas match the ledger; all five
-  source checks pass. Copied refresh and repeated alias init preserve251 identities,36 progress rows,
-  37 attempts, notes/timestamps, roadmap/schema and untouched gRPC rows/prerequisites.
-  Temporary installer check/apply/check and actual install/check pass; all five existing links
-  remain correct. Planned routes remain DB-free and canonical/alias first/last views match.
-- Next: primary performs quiescent live catalog rollout, verifies it equals the accepted copy,
-  then final read-only smoke checks and resource/evidence cleanup.
-  No new worker has been dispatched. Primary
-  Primary owns this resumed work; historical worker assignments remain provenance.
-- Final work still required: every authored lesson's recorded review, targeted continuation/capstone
-  runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
-  quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
-  roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~22MB), including raw/refreshed
-  baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
-  helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
-  redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
-  Do not regenerate `lesson-audit.tsv` over its manual acceptance notes.
-- Runtime checkpoint: all12 newly validated PostgreSQL incident fixtures, harness evidence and
-  temporary review catalogs are removed; no author server remains. Learner hash remains
-  `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
-  legacy backup hashes match the retained manifest. Learner query returns
-  `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+- Public `postgres-legacy`, `sqlite-legacy` and `linux-legacy` names and their old aliases share
+  the original stored course IDs and history. Number-first lesson/done/skip and explicit undone
+  behavior are tested; no learner completion or skip was recorded during rollout.
+- All250 authored lessons are primary accepted with complete plain/ANSI/JSON views. Exact parsed
+  differences match the [audit ledger](docs/legacy-course-migration/lesson-audit.tsv). Coaching gates
+  are removed; useful comparisons and commands remain available. Material restorations are PG47
+  at revision2 and PG88–91 at revision5, with real execution and independent outcome evidence.
+- All five course checks, full Go tests, vet, full race tests and build pass. Discovery has seven
+  canonical entries, authored counts92/54/72/26/6 and planned totals40/32/44. Planned route/rejection
+  checks create no database. Temporary and actual installer checks pass; installed skills match.
+- Live refresh followed a consistent verified backup, copied acceptance and host-visible writer
+  quiescence. Sequential legacy/Essentials init produced exactly the accepted copy's catalog.
+  All251 existing lesson IDs,36 progress rows,37 attempts, notes/timestamps/completed revisions,
+  roadmap/schema state and untouched gRPC rows/prerequisites are preserved. All15 legacy backup
+  hashes match. The [catalog delta](docs/legacy-course-migration/catalog-delta.tsv) retains the exact
+  261-row identity/ordinal/revision/active-state inventory, including11 retired rows.
+- Installed first/last/complex lessons, aliases, routes, next and roadmap pass read-only checks.
+  PostgreSQL Essentials next remains23. The only stale completed lesson remains the pre-existing
+  PostgreSQL08 (completed revision2/current4); migration did not mark it current or erase history.
+- Final learner database hash is
+  `6db18433f9c5a6266de2e5fb317a776dec56529cdb5a156c1db85466e7378bde`;
+  unchanged logical history digest is
+  `82b553f0cac066a0e297b788eb15ba014e0f5388ea15e52f5a1ee04880ec3995`.
+- Cleanup removed1263 verified owned scratch files (33,204,496 bytes) and29 empty directories,
+  including rollback/copy databases, rendered duplicates and temporary helpers. No author lab or
+  worker remains. Learner readiness returns `lab|/labs/pglab/primary|f|1`; about14GB disk and6.8GiB
+  memory are available. Learner lab, progress, legacy backups and unrelated sessions remain intact.
+
+The [validation report](docs/legacy-course-migration/validation.md) and
+[acceptance manifest](docs/legacy-course-migration/acceptance-manifest.json) retain concise evidence,
+checks, hashes and the verified removal record. Completed source content is committed in `e2c9d5a`;
+copy/integration acceptance is committed in `14e4e38`. Root `plan.md` is retained as the requested
+completed plan, rather than leaving a temporary implementation handoff.
 
 ### Final integration and copied-history acceptance
 
@@ -820,7 +792,7 @@ Research complete:
 - [x] Public naming, content scope, skip behavior, ownership, validation and rollout specified.
 - [x] Learner readiness checked; no research labs or retained evidence copies.
 - [x] Implementation request received.
-- [ ] P0–P8 implemented and independently accepted.
+- [x] P0–P8 implemented and independently accepted, including live rollout and final cleanup.
 
 Final planning checkpoint: only `plan.md` is changed/untracked; whitespace checks pass and the
 learner database hash still matches the baseline. About 15 GB disk and 6.8 GiB memory remain
