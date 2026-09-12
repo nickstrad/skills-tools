@@ -2,7 +2,7 @@
 
 This document preserves the 2026-09-04 refactor proposal and completion notes. It is reference
 material, not a current implementation assignment. The existing 72-lesson course is described in
-[PLAN.md](PLAN.md); the proposed replacement route is
+[PLAN.md](../../../curriculum-tools/courses/linux/PLAN.md); the proposed replacement route is
 [Linux Systems v2](../../../future-courses/linux-v2/course.md). Use the repository's
 [batch workflow](../../../docs/lesson-batch-workflow.md) for any new batch. Historical Terra/model
 assignments below do not override the current user's choice.

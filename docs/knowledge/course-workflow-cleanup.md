@@ -4,6 +4,11 @@ Verified 2026-09-12. The school now follows Markdown route discussion and sign-o
 requested implementation batch, and shared `route`, `[NUMBER] lesson`, `NUMBER done` commands.
 See [the current architecture](concise-course-cli.md) for the ongoing contract.
 
+This records the first cleanup checkpoint. A subsequent authorized refactor removes the retained
+reading fields and systemscoach review-file reader, inlines Essentials context, archives superseded
+material, and prunes gRPC tools. See [the current architecture](concise-course-cli.md) and
+[the follow-up acceptance](school-final-refactor.md) for current state.
+
 ## Accepted changes
 
 - Discovery labels current courses, retained references and proposed routes, deriving counts from

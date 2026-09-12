@@ -1,7 +1,7 @@
 # PostgreSQL systems engineering pivot (historical record)
 
 This file records the 2026-09-04 pivot and its completed implementation decisions. It is retained
-for provenance and is not a current batch assignment. The current outline is [PLAN.md](PLAN.md),
+for provenance and is not a current batch assignment. The current outline is [PLAN.md](../../../curriculum-tools/courses/postgres/PLAN.md),
 planning and sign-off are in [future-courses/README.md](../../../future-courses/README.md), and
 active batch execution is in
 [docs/lesson-batch-workflow.md](../../../docs/lesson-batch-workflow.md). Historical model and agent
@@ -13,14 +13,14 @@ each section sequentially, reviewed its wording and code, validated it, and comm
 completed chunk. Agents performed narrowly scoped verification of supplied commands or finished
 changes; parallel lesson authoring stopped. This superseded earlier Terra implementation assignments
 in historical designs. The final acceptance is
-[validation/09-final-integration.md](validation/09-final-integration.md); [designs/](designs/)
+[validation/09-final-integration.md](../../../curriculum-tools/courses/postgres/validation/09-final-integration.md); [designs/](designs/)
 retain the implementation contracts.
 
 Completed 2026-09-05: all seven delivery chunks, the whole-course source/evidence audit, final
 PLAN/identity integration and final resource cleanup. The course has 92 active lessons; original
 completed lessons 1–7 and learner progress are preserved. See
-[the final evidence manifest](validation/09-final-evidence.json) and
-[final resource retirement](validation/09-final-cleanup.md). Historical per-chunk reports describe
+[the final evidence manifest](../../../curriculum-tools/courses/postgres/validation/09-final-evidence.json) and
+[final resource retirement](../../../curriculum-tools/courses/postgres/validation/09-final-cleanup.md). Historical per-chunk reports describe
 their accepted runs; use the current lesson map when comparing old ordinal numbers.
 
 ## Historical teaching proposal retained for provenance
@@ -36,7 +36,7 @@ authored coaching prompts by stable slug. This avoids changes to the shared engi
 is active. Stage selection is explicit and stateless. Expected results are withheld until `reveal`;
 supplied experiment code and its syntax explanation become available at `run`, after prediction.
 Full lesson text remains available on request. It preserved historical metadata and cautions. The
-current shared engine renders complete lessons; see [PLAN.md](PLAN.md).
+current shared engine renders complete lessons; see [PLAN.md](../../../curriculum-tools/courses/postgres/PLAN.md).
 
 ## Design reasoning
 

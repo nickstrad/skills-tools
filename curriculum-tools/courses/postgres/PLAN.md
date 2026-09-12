@@ -3,8 +3,8 @@
 Updated 2026-09-12. The course has 92 active lessons and three new identities replacing seven
 consolidated identities from the original 96-lesson course. The [identity map](lesson-map.md)
 preserves that lineage without transferring completions. Original completed lessons 1–7 remain
-identical. [REWORK-PLAN.md](REWORK-PLAN.md) records the authorized change;
-[validation/](validation/) records actual execution evidence and its limits.
+identical. [REWORK-PLAN.md](../../../archive/course-history/postgres/REWORK-PLAN.md) records the
+authorized change; [validation/](validation/) records actual execution evidence and its limits.
 
 ## Scope and intended outcome
 

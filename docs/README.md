@@ -62,6 +62,10 @@ reference for a possible future course refactor.
 [`knowledge/README.md`](knowledge/README.md) indexes reusable findings about the tutor engine,
 validation harness, course authoring workflow, and tool-specific pitfalls.
 
+Superseded course proposals, prototype guides, and historical design records are indexed in the
+[course-history archive](../archive/README.md); archived material is provenance rather than active
+authoring guidance.
+
 The [PostgreSQL final integration findings](knowledge/postgres-refactor-integration.md) explain
 source/evidence correspondence, copied progress checks and final retirement of validation resources.
 

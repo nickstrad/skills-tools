@@ -65,28 +65,17 @@ if (foreignKeyErrors.length) throw new Error("Foreign key violation in copied pr
 const lessons: Lesson[] = JSON.parse(
   await Deno.readTextFile(resolve(TOOL_ROOT, "courses/sqlite/lessons.json")),
 );
-const checkpoints: number[] = [];
 for (const lesson of lessons) {
   const rendered = await invoke(["pretty", String(lesson.ordinal), "--plain"]);
   for (const heading of ["### In plain terms", "### What you are learning", "### Piece by piece"]) {
     if (!rendered.includes(heading)) throw new Error(`Missing ${heading}: ${lesson.slug}`);
   }
   if (!rendered.includes(lesson.code)) throw new Error(`Rendered code changed: ${lesson.slug}`);
-  if (lesson.studyCheckpoint) {
-    checkpoints.push(lesson.ordinal);
-    const position = rendered.indexOf("## Study checkpoint");
-    if (position < rendered.indexOf("## Challenge")) {
-      throw new Error(`Checkpoint appears before the experiment challenge: ${lesson.slug}`);
-    }
-  }
   // Do not export the learner's private notes into the public evidence directory.
   await Deno.writeTextFile(
     resolve(evidence, `${lesson.ordinal}-${lesson.slug}.md`),
     rendered.split("## Your note")[0],
   );
-}
-if (JSON.stringify(checkpoints) !== JSON.stringify([13, 19, 25, 31, 37, 41])) {
-  throw new Error(`Unexpected checkpoints: ${checkpoints}`);
 }
 const afterHash = await digest(await Deno.readFile(source));
 if (beforeHash !== afterHash) throw new Error("Real progress changed during verification");
@@ -98,7 +87,6 @@ const report = {
   activeLessons: current.lessons.filter((item) => item.active === 1).length,
   retiredLessons: current.lessons.filter((item) => item.active === 0).length,
   renderedLessons: lessons.length,
-  checkpoints,
 };
 await Deno.writeTextFile(resolve(evidence, "result.json"), JSON.stringify(report, null, 2));
 console.log(`Copied progress/render evidence: ${evidence}`);

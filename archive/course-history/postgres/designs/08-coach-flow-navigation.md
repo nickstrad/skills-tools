@@ -1,7 +1,7 @@
 # Coach flow: navigation, per-stage context and guide substance
 
 > Historical design record. This proposal is retained for provenance, not as a current assignment.
-> See [PLAN.md](../PLAN.md) and the
+> See [PLAN.md](../../../../curriculum-tools/courses/postgres/PLAN.md) and the
 > [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance and model
 > choices.
 
@@ -35,8 +35,8 @@ step introduces, and move between steps without remembering the stage vocabulary
 ## Ownership and sequencing
 
 The systems engineering refactor, final audit and resource cleanup were committed and pushed as
-`e44cae6`. See [the final integration report](../validation/09-final-integration.md) and
-[cleanup record](../validation/09-final-cleanup.md); the temporary handoff is retired. Lesson 9's
+`e44cae6`. See [the final integration report](../../../../curriculum-tools/courses/postgres/validation/09-final-integration.md) and
+[cleanup record](../../../../curriculum-tools/courses/postgres/validation/09-final-cleanup.md); the temporary handoff is retired. Lesson 9's
 source, guide and knowledge changes are included in this stopping point, so the earlier collision
 with in-progress integration is resolved.
 

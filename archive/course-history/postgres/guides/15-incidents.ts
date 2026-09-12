@@ -1,8 +1,8 @@
-import { CAPSTONE_VARIATION } from "../curriculum/task-runner-capstone.ts";
-import { CANCEL_VARIATION } from "../curriculum/cancel-incident.ts";
-import { FREEZE_VARIATION } from "../curriculum/freeze-incident.ts";
-import { CORRUPTION_VARIATION } from "../curriculum/corruption-incident.ts";
-import { DISK_INCIDENT_VARIATION } from "../curriculum/disk-incident.ts";
+import { CAPSTONE_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/task-runner-capstone.ts";
+import { CANCEL_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/cancel-incident.ts";
+import { FREEZE_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/freeze-incident.ts";
+import { CORRUPTION_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/corruption-incident.ts";
+import { DISK_INCIDENT_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/disk-incident.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

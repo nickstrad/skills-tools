@@ -270,7 +270,8 @@ read every result and classify every intentional SQL error. Tracing must be perm
 synchronization evidence; no trace is not zero synchronization. Review the final
 [validation record](VALIDATION.md) for measured invariants and limits.
 
-See [the implementation analysis](REWORK-PLAN.md) for the original lesson-level decisions and
+See [the implementation analysis](../../../archive/course-history/sqlite/REWORK-PLAN.md) for the
+original lesson-level decisions and
 [durable findings](../../../docs/knowledge/sqlite-curriculum-design.md) for reusable authoring
 lessons. Technical source notes live in
 [the SQLite research](../../../docs/readings/sqlite/research-notes.md).

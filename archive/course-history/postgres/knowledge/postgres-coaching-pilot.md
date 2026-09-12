@@ -1,10 +1,10 @@
 # PostgreSQL coaching: validate small batches before broad rollout
 
 **Superseded entry path, 2026-09-06:** Nick rejected a separate old-lesson UX pilot. The active
-path is now the fixed [40-lesson essentials route](../../curriculum-tools/courses/postgres-essentials/PLAN.md),
+path is now the fixed [40-lesson essentials route](../../../../curriculum-tools/courses/postgres-essentials/PLAN.md),
 with its first three lessons authored and feedback after essentials 3. `pgcoach` opens that course;
 old pilot details below apply only to explicit reference access. See
-[essentials implementation findings](postgres-essentials.md) for routing and validation.
+[essentials implementation findings](../../../../docs/knowledge/postgres-essentials.md) for routing and validation.
 
 **Current path clarification (2026-09-05):** aim for roughly 24 further essentials lessons at
 20–30 minutes each, refining the count and selection through feedback. The broader route is
@@ -28,7 +28,7 @@ allocated. The learner database responded to a read-only readiness query and abo
 free. Installed postgres-tutor instructions resolve to the updated repository skill by symlink.
 
 The first revised coaching batch is lessons 9–12, with a visible review before lesson 13. Updated
-2026-09-05. The [batch plan](../../curriculum-tools/courses/postgres/designs/09-coach-pilot-batches.md)
+2026-09-05. The [batch plan](../designs/09-coach-pilot-batches.md)
 records scope and future learner decisions; its UX and timing are awaiting a learner trial.
 
 ## What happened
@@ -81,4 +81,4 @@ catalog refresh was needed. Future phase mismatches fail visibly instead of sile
   retire validation clusters immediately and keep only concise acceptance records.
 
 Actual observations and final validation are in the
-[pilot validation report](../../curriculum-tools/courses/postgres/validation/10-coaching-pilot.md).
+[pilot validation report](../../../../curriculum-tools/courses/postgres/validation/10-coaching-pilot.md).

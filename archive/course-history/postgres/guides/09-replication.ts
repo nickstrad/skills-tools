@@ -1,12 +1,12 @@
-import { STANDBY_VARIATION } from "../curriculum/standby-workload.ts";
-import { REPLAY_LAG_VARIATION } from "../curriculum/replay-lag.ts";
-import { REPLICA_READINESS_VARIATION } from "../curriculum/replica-readiness.ts";
-import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../curriculum/sync-acknowledgement.ts";
-import { STANDBY_CONFLICTS_VARIATION } from "../curriculum/standby-conflicts.ts";
-import { SLOT_RETENTION_VARIATION } from "../curriculum/slot-retention.ts";
-import { FAILOVER_VARIATION } from "../curriculum/failover-workload.ts";
-import { REWIND_VARIATION } from "../curriculum/rewind-workload.ts";
-import { FAILBACK_VARIATION } from "../curriculum/failback-workload.ts";
+import { STANDBY_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/standby-workload.ts";
+import { REPLAY_LAG_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/replay-lag.ts";
+import { REPLICA_READINESS_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/replica-readiness.ts";
+import { SYNC_ACKNOWLEDGEMENT_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/sync-acknowledgement.ts";
+import { STANDBY_CONFLICTS_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/standby-conflicts.ts";
+import { SLOT_RETENTION_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/slot-retention.ts";
+import { FAILOVER_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/failover-workload.ts";
+import { REWIND_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/rewind-workload.ts";
+import { FAILBACK_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/failback-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

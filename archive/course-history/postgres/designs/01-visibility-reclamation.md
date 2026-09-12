@@ -1,7 +1,7 @@
 # Chunk 1C: visibility and reclamation
 
 > Historical design record. This assignment and its Terra/high model label are retained for
-> provenance; they are not a current implementation instruction. See [PLAN.md](../PLAN.md) and the
+> provenance; they are not a current implementation instruction. See [PLAN.md](../../../../curriculum-tools/courses/postgres/PLAN.md) and the
 > [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
 
 Owner: Terra/high `visibility`. Owned: curriculum/03-mvcc.ts, curriculum/04-vacuum.ts,

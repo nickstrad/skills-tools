@@ -1,12 +1,12 @@
 # Coaching pilot: learn a small batch, review, then adapt
 
 > Historical design record. This superseded pilot is retained for provenance, not as a current route
-> or assignment. See [PLAN.md](../PLAN.md) and the
+> or assignment. See [PLAN.md](../../../../curriculum-tools/courses/postgres/PLAN.md) and the
 > [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
 
 > Superseded as the learner path on 2026-09-06. Nick explicitly requested real first lessons of a
 > fixed smaller-chunk course rather than this UX pilot. The active course is now
-> [PostgreSQL Essentials](../../postgres-essentials/PLAN.md): 40 planned lessons, first three
+> [PostgreSQL Essentials](../../../../curriculum-tools/courses/postgres-essentials/PLAN.md): 40 planned lessons, first three
 > available, with feedback after essentials lesson 3. The old pilot below is historical reference;
 > do not send the learner through it before the essentials course. `pgcoach` now opens essentials.
 

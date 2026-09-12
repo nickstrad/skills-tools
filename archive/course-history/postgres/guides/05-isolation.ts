@@ -1,5 +1,5 @@
 import type { Guide } from "./types.ts";
-import { REQUEST_SETUP, UNKNOWN_COMMIT } from "../curriculum/request-protocol.ts";
+import { REQUEST_SETUP, UNKNOWN_COMMIT } from "../../../../curriculum-tools/courses/postgres/curriculum/request-protocol.ts";
 
 export const guides: Record<string, Guide> = {
   "atomic-abort": {

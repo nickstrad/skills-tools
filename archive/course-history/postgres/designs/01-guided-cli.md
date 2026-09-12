@@ -1,7 +1,7 @@
 # Chunk 1A: staged PostgreSQL coaching
 
 > Historical design record. This assignment and its Terra/high model label are retained for
-> provenance; they are not a current implementation instruction. See [PLAN.md](../PLAN.md) and the
+> provenance; they are not a current implementation instruction. See [PLAN.md](../../../../curriculum-tools/courses/postgres/PLAN.md) and the
 > [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
 
 Owner: Terra/high agent `guided_cli`. Work independently while primary builds validation lab. Read

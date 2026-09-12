@@ -1,7 +1,7 @@
 # SQLite course implementation plan — 2026-09-04 (historical record)
 
 This file preserves the original implementation analysis and is retained for provenance. It is not a
-current batch assignment. The current reference outline is [PLAN.md](PLAN.md); future-course
+current batch assignment. The current reference outline is [PLAN.md](../../../curriculum-tools/courses/sqlite/PLAN.md); future-course
 planning/sign-off and batch execution live in the repository's shared documentation. Historical
 model or agent assignments do not override the current user's choice.
 

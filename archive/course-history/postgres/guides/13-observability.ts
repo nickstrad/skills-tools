@@ -1,9 +1,9 @@
-import { CAPACITY } from "../curriculum/capacity-workload.ts";
-import { WAIT_VARIATION } from "../curriculum/wait-observation.ts";
-import { IO_VARIATION } from "../curriculum/io-observation.ts";
-import { DEADLINE_VARIATION } from "../curriculum/deadline-observation.ts";
-import { INDEX_USAGE_VARIATION } from "../curriculum/index-usage-observation.ts";
-import { LOG_VARIATION } from "../curriculum/log-observation.ts";
+import { CAPACITY } from "../../../../curriculum-tools/courses/postgres/curriculum/capacity-workload.ts";
+import { WAIT_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/wait-observation.ts";
+import { IO_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/io-observation.ts";
+import { DEADLINE_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/deadline-observation.ts";
+import { INDEX_USAGE_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/index-usage-observation.ts";
+import { LOG_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/log-observation.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

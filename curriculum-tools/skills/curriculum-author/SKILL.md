@@ -54,7 +54,7 @@ Every lesson causes a phenomenon and observes it. The generic CLI owns presentat
 [`docs/AUTHORING.md`](../../docs/AUTHORING.md): context and a plain-text-readable mechanism map
 before commands, exact setup/action, expected evidence, interpretation, cleanup and honest safety
 metadata. Do not implement course-specific renderers, quiz/review stages or required external
-reading. Existing source metadata is compatibility data, not a learner gate.
+reading. Retired source metadata is preserved in the repository archive, outside active lessons.
 
 ## Validation pitfalls to retain
 

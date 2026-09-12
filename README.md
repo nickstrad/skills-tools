@@ -28,8 +28,13 @@ courses.
 - Original PostgreSQL reference (92 lessons in 15 modules), complete SQLite course,
   and complete Linux Systems course (72 lessons in 12 modules)
 - [gRPC and Protocol Buffers](curriculum-tools/courses/grpc/README.md): six focused CLI experiments,
-  about 65 minutes total, with installed local tools and a supplied service
+  about 65 minutes total, retained as reference; reinstall its pruned tools before running experiments
 - Per-course wrapper skills under `courses/<course>/skill/`
+
+### `archive/`
+
+[Archived course history](archive/README.md) holds superseded plans, prototype guides and preserved
+legacy metadata. Current curricula, progress and future course plans remain in their active folders.
 
 ## Requirements
 

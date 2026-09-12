@@ -135,8 +135,8 @@ explains this" rather than use the concept unexplained.
 
 Technical sources can inform planning and fact checking, but lessons supply their own context and
 commands. External sources are optional background and never a prerequisite, checkpoint or
-completion stage. Existing source metadata may remain internally for compatibility with old
-catalogs; do not add new assigned source stages or make the learner depend on them.
+completion stage. Retired reading metadata belongs in `archive/legacy-reading/`, outside active
+curricula and the tutor schema; do not reintroduce assigned source stages.
 
 ## Build, validate, ship
 
@@ -159,7 +159,8 @@ this command.
 deno task new-course duckdb "DuckDB Systems" duckdb "Columnar engine internals" 1.1
 ```
 
-This creates `courses/duckdb/` with `course.json`, a starter `curriculum/01-lab.ts`, and a wrapper
-skill under `courses/duckdb/skill/duckdb-tutor/`. Install the skill by copying or symlinking that
-directory into your agent's skills folder. The `curriculum-author` skill in `skills/` walks an agent
-through the whole process.
+This creates `courses/duckdb/` with `course.json`, an empty `curriculum/mod.ts`, a link to its
+canonical plan, and a wrapper skill under `courses/duckdb/skill/duckdb-tutor/`. No lesson, catalog
+or progress is invented; author the requested batch before building. Install the skill by copying or
+symlinking that directory into your agent's skills folder. The `curriculum-author` skill in
+`skills/` walks an agent through the whole process.

@@ -1,8 +1,8 @@
-import { CHECKPOINT_VARIATION } from "../curriculum/checkpoint-workload.ts";
-import { RECOVERY_COST_VARIATION } from "../curriculum/recovery-cost.ts";
-import { WAL_PRESSURE_VARIATION } from "../curriculum/wal-pressure.ts";
-import { BACKUP_VARIATION } from "../curriculum/backup-workload.ts";
-import { PITR_VARIATION } from "../curriculum/pitr-workload.ts";
+import { CHECKPOINT_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/checkpoint-workload.ts";
+import { RECOVERY_COST_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/recovery-cost.ts";
+import { WAL_PRESSURE_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/wal-pressure.ts";
+import { BACKUP_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/backup-workload.ts";
+import { PITR_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/pitr-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

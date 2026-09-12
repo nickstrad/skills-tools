@@ -1,9 +1,9 @@
-import { WAL_AMPLIFICATION_VARIATION } from "../curriculum/wal-amplification.ts";
-import { CRASH_WORKLOAD_VARIATION } from "../curriculum/crash-workload.ts";
-import { ARCHIVE_WORKLOAD_VARIATION } from "../curriculum/archive-workload.ts";
-import { WAL_RECORDS_VARIATION } from "../curriculum/wal-records.ts";
-import { WAL_PAGE_IMAGES_VARIATION } from "../curriculum/wal-page-images.ts";
-import { COMMIT_WORKLOAD_VARIATION } from "../curriculum/commit-workload.ts";
+import { WAL_AMPLIFICATION_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/wal-amplification.ts";
+import { CRASH_WORKLOAD_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/crash-workload.ts";
+import { ARCHIVE_WORKLOAD_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/archive-workload.ts";
+import { WAL_RECORDS_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/wal-records.ts";
+import { WAL_PAGE_IMAGES_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/wal-page-images.ts";
+import { COMMIT_WORKLOAD_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/commit-workload.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

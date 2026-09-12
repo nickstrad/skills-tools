@@ -1,7 +1,7 @@
 # Chunk 1B: storage decisions, original lessons 8–11
 
 > Historical design record. This assignment and its Terra/high model label are retained for
-> provenance; they are not a current implementation instruction. See [PLAN.md](../PLAN.md) and the
+> provenance; they are not a current implementation instruction. See [PLAN.md](../../../../curriculum-tools/courses/postgres/PLAN.md) and the
 > [shared batch workflow](../../../../docs/lesson-batch-workflow.md) for current guidance.
 
 Owner: Terra/high `storage`. Owned files only: curriculum/02-storage.ts, guides/02-storage.ts,

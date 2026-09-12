@@ -117,7 +117,7 @@ this roadmap at the learner's request.
   Prefer revising a small batch and trying it before preparing the next batch. The assistant can
   record design decisions; the learner need not write reports.
   See the
-  [coaching flow review](../curriculum-tools/courses/postgres/designs/08-coach-flow-navigation.md).
+  [coaching flow review](../archive/course-history/postgres/designs/08-coach-flow-navigation.md).
 - CLI-based experiments: shell, SQL, APIs, configuration, logs, process/file/network evidence.
   No required GUI, dashboard, or cloud console.
 - Prefer easily runnable local services and a bounded lab over managed cloud products.

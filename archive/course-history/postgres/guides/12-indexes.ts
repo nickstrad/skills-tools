@@ -1,5 +1,5 @@
 import type { Guide } from "./types.ts";
-import { RETENTION_VARIATION } from "../curriculum/migration-workload.ts";
+import { RETENTION_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/migration-workload.ts";
 
 export const guides: Record<string, Guide> = {
   "btree-page-anatomy": {

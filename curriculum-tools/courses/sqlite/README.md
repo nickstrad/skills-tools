@@ -14,7 +14,8 @@ bin/tutor sqlite 1 done
 ```
 
 The 54-lesson outline and safety contracts are in [PLAN.md](PLAN.md). Historical implementation
-analysis is in [REWORK-PLAN.md](REWORK-PLAN.md), and real validation evidence is in
-[VALIDATION.md](VALIDATION.md). Optional source notes never add a learner stage. For authoring or a
-future batch, use the repository [authoring guide](../../../curriculum-tools/docs/AUTHORING.md) and
+analysis is in [REWORK-PLAN.md](../../../archive/course-history/sqlite/REWORK-PLAN.md), and real
+validation evidence is in [VALIDATION.md](VALIDATION.md). Optional source notes never add a learner
+stage. For authoring or a future batch, use the repository
+[authoring guide](../../../curriculum-tools/docs/AUTHORING.md) and
 [batch workflow](../../../docs/lesson-batch-workflow.md).

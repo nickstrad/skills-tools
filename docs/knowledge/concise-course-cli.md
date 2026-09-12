@@ -26,21 +26,24 @@ available/total counts. `route` reads existing progress read-only, showing curre
 `[revisit]`, available and planned rows. Planned routes are browsable without initializing progress;
 planned lessons cannot be served or completed. New IDs never inherit old reference completion.
 
-Essentials now uses the shared route and lesson renderer. The initial 26 lessons' former
-wrapper-only diagrams, session setup and safe-stop guidance are authored into their syntax context.
-New batches supply their own context directly; no renderer imports or second route list are needed.
+Essentials now uses the shared route and lesson renderer. The first 26 lessons' former
+wrapper-only diagrams, session setup and safe-stop guidance are now inlined in each lesson’s syntax
+context. All batches author complete context directly; no diagram helper or second route list remains.
 Saved presentation aliases open the same complete lesson. The reference pilot no longer inserts a
 stop gate; original course experiments, data and historical guide notes remain for reuse.
 
 Reading is separate from these courses. The bundled PostgreSQL book and its authoring/mapping
 workflow are removed. Lesson output omits citations, reading notes and reading checkpoints.
-Legacy fields remain readable in original catalogs and JSON exports to preserve existing data;
-new lessons do not use them. Technical primary-source research still informs experiment design.
+The retired fields have been removed from active curricula, generated catalogs, JSON output and
+the lesson schema. Their original values are preserved by stable identity in
+[`archive/legacy-reading/`](../../archive/legacy-reading/README.md). The schema-only `migrate` command
+exports existing values before dropping their columns and preserves all lesson/history rows. Technical primary-source research still informs experiment design.
 
 The Go systemscoach engine remains separate, with JSON routes and atomic completion receipts.
 It shares the learner commands and one complete lesson. New projects use only `lesson.md`;
-the retired review template is removed. Existing review files still supply their interpretation
-through the compatibility reader, preserving existing project evidence and learner tasks.
+the retired review template and file reader are removed. Existing interpretation was merged into
+each lesson file, with source-transformation evidence preserving the relationship to prior validation.
+The saved `review` command remains an alias for the same complete lesson.
 
 ## Local installation
 

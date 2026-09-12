@@ -62,8 +62,9 @@ only as authorized by the learner, through the CLI rather than direct database e
 ## Author and validate
 
 Read repository AGENTS.md, [AUTHORING](../../docs/AUTHORING.md), the curriculum-author skill and
-[the knowledge index](../../../docs/knowledge/README.md). Edit curriculum TypeScript and authored
-guides. From curriculum-tools, build with `/root/.deno/bin/deno task build postgres`, then run the
+[the knowledge index](../../../docs/knowledge/README.md). Edit curriculum TypeScript. The retired
+[coaching guides](../../../archive/course-history/postgres/guides/README.md) are archived reference
+material. From curriculum-tools, build with `/root/.deno/bin/deno task build postgres`, then run the
 appropriate real-tool checks, `deno task check` and `deno task test`. The generic SQL harness skips
 shell lessons and its completion count does not classify errors; execute shell cores and exact
 rendered hints independently and inspect complete outcomes.

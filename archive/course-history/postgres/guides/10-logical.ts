@@ -1,8 +1,8 @@
-import { LOGICAL_DECODING_VARIATION } from "../curriculum/logical-decoding.ts";
-import { SLOT_DELIVERY_VARIATION } from "../curriculum/slot-delivery.ts";
-import { LOGICAL_BOOTSTRAP_VARIATION } from "../curriculum/logical-bootstrap.ts";
-import { LOGICAL_CONFLICTS_VARIATION } from "../curriculum/logical-conflicts.ts";
-import { LOGICAL_RESNAPSHOT_VARIATION } from "../curriculum/logical-resnapshot.ts";
+import { LOGICAL_DECODING_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/logical-decoding.ts";
+import { SLOT_DELIVERY_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/slot-delivery.ts";
+import { LOGICAL_BOOTSTRAP_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/logical-bootstrap.ts";
+import { LOGICAL_CONFLICTS_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/logical-conflicts.ts";
+import { LOGICAL_RESNAPSHOT_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/logical-resnapshot.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

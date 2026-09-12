@@ -1,8 +1,8 @@
-import { NOTIFY_VARIATION } from "../curriculum/notification-recovery.ts";
-import { FENCING_VARIATION } from "../curriculum/resource-fencing.ts";
-import { TWOPC_VARIATION } from "../curriculum/two-phase-protocol.ts";
-import { IDEMPOTENCY_VARIATION } from "../curriculum/idempotency-protocol.ts";
-import { OUTBOX_VARIATION } from "../curriculum/outbox-delivery.ts";
+import { NOTIFY_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/notification-recovery.ts";
+import { FENCING_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/resource-fencing.ts";
+import { TWOPC_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/two-phase-protocol.ts";
+import { IDEMPOTENCY_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/idempotency-protocol.ts";
+import { OUTBOX_VARIATION } from "../../../../curriculum-tools/courses/postgres/curriculum/outbox-delivery.ts";
 import type { Guide } from "./types.ts";
 
 export const guides: Record<string, Guide> = {

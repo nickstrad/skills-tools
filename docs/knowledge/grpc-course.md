@@ -50,3 +50,12 @@ in [validation.md](../../curriculum-tools/courses/grpc/validation.md).
 The wrapper skill supplies exact commands and expected output together without prediction gating.
 Do not replace that with the generic wrapper coaching template; the user's instruction is the
 reason for the difference. Preserve explicit-only progress recording.
+
+## Shared Go dependency after pruning
+
+The original systemscoach launcher and shell profile had borrowed Go from the gRPC `.tools/`
+directory. Pruning exposed that dependency. Go 1.26.8 was installed separately at `/usr/local/go`
+from the same digest-verified release, with `/usr/local/bin/go` and `gofmt` links. Systemscoach now
+uses the shared installation and discards only inherited cache paths belonging to the retired
+gRPC tools. The shell profile was updated likewise. The 759 MiB course-local reclamation is gross:
+the shared Go runtime remains needed by systemscoach. No gRPC experiment tools were reinstalled.
