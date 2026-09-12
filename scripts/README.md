@@ -2,6 +2,28 @@
 
 Bootstrap and utility scripts for the machines this repository's tools run on.
 
+## School launchers and skills
+
+`python3 scripts/school-links.py --check` audits all three launchers and the six shared skills for
+both Codex and Claude without writing files. Run from the repository root. A nonzero result means
+links are missing, copies need synchronization, or a conflicting path needs attention.
+
+`python3 scripts/school-links.py --install` installs canonical symlinks into `/usr/local/bin`,
+`~/.codex/skills`, and `~/.claude/skills`. It checks every destination first, refuses differing files
+or unrelated symlinks, and only replaces copied skill directories when every file, permission and
+symlink matches the repository source. It removes the known obsolete `pgtutor` symlink without
+following it or deleting any original course data. Other paths named `pgtutor` are left alone.
+The installer downloads nothing and never opens learner progress or runs a lesson.
+
+`pgcoach` opens PostgreSQL Essentials. The original PostgreSQL curriculum and progress remain
+stored for reuse; the old `pgtutor` CLI is retired. `tutor` serves all tool courses;
+`systemscoach` serves systems projects.
+Use `--bin-dir`, `--codex-skills`, and `--claude-skills` for alternate installation destinations.
+Permission to write system/user skill directories may be required by an agent sandbox.
+
+Run `python3 scripts/school-links_test.py` to verify read-only checking, repeat installation,
+conflict preservation, copied-skill replacement and obsolete-link retirement in disposable directories.
+
 ## `lab-setup.sh`
 
 Turns a fresh Ubuntu (22.04 or 24.04) DigitalOcean droplet into a compact
