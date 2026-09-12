@@ -4,6 +4,27 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Final integration and copy acceptance
+
+Full tests, vet, race tests and build pass. All250 exact parsed-field deltas match the accepted
+ledger. Existing regression coverage includes alias/public progress history, skip/undone, stale and
+retired lessons, quoted notes/paths, alternate roots, malformed/collision rejection and read-only
+commands. Actual planned routes/rejection create no database; copied canonical/alias first/last
+views match, and next/routes render.
+
+Four current progress-verify commands pass with source hash2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3.
+The consistent engine backup matches its logical snapshot and source. Sequential public refreshes
+and repeated alias refreshes on a copy preserve251 existing IDs,36 progress rows,37 attempts,
+notes/timestamps/completed revisions, all roadmap/schema state and untouched gRPC catalog/prerequisites.
+The [261-row delta](catalog-delta.tsv) records existing unrefreshed source changes as well as this
+migration's approved fields. Expected active counts are92/54/72/26/6, with11 retained retired rows.
+Only the already-stale completed PG08 remains stale (completed2/current4).
+
+Temporary installer check/apply/check pass, with exact skill bytes and all temporary destinations
+removed. Actual install/check pass with five existing links already correct; CLAUDE.md remains a
+symlink. All15 legacy-backup hashes match. Verified rollback/copy evidence remains in the32MB
+`.cache/legacy-migration/` until post-live acceptance. Live refresh and final cleanup still pending.
+
 ## Complete250-lesson content acceptance
 
 All250 ledger rows are primary accepted. SQLite45–51/53 complete the final eight: direct failure,

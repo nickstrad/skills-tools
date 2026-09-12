@@ -46,8 +46,13 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   contextual search also corrected three PostgreSQL syntax references (17/18/33) to variation.
   The ledger has250 accepted rows and zero pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes final integration, copied-history acceptance, installer sync and live
-  history-preserving rollout. Full tests/vet/race/build are running; all five source checks pass.
+- Final tests/vet/full race/build pass. All250 exact parsed-field deltas match the ledger; all five
+  source checks pass. Copied refresh and repeated alias init preserve251 identities,36 progress rows,
+  37 attempts, notes/timestamps, roadmap/schema and untouched gRPC rows/prerequisites.
+  Temporary installer check/apply/check and actual install/check pass; all five existing links
+  remain correct. Planned routes remain DB-free and canonical/alias first/last views match.
+- Next: primary performs quiescent live catalog rollout, verifies it equals the accepted copy,
+  then final read-only smoke checks and resource/evidence cleanup.
   No new worker has been dispatched. Primary
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -64,6 +69,31 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Final integration and copied-history acceptance
+
+Full `go test ./...`, `go vet ./...`, `go test -race ./...` and build pass. Existing CLI regression
+tests cover aliases/skip/done order, notes, stale/retired rows, malformed/collision rejection,
+alternate paths/roots and read-only access. Planned route/no-DB rejection checks also pass through
+the actual CLI. All250 current parsed-field differences exactly equal the accepted ledger.
+
+Four current progress-verify commands pass against unchanged learner hash2dc0facf…a3. An engine
+backup and logical snapshot at `.cache/legacy-migration/rollout/before.sqlite` and `before.json`
+match the source. The accepted `expected.sqlite` survives all four public refreshes and repeated
+alias refreshes with251 old identities,36 progress rows,37 attempts and all roadmap/schema/history
+unchanged. Its261 total catalog rows comprise250 active and11 retained retired rows; no suffixed IDs.
+The reviewed [catalog delta](docs/legacy-course-migration/catalog-delta.tsv) includes pre-existing
+unrefreshed course changes: three newly retired PostgreSQL entries and ten new/four retired SQLite
+entries. Source-baseline revision changes introduced by this migration are only PG47 and88–91.
+The only completed lesson currently stale is the already-stale PG08 (completed2/current4).
+History digest is82b553f0cac066a0e297b788eb15ba014e0f5388ea15e52f5a1ee04880ec3995.
+
+Temporary installer destinations were checked without creation, installed, verified and removed.
+Actual install/check pass with all five existing symlinks unchanged and skill bytes matching source;
+CLAUDE.md remains linked to AGENTS.md. All15 legacy backup hashes match. Scratch is32MB including
+the verified rollback and accepted-copy artifacts; retain only until post-rollout acceptance, then
+remove redundant copies. Next: recheck host-visible quiescence and snapshot currency, sequential
+live init for three legacy courses and Essentials, exact after comparison, read-only smoke, cleanup.
 
 ### Resumed acceptance checkpoint — all250 content audits complete
 

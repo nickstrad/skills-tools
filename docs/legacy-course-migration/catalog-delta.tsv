@@ -1,0 +1,262 @@
+course/slug	old_id	new_id	old_ordinal	new_ordinal	old_active	new_active	old_revision	new_revision	changed_fields
+grpc/absent-versus-zero	2	2	2	2	1	1	1	1	
+grpc/discover-and-call	4	4	4	4	1	1	1	1	
+grpc/message-to-bytes	1	1	1	1	1	1	1	1	
+grpc/read-an-evolved-message	3	3	3	3	1	1	1	1	
+grpc/status-metadata-and-streams	5	5	5	5	1	1	1	1	
+grpc/timeout-and-retry	6	6	6	6	1	1	1	1	
+linux/atomic-rename	35	35	29	29	1	1	1	2	syntax_breakdown,code,expected_result,challenge,revision
+linux/bounded-filesystem-full	41	41	35	35	1	1	2	3	syntax_breakdown,code,challenge,revision
+linux/bounded-oom-kill	48	48	42	42	1	1	2	3	syntax_breakdown,challenge,revision
+linux/build-disposable-linux-lab	7	7	1	1	1	1	2	3	syntax_breakdown,challenge,revision
+linux/capstone-service-outage	78	78	72	72	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,estimated_minutes,revision
+linux/change-scheduling-priority	52	52	46	46	1	1	2	3	overview,syntax_breakdown,challenge,revision
+linux/cleanup-with-traps	12	12	6	6	1	1	2	3	syntax_breakdown,challenge,revision
+linux/command-line-and-environment	16	16	10	10	1	1	1	2	syntax_breakdown,challenge,revision
+linux/compare-df-and-du	38	38	32	32	1	1	1	2	syntax_breakdown,code,expected_result,challenge,revision
+linux/compare-rss-and-vsz	44	44	38	38	1	1	1	2	syntax_breakdown,challenge,revision
+linux/coordinate-two-shell-sessions	11	11	5	5	1	1	1	2	syntax_breakdown,challenge,revision
+linux/cpu-time-vs-wall-time	49	49	43	43	1	1	1	2	syntax_breakdown,challenge,revision
+linux/create-listening-socket	61	61	55	55	1	1	1	2	syntax_breakdown,challenge,revision
+linux/deleted-open-file	36	36	30	30	1	1	1	2	syntax_breakdown,challenge,revision
+linux/enforce-cgroup-budget	60	60	54	54	1	1	2	3	syntax_breakdown,challenge,revision
+linux/enter-existing-namespace	72	72	66	66	1	1	2	3	syntax_breakdown,challenge,revision
+linux/exhaust-file-descriptors	30	30	24	24	1	1	2	3	syntax_breakdown,code,challenge,revision
+linux/fifo-process-coordination	29	29	23	23	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,revision
+linux/foreground-and-background	19	19	13	13	1	1	1	2	syntax_breakdown,challenge,revision
+linux/graceful-and-forced-stop	23	23	17	17	1	1	2	3	syntax_breakdown,challenge,revision
+linux/hard-link-counts	32	32	26	26	1	1	1	2	syntax_breakdown,challenge,revision
+linux/identify-kernel-and-userspace	8	8	2	2	1	1	1	2	syntax_breakdown,challenge,revision
+linux/inherited-open-files	27	27	21	21	1	1	1	2	syntax_breakdown,challenge,revision
+linux/inspect-cgroup-v2	59	59	53	53	1	1	1	2	syntax_breakdown,challenge,revision
+linux/inspect-namespace-membership	67	67	61	61	1	1	1	2	syntax_breakdown,challenge,revision
+linux/inventory-required-commands	9	9	3	3	1	1	2	3	syntax_breakdown,challenge,revision
+linux/isolate-mount-namespace	69	69	63	63	1	1	2	3	syntax_breakdown,code,expected_result,challenge,revision
+linux/isolate-network-namespace	71	71	65	65	1	1	2	3	syntax_breakdown,challenge,revision
+linux/isolate-pid-namespace	68	68	62	62	1	1	2	3	syntax_breakdown,challenge,revision
+linux/limit-cpu-time	58	58	52	52	1	1	1	2	syntax_breakdown,challenge,revision
+linux/limit-file-size	57	57	51	51	1	1	1	2	syntax_breakdown,challenge,revision
+linux/limit-open-files	55	55	49	49	1	1	2	3	syntax_breakdown,challenge,revision
+linux/limit-process-count	56	56	50	50	1	1	2	3	syntax_breakdown,challenge,revision
+linux/load-average-runnable-work	50	50	44	44	1	1	1	2	syntax_breakdown,challenge,revision
+linux/map-mounts-and-devices	37	37	31	31	1	1	1	2	syntax_breakdown,challenge,revision
+linux/map-port-to-process	62	62	56	56	1	1	1	2	syntax_breakdown,challenge,revision
+linux/map-process-address-space	43	43	37	37	1	1	1	2	syntax_breakdown,challenge,revision
+linux/map-user-namespace	70	70	64	64	1	1	2	3	syntax_breakdown,challenge,revision
+linux/normalize-shell-observations	10	10	4	4	1	1	1	2	syntax_breakdown,challenge,revision
+linux/observe-context-switches	51	51	45	45	1	1	1	2	syntax_breakdown,challenge,revision
+linux/observe-page-faults	45	45	39	39	1	1	1	2	syntax_breakdown,challenge,revision
+linux/paths-and-inodes	31	31	25	25	1	1	1	2	syntax_breakdown,challenge,revision
+linux/permissions-and-umask	34	34	28	28	1	1	1	2	syntax_breakdown,challenge,revision
+linux/pid-and-parentage	13	13	7	7	1	1	1	2	syntax_breakdown,challenge,revision
+linux/pin-cpu-affinity	53	53	47	47	1	1	1	2	syntax_breakdown,challenge,revision
+linux/pipe-buffer-backpressure	28	28	22	22	1	1	1	2	overview,syntax_breakdown,code,expected_result,challenge,revision
+linux/pipelines-are-processes	21	21	15	15	1	1	2	3	syntax_breakdown,challenge,revision
+linux/proc-process-identity	15	15	9	9	1	1	1	2	syntax_breakdown,challenge,revision
+linux/process-states	17	17	11	11	1	1	1	2	syntax_breakdown,challenge,revision
+linux/process-tree	14	14	8	8	1	1	1	2	syntax_breakdown,challenge,revision
+linux/reclaim-under-pressure	47	47	41	41	1	1	2	3	syntax_breakdown,challenge,revision
+linux/recover-filesystem-space	42	42	36	36	1	1	2	3	syntax_breakdown,code,challenge,revision
+linux/redirect-and-duplicate-fds	26	26	20	20	1	1	1	2	syntax_breakdown,challenge,revision
+linux/saturate-listen-backlog	66	66	60	60	1	1	1	2	syntax_breakdown,challenge,revision
+linux/set-io-priority	54	54	48	48	1	1	1	2	syntax_breakdown,challenge,revision
+linux/signal-disposition	22	22	16	16	1	1	2	3	syntax_breakdown,challenge,revision
+linux/socket-is-a-file-descriptor	65	65	59	59	1	1	1	2	syntax_breakdown,challenge,revision
+linux/sparse-file-allocation	39	39	33	33	1	1	1	2	syntax_breakdown,challenge,revision
+linux/standard-stream-fds	25	25	19	19	1	1	1	2	syntax_breakdown,challenge,revision
+linux/symlink-resolution	33	33	27	27	1	1	1	2	syntax_breakdown,challenge,revision
+linux/tcp-connection-lifecycle	63	63	57	57	1	1	2	3	syntax_breakdown,challenge,revision
+linux/threads-under-task	18	18	12	12	1	1	1	2	syntax_breakdown,challenge,revision
+linux/tmpfs-uses-memory	40	40	34	34	1	1	2	3	syntax_breakdown,code,challenge,revision
+linux/triage-cpu-saturation	73	73	67	67	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,revision
+linux/triage-deleted-file-space	76	76	70	70	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,revision
+linux/triage-fd-leak	75	75	69	69	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,revision
+linux/triage-memory-growth	74	74	68	68	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,revision
+linux/triage-port-collision	77	77	71	71	1	1	2	3	overview,syntax_breakdown,code,expected_result,challenge,revision
+linux/unix-domain-socket	64	64	58	58	1	1	1	2	syntax_breakdown,challenge,revision
+linux/wait-and-exit-status	20	20	14	14	1	1	1	2	syntax_breakdown,challenge,revision
+linux/warm-the-page-cache	46	46	40	40	1	1	1	2	overview,syntax_breakdown,code,expected_result,systems_lens,challenge,revision
+linux/zombies-and-orphans	24	24	18	18	1	1	1	2	syntax_breakdown,challenge,revision
+postgres-essentials/checkpoint-writeback	202	202	25	25	1	1	1	1	syntax_breakdown,challenge
+postgres-essentials/commit-and-wal	200	200	23	23	1	1	1	1	challenge
+postgres-essentials/committed-row-visibility	178	178	1	1	1	1	1	1	
+postgres-essentials/composite-index-order	196	196	19	19	1	1	1	1	
+postgres-essentials/crash-replay	203	203	26	26	1	1	1	1	syntax_breakdown
+postgres-essentials/deadlock-cycle	191	191	14	14	1	1	1	1	syntax_breakdown
+postgres-essentials/durable-request-identity	189	189	12	12	1	1	1	1	syntax_breakdown
+postgres-essentials/find-the-blocker	190	190	13	13	1	1	1	1	syntax_breakdown,challenge
+postgres-essentials/index-crossover	195	195	18	18	1	1	1	1	overview,challenge
+postgres-essentials/index-only-needs-visibility	197	197	20	20	1	1	1	1	challenge
+postgres-essentials/join-memory	199	199	22	22	1	1	1	1	
+postgres-essentials/lost-update-and-atomic-write	182	182	5	5	1	1	1	1	syntax_breakdown
+postgres-essentials/multi-row-write-skew	185	185	8	8	1	1	1	1	syntax_breakdown
+postgres-essentials/old-reader-retains-history	180	180	3	3	1	1	1	1	
+postgres-essentials/read-a-plan-as-evidence	193	193	16	16	1	1	1	1	challenge
+postgres-essentials/reject-stale-edit	184	184	7	7	1	1	1	1	syntax_breakdown,challenge
+postgres-essentials/reusable-space-versus-file-size	181	181	4	4	1	1	1	1	overview
+postgres-essentials/row-lock-protects-decision	183	183	6	6	1	1	1	1	syntax_breakdown
+postgres-essentials/serializable-protects-invariant	186	186	9	9	1	1	1	1	syntax_breakdown
+postgres-essentials/sort-spill	198	198	21	21	1	1	1	1	
+postgres-essentials/statement-versus-transaction-snapshot	179	179	2	2	1	1	1	1	
+postgres-essentials/statistics-and-estimates	194	194	17	17	1	1	1	1	
+postgres-essentials/timeout-and-transaction-state	192	192	15	15	1	1	1	1	syntax_breakdown
+postgres-essentials/unknown-commit-outcome	188	188	11	11	1	1	1	1	syntax_breakdown,challenge
+postgres-essentials/wal-per-useful-write	201	201	24	24	1	1	1	1	challenge
+postgres-essentials/whole-transaction-retry	187	187	10	10	1	1	1	1	syntax_breakdown,challenge
+postgres/abandoned-slot-fills-the-disk	170	170	91	88	1	1	2	5	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/advisory-locks-as-leases	114	114	35	35	1	1	4	4	
+postgres/atomic-abort	102	102	21	21	1	1	4	4	challenge
+postgres/autovacuum-triggers	100	100	20	20	1	1	4	4	syntax_breakdown
+postgres/base-backup	127	127	62	61	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,safety_level,estimated_minutes,revision
+postgres/bounded-online-migration	176	176	47	47	1	1	1	2	challenge,revision
+postgres/btree-page-anatomy	151	151	45	45	1	1	4	4	
+postgres/buffer-cache-and-io	88	88	10	10	1	1	4	4	syntax_breakdown
+postgres/build-a-streaming-standby	130	130	71	69	1	1	2	4	ordinal,title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,revision
+postgres/build-lab-cluster	79	79	1	1	1	1	2	2	syntax_breakdown
+postgres/cascading-and-failback	137	137	78	77	1	1	2	4	ordinal,title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,estimated_minutes,revision
+postgres/checkpoint-anatomy	124	124	59	58	1	1	2	4	ordinal,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/commit-means-fsync	119	119	54	54	1	1	2	4	title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,safety_level,estimated_minutes,revision
+postgres/commit-visibility-and-clog	93	93	14	14	1	1	4	4	syntax_breakdown
+postgres/conflicts-stop-the-apply-worker	142	142	83	81	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/connection-saturation	159	159	67	65	1	1	4	4	ordinal
+postgres/corrupt-a-page-and-detect-it	171	171	92	89	1	1	2	5	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/crash-and-redo	121	121	56	56	1	1	2	4	title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/create-index-concurrently-and-invalid-indexes	153	153	46	46	1	1	4	4	challenge
+postgres/ddl-behind-a-long-query	113	113	34	34	1	1	4	4	
+postgres/dead-tuples-accumulate	96	96	97	94	0	0	2	2	ordinal
+postgres/deadlock-detection	111	111	32	32	1	1	4	4	
+postgres/decode-the-log	138	138	79	78	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/every-change-is-a-wal-record	117	117	52	52	1	1	2	4	title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,estimated_minutes,revision
+postgres/explain-analyze-buffers	144	144	38	38	1	1	4	4	syntax_breakdown,challenge
+postgres/fencing-tokens-with-a-monotonic-counter	167	167	88	86	1	1	2	4	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/free-space-map-and-reuse	89	89	96	93	0	0	3	3	ordinal
+postgres/full-page-writes-after-checkpoint	118	118	53	53	1	1	2	4	title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,estimated_minutes,revision
+postgres/hot-standby-query-conflict	133	133	74	73	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/hot-updates-and-fillfactor	86	86	8	8	1	1	4	4	syntax_breakdown
+postgres/idempotency-keys	164	164	86	84	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/idle-in-transaction-kills-you	160	160	68	66	1	1	4	4	ordinal,challenge
+postgres/index-bloat-from-churn	155	155	49	49	1	1	4	4	challenge
+postgres/index-only-scan-needs-visibility-map	152	152	99	99	0	0	2	2	
+postgres/index-scan-vs-seq-scan-crossover	146	146	40	40	1	1	4	4	
+postgres/initial-sync-vs-streaming	141	141	82	98	1	0	2	2	ordinal,active
+postgres/install-lab-extensions	81	81	3	3	1	1	2	2	syntax_breakdown,expected_result
+postgres/join-strategies	147	147	41	41	1	1	4	4	
+postgres/keyset-pagination-and-concurrent-writes	177	177	51	51	1	1	1	1	
+postgres/listen-notify-as-a-bus	169	169	90	87	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/lock-queue-and-blocking-pids	110	110	31	31	1	1	4	4	
+postgres/lock-timeout-and-nowait	112	112	33	33	1	1	4	4	syntax_breakdown
+postgres/long-transaction-bloats-everyone	101	101	98	95	0	0	3	3	ordinal
+postgres/lost-update-under-read-committed	104	104	23	23	1	1	4	4	syntax_breakdown
+postgres/max-wal-size-forces-checkpoints	126	126	61	60	1	1	3	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/optimistic-concurrency-with-version-columns	166	166	24	24	1	1	4	4	
+postgres/page-header-and-line-pointers	84	84	6	6	1	1	2	2	challenge
+postgres/parallel-query	149	149	43	43	1	1	4	4	
+postgres/partial-and-covering-indexes	154	154	48	48	1	1	4	4	challenge
+postgres/pg-stat-io-by-backend-type	158	158	66	64	1	1	4	4	ordinal,challenge
+postgres/pg-stat-statements-as-tracing	150	150	44	44	1	1	4	4	
+postgres/point-in-time-recovery	128	128	63	62	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/postmortem-from-the-log	174	174	95	92	1	1	2	4	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,estimated_minutes,revision
+postgres/process-model	82	82	4	4	1	1	2	2	
+postgres/promote-the-standby	135	135	76	75	1	1	2	4	ordinal,title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,estimated_minutes,revision
+postgres/publication-and-subscription	140	140	81	80	1	1	2	4	ordinal,title,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/read-committed-sees-each-statement	103	103	22	22	1	1	4	4	
+postgres/read-the-server-log	162	162	70	68	1	1	4	4	ordinal,challenge
+postgres/read-your-writes-on-a-replica	168	168	89	71	1	1	2	4	ordinal,title,category,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,estimated_minutes,revision
+postgres/redo-point-bounds-recovery	125	125	60	59	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,revision
+postgres/repeatable-read-blocks-then-fails	105	105	25	25	1	1	4	4	
+postgres/replication-lag-under-load	131	131	72	70	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,revision
+postgres/replication-slot-retains-wal	134	134	75	74	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/retry-loop-and-idempotency	108	108	28	28	1	1	4	4	challenge
+postgres/rewind-the-old-primary	136	136	77	76	1	1	2	4	ordinal,title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,estimated_minutes,revision
+postgres/row-locks-are-in-the-tuple	109	109	30	30	1	1	4	4	
+postgres/runaway-query-and-cancel	173	173	94	91	1	1	2	5	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/serializable-ssi	107	107	27	27	1	1	4	4	
+postgres/shell-and-psql-toolkit	80	80	2	2	1	1	2	2	
+postgres/skip-locked-work-queue	115	115	36	36	1	1	4	4	
+postgres/slot-lag-and-disk	143	143	84	82	1	1	2	4	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/slot-position-and-acknowledgement	139	139	80	79	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,estimated_minutes,revision
+postgres/snapshot-anatomy	91	91	12	12	1	1	2	2	syntax_breakdown,challenge
+postgres/statistics-drive-plans	145	145	39	39	1	1	4	4	syntax_breakdown
+postgres/synchronous-replication-blocks-commit	132	132	73	72	1	1	2	4	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/table-and-index-usage-counters	161	161	69	67	1	1	4	4	ordinal,challenge
+postgres/table-is-a-file	83	83	5	5	1	1	2	2	
+postgres/timeline-history	129	129	64	97	1	0	2	2	ordinal,active
+postgres/toast-and-large-values	87	87	9	9	1	1	5	5	syntax_breakdown,code,challenge
+postgres/transactional-outbox	163	163	85	83	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,estimated_minutes,revision
+postgres/two-phase-commit	165	165	87	85	1	1	2	4	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,estimated_minutes,revision
+postgres/two-sessions-see-different-versions	92	92	13	13	1	1	2	2	syntax_breakdown
+postgres/unique-constraint-race	116	116	37	37	1	1	4	4	
+postgres/unique-index-enforcement-under-concurrency	156	156	50	50	1	1	4	4	
+postgres/unknown-commit-outcome	175	175	29	29	1	1	1	1	challenge
+postgres/update-writes-a-new-tuple	85	85	7	7	1	1	2	2	challenge
+postgres/vacuum-full-rewrites-and-locks	98	98	18	18	1	1	4	4	syntax_breakdown
+postgres/vacuum-reclaims-in-place	97	97	17	17	1	1	4	4	syntax_breakdown
+postgres/visibility-map-and-index-only-scans	99	99	19	19	1	1	4	4	syntax_breakdown
+postgres/wait-events-tell-you-where-time-goes	157	157	65	63	1	1	4	4	ordinal,syntax_breakdown,code,challenge
+postgres/wal-files-and-recycling	120	120	55	55	1	1	2	4	title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,estimated_minutes,revision
+postgres/wal-replay-is-deterministic	122	122	57	96	1	0	2	2	ordinal,active
+postgres/wal-size-of-operations	123	123	58	57	1	1	2	4	ordinal,title,difficulty,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,estimated_minutes,revision
+postgres/work-mem-spills-to-disk	148	148	42	42	1	1	4	4	
+postgres/wraparound-and-freezing	95	95	16	16	1	1	2	2	syntax_breakdown,systems_lens
+postgres/wraparound-drill	172	172	93	90	1	1	2	5	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,sessions,revision
+postgres/write-skew	106	106	26	26	1	1	4	4	
+postgres/xids-and-the-transaction-counter	90	90	11	11	1	1	2	2	syntax_breakdown,challenge
+postgres/xmin-horizon-blocks-cleanup	94	94	15	15	1	1	4	4	
+sqlite/analyze-changes-plans	240	240	37	40	1	1	1	3	ordinal,overview,syntax_breakdown,setup,systems_lens,challenge,min_version,revision
+sqlite/application-id-schema-versioning	208	208	5	6	1	1	1	3	ordinal,tags,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/attached-database-boundaries	-	259	-	49	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/automatic-checkpoint-cost	-	255	-	30	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/batching-changes-the-cost	220	220	17	19	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,min_version,revision
+sqlite/bounded-storage-failure	-	256	-	36	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/btree-splits	210	210	7	9	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,min_version
+sqlite/build-sqlite-lab	204	204	1	1	1	1	1	1	overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version
+sqlite/busy-snapshot-upgrade	230	230	27	28	1	1	2	2	ordinal,overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version
+sqlite/busy-timeout-bounds-wait	224	224	21	24	1	1	2	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,sessions,min_version,revision
+sqlite/cache-invalidation-and-snapshots	-	260	-	50	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/checkpoint-modes	231	231	28	29	1	1	1	2	ordinal,overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version,revision
+sqlite/checkpoint-starvation	232	232	29	31	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/compare-and-swap-update	225	225	22	55	1	0	1	1	ordinal,active
+sqlite/connection-settings-are-local	-	252	-	4	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/crash-leaves-hot-journal	217	217	14	16	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,min_version,revision
+sqlite/decode-database-header	207	207	4	5	1	1	2	2	ordinal,overview,syntax_breakdown,expected_result,systems_lens,safety_level,min_version
+sqlite/deferred-write-race	221	221	18	21	1	1	2	2	ordinal,overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version
+sqlite/duplicate-and-lost-ack	247	247	44	45	1	1	1	3	ordinal,title,tags,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,min_version,estimated_minutes,revision
+sqlite/durable-job-claims	244	244	41	44	1	1	2	3	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/freelist-vacuum-and-reuse	214	214	11	13	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,caution,min_version
+sqlite/fts-derived-state	-	261	-	51	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/hot-journal-recovery	218	218	15	17	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,caution,min_version,revision
+sqlite/idempotent-retry-ledger	226	226	23	25	1	1	1	3	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/immediate-reserves-writer	222	222	19	22	1	1	1	3	ordinal,overview,syntax_breakdown,setup,code,systems_lens,challenge,min_version,revision
+sqlite/independent-database-writers	-	258	-	48	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/index-read-write-tradeoff	239	239	36	39	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,min_version,revision
+sqlite/inspect-build-capabilities	205	205	2	2	1	1	1	3	tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,safety_level,min_version,estimated_minutes,revision
+sqlite/integrity-and-domain-checks	236	236	33	35	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/journal-modes	216	216	13	15	1	1	2	2	ordinal,overview,syntax_breakdown,systems_lens,min_version
+sqlite/lease-expiry-and-fencing	245	245	42	58	1	0	1	1	ordinal,active
+sqlite/local-oplog	246	246	43	42	1	1	1	3	ordinal,title,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,min_version,estimated_minutes,revision
+sqlite/measure-the-writer-envelope	241	241	38	41	1	1	2	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/offline-agent-capstone	250	250	47	53	1	1	2	3	ordinal,title,tags,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/online-cli-backup	234	234	31	33	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/ordering-conflicts-and-tombstones	248	248	45	46	1	1	1	3	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,run_in,min_version,estimated_minutes,revision
+sqlite/outbox-replay-after-crash	243	243	40	43	1	1	1	3	ordinal,title,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,min_version,estimated_minutes,revision
+sqlite/overflow-pages	213	213	10	12	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,min_version
+sqlite/pages-and-dbstat	209	209	6	8	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/query-plan-as-evidence	238	238	35	38	1	1	1	3	ordinal,title,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,min_version,revision
+sqlite/reader-and-writer-overlap	228	228	25	27	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/recover-damaged-copy	237	237	34	37	1	1	2	3	ordinal,overview,syntax_breakdown,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/restore-and-rejoin-history	-	257	-	47	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/rollback-journal-lifecycle	215	215	12	14	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,min_version
+sqlite/rollback-reader-writer-blocking	223	223	20	23	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/rowid-storage	211	211	8	10	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,min_version
+sqlite/share-one-file-between-sessions	206	206	3	3	1	1	1	1	overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version
+sqlite/snapshot-reader	229	229	26	56	1	0	1	1	ordinal,active
+sqlite/sqlite-architecture-decision	251	251	48	54	1	1	1	3	ordinal,title,tags,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,caution,safety_level,min_version,estimated_minutes,revision
+sqlite/strict-storage-contracts	-	253	-	7	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/synchronous-contracts	219	219	16	18	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,min_version,revision
+sqlite/transaction-errors-have-scope	-	254	-	20	-	1	-	1	id,course_id,ordinal,slug,title,category,difficulty,tags,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,safety_level,run_in,sessions,min_version,estimated_minutes,revision,active
+sqlite/transactional-outbox	242	242	39	57	1	0	1	1	ordinal,active
+sqlite/unsafe-live-copy	233	233	30	32	1	1	1	1	ordinal,overview,syntax_breakdown,expected_result,systems_lens,challenge,min_version
+sqlite/vacuum-into-snapshot	235	235	32	34	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,caution,min_version
+sqlite/wal-growth-incident	249	249	46	52	1	1	1	3	ordinal,title,overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,min_version,revision
+sqlite/wal-sidecar-files	227	227	24	26	1	1	1	1	ordinal,overview,syntax_breakdown,systems_lens,challenge,min_version
+sqlite/without-rowid-layout	212	212	9	11	1	1	1	3	ordinal,overview,syntax_breakdown,code,expected_result,systems_lens,challenge,min_version,revision
