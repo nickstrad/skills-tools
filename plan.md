@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — WP9.2 verified; Sol taking over WP5.2; WP7.1–7.2 reviewed; Luna/high updating authoring and repository documentation.**
+**Status: in progress — Go implementation and Phase 7 complete; primary retiring old toolchain and auditing knowledge, installation and cleanup.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -68,7 +68,7 @@ a separate handoff document.
 | WP4.2 roadmap package and command | O | done | 07d2ede + wiring commit | package by an opus subagent, `internal/cli/roadmap.go` by the primary; uses `<root>/tutor.sqlite` already (the Phase 9 file); real machine import happens in WP4.3 |
 | WP4.3 Archive Markdown roadmap | S | done | a959159 | Archive and relinks committed; status reconciled on resume. |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
-| WP5.2 validate and progress verify | O | in progress | | Luna/high draft transferred to Sol for completion and correctness tests; primary wiring/review. |
+| WP5.2 validate and progress verify | O | done | resume validation commit | Sol completed/reviewed Luna draft; primary wired and verified all five real progress copies. Full Go vet/race suite passes, including shared-file parity (404 s under race). |
 | WP5.3 Real-tool smoke, old tools removed | O | todo | | |
 | WP5.4 VALIDATION.md | S | in progress | | Luna/high authoring_docs; primary review. |
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
@@ -173,6 +173,17 @@ learner progress rows that changed during the work).
   work, primary for architecture, hard fixes, integration and independent acceptance. WP5.2's
   Luna draft is transferred to Sol with explicit ownership; WP5.3/WP6.3/WP8.3 also move to O.
   Current §0 mapping supersedes the initial blanket mapping and any historical tier assignments.
+
+- 2026-09-12 — WP5.2 accepted: validation selectors, isolated SQLite/shell runs, cleanup/keep,
+  failures and the copy-only progress verifier have focused tests and full Go vet/race acceptance.
+  The verifier rejects positive-size WAL/journal, detects observed source byte/metadata changes,
+  refreshes only the named course in a temporary copy, compares other-course lesson content and
+  prerequisites, and checks all-course identities/progress/attempts. All five real-course verify
+  reports pass (251 total lesson rows, 36 progress rows, 37 attempts), with no learner refresh.
+  Evidence is in `.cache/migration-resume/{race.txt,verify-*.json}` until final acceptance.
+- 2026-09-12 — WP7.4 primary review kept the historical validation README body verbatim under
+  its dated note and extended the Essentials PLAN edit to its stale implementation paragraph
+  only (no route/content edits). Markdown is parsed directly; there is no generated catalog.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 

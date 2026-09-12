@@ -127,19 +127,22 @@ CLI reads Markdown lesson source directly; the shared progress database is ignor
 
 ```text
 skills-tools/
-├── bin/tutor               Go CLI launcher
+├── bin/tutor
 ├── curriculum-tools/
-│   ├── cmd/tutor/         CLI entry point
-│   ├── internal/          course, route, progress, render, roadmap, harness and link packages
-│   ├── courses/           course packages and Markdown lesson source
-│   ├── skills/            shared tutor and curriculum-author skills
-│   ├── roadmap/           committed roadmap snapshot
-│   ├── templates/course/  new-course scaffold
-│   └── go.mod             Go module
-├── future-courses/        inexpensive fixed-route plans; no runnable lessons or progress
-├── docs/                  guidance and durable findings for future agents
-├── archive/               historical plans, tools and validation records
-├── scripts/               machine bootstrap and container test utilities
-├── .gitignore             excludes runtime state, secrets, logs and editor files
+│   ├── cmd/tutor/
+│   ├── internal/
+│   ├── courses/<id>/lessons/
+│   ├── skills/
+│   ├── roadmap/
+│   ├── templates/course/
+│   └── go.mod
+├── future-courses/
+├── docs/
+├── archive/
+├── scripts/
+├── .gitignore
 └── README.md
 ```
+
+The `internal/` packages cover course parsing, routes, progress, rendering, roadmap, validation
+harnesses, links and scaffolding.

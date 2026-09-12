@@ -238,7 +238,11 @@ func newCourseCmd(root string, disc route.CourseDiscovery, stdout io.Writer) *co
 		newSearchCmd(cc),
 		newInitCmd(cc),
 		newCheckCmd(cc),
+		newValidateCmd(cc),
 	)
+	progressCmd := &cobra.Command{Use: "progress", Short: "Verify progress preservation on a copy"}
+	progressCmd.AddCommand(newProgressVerifyCmd(cc))
+	cmd.AddCommand(progressCmd)
 	return cmd
 }
 
@@ -273,6 +277,8 @@ Navigation and progress maintenance:
 Course maintenance:
   tutor %s init [--db PATH]                    create or refresh the progress database
   tutor %s check                               validate the lesson files against the plan
+  tutor %s validate [--isolated] [slug|N ...]    run experiments against a private lab
+  tutor %s progress verify                     check a refresh on a database copy
 
 Flags:
   --db PATH     progress database (default tutor.sqlite)
@@ -282,7 +288,7 @@ Flags:
 
 Displaying a lesson never marks it done.`,
 		id, disc.Name, disc.Status, disc.Available, disc.Total,
-		id, id, id, id, id, id, id, id, id, id, id, id, id, id)
+		id, id, id, id, id, id, id, id, id, id, id, id, id, id, id, id)
 }
 
 // newRouteCmd: the fixed route merged with progress, read-only and database-optional.
