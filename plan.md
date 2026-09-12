@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — next WP1.3/3.2/6.1 (parallel, delegated), WP2.2, WP5.1. Baseline commit `368734b`.**
+**Status: in progress — next WP2.2 (delegated), WP3.1, WP3.3/3.4/4.2 (delegated). Baseline commit `368734b`.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -52,14 +52,14 @@ a separate handoff document.
 | WP0.3 Module bootstrap | F | done | see log | cobra v1.10.2 / modernc.org/sqlite v1.58.0; Go caches at `/root/go`, `/root/.cache/go-build` |
 | WP1.1 course package (grammar) | F | done | see log | `internal/course` + `internal/testutil`; 8 tests |
 | WP1.2 Converter and conversion | S | done | see log | 250 files; every fence is three backticks; converter test deleted in WP8.1 |
-| WP1.3 render package | S | todo | | |
-| WP1.4 Parity gate A | S | todo | | |
+| WP1.3 render package | S | done | 3e143ba | golden tests from postgres-essentials lesson 8; `LessonRecord` exported for list/search JSON |
+| WP1.4 Parity gate A | S | done | see log | 250/250 lessons byte-identical (Markdown and JSON); done as `internal/render/parity_test.go` (skips without `$WORK`; deleted in WP8.4) instead of a hidden command |
 | WP1.5 Course template | S | done | see log | `templates/course/lessons/01-example.md` is byte-canonical (`FormatLessonFile` reproduces it) |
 | WP2.1 progress schema and seed | F | done | see log | `Open` uses `_txlock=immediate`; read verbs use `OpenReadOnly` (`mode=ro`); Go `Init` on baseline copies == Deno `init` dumps for all 5 courses |
 | WP2.2 Progress operations | S | todo | | |
 | WP2.3 Parity gate B | S | todo | | |
 | WP3.1 Cobra tree | O | todo | | |
-| WP3.2 route package | S | todo | | |
+| WP3.2 route package | S | done | 18e4ea8 | `DiscoverCourses` on the real root equals golden `courses.json` |
 | WP3.3 new-course scaffold | S | todo | | |
 | WP3.4 links and install | S | todo | | |
 | WP3.5 Launcher | S | todo | | |
@@ -67,11 +67,11 @@ a separate handoff document.
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
 | WP4.2 roadmap package and command | O | todo | | |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
-| WP5.1 harness package | F | todo | | |
+| WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
 | WP5.2 validate and progress verify | S | todo | | |
 | WP5.3 Real-tool smoke, old tools removed | S | todo | | |
 | WP5.4 VALIDATION.md | S | todo | | |
-| WP6.1 fsutil scavenge | S | todo | | |
+| WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | S | todo | | |
 | WP7.1 tutor skill | O | todo | | |
