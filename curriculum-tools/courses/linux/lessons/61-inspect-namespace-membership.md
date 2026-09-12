@@ -83,12 +83,10 @@ At least one namespace_* parent and child identity matches, shared_namespace_typ
 A namespace is a kernel-selected view used by syscalls. Inode-like handles provide a join key for deciding whether tasks see the same processes, mounts, users, or interfaces.
 
 ## Optional variation
-**Predict:** Will an ordinary child started by this shell normally share its network namespace? State what handle would prove it.
+Copy the full lesson into a private run and change only the namespace loop list to
+**mnt net pid user**. Keep the reads, recorded child and exact cleanup.
 
-**Inspect and explain:** Pick one matching namespace line and explain the view it selects; then state why that line does not prove the child has mount or network authority.
-
-**Vary:** Copy the full lesson into a private run and change only the namespace loop list to **mnt net pid user**. It remains read-only and keeps the recorded child and exact cleanup while making four view types easier to compare.
-
-**Hint:** Use stat identities, not an assumption based on parentage.
-
-**Apply:** Before debugging a service from the host shell, which namespace handles would you compare to decide whether your process, mount, and socket observations refer to its view?
+Compare the four pairs of stat identities. An ordinary child shares these views with its parent
+unless its namespace membership changes; the handles supply the actual evidence. Matching handles
+do not grant authority to alter the view. Comparing a service's mount, network and PID handles
+with the diagnostic shell's identifies which observations can be made from that shell.

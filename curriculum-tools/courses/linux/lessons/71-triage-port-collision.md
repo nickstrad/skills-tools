@@ -13,7 +13,7 @@ minutes: 15
 revision: 3
 
 ## Overview
-A replacement listener cannot bind its requested loopback endpoint. Choose evidence that identifies the current owner before intervening, then verify the endpoint becomes reusable. A successful bind proves endpoint availability; the final capstone will also test useful service.
+A replacement listener cannot bind its requested loopback endpoint. Identify the current owner through the endpoint and process views, then stop that exact owner and verify the endpoint becomes reusable. A successful bind proves endpoint availability; the final capstone will also test useful service.
 
 ## Syntax breakdown
 ### In plain terms
@@ -35,7 +35,7 @@ An address-in-use error describes a resource conflict, not which process should 
 - The second Python **bind** attempts the same endpoint. **except OSError** records the numeric errno and text; **finally: s.close()** closes the attempt's socket. On Linux, EADDRINUSE is errno 98. **head -n 1** selects the first result line. **grep -q** tests the result without printing it, and the escaped alternative matches either errno or message.
 - **ss -ltnp** asks for listening (**-l**) TCP (**-t**) sockets, numeric addresses (**-n**) and process information (**-p**). **grep -E** matches the exact port followed by whitespace or end of line, avoiding a port-prefix match.
 - **lsof -nP -a -p "$owner_pid" -iTCP:"$port" -sTCP:LISTEN** intersects (**-a**) the PID, TCP port and LISTEN filters. **-nP** disables host and port name lookup. **tail -n +2** drops the heading. Permissions can restrict process attribution.
-- **ss -ltnp "sport = :$port"** in the hint uses ss’s own source-port filter to select the same listener.
+- **ss -ltnp "sport = :$port"** in the variation uses ss’s own source-port filter to select the same listener.
 - **kill** and **wait** terminate only the recorded owner. A fresh Python socket then attempts the original endpoint; **rebind=success** is printed only after bind succeeds. A final assertion requires both the original collision and the successful rebind.
 
 ## Run
@@ -89,12 +89,11 @@ The second bind reports error=98 and eaddrinuse_seen=yes. ss_owner_seen=yes and 
 A resource error becomes actionable when identity maps to an owner. Port collision response follows the same observe, join, remediate, and verify pattern as leaked files or mounts.
 
 ## Optional variation
-**Predict:** Would seeing LISTEN prove the replacement application can bind the endpoint? Would a successful bind prove the application answers requests?
+Replace the first **s.listen(1)** with **s.listen(4)** and rerun. Before termination, run
+**ss -ltnp "sport = :$port"** to narrow the socket view. Keep the exact-owner shutdown, rebind
+probe and cleanup; the lsof command independently intersects that PID and endpoint.
 
-**Inspect and explain:** Identify the evidence linking the conflicting port to one PID, and explain why a broad process-name kill is unjustified.
-
-**Vary:** Replace the first **s.listen(1)** with **s.listen(4)** and rerun. Predict whether a larger admission queue changes exclusive ownership of this endpoint.
-
-**Hint:** Before termination, run **ss -ltnp "sport = :$port"** to narrow the socket view. The lsof command in the worked experiment independently joins the exact owner and endpoint.
-
-**Apply:** A deployment reports address already in use. State the evidence needed to distinguish an old instance from an unrelated service before selecting shutdown, a different port or a configuration correction.
+A larger backlog leaves exclusive endpoint ownership unchanged. The second bind still reports
+EADDRINUSE, and rebind succeeds after the owner exits. Neither LISTEN nor successful bind proves
+application responses. For a deployment conflict, process identity and configuration distinguish
+an old instance from an unrelated service before choosing a remedy.

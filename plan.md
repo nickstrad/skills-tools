@@ -38,18 +38,18 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
 - All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
   PostgreSQL completion is committed in `1e64d13`.
-- Linux13–24 are accepted in `953dcc0`, Linux25–36 in `a05be21`, Linux37–48 in `0e94bc0`,
-  and Linux49–60 are also accepted with direct optional comparisons and unchanged commands/metadata.
-  The ledger has186 accepted rows and64 pending.
+- All72 Linux lessons are accepted:13–24 in `953dcc0`,25–36 in `a05be21`,37–48 in `0e94bc0`,
+  49–60 in `ca8d457`, and the final61–72 group as recorded below. Setup/Run behavior and revisions
+  remain unchanged;72 has exactly two comment replacements. The ledger has198 accepted rows and52 pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes Linux61–72 (12 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
-  still owns Linux72 and final serial hazardous validation.
+- Next: primary completes SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+  still owns final integration and serial hazardous validation if a remaining semantic change needs it.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
   quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
   roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~20MB), including raw/refreshed
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~22MB), including raw/refreshed
   baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
   helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
   redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
@@ -59,6 +59,30 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Linux61–72 and Linux audit completion
+
+Primary accepted all12 namespace/capstone lessons. Direct optional comparisons retain every
+namespace parameter, diagnostic command, exact identity, release marker, deadline and cleanup.
+Capstone overview/syntax wording is direct;72 retires its hypothesis/reveal/submission prompts
+and replaces exactly two coaching comments. Every executable statement, service protocol,
+signal sequence, watchdog, descriptor assertion, expected result and six-file comparison is
+unchanged. Revision2 remains valid. All other metadata/revisions and existing blocks match
+baseline; all12 actual plain/ANSI/JSON views and the72-lesson check pass. The final capstone
+renders its complete investigation, response recovery and teardown locally.
+
+`courses/linux/validation/04-integration.md` records both72 core and exact six-file variation,
+including healthy/timeout/healthy responses, stopped state/listener, zero graceful status and
+empty cleanup. It also records wrong-response and watchdog failures correctly rejected with
+cleanup. Since this migration changes no behavior, that accepted evidence applies without
+reallocating a lab. Exact two-comment exceptions are in `linux-61-72.json`; log/views use the
+same prefix. Temporary review catalog removed; no Linux lab/process/cgroup/mount was allocated.
+
+All72 Linux rows are accepted. Total198 accepted,52 pending: SQLite01–51/53. Primary read SQLite01–03
+and searched remaining coaching context; no SQLite edit yet. Scratch is22MB until final acceptance.
+Learner hash remains2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3 and readiness
+returns lab|/labs/pglab/primary|f|1. Final integration, installer tests/sync, copied-history checks,
+live rollout, final resource cleanup/readiness remain required before goal completion.
 
 ### Resumed acceptance checkpoint — Linux49–60
 

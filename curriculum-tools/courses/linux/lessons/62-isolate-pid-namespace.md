@@ -79,12 +79,10 @@ On a permitted VM, unshare_status=0, inner_pid=1, inner_ns is a pid:[...] handle
 PID namespaces virtualize task identity and ancestry. A process can be PID 1 inside while having an unrelated outer PID, the basis for process isolation and container init behavior.
 
 ## Optional variation
-**Predict:** If the command is permitted, which number will the inner shell print for itself and why is the outer shell's PID unrelated?
+Rerun the complete lesson, changing only the inner sleep .2 to sleep .1. Keep --mount-proc,
+the timeout, PID/namespace checks and cleanup. Target only the supplied private experiment.
 
-**Inspect and explain:** Compare outer_ns and inner_ns. Explain why a policy skip cannot support a claim about PID 1 behavior.
-
-**Vary:** Rerun the complete lesson, changing only the inner sleep .2 to sleep .1. Keep --mount-proc, the timeout and the PID/namespace checks; a shorter lifetime does not change the identity mapping.
-
-**Hint:** Keep the timeout and do not target host processes from inside the experiment.
-
-**Apply:** A diagnostic shows PID 1 in a service shell. Which namespace-handle and outer-PID evidence would you request before treating it as the host init process?
+When permitted, the inner shell still reports PID1 with a different namespace handle from the
+outer shell. Shortening its lifetime does not change that mapping. A policy skip leaves the
+mechanism untested. PID1 observed in a service shell therefore needs its namespace and outer-PID
+context before it can be identified with the host's init process.

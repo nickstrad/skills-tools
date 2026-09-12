@@ -4,6 +4,30 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Linux61–72 and complete Linux acceptance
+
+All72 Linux lessons are primary accepted. The final12 replace staged prompts with direct namespace
+and capstone comparisons while retaining every executable diagnostic and bounded variation.
+Capstone overviews identify the observations directly. Lesson72 removes hypothesis/reveal/incident
+submission obligations and replaces exactly two Run comments; every executable statement, service
+protocol, signal sequence, watchdog, assertion and cleanup is unchanged, as is revision2.
+
+The accepted [Linux integration evidence](../../curriculum-tools/courses/linux/validation/04-integration.md)
+already covers72's core and exact six-file comparison: healthy baseline, timeout while stopped with
+a listener, healthy reply after CONT, then zero graceful status and no service files/listener.
+Wrong-response and watchdog negative checks rejected failure while cleaning up. The same report
+covers all earlier cores and actual variations. No behavior changed here, so no lab was rerun.
+
+All12 parsed allowed-field checks preserve metadata/revisions and all executable content; the
+manifest explicitly lists the two comment substitutions. All12 complete actual plain/ANSI/JSON
+CLI views and the72-lesson source check pass. Contextual searches find no staged coaching prompts
+in active Linux lessons. Temporary review catalog removed; no Linux resource was allocated.
+Logs/manifests/views use `.cache/legacy-migration/linux-61-72*` until final acceptance.
+
+The ledger has198 accepted rows and52 pending, all in SQLite01–51/53. Scratch is22MB; learner
+progress hash and live lab identity/readiness remain unchanged. Final integration, installation
+and live catalog refresh still follow the remaining content audit.
+
 ## Linux49–60 content group
 
 Primary accepted all12 resource-limit/socket walkthroughs with direct optional comparisons and

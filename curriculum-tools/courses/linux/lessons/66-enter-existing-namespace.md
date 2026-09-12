@@ -100,12 +100,12 @@ On a permitted VM, nsenter_mount_type=tmpfs, private_file_inside=yes, private_fi
 Namespace handles let diagnostics join another process's view. This is how an operator inspects an isolated service while retaining exact ownership and cleanup boundaries.
 
 ## Optional variation
-**Predict:** Which command sees private-token before release: host test -f or nsenter test -f?
+Rerun the complete lesson, changing only printf private-token > to printf private-token-vary >
+in the inner helper. Keep the pathname, namespace checks, DONE release marker and cleanup.
+Use target_pid from the holder's PIDFILE for entry, then release through DONE and wait for that
+recorded holder.
 
-**Inspect and explain:** Explain why target_pid from the holder's PIDFILE is necessary before nsenter, and why private_file_inside=yes alone is not teardown evidence.
-
-**Vary:** Rerun the complete lesson, changing only printf private-token > to printf private-token-vary > in the inner helper. Keep the pathname, namespace checks, release marker and cleanup. The token contents do not determine mount visibility.
-
-**Hint:** Release through DONE and wait for the recorded holder; do not use a broad kill.
-
-**Apply:** An operator needs to inspect a service's private mount. Describe the target-PID, namespace-type, in-view, host-view, and cleanup evidence required for a safe diagnosis.
+Token contents do not determine mount visibility: after successful setup the file exists inside
+and is absent outside. Entry evidence is separate from teardown; mount_after_release=0 and
+cleanup verify release. The exact target, selected namespace type and inside/outside observations
+also define the scope of a service diagnostic.

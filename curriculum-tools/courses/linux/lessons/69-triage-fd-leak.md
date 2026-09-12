@@ -34,7 +34,7 @@ A large descriptor count might be a legitimate working set. A second work batch 
 - **python3 -u -c** starts unbuffered inline Python. **open(...,"w")** creates each file, and **files.append** retains its live file object. The exclusive upper bounds in **range(1,13)** and **range(13,49)** create twelve and thirty-six files respectively. The helper's monotonic deadline bounds waiting for GO; the final sleep bounds observation time.
 - **find /proc/PID/fd -mindepth 1 -maxdepth 1** prints only that directory's immediate descriptor entries, and **wc -l** counts them. Sampling after each gate avoids counting temporary coordination-file handles. The difference should be exactly 36 even if the initial count includes extra inherited descriptors.
 - **lsof -nP -p "$leak_pid"** selects this PID, suppresses hostname lookup with **-n**, and keeps ports numeric with **-P**. **grep -F "$PREFIX-"** retains literal run-specific file paths; **wc -l** counts those file rows, rather than counting every lsof reference.
-- **ls -l /proc/PID/fd** in the hint lists descriptor links in long format, so their targets are visible.
+- **ls -l /proc/PID/fd** in the variation lists descriptor links in long format, so their targets are visible.
 - **test -eq** asserts the growth and matching path counts. After exact termination and wait, **test ! -d /proc/PID/fd** confirms that descriptor table no longer exists. The cleanup loop removes only the 48 named files.
 
 ## Run
@@ -92,12 +92,12 @@ fd_after - fd_before is exactly 36, retained_lab_paths=48 and fd_leak_correlated
 Resource exhaustion depends on ownership, retention and the budget. A causal experiment changes one work batch and measures what remains afterward; a lifecycle fix must release references at the intended boundary.
 
 ## Optional variation
-**Predict:** Does the initial descriptor count have to equal twelve? Name the references that can add a fixed offset.
+Close the first batch just before READY by inserting **for f in files: f.close()** on its own
+Python line. Rerun with the final retained_lab_paths assertion changed from48 to36. Keep the
+growth assertion at36 and retain cleanup of all48 possible files. Before cleanup, run
+**ls -l "/proc/$leak_pid/fd"** to inspect the live links.
 
-**Inspect and explain:** Which output proves growth, which identifies the paths, and why is the unfiltered lsof row count unsuitable?
-
-**Vary:** Close the first batch just before READY by inserting **for f in files: f.close()** on its own Python line. Rerun with the final retained_lab_paths expectation changed from 48 to 36. The growth remains 36; the closed first batch no longer contributes live descriptors.
-
-**Hint:** Before cleanup, run **ls -l "/proc/$leak_pid/fd"** to inspect links. The gate-controlled counts supply the worked comparison.
-
-**Apply:** A long-running worker grows by 36 descriptors per batch. Estimate how many further batches its measured soft limit permits, and explain why raising the limit delays failure without correcting ownership.
+The closed first batch no longer contributes descriptors, so retained_lab_paths becomes36 while
+the second batch still adds36. Standard streams and inherited references can offset absolute
+counts. The filtered paths and count delta establish retention; unfiltered lsof includes other
+reference kinds. Raising a limit can postpone exhaustion without releasing any retained handle.

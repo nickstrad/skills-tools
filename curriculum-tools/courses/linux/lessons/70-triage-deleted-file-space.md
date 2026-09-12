@@ -13,7 +13,7 @@ minutes: 16
 revision: 2
 
 ## Overview
-A log pathname has disappeared, yet an open resource still owns its allocated blocks. Choose evidence that distinguishes visible directory contents from live file ownership, then verify the exact holder releases its reference. Host free-space changes are context, not a precise accounting experiment.
+A log pathname has disappeared, yet an open resource still owns its allocated blocks. Join the deleted pathname, allocated blocks and exact holder to distinguish visible directory contents from live file ownership, then verify that holder releases its reference. Host free-space changes are context, not a precise accounting experiment.
 
 ## Syntax breakdown
 ### In plain terms
@@ -35,7 +35,7 @@ Removing a name does not necessarily release a file's storage. Diagnose the diff
 - **python3 -u -c** opens the file in binary read mode, writes READY only after open succeeds, and holds the descriptor for at most twenty seconds. **test -s** checks the published descriptor record; **sleep .05** spaces ten bounded attempts. A failed readiness assertion ends the subshell with cleanup.
 - **rm "$FILE"** unlinks that name while the helper still has its file object. **lsof -nP -a -p "$holder_pid" +L1** intersects the PID filter and the link-count-below-one filter using **-a**. **-n** and **-P** suppress name conversion. **grep -F** matches the literal path and the deleted marker; **|| true** permits an empty diagnostic result, which the following assertion rejects.
 - **cat "$READY"** retrieves the descriptor number published by the helper. **stat -Lc %b /proc/PID/fd/FD** follows (**-L**) that exact file descriptor and formats (**-c**) its allocated 512-byte block count (**%b**). This is direct object evidence after the pathname is gone.
-- **ls -l /proc/PID/fd** in the hint shows the descriptor links and their targets in long format.
+- **ls -l /proc/PID/fd** in the variation shows the descriptor links and their targets in long format.
 - **test ! -d /proc/PID/fd** after wait verifies descriptor ownership ended. The final df sample can move in either direction under other workloads; it is not asserted to increase by exactly sixteen MiB.
 
 ## Run
@@ -88,12 +88,11 @@ allocated_kib_before is positive on a block-allocating filesystem, deleted_open_
 Names, open references and block allocation have different lifetimes. Diagnosis connects them through an exact owner; recovery must end the reference that holds the resource, rather than merely alter its name.
 
 ## Optional variation
-**Predict:** Which observation can still identify the file after its last directory entry is removed?
+Change **count=16** to **count=8** and rerun. Before stopping the holder,
+**ls -l "/proc/$holder_pid/fd"** shows its deleted link. Keep the exact-PID wait and cleanup.
 
-**Inspect and explain:** Match the exact PID, deleted pathname and allocated block count. Explain why deleting unrelated named files would not release this holder's reference.
-
-**Vary:** Change **count=16** to **count=8** and rerun. Compare held_file_blocks and the du difference; preserve the warning that host df deltas include other activity.
-
-**Hint:** Before stopping the holder, **ls -l "/proc/$holder_pid/fd"** shows its deleted link. The lsof intersection in the supplied experiment is the worked ownership query.
-
-**Apply:** A service retains yesterday's rotated log. Choose a graceful close/reopen or restart procedure and a postcondition that proves the old reference ended without claiming all host free-space changes came from this file.
+Compare held_file_blocks and the du difference for the smaller8MiB file. The lsof intersection
+still connects the deleted object to its owner; removing unrelated names would leave that
+reference intact. holder_after_stop=absent verifies release. A graceful close/reopen or restart
+of a real log writer likewise needs evidence that the old reference ended, while host df deltas
+can include unrelated allocation.

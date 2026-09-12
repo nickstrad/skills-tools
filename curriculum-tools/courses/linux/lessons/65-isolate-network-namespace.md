@@ -79,12 +79,10 @@ On a permitted VM, network_namespace_isolated=yes, inner_only_loopback=yes, and 
 Network namespaces isolate interfaces, routes, sockets, and port spaces. Keeping only loopback makes the boundary visible while preserving zero external traffic.
 
 ## Optional variation
-**Predict:** In a permitted fresh network namespace, which interface name should appear before any peer link is created?
+Rerun the complete lesson, changing ip link set lo up to ip link set lo down. Retain the fresh
+namespace, timeout and cleanup. When creation succeeds, the inventory still contains only lo:
+the interface exists even with its link down. Neither inventory establishes external connectivity.
 
-**Inspect and explain:** Explain why inner_only_loopback=yes demonstrates a view difference but does not demonstrate a usable external network.
-
-**Vary:** Rerun the complete lesson, changing ip link set lo up to ip link set lo down. Compare interface inventory: an interface can exist in a namespace while its link is down.
-
-**Hint:** Treat a denied unshare as missing evidence, not as proof that the host is isolated.
-
-**Apply:** A service's port is absent from host ss output. Which network-namespace handle and in-namespace socket evidence would you collect before deciding it is not listening?
+A denied unshare leaves the mechanism untested. Likewise, a service port absent from the host's
+ss view may belong to another network namespace; compare the service's namespace handle and
+socket view before concluding that it has no listener.

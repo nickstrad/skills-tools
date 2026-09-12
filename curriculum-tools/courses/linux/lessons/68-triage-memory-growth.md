@@ -13,7 +13,7 @@ minutes: 17
 revision: 2
 
 ## Overview
-A helper's memory footprint changes while host memory counters are noisy. Choose evidence that can attribute growth to this process, then compare two controlled allocation phases. Use the result to separate a local allocation trend from a claim about host pressure.
+A helper's memory footprint changes while host memory counters are noisy. Compare its process-specific readings across two controlled allocation phases to attribute the growth. Use the result to separate a local allocation trend from a claim about host pressure.
 
 ## Syntax breakdown
 ### In plain terms
@@ -100,12 +100,11 @@ The helper holds 16 MiB before the gate and 64 MiB after it. rss_after_kib excee
 Attribution requires a resource owner, a controlled interval and an accounting boundary. Correlating process growth with group and host totals is useful; equating those totals loses the causal information.
 
 ## Optional variation
-**Predict:** Which of RSS, virtual size, host available memory and cgroup usage can establish ownership of this growth by itself?
+Replace **for step in range(3)** with **for step in range(1)** and rerun. Keep the initial16MiB
+allocation, READY/GO/DONE coordination and cleanup. Before cleanup,
+**awk '/VmRSS:|VmSize:/{print}' "/proc/$memory_pid/status"** prints both process fields.
 
-**Inspect and explain:** Explain why the GO gate matters to attribution and why this one growth interval does not establish an unbounded memory leak.
-
-**Vary:** Replace **for step in range(3)** with **for step in range(1)** and rerun. The helper now holds 32 MiB at the end; compare the RSS delta rather than the host total.
-
-**Hint:** Before cleanup, **awk '/VmRSS:|VmSize:/{print}' "/proc/$memory_pid/status"** prints both process fields. The supplied before/after probe is the worked solution.
-
-**Apply:** A worker shares a cgroup with a cache process. Choose measurements needed before lowering the worker's budget, and state how you would distinguish retained application memory from a bounded cache.
+The helper now holds32MiB at the end. Compare its RSS delta with the original48MiB growth;
+exact accounting varies. The baseline before GO and sample after DONE tie the increase to this
+controlled allocation, but one bounded interval does not establish an unbounded leak. A shared
+cgroup total cannot separate this worker from a cache process without per-owner observations.

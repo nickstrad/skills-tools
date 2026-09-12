@@ -13,7 +13,7 @@ minutes: 16
 revision: 2
 
 ## Overview
-Two workers compete for one allowed CPU while host load may include unrelated activity. Decide which measurements establish local contention and which would be needed before claiming the whole machine needs more capacity. The supplied experiment lets you correlate placement, execution and exact process cleanup.
+Two workers compete for one allowed CPU while host load may include unrelated activity. Correlate their placement and execution to establish local contention, then compare that evidence with host-wide measurements. The supplied experiment also verifies exact process cleanup.
 
 ## Syntax breakdown
 ### In plain terms
@@ -34,7 +34,7 @@ A slow task can compete for its allowed CPU even when the machine has idle CPUs 
 - **python3 -c** runs the supplied helper. **os.sched_getaffinity(0)** reads this process's permitted CPUs; **min** chooses a valid CPU even in a restricted container. **taskset -c "$cpu"** restricts each child to that CPU. The Python worker uses **time.monotonic** for a six-second wall-time bound.
 - **python3 - "$PIDS"** reads a program from the quoted PROBE here-document and the PID file from its first argument. **rsplit(')',1)** skips the parenthesized process name safely. The following fields 11 and 12 are user and system ticks; the helper subtracts two samples one second apart and asserts each worker executed. It prints affinity again to verify placement.
 - **ps -o pid=,stat=,psr=,pcpu=,time=** selects PID, state, last processor, lifetime CPU percentage and accumulated CPU time; equals signs suppress headings. **-p** selects only our comma-separated PIDs. **tr** converts newlines to commas and **sed 's/,$//'** removes the final comma.
-- **taskset -pc PID** in the hint queries (**-p**) an existing PID and formats its affinity as a CPU list (**-c**); **head -n 1** selects the first PID record.
+- **taskset -pc PID** in the variation queries (**-p**) an existing PID and formats its affinity as a CPU list (**-c**); **head -n 1** selects the first PID record.
 - **cat /proc/loadavg** prints smoothed load and the instantaneous runnable/total count. **vmstat 1 2** takes two samples one second apart: the first includes averages since boot, while the second interval's **r**, **us**, **sy**, and **id** describe runnable tasks and host CPU use. Neither view isolates our CPU.
 - **test -d /proc/PID** checks whether a recorded process still has a procfs directory after wait. The remaining count must be zero; this proves worker cleanup, not restored performance of an unrelated application.
 
@@ -95,12 +95,11 @@ workers_started=2 and one selected_cpu are printed. Each worker reports that sam
 Capacity is constrained by the resources a workload may actually use. Join ownership, placement and interval execution before attributing a symptom to global load or choosing a capacity change.
 
 ## Optional variation
-**Predict:** If both tasks are runnable on one CPU, can either receive a full CPU-second during the same one-second interval? Explain what unrelated host load would change.
+Rerun with **for n in 1** instead of **for n in 1 2** and change the descriptive workers_started
+label to1. Keep the selected CPU, six-second bound and cleanup. Before the stop loop,
+**taskset -pc "$(head -n 1 "$PIDS")"** queries the first recorded live PID's affinity.
 
-**Inspect and explain:** Identify the two PID-specific observations that support local competition. Explain why a high host load value alone does not identify an owner.
-
-**Vary:** Rerun with **for n in 1** instead of **for n in 1 2** and change the descriptive workers_started label to 1. Keep the selected CPU and six-second bound. Compare the worker's tick delta; do not require a fixed ratio.
-
-**Hint:** The runnable command **taskset -pc "$(head -n 1 "$PIDS")"** inspects the first recorded live PID. Use it before the stop loop; the tick probe is the worked measurement.
-
-**Apply:** A service is pinned to one busy CPU while other allowed CPUs are idle. Defend either relaxing affinity or adding capacity, naming a request-latency measurement you would collect before and after.
+Compare its positive tick delta with the two-worker run without requiring a fixed ratio. Both
+the allowed CPU set and interval execution belong to the recorded task; host load includes other
+work. A service limited to one busy CPU needs request-latency evidence before and after a placement
+or capacity change to show whether that change helps.

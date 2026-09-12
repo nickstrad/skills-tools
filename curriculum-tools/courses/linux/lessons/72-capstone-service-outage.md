@@ -13,7 +13,7 @@ minutes: 30
 revision: 2
 
 ## Overview
-A loopback service still has a listening socket, but a bounded health request receives no answer. Its process also holds a deleted log and several open files. Decide which observation explains the outage, which observations describe retained resources, and what evidence would prove availability recovered.
+A loopback service still has a listening socket, but a bounded health request receives no answer. Its stopped process also holds a deleted log and several open files. Correlate process state, endpoint ownership and the request result, resume the same process, then verify a correct reply before separate resource teardown.
 
 ## Syntax breakdown
 ### In plain terms
@@ -37,7 +37,7 @@ A live process and a listening socket do not guarantee useful work. This inciden
 - **probe_service** runs the quoted PROBE here-document using **python3 - "$port"**. **socket.create_connection(...,timeout=.3)** bounds connection and response waiting. It sends ping, reads at most 64 bytes, compares the complete reply, and distinguishes healthy, timeout, wrong-response and socket-error. A connected socket alone is insufficient.
 - **kill -STOP** injects a reversible stop; **ps -o stat= -p PID**, **tr -d ' '** and **cut -c1** isolate its state letter. A bounded loop requires **T** before probing. In the investigation view, **ps -o pid=,stat=,pcpu=,time=** shows identity, state, lifetime CPU fraction and accumulated CPU time.
 - **ss -ltnp "sport = :$port"** filters the listening TCP endpoint by source port and requests numeric addresses and owner information. **find /proc/PID/fd -mindepth 1 -maxdepth 1 | wc -l** counts that task's descriptors. **lsof -nP -a -p PID +L1** intersects the exact PID and zero-link files, and **grep -F "$LOG"** selects this deleted log.
-- **kill -CONT** is the worked intervention. A second real ping must receive the correct reply from the same endpoint. Only afterward does **kill -TERM** request graceful shutdown; **wait** supplies its exit status. **ss -H -ltn** suppresses headings for the empty-listener check. Exact file absence, an absent process and zero status independently verify teardown.
+- **kill -CONT** resumes the stopped service. A second real ping must receive the correct reply from the same endpoint. Only afterward does **kill -TERM** request graceful shutdown; **wait** supplies its exit status. **ss -H -ltn** suppresses headings for the empty-listener check. Exact file absence, an absent process and zero status independently verify teardown.
 
 ## Caution
 Use only this experiment's exact PID and loopback port. The service holds twelve tiny files and a one-MiB deleted log. The watchdog resumes and terminates its recorded process after fifteen seconds; the normal helper deadline is twenty seconds. Run the supplied sections promptly, or restart the full bounded experiment for more investigation time. Never send signals to a PID selected only by a matching process name.
@@ -123,7 +123,7 @@ PROBE
 baseline=$(probe_service)
 printf 'baseline_response=%s\n' "$baseline"
 [ "$baseline" = healthy ] || exit 1
-# Controlled fault injection. In guided mode, make a hypothesis from the symptom first.
+# Stop the service to suspend its request handling while retaining kernel resources.
 kill -STOP "$service_pid"
 for attempt in $(seq 1 100); do
   state=$(ps -o stat= -p "$service_pid" | tr -d ' ' | cut -c1)
@@ -133,7 +133,7 @@ done
 [ "$state" = T ] || exit 1
 failed=$(probe_service)
 printf 'incident_response=%s\nservice_pid=%s\nport=%s\n' "$failed" "$service_pid" "$port"
-# Investigation: choose your evidence before running the worked observations below.
+# Correlate the stopped process with its listener, descriptors and deleted log.
 ps -o pid=,stat=,pcpu=,time= -p "$service_pid"
 listener=$(ss -ltnp "sport = :$port")
 printf '%s\n' "$listener"
@@ -174,12 +174,15 @@ baseline_response=healthy establishes useful service. During the incident, incid
 Availability is an end-to-end property: retained kernel objects and connection setup are weaker evidence than a correct application response. Separate causal diagnosis, service recovery and resource teardown so one success cannot stand in for the others.
 
 ## Optional variation
-**Incident brief:** A local health probe times out even though the endpoint appears to be listening. The process has multiple descriptors and a deleted log. Before reading the worked injection or expected result, give two competing explanations and choose three observations that can distinguish them.
+Rerun with **range(1,13)** changed to **range(1,7)** in the helper and the minimum descriptor
+assertion changed from16 to10. Keep the cleanup loops, watchdog, request probes and signal
+sequence unchanged. During investigation, before CONT, the existing views can also be read with
+**ps -o pid,stat,time -p "$service_pid"**, **ss -ltnp "sport = :$port"**, and
+**lsof -nP -a -p "$service_pid" +L1**, using the exact saved PID and port.
 
-**Inspect and explain:** Use the exact PID and port printed by the experiment. Explain which evidence is causal for the missing response and which only establishes resource ownership. Do not assume every unusual observation is a fault.
-
-**Hint 1:** Compare process state with endpoint state and the actual reply. **Hint 2 (runnable):** During investigation run **ps -o pid,stat,time -p "$service_pid"**, **ss -ltnp "sport = :$port"**, and **lsof -nP -a -p "$service_pid" +L1**. **Worked intervention:** Continue with the supplied intervention section when you want the answer.
-
-**Vary:** Rerun with **range(1,13)** changed to **range(1,7)** in the helper and the minimum descriptor assertion changed from 16 to 10. Keep the cleanup loops unchanged. Does reducing the fixed file set restore responses while the task is stopped?
-
-**Apply:** Submit a short incident record: two hypotheses, three measured observations, the least disruptive justified intervention, a successful response, exact cleanup evidence and one limit of the experiment. Explain what load and crash-recovery tests would still be needed before making a production capacity or durability claim.
+Six retained files reduce the fixed descriptor set but do not restore responses while the process
+is stopped. The incident still has stateT, LISTEN and a timed-out health request. CONT restores
+the correct reply from the same endpoint; TERM and the final checks then verify separate teardown.
+The deleted log and open files establish ownership, while the controlled stop/continue comparison
+explains this outage. Sustained-load and crash-recovery tests would be separate experiments before
+making capacity or durability claims.

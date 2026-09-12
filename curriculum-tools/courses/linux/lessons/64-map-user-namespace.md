@@ -75,12 +75,11 @@ On a VM allowing user namespaces, unshare_status=0, inner_uid=0, uid_map_seen co
 User namespaces give a process a translated credential view. Namespace root is not automatically host root; capability checks use the mapped user namespace context.
 
 ## Optional variation
-**Predict:** If inner_uid=0 appears, is the outer account now host root? Explain using uid_map.
+In a complete rerun, replace every id -u with id -g, outer_uid with outer_gid, inner_uid with
+inner_gid, and uid_map with gid_map. Keep --map-root-user and cleanup. Compare the resulting
+group mapping with the original user mapping.
 
-**Inspect and explain:** Read uid_map_seen as inner range, outer range, and length. Explain what mapping evidence is absent on a policy skip.
-
-**Vary:** In a complete rerun, replace every id -u with id -g, outer_uid with outer_gid, inner_uid with inner_gid, and uid_map with gid_map. Keep --map-root-user. Compare the resulting group mapping with the original user mapping.
-
-**Hint:** id -g reports the effective group ID; gid_map describes its mapping. User and group numbers have meaning only with the namespace mapping that interprets them.
-
-**Apply:** A process reports UID 0 inside a sandbox. What mapping and capability-context evidence would you need before authorizing a host-level action?
+id -g reports the effective group ID, while gid_map gives the inner range, outer range and length
+that interpret it. On a permitted run, inner0 maps to the caller's outer identity; a policy skip
+provides no mapping evidence. An inner zero alone does not establish host-level authority, which
+also depends on the user-namespace and capability context.

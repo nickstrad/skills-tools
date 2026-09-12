@@ -83,12 +83,11 @@ On a permitted VM, unshare_status=0, inside_mount=tmpfs, outside_mount_type is n
 Mount namespaces isolate the VFS topology consulted by path lookup. A mount can be usable to one process tree while absent from another, a core filesystem isolation primitive.
 
 ## Optional variation
-**Predict:** If the private mount succeeds, which findmnt call should return tmpfs: inner, outer, or both?
+Copy the full lesson into a private disposable-VM run and change only **size=1M** to
+**size=512K**. Keep the generated mountpoint, explicit unmount and cleanup.
 
-**Inspect and explain:** Explain why inside_mount=tmpfs plus outside_mount_type!=tmpfs demonstrates topology visibility, while neither value proves a host permission policy.
-
-**Vary:** Copy the full lesson into a private disposable-VM run and change only **size=1M** to **size=512K**. It keeps the same generated mountpoint and explicit unmount, and changes the allocation ceiling only.
-
-**Hint:** A successful unshare is prerequisite evidence; do not treat skipped-or-unexpected as success.
-
-**Apply:** A service sees a different configuration file than the host shell. Which mount-namespace and path-resolution evidence would you gather before changing the host file?
+The smaller ceiling leaves the visibility comparison unchanged: after successful creation, the
+inner view selects tmpfs while the outer view selects its original filesystem. Skipped or
+unexpected evidence cannot establish isolation. When a service sees different file contents,
+compare its mount-namespace handle and path resolution with the diagnostic shell before changing
+the file seen from the host.
