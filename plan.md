@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — nothing delegated. Next: WP3.6 parity C and write smoke through `bin/tutor`, then Phase 9 (WP9.1, WP9.2), then WP4.3.**
+**Status: in progress — nothing delegated. Phase 9 in progress (primary): WP9.1 consolidated schema + `tutor progress consolidate`, then WP9.2 switch and parity-d, then WP4.3.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -63,7 +63,7 @@ a separate handoff document.
 | WP3.3 new-course scaffold | S | done | 5f35a4c | package `internal/scaffold` (not `internal/cli`); CLI wiring in WP3.1 |
 | WP3.4 links and install | S | done | 1c96ad4 | package `internal/links`; `install` command wired in WP3.1 |
 | WP3.5 Launcher | S | done | c05d4e4 | `env -i` run from /tmp works; second run 0.33 s; `tutor version` prints the git short hash |
-| WP3.6 Parity gate C and smoke | S | todo | | |
+| WP3.6 Parity gate C and smoke | S | done | plan-only commit | rerun through `bin/tutor` from /tmp: 1145 files, 0 differences (`$WORK/parity-c/report.txt`); write smoke on a copy passed (`$WORK/parity-c/smoke.sh`: init, done, undone, skip, note, `## Your note`, status --json, `3 lesson` == `lesson 3`); no `render-check` command ever existed, so nothing to remove; real database hashes unchanged |
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
 | WP4.2 roadmap package and command | O | done | 07d2ede + wiring commit | package by an opus subagent, `internal/cli/roadmap.go` by the primary; uses `<root>/tutor.sqlite` already (the Phase 9 file); real machine import happens in WP4.3 |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
