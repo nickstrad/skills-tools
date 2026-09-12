@@ -18,9 +18,8 @@ Run a supplied client that commits an increment but withholds the application's 
 ## Syntax breakdown
 ### In plain terms
 An acknowledgement is a response telling the caller how an operation finished. If it disappears,
-the caller has an unknown outcome: it lacks enough evidence to say committed or aborted. Before
-running, predict whether closing a request connection can undo a transaction whose COMMIT already
-succeeded.
+the caller has an unknown outcome: it lacks enough evidence to say committed or aborted. Observe
+the durable result after closing a request connection whose COMMIT already succeeded.
 
 The supplied service receives PostgreSQL's successful COMMIT response and intentionally withholds
 its own response. The simulated caller gets no outcome. You can see more than that caller because
@@ -45,9 +44,8 @@ Missing acknowledgement describes the caller's knowledge, not a rollback.
 ```
 
 ### Terminals and cleanup
-Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
-the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
-creates a private cluster. On normal exit, check the printed the controller's schema removal record; on Ctrl-C, wait for cleanup
+Run this lesson in one shell, outside psql. The supplied client opens its own bounded database
+connections to the learner lab. On normal exit, check the controller's printed schema removal record; on Ctrl-C, wait for cleanup
 to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
 and check that the owned resource is removed before trying again.
 ### What you are learning
@@ -117,7 +115,7 @@ cleanup = "schema removed"; the schema name varies.
 Commit and response delivery are separate events. The service knew the database committed, but its caller never received that evidence. A process failure or transport loss around COMMIT can create a similar knowledge gap for the database client; this experiment demonstrates the application response boundary only. Reconnecting is useful for reconciliation, but observing a shared balance would not identify a particular request amid other writers. The safe next step is to resolve the original request by durable identity or use a protocol that makes a repeated submission harmless for the specified effect. Do not feed unknown outcomes into lesson 10's known-abort retry loop. These are committed-state observations on one running server, not a crash-recovery or replica-durability test.
 
 ## Optional variation
-Optional, outside the core time budget: predict what changes when the original connection closes before COMMIT. Run in the same shell:
+Optional, outside the core time budget: compare the result when the original connection closes before COMMIT. Run in the same shell:
 
 ```sh
 python3 courses/postgres-essentials/lab/unknown_outcome.py --mode before-commit

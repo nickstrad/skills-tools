@@ -20,7 +20,8 @@ Run a supplied controller that creates a small private PostgreSQL server, perfor
 WAL, the write-ahead log, records changes before changed data pages need to reach their final files.
 Recovery replays logged work from an earlier checkpoint after an unclean server stop. Transaction
 outcome is a separate part of the story: a replayed version is not automatically a committed version
-that a new reader may see. Predict the recovered values of the three business rows before running.
+that a new reader may see. Compare the recovered values of the three business rows with their
+transaction outcomes.
 
 ### Mechanism map
 
@@ -39,9 +40,8 @@ Replaying a change does not make its transaction committed or visible.
 ```
 
 ### Terminals and cleanup
-Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
-the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
-creates a private cluster. On normal exit, check the printed the controller's owned cluster removal record; on Ctrl-C, wait for cleanup
+Run this lesson in one shell, outside psql. The supplied controller creates a private cluster and
+opens its own bounded database connections. On normal exit, check its printed owned cluster removal record; on Ctrl-C, wait for cleanup
 to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
 and check that the owned resource is removed before trying again.
 ### What you are learning

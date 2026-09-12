@@ -22,8 +22,8 @@ and both successfully write: the later replacement can erase the earlier change.
 keeps the arithmetic with the row. If another transaction is changing that row, PostgreSQL waits,
 then applies the arithmetic to the committed current version rather than the stale one.
 
-Before the second round, predict whether B will leave 120 or 130. You do not need to record an
-answer; the pause and the final labelled value will test the model directly.
+In the second round, observe B waiting for A, then read the final labelled value: 130 shows that
+B's arithmetic used the committed current balance after A released the row lock.
 
 ### Mechanism map
 

@@ -19,8 +19,8 @@ Let two callers decide whether the last unit of stock can be reserved. First, bo
 ### In plain terms
 The last lesson kept arithmetic in one UPDATE so concurrent increments were not lost. That does
 not make an earlier yes-or-no decision current. Here a reservation is valid only while remaining
-stock is positive. Before running, predict whether server-side arithmetic alone can preserve that
-rule after two callers have both seen the same last unit.
+stock is positive. Compare server-side arithmetic after two callers have both seen the same last
+unit with a decision protected by a row lock.
 
 SELECT FOR UPDATE is a locking read: it returns the row and reserves the right to change it until
 the transaction ends. A competing locking reader waits. Under Read Committed, that reader then

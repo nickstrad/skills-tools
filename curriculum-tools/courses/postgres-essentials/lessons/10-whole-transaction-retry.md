@@ -19,8 +19,8 @@ Run a supplied client that handles the serialization failure from the last lesso
 ### In plain terms
 A retry is a new attempt at the whole database transaction, including the logic that chose the
 writes. SQLSTATE is PostgreSQL's five-character error identifier; 40001 reports a serialization
-failure, which means this attempt did not commit. Before running, predict whether a successful
-retry must still carry out Bob's original plan to leave.
+failure, which means this attempt did not commit. Observe how a successful retry re-evaluates
+Bob's original plan to leave using a fresh snapshot.
 
 The client applies the same rule as lessons 8–9: someone may leave only when more than one doctor
 is on call. It supplies two database connections and the terminal switching for you. Read the
@@ -41,9 +41,8 @@ The request was reconsidered. Bob did not leave on the second attempt.
 ```
 
 ### Terminals and cleanup
-Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
-the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
-creates a private cluster. On normal exit, check the printed the controller's schema removal record; on Ctrl-C, wait for cleanup
+Run this lesson in one shell, outside psql. The supplied client opens its own bounded database
+connections to the learner lab. On normal exit, check the controller's printed schema removal record; on Ctrl-C, wait for cleanup
 to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
 and check that the owned resource is removed before trying again.
 ### What you are learning
@@ -114,7 +113,7 @@ choose a different victim. Both places belong inside the retry boundary.
 Retry repeats a decision against a new database state. Retrying only the failed UPDATE, or carrying the old 'leave' decision into a new transaction, omits the read that justified it. Serializable protects committed results when every relevant transaction follows the rule and uses the isolation protocol; it does not promise that every requested action becomes valid. The client may stop after a known abort and report failure without breaking the invariant. This fixture has only transactional database writes. An email or remote API call inside an attempt would not roll back with PostgreSQL. A lost response to COMMIT also leaves a different question: the caller may not know whether it committed. Lessons 11–12 handle that boundary; this loop does not replay unknown outcomes.
 
 ## Optional variation
-Optional, after the core time budget: predict the attempt count and Bob's decision with no competing Alice transaction. In the same shell run:
+Optional, after the core time budget: compare the attempt count and Bob's decision with no competing Alice transaction. In the same shell run:
 
 ```sh
 python3 courses/postgres-essentials/lab/retry.py --mode no-conflict

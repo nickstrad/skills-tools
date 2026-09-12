@@ -146,7 +146,7 @@ Cleanup drops pe_visibility_cover and restores the session settings.
 A secondary structure can contain the answer's values while still depending on metadata maintained elsewhere for correctness. PostgreSQL's visibility map is page-level proof that lets an index-only executor omit tuple-level heap checks. Update rate, page locality and vacuum progress therefore affect the realized benefit of a covering index, while INCLUDE columns also add write and storage cost. Treat plan shape together with Heap Fetches as workload evidence rather than assuming coverage guarantees heap-free reads.
 
 ## Optional variation
-Optional non-covering variation, independently runnable. If interrupted, ROLLBACK, drop pe_visibility_variation and reset lock_timeout and statement_timeout. Predict the node type before running it:
+Optional non-covering variation, independently runnable. If interrupted, ROLLBACK, drop pe_visibility_variation and reset lock_timeout and statement_timeout. Compare the node type and heap work with the covering-index core:
 
 ```sql
 set lock_timeout = '3s';

@@ -19,8 +19,8 @@ Hold a row change open in one session and watch another session wait for that ro
 ### In plain terms
 A blocker is a database session whose unfinished transaction prevents another session from making
 progress. PostgreSQL reports both the kind of wait and the process ID, or PID, of each blocker.
-Before running, predict whether matching application names or PostgreSQL's PID edge is stronger
-evidence of which transaction controls B's progress.
+Use PostgreSQL's PID edge to identify which transaction controls B's progress; application names
+label the clients but do not establish that blocking relationship.
 
 ### Mechanism map
 
@@ -148,7 +148,7 @@ final_balance = 130. The fixture is dropped and both sessions restore their sett
 Start diagnosis with the waiting backend, then follow PostgreSQL's blocker edges to the transaction that controls progress. A recognizable application_name helps ownership, while PID edges, transaction start time and current state supply the database evidence. A long transaction can block work while doing no current query; an active diagnostic can also make the holder appear active. Ending the right transaction releases the wait, but production cancellation or termination needs an ownership and impact decision this bounded lesson does not make.
 
 ## Optional variation
-Optional, after the core time budget: predict the surviving balance when the holder rolls back. Run these self-contained labelled blocks:
+Optional, after the core time budget: compare the surviving balance when the holder rolls back. Run these self-contained labelled blocks:
 
 ```sql
 -- Session A: recreate the independent fixture.

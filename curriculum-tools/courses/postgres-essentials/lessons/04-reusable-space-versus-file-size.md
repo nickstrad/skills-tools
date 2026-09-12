@@ -13,7 +13,7 @@ minutes: 25
 revision: 1
 
 ## Overview
-Delete a bounded table population, vacuum it without allowing tail truncation, then insert the same rows again. Compare logical rows, physical dead versions, free bytes and allocated heap bytes at every phase. Before running it, predict whether vacuum must make the heap smaller for the refill to fit without growth.
+Delete a bounded table population, vacuum it without allowing tail truncation, then insert the same rows again. Compare logical rows, physical dead versions, free bytes and allocated heap bytes at every phase. Observe how the refill uses reclaimed space while the heap file keeps its allocation.
 
 ## Syntax breakdown
 ### In plain terms

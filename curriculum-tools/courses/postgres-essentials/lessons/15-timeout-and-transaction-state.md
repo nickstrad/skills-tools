@@ -19,8 +19,8 @@ Trigger a lock timeout and a statement timeout inside explicit transactions. Cap
 ### In plain terms
 A server timeout cancels a statement when its configured limit expires. Inside an explicit BEGIN,
 that error also marks the transaction as failed; the connection remains inside that failed block
-until ROLLBACK. Before running, predict whether an earlier successful UPDATE in the same transaction
-can still commit after a later statement times out.
+until ROLLBACK. Observe how a later statement timeout affects an earlier successful UPDATE in
+the same transaction: ending the failed block rolls back its work and releases its locks.
 
 ### Mechanism map
 

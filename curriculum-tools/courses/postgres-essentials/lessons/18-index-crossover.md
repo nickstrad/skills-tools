@@ -13,7 +13,7 @@ minutes: 25
 revision: 1
 
 ## Overview
-Run the same range query at narrow and broad selectivity against one analyzed table. PostgreSQL should use the B-tree to fetch a few heap rows, then prefer one sequential pass when most rows and their payload are needed. Predict the two access paths before revealing the plans, then use their row and buffer evidence to explain the choice.
+Run the same range query at narrow and broad selectivity against one analyzed table. PostgreSQL should use the B-tree to fetch a few heap rows, then prefer one sequential pass when most rows and their payload are needed. Compare the two access paths using their row and buffer evidence.
 
 ## Syntax breakdown
 ### In plain terms
@@ -136,7 +136,7 @@ and cost assumptions. Cleanup drops pe_index_crossover and restores the session 
 An index is an alternate access path with its own traversal and heap-fetch costs. Choose it from the workload's predicates, projected columns, distribution and measured plans rather than from a generic selectivity rule. Production decisions also need representative data volume, cache state, write cost and concurrency; this bounded fixture isolates only the access-path crossover.
 
 ## Optional variation
-Optional medium-range variation, independently runnable. Predict the node, then run the whole block; the lesson does not require one fixed choice because small cost or version differences can move the crossover. Explain the chosen node from its estimate and buffers.
+Optional medium-range variation, independently runnable. Run the whole block and compare the chosen node, its estimate and its buffers with the core plans. Small cost or version differences can move the crossover, so this variation does not require one fixed plan choice.
 
 ```sql
 -- Session A: recreate the fixture and inspect an intermediate selectivity.

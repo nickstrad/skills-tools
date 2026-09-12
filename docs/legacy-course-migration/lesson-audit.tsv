@@ -1,10 +1,10 @@
 course	ordinal	slug	classification	changed_fields	reviewer	notes
-grpc	1	message-to-bytes	pending			
-grpc	2	absent-versus-zero	pending			
-grpc	3	read-an-evolved-message	pending			
-grpc	4	discover-and-call	pending			
-grpc	5	status-metadata-and-streams	pending			
-grpc	6	timeout-and-retry	pending			
+grpc	1	message-to-bytes	unchanged		primary	Message encoding and renamed-field decoding; complete local walkthrough and owned cleanup; no reinstall or experiment change
+grpc	2	absent-versus-zero	unchanged		primary	Implicit/explicit presence byte comparison; complete local walkthrough and owned cleanup; no reinstall or experiment change
+grpc	3	read-an-evolved-message	unchanged		primary	Old-schema read and reserved-tag failure; complete local walkthrough and owned cleanup; no reinstall or experiment change
+grpc	4	discover-and-call	unchanged		primary	Generated stubs and reflection/local-schema RPCs; complete local walkthrough and owned cleanup; no reinstall or experiment change
+grpc	5	status-metadata-and-streams	unchanged		primary	Metadata/status and partial stream outcomes; complete local walkthrough and owned cleanup; no reinstall or experiment change
+grpc	6	timeout-and-retry	unchanged		primary	Deadline/duplicate-effect and request-identity comparison; complete local walkthrough and owned cleanup; no reinstall or experiment change
 linux	1	build-disposable-linux-lab	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
 linux	2	identify-kernel-and-userspace	prose/diagram only	Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
 linux	3	inventory-required-commands	prose/diagram only	Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
@@ -169,32 +169,32 @@ postgres	89	corrupt-a-page-and-detect-it	pending
 postgres	90	wraparound-drill	pending			
 postgres	91	runaway-query-and-cancel	pending			
 postgres	92	postmortem-from-the-log	pending			
-postgres-essentials	1	committed-row-visibility	pending			
-postgres-essentials	2	statement-versus-transaction-snapshot	pending			
-postgres-essentials	3	old-reader-retains-history	pending			
-postgres-essentials	4	reusable-space-versus-file-size	pending			
-postgres-essentials	5	lost-update-and-atomic-write	pending			
-postgres-essentials	6	row-lock-protects-decision	pending			
-postgres-essentials	7	reject-stale-edit	pending			
-postgres-essentials	8	multi-row-write-skew	pending			
-postgres-essentials	9	serializable-protects-invariant	pending			
-postgres-essentials	10	whole-transaction-retry	pending			
-postgres-essentials	11	unknown-commit-outcome	pending			
-postgres-essentials	12	durable-request-identity	pending			
-postgres-essentials	13	find-the-blocker	pending			
-postgres-essentials	14	deadlock-cycle	pending			
-postgres-essentials	15	timeout-and-transaction-state	pending			
-postgres-essentials	16	read-a-plan-as-evidence	pending			
-postgres-essentials	17	statistics-and-estimates	pending			
-postgres-essentials	18	index-crossover	pending			
-postgres-essentials	19	composite-index-order	pending			
-postgres-essentials	20	index-only-needs-visibility	pending			
-postgres-essentials	21	sort-spill	pending			
-postgres-essentials	22	join-memory	pending			
-postgres-essentials	23	commit-and-wal	pending			
-postgres-essentials	24	wal-per-useful-write	pending			
-postgres-essentials	25	checkpoint-writeback	pending			
-postgres-essentials	26	crash-replay	pending			
+postgres-essentials	1	committed-row-visibility	unchanged		primary	Direct two-session committed/private visibility walkthrough and cleanup; unchanged
+postgres-essentials	2	statement-versus-transaction-snapshot	unchanged		primary	Direct RC/RR snapshot comparison with transaction endings and cleanup; unchanged
+postgres-essentials	3	old-reader-retains-history	unchanged		primary	Direct held-reader/released-reader vacuum comparison; local horizon interpretation and cleanup; unchanged
+postgres-essentials	4	reusable-space-versus-file-size	prose/diagram only	Overview	primary	Replaced pre-run prediction with observation of reclaimed capacity; refill experiment retained
+postgres-essentials	5	lost-update-and-atomic-write	prose/diagram only	SyntaxBreakdown	primary	Replaced forced prediction with observed atomic balance130 and lock ordering
+postgres-essentials	6	row-lock-protects-decision	prose/diagram only	SyntaxBreakdown	primary	Replaced prediction with direct unguarded/locking-read decision comparison
+postgres-essentials	7	reject-stale-edit	prose/diagram only	SyntaxBreakdown,Challenge	primary	Replaced core and optional predictions with stale-token evidence; all SQL retained
+postgres-essentials	8	multi-row-write-skew	prose/diagram only	SyntaxBreakdown	primary	Replaced pre-run prediction with observation of the supplied write-skew final count
+postgres-essentials	9	serializable-protects-invariant	prose/diagram only	SyntaxBreakdown	primary	Replaced prediction with direct Repeatable Read/Serializable evidence comparison
+postgres-essentials	10	whole-transaction-retry	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct retry/no-conflict observations; one-shell controller connections and schema cleanup clarified
+postgres-essentials	11	unknown-commit-outcome	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct before/after-COMMIT outcome comparison; one-shell connections and schema cleanup clarified
+postgres-essentials	12	durable-request-identity	prose/diagram only	SyntaxBreakdown	primary	Replaced prediction with observing request-identity wait then receipt after decision
+postgres-essentials	13	find-the-blocker	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct blocker-PID evidence and holder-rollback comparison; session schedule preserved
+postgres-essentials	14	deadlock-cycle	prose/diagram only	SyntaxBreakdown	primary	Replaced prediction with locally interpreted victim selection; supplied deadlock cleanup preserved
+postgres-essentials	15	timeout-and-transaction-state	prose/diagram only	SyntaxBreakdown	primary	Replaced prediction with timeout/failed-block outcome; rollback and lock release explained
+postgres-essentials	16	read-a-plan-as-evidence	prose/diagram only	Challenge	primary	Direct optional selectivity comparison; legitimate planner prediction terms and phase labels retained
+postgres-essentials	17	statistics-and-estimates	unchanged		primary	Direct stale/refreshed statistics comparison and independently runnable variation; unchanged
+postgres-essentials	18	index-crossover	prose/diagram only	Overview,Challenge	primary	Direct access-path evidence instead of prediction/reveal; optional crossover remains unconstrained
+postgres-essentials	19	composite-index-order	unchanged		primary	Direct composite-index order experiment and reverse-order variation; unchanged
+postgres-essentials	20	index-only-needs-visibility	prose/diagram only	Challenge	primary	Direct non-covering variation observation; supplied SQL and visibility interpretation retained
+postgres-essentials	21	sort-spill	unchanged		primary	Direct spill/memory comparison and bounded-LIMIT variation; unchanged
+postgres-essentials	22	join-memory	unchanged		primary	Direct hash-batch comparison and multiplier variation; unchanged
+postgres-essentials	23	commit-and-wal	prose/diagram only	Challenge	primary	Direct optional rollback WAL/row observation; identical commands and expected evidence
+postgres-essentials	24	wal-per-useful-write	prose/diagram only	Challenge	primary	Direct intermediate-batch WAL comparison; denominator and executable variation retained
+postgres-essentials	25	checkpoint-writeback	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct dirty-page/backend/visibility evidence and COMMIT variation; private controller ownership explicit
+postgres-essentials	26	crash-replay	prose/diagram only	SyntaxBreakdown	primary	Direct recovered-row comparison; private controller ownership explicit; clean-stop variation retained
 sqlite	1	build-sqlite-lab	pending			
 sqlite	2	inspect-build-capabilities	pending			
 sqlite	3	share-one-file-between-sessions	pending			

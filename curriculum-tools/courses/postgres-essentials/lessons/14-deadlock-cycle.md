@@ -18,8 +18,8 @@ Make two complete transaction attempts acquire the same two rows in opposite ord
 ## Syntax breakdown
 ### In plain terms
 A deadlock is a cycle of transactions that are each waiting for another in the same cycle. Waiting
-longer cannot solve it, so PostgreSQL aborts one transaction. Before running, predict whether the
-server promises that A or B will be chosen.
+longer cannot solve it, so PostgreSQL aborts one transaction. Observe which participant receives
+the error; the server does not promise that a particular session will be chosen.
 
 ### Mechanism map
 

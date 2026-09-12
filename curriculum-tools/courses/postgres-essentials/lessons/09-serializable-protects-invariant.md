@@ -21,8 +21,8 @@ Serializable asks PostgreSQL to allow only outcomes equivalent to transactions r
 time. The transactions may still overlap physically. When their observed facts and writes form an
 impossible serial order, PostgreSQL aborts one participant instead of publishing a broken rule.
 
-Before running, predict which evidence changes from the Repeatable Read experiment: the two reads,
-the two UPDATE results, a COMMIT outcome, or the final row count.
+Compare the evidence with the Repeatable Read experiment: the two reads,
+the two UPDATE results, a COMMIT outcome, and the final row count.
 
 ### Mechanism map
 

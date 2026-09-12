@@ -153,7 +153,7 @@ and restores both session guards.
 An acknowledgement contract names the boundary crossed before success is returned. WAL ordering keeps the database recoverable, while synchronous_commit chooses whether this client waits for the local durability boundary. Similar choices appear in replicated logs and storage APIs: define whether success means accepted in memory, written by an operating system, durably stored, or replicated, then monitor the position that represents that promise.
 
 ## Optional variation
-Optional rollback variation, independently runnable. Predict whether WAL can advance even though no row remains:
+Optional rollback variation, independently runnable. Observe the WAL position alongside the final row count to distinguish logged work from committed visibility:
 
 ```sql
 set lock_timeout = '3s';

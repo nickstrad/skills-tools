@@ -51,6 +51,31 @@ These are editorial changes, so the existing real-tool evidence applies without 
 Concise verification log: `.cache/legacy-migration/postgres-six-parity.log`; its renders are retained
 until final migration acceptance. The temporary catalog was removed and no lab was allocated.
 
+## Essentials and gRPC presentation audit
+
+All26 authored Essentials lessons and all6 gRPC lessons are primary-reviewed. Essentials has19
+wording-only edits:04–16,18,20,23–26. The other7 Essentials lessons and all6 gRPC lessons remain
+byte-identical in parsed content. The broader audit found optional/core prompts beyond the initial
+examples in the plan, including05/08/11/16/20/23/24. Lesson19 already had a direct comparison.
+
+The revised prose gives observations and local interpretation without a prediction/reveal task.
+Essentials10/11 now describe one shell with controller-managed connections to the learner lab;
+25/26 explicitly describe their private-cluster controllers. Required manual A/B terminal schedules
+remain unchanged. Searches were reviewed in context: planner predictions, a waiting database
+statement and submitting an application edit remain legitimate technical language.
+
+All32 lessons passed exact parsed command/metadata/revision comparison and CLI plain/ANSI/JSON
+rendering against a fresh disposable catalog. All fenced and indented blocks in every prose field
+(including diagrams, connection commands and optional SQL/programs) match the baseline exactly.
+Primary reviewed changed prose, evidence and representative rendered diagrams/cleanup/footer flow.
+`postgres-essentials check` and `grpc check` pass with26/6 authored lessons. No experiment was
+changed, so existing runtime evidence remains applicable; the pruned gRPC tools were not reinstalled.
+
+Verification log: `.cache/legacy-migration/essentials-grpc-parity.log`; the32 paired views remain in
+`review/essentials-grpc/` until final acceptance. The temporary catalog was removed. All legacy backup
+hashes still match the baseline manifest. Essentials' live catalog refresh remains pending with the
+final rollout, and its current learner history has not been changed.
+
 ## SQLite52/54 real-tool acceptance
 
 2026-09-12: `bin/tutor sqlite-legacy validate --isolated --keep 52 54` passed with SQLite3.53.4.

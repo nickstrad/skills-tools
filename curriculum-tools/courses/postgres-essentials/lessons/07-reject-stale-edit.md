@@ -19,8 +19,8 @@ Let two editors read version 1 of the same document without holding a transactio
 ### In plain terms
 A version check is optimistic conflict detection: editors work without holding a database lock
 while a person reviews text, then prove at save time that the row is still the revision they read.
-Before running, predict what B's conditional UPDATE will report after A has advanced version 1 to
-version 2.
+Observe B's conditional UPDATE after A has advanced version 1 to version 2: its stale token
+matches no row, so it cannot replace A's edit.
 
 Zero affected rows is a normal application conflict signal here, not a PostgreSQL transaction
 error. B must reread the current body and reconsider its intended change. Merely replacing B's old
@@ -178,5 +178,5 @@ Run this in either session after the core cleanup:
     select body as variation_body, version as variation_version from pe_edit where id = 1;
     drop table pe_edit;
 
-Predict the affected-row count first. Expect variation_stale_rows=0 and the preserved version 3
+Expect variation_stale_rows=0 and the preserved version 3
 body. A rejected token does not become valid merely because the editor resubmits it.

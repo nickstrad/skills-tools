@@ -18,8 +18,8 @@ Put Alice and Bob on call under the rule that at least one doctor must remain. T
 ## Syntax breakdown
 ### In plain terms
 Alice and Bob may each leave on-call duty only when more than one doctor is currently on call. Repeatable Read
-keeps each transaction's view stable, but it does not combine separate rows into one lock. Before
-running, predict the final count when both doctors decide from snapshots that contain both rows.
+keeps each transaction's view stable, but it does not combine separate rows into one lock. Observe
+the final count when both doctors decide from snapshots that contain both rows.
 
 This failure is called write skew: concurrent transactions read overlapping facts, make decisions
 that are separately valid, and write different rows. PostgreSQL therefore sees no same-row update

@@ -146,7 +146,7 @@ restores synchronous_commit and both session guards.
 Batching amortizes fixed coordination and log metadata across more useful operations, a pattern shared by commit logs, network protocols and object storage requests. Larger batches also hold resources longer, enlarge retries and delay individual acknowledgements. Choose a batch boundary from measured write amplification together with latency, contention and failure-scope requirements.
 
 ## Optional variation
-Optional intermediate-batch variation, independently runnable. This groups the same 200 individual INSERT statements into ten transactions of 20; predict whether its WAL interval falls between the two core phases:
+Optional intermediate-batch variation, independently runnable. This groups the same 200 individual INSERT statements into ten transactions of 20; compare its WAL interval with the two core phases:
 
 ```sql
 set lock_timeout = '3s';

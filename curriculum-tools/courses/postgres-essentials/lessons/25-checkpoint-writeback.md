@@ -23,9 +23,8 @@ relation file. The experiment keeps an UPDATE transaction open, so its own conne
 dirty relation pages and lowers their dirty count, but it neither commits the writer nor exposes
 its tentative version.
 
-Before running, predict whether a page can be written while the transaction that changed it is
-still open. Then use all three observations—dirty-buffer count, backend state, and external value—
-to test your prediction.
+Use all three observations—dirty-buffer count, backend state, and external value—to distinguish
+page writeback from transaction completion while the writer remains open.
 
 ### Mechanism map
 
@@ -46,9 +45,8 @@ Writing a page does not commit the transaction that changed it. WAL and MVCC pre
 ```
 
 ### Terminals and cleanup
-Run this lesson in one shell. The supplied client opens its own bounded database connections; keep
-the coaching terminal separate from that shell. It uses the learner lab unless the lesson says it
-creates a private cluster. On normal exit, check the printed the controller's owned cluster removal record; on Ctrl-C, wait for cleanup
+Run this lesson in one shell, outside psql. The supplied controller creates a private cluster and
+opens its own bounded database connections. On normal exit, check its printed owned cluster removal record; on Ctrl-C, wait for cleanup
 to finish before rerunning. If you reach the fifteen-minute core limit or get stuck, press Ctrl-C
 and check that the owned resource is removed before trying again.
 ### What you are learning
@@ -128,7 +126,7 @@ port and exact dirty-buffer count vary between runs.
 Physical write-back and logical transaction outcome are separate state transitions. PostgreSQL may write a page containing tuples from an uncommitted transaction because WAL protects the physical change and MVCC consults transaction status before exposing it. Checkpoints bound crash recovery work; they do not force active transactions to commit or make private data public. Similar systems separate flushing cached blocks from publishing a transaction or manifest.
 
 ## Optional variation
-Optional, outside the core time budget: predict the final externally visible value if the writer commits after the checkpoint. Run:
+Optional, outside the core time budget: compare the final externally visible value when the writer commits after the checkpoint. Run:
 
 ```sh
 cd /root/Software/skills-tools/curriculum-tools

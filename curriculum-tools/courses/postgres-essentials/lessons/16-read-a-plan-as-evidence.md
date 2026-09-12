@@ -141,7 +141,7 @@ warm shared buffers or the operating-system cache. Cleanup drops pe_plan_read an
 Treat a plan as structured evidence about a particular query, data state, statistics state, configuration, and execution. Cardinality flows up the tree: a node can emit little while its descendants do much more work. Buffer counters locate page access within PostgreSQL's shared-buffer accounting, while elapsed time also includes machine and cache conditions. Use the estimate-versus-actual gap and observed work to form the next hypothesis; one plan does not establish production disk latency or a universal tuning rule.
 
 ## Optional variation
-Change only predicate selectivity and predict which row counters must change. This variation is independently runnable; it creates and removes its own fixture. If interrupted, ROLLBACK, drop pe_plan_read_variation and reset lock_timeout and statement_timeout.
+Change only predicate selectivity and compare the row counters with the core query. This variation is independently runnable; it creates and removes its own fixture. If interrupted, ROLLBACK, drop pe_plan_read_variation and reset lock_timeout and statement_timeout.
 
 ```sql
 set lock_timeout = '3s';

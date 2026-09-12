@@ -19,8 +19,8 @@ Race two deliveries of one credit request and watch PostgreSQL's unique constrai
 ### In plain terms
 A request identity is a durable key chosen so every delivery of one logical request carries the
 same value. Here the row identified by request-12 is the credit itself: its amount contributes to
-the account total, and its stored receipt records the result. Before running, predict what B can
-know while A's row exists but A has not committed or rolled back.
+the account total, and its stored receipt records the result. Observe B's wait while A's row
+exists but A has not committed or rolled back, then inspect the receipt after A's decision.
 
 The unique constraint makes PostgreSQL arbitrate competing inserts of the same key. It does not
 make every duplicate a successful replay. A caller must read the winner and accept it only when

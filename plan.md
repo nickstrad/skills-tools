@@ -28,15 +28,17 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - Critical new P5 finding: PostgreSQL89 and90 also omit their controller inspection/recovery/
   cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
   validation schedule. PG92's core is complete but its existing optional branch needs local wording.
-- Next: primary continues the Essentials/gRPC audits, then Linux13–71, PostgreSQL
-  prose/continuations and SQLite01–51/53. No new worker has been dispatched. Primary
-  still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation. No next chunk has been
-  dispatched after this stop request. Use the plan's current model/ownership assignments if resumed.
+- Essentials/gRPC audits are accepted: all32 reviewed and rendered;19 Essentials prose edits,
+  7 Essentials and6 gRPC unchanged. The ledger now has53 accepted rows,197 pending.
+- Next: primary continues PostgreSQL58–68, then remaining PostgreSQL prose/continuations,
+  Linux13–72 and SQLite01–51/53. No new worker has been dispatched. Primary
+  still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation.
+  Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
   quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
   roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~14MB), including raw/refreshed
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~15MB), including raw/refreshed
   baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
   helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
   redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
@@ -45,6 +47,18 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Essentials/gRPC
+
+The first-six PostgreSQL acceptance is committed as `a977bd4`.
+Primary then reviewed all26 Essentials and6 gRPC lessons. Exact accepted files/changed fields and
+per-lesson decisions are in the ledger. Essentials04–16/18/20/23–26 replace prediction prompts with
+direct observations;10/11/25/26 also replace coaching-terminal prose with actual controller scope.
+All32 pass fresh-catalog plain/ANSI/JSON comparison, and every main/optional executable block,
+diagram, revision and metadata field remains unchanged. Both course checks pass. No real-tool
+rerun or gRPC installation is needed for these editorial changes. The disposable catalog is removed;
+15MB of baseline and concise render evidence remains until final acceptance. Live refresh and full
+final acceptance remain pending.
 
 ### Resumed acceptance checkpoint — PostgreSQL first six
 
