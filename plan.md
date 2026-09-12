@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — primary validating WP9.2 shared-database parity; Luna/high implementing WP5.2; Sol drafting WP7.1.**
+**Status: in progress — WP9.2 verified; Luna/high implementing WP5.2; primary reviewing WP7.1 and Sol updating WP7.2.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -75,14 +75,14 @@ a separate handoff document.
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | S | todo | | |
 | WP7.1 tutor skill | O | in progress | | Sol drafting new skill; primary owns review and retirement of old skill directories. |
-| WP7.2 AGENTS.md | O | todo | | |
+| WP7.2 AGENTS.md | O | in progress | | Sol owns repository guidance; primary review. |
 | WP7.3 Author skill and AUTHORING.md | S | todo | | |
 | WP7.4 Remaining documentation | S | todo | | |
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |
 | WP8.2 Knowledge cleanup | S | todo | | |
 | WP8.3 Machine install and sweep | S | todo | | |
 | WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
-| WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | in progress | ff2b69c (code) | Existing parity-d: 1145 outputs equal, but separate database per course; primary closing shared-file coverage. Real migration already ran; do not repeat. |
+| WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | done | ff2b69c + resume acceptance | Primary shared-file test: 1130 golden outputs match across all five courses before/after init; read-only DB/WAL hashes unchanged. All baseline course rows/timestamps and 15 backup hashes match. |
 | WP8.4 Final acceptance | F | todo | | |
 
 **Decision and finding log.** Append dated entries when Nick answers a question, a decision in §2
@@ -153,6 +153,20 @@ learner progress rows that changed during the work).
   `$WORK` artifacts retained for outstanding acceptance; new resume evidence lives under
   `curriculum-tools/.cache/migration-resume/` and is removed at final acceptance. Go scratch
   build cache is `/tmp/tutor-go-build`; account for it at cleanup.
+
+- 2026-09-12 — WP9.2 primary acceptance: `TestParitySharedDatabase` compares 1130 CLI
+  outputs with all five courses in one temporary consolidated file, before and after refreshing
+  all five catalogs. Differences are limited to normalizing the explicit `--db` footer path
+  and JSON key order; all content/status outputs match, and read verbs leave DB/WAL unchanged.
+  This complements the earlier 1145-file per-course parity run (which also included init
+  output, dumps and duplicate next-lesson captures). Temporary databases are cleaned by tests.
+  Resume audit `.cache/migration-resume/progress-audit.txt` proves every original lesson field,
+  prerequisite, progress record and attempt (timestamps included) equals the baseline after ID
+  normalization by slug. Backup main/WAL/SHM hashes all match (15/15). Counts remain
+  grpc 6/6/6, linux 72/0/0, postgres 99/8/8, essentials 26/22/23, sqlite 48/0/0.
+  The roadmap import had not run despite WP4.3 being committed; imported the committed snapshot
+  through `tutor roadmap import` and re-audited all learner data afterwards: unchanged, with
+  19 roadmap topics and 49 follow-ups now available. No learner catalogs were refreshed.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 
