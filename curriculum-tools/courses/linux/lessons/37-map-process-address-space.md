@@ -71,12 +71,11 @@ proc_file_mapping_lines is at least 1, pmap_anonymous_rw_regions is at least 1, 
 A process address space is a set of virtual ranges with independent permissions and backing: file pages, anonymous pages, shared libraries, and stacks. The same map-to-backing distinction explains copy-on-write, shared memory, and executable loading.
 
 ## Optional variation
-**Predict:** Does doubling the anonymous mapping make the file mapping line disappear?
+Rerun the complete lesson, changing only anon_map=mmap.mmap(-1, 1048576) to
+anon_map=mmap.mmap(-1, 2*1048576). Keep the original mapping observations and exact-PID cleanup.
+Use the new helper's recorded PID and inspect it before exit, when its procfs entries disappear.
 
-**Inspect and explain:** Identify the file mapping and the anonymous mapping evidence before the helper exits.
-
-**Vary:** Rerun the complete lesson, changing only anon_map=mmap.mmap(-1, 1048576) to anon_map=mmap.mmap(-1, 2*1048576). Keep the original mapping observations and exact-PID cleanup.
-
-**Hint:** Start a new helper and retain its exact PID; procfs disappears after exit.
-
-**Apply:** Choose whether pmap or /proc/PID/maps better answers a report of unexpected file-backed mappings, and explain why.
+The file-backed mapping remains present alongside anonymous regions; doubling the anonymous
+reservation does not remove that file mapping. The counters identify regions, not the new
+mapping's resident byte count. The pathname in /proc/PID/maps supplies direct file-mapping
+evidence, while pmap provides a broader size and residency summary.

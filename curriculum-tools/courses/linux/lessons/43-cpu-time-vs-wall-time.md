@@ -63,12 +63,10 @@ cpu_time_higher_for_loop=yes and wall_measurements=recorded. Both wall measureme
 Wall time includes runnable, blocked, and sleeping intervals; CPU time counts time actually executing on a processor. Queueing systems, latency budgets, and capacity plans need both views.
 
 ## Optional variation
-**Predict:** For a 0.2-second sleep, which time field changes materially?
+Run **/usr/bin/time -f 'user=%U wall=%e' sleep 0.2**, using the external timer at that path.
+Keep the sleep at exactly0.2 seconds. Wall time should be near that duration while user CPU
+remains near zero; scheduling can extend the elapsed sample.
 
-**Inspect and explain:** Run **/usr/bin/time -f 'user=%U wall=%e' sleep 0.2** and explain why a wall delay is not CPU saturation evidence.
-
-**Vary:** Use exactly 0.2 seconds.
-
-**Hint:** Use external **/usr/bin/time**, not the shell keyword.
-
-**Apply:** Name both measurements to collect before scaling a latency-bound service.
+Compare both fields with the original0.8-second sleep. A wall delay alone does not establish
+CPU saturation. Request elapsed time and actual CPU demand answer different parts of a service's
+scaling question.

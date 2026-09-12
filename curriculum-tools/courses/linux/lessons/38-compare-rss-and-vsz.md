@@ -68,12 +68,10 @@ vsz_kb is greater than rss_kb and virtual_exceeds_resident=yes. The mapping is c
 VSZ measures the virtual ranges a process can address, while RSS measures pages currently resident in RAM. Reservations, demand paging, and copy-on-write let services have a large address space without consuming that amount of physical memory immediately.
 
 ## Optional variation
-**Predict:** If the helper touches 16 MiB instead of 8 MiB, which counter should rise while VSZ remains broadly similar?
+Rerun the complete lesson with touched=8*1024*1024 changed to touched=16*1024*1024. Keep the128MiB
+reservation and read both VSZ and RSS before the new helper exits, then retain its cleanup.
 
-**Inspect and explain:** Compare the reserved virtual size and resident pages, without treating interpreter overhead as part of the requested buffer.
-
-**Vary:** Rerun the complete lesson with touched=8*1024*1024 changed to touched=16*1024*1024. Keep the 128 MiB reservation and compare the resulting VSZ and RSS.
-
-**Hint:** Read both fields before the helper exits.
-
-**Apply:** Explain why a large VSZ alone is insufficient evidence for choosing a memory limit.
+Touching more pages should increase RSS while VSZ remains broadly similar. Exact totals include
+interpreter overhead and host effects, so compare the relationship instead of attributing every
+byte to the requested buffer. A large virtual reservation alone does not establish the resident
+working set needed to choose a service's memory budget.

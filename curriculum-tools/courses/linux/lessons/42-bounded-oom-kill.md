@@ -97,12 +97,11 @@ On a delegated cgroup v2 VM, oom_kill_after is greater than oom_kill_before, the
 An OOM policy can terminate a member of a resource domain rather than taking down every process on the host. The event counter and surviving supervisor are the operational evidence that the failure boundary worked.
 
 ## Optional variation
-**Predict:** Would a 96 MiB allocation fit inside a 64 MiB maximum, even though it is smaller than the original attempt?
+Rerun the complete disposable-cgroup lesson, changing bytearray(128*1024*1024) to
+bytearray(96*1024*1024). Use a fresh group, retaining the64MiB maximum, OOM event assertion,
+outside supervisor and exact cleanup. Never reuse a group that might contain another process.
 
-**Inspect and explain:** Join the OOM event increment, child wait status and surviving parent; a signal status alone is insufficient.
-
-**Vary:** Rerun the complete disposable-cgroup lesson, changing bytearray(128*1024*1024) to bytearray(96*1024*1024). It still exceeds the 64 MiB maximum; retain the OOM event assertion and outside supervisor.
-
-**Hint:** Never reuse a cgroup that might contain another process.
-
-**Apply:** State why a supervisor needs both cgroup OOM evidence and a request-level recovery check before declaring containment successful.
+The smaller attempt still exceeds the limit. Correlate the oom_kill increment, absent allocation
+result and child wait status with parent_alive=yes; signal status alone cannot identify an OOM
+cause. These checks establish local containment. A service additionally needs request-level
+recovery evidence before claiming its useful work has recovered.

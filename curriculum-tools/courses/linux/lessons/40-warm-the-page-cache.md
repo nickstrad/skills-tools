@@ -103,12 +103,11 @@ file_bytes=8388608 and page_count=2048 on a host with 4 KiB pages. advisory_drop
 The page cache is a file-page residency layer whose state must be measured at the right scope. Per-file residency is stronger evidence than a global counter or timing, but it remains a snapshot; production diagnosis also needs workload and device evidence.
 
 ## Optional variation
-**Predict:** After a second bounded read, can resident_pages_after be lower than resident_pages_before on an active host?
+Rerun the complete lesson, changing file creation count=8 to count=1 and its byte-size assertion
+-eq 8388608 to -eq 1048576. Keep both residency probes, both reads and cleanup. The vector length
+and page count follow the system page size automatically; do not substitute a fixed4KiB assumption.
 
-**Inspect and explain:** Compare page_count and the two resident-page snapshots. Explain why neither advisory discard nor elapsed time proves a cold device read.
-
-**Vary:** Rerun the complete lesson, changing the file creation count=8 to count=1 and its byte-size assertion -eq 8388608 to -eq 1048576. Keep both residency probes and both reads; the page count is derived automatically.
-
-**Hint:** Use the system page size to derive the vector length; do not assume all hosts use 4 KiB pages.
-
-**Apply:** Decide what evidence, beyond per-file residency, is needed to attribute a slow service read to storage.
+The file is now1MiB. Compare both resident-page snapshots with its derived page_count. Reclaim on
+an active host can reduce residency between samples, including after a read. Advisory discard and
+elapsed time still cannot prove a cold device read. Connecting a slow request to storage needs
+workload and device evidence in addition to these scoped residency snapshots.

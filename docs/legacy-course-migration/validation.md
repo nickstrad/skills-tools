@@ -4,6 +4,21 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Linux37–48 content group
+
+Primary accepted all12 memory/scheduling lessons with direct optional comparisons. Every supplied
+parameter/assertion substitution, live-process query, allocation bound, readiness/phase marker,
+scoped counter and exact-resource cleanup remains available. The comparisons distinguish mapping
+from residency, first-touch from subsequent writes, cache snapshots from device behavior, pressure
+events from OOM evidence, and scheduling configuration from measured service outcomes. Lesson48
+explicitly states that its existing read finishes before the I/O-class change.
+
+All Setup/Run bytes, existing code/diagram blocks, identities, safety, sessions and revisions match
+baseline. All12 complete actual CLI plain/ANSI/JSON views and the72-lesson source check pass.
+The temporary catalog is removed; no workload, cgroup, mount or lab was allocated. Prior runtime
+evidence applies. Logs/manifests/views use `.cache/legacy-migration/linux-37-48*` until final
+acceptance. The ledger now has174 accepted and76 pending.
+
 ## Linux25–36 content group
 
 Primary accepted all12 complete filesystem/storage walkthroughs after replacing staged prompts

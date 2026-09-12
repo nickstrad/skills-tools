@@ -41,18 +41,18 @@ linux	33	sparse-file-allocation	coaching-only prompt retired	Challenge	primary	P
 linux	34	tmpfs-uses-memory	coaching-only prompt retired	Challenge	primary	Preserves complete four-MiB tmpfs variation and assertion substitution; retires unrelated prediction numbers
 linux	35	bounded-filesystem-full	coaching-only prompt retired	Challenge	primary	Preserves complete48MiB overfill variation,32MiB boundary, ENOSPC evidence and exact cleanup
 linux	36	recover-filesystem-space	coaching-only prompt retired	Challenge	primary	Preserves complete8MiB retained-file variation, final-close observation and exact-PID/mount cleanup
-linux	37	map-process-address-space	pending			
-linux	38	compare-rss-and-vsz	pending			
-linux	39	observe-page-faults	pending			
-linux	40	warm-the-page-cache	pending			
-linux	41	reclaim-under-pressure	pending			
-linux	42	bounded-oom-kill	pending			
-linux	43	cpu-time-vs-wall-time	pending			
-linux	44	load-average-runnable-work	pending			
-linux	45	observe-context-switches	pending			
-linux	46	change-scheduling-priority	pending			
-linux	47	pin-cpu-affinity	pending			
-linux	48	set-io-priority	pending			
+linux	37	map-process-address-space	coaching-only prompt retired	Challenge	primary	Direct doubled anonymous-map comparison retains file mapping observations, live helper PID and cleanup
+linux	38	compare-rss-and-vsz	coaching-only prompt retired	Challenge	primary	Direct16MiB touched-prefix comparison retains128MiB reservation and scoped RSS/VSZ interpretation
+linux	39	observe-page-faults	coaching-only prompt retired	Challenge	primary	Direct second-phase byte change retains both phase/DONE markers, page range and cleanup
+linux	40	warm-the-page-cache	coaching-only prompt retired	Challenge	primary	Direct1MiB residency comparison retains byte assertion, derived page count, both probes/reads and cleanup
+linux	41	reclaim-under-pressure	coaching-only prompt retired	Challenge	primary	Direct40MiB memory.high comparison retains64MiB demand,96MiB max, exact-group cleanup and unavailable semantics
+linux	42	bounded-oom-kill	coaching-only prompt retired	Challenge	primary	Direct96MiB allocation comparison retains64MiB max, outside supervisor, OOM evidence and exact cleanup
+linux	43	cpu-time-vs-wall-time	coaching-only prompt retired	Challenge	primary	Direct bounded0.2second external-time comparison retains exact command and CPU/wall interpretation
+linux	44	load-average-runnable-work	coaching-only prompt retired	Challenge	primary	Direct one-worker cap comparison retains ready/release coordination and host-scope limits
+linux	45	observe-context-switches	coaching-only prompt retired	Challenge	primary	Direct replacement-sleeper comparison retains PID assignment, both counters and exact waits/cleanup
+linux	46	change-scheduling-priority	coaching-only prompt retired	Challenge	primary	Direct increment-one nice comparison retains exact command and parent-baseline interpretation
+linux	47	pin-cpu-affinity	coaching-only prompt retired	Challenge	primary	Direct live taskset query retains placement scope and distinguishes sampled CPU from allowed set
+linux	48	set-io-priority	coaching-only prompt retired	Challenge	primary	Direct live CPU-nice query retains supplied command and I/O class comparison; clarifies read precedes class change
 linux	49	limit-open-files	pending			
 linux	50	limit-process-count	pending			
 linux	51	limit-file-size	pending			

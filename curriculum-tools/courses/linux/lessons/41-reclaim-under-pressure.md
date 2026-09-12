@@ -109,12 +109,11 @@ A dedicated cgroup is created when the VM permits it; memory_max=100663296, memo
 Memory pressure is feedback from a hierarchy: usage, reclaim, and event counters are scoped to a resource domain. Cgroups let an operator distinguish one workload's budget from the host's unrelated memory consumers.
 
 ## Optional variation
-**Predict:** If memory.high is lowered while memory.max and allocation stay fixed, which event counter can record stronger pressure feedback?
+Rerun the complete disposable-cgroup lesson, changing only memory.high from50331648 to41943040
+(48 to40MiB). Keep the64MiB allocation,96MiB maximum and exact-group cleanup. If setup reports
+unavailable, the mechanism remains untested on that host.
 
-**Inspect and explain:** Use the high event delta and memory.max to distinguish pressure feedback from OOM containment.
-
-**Vary:** Rerun the complete disposable-cgroup lesson, changing only the memory.high write from 50331648 to 41943040 (48 to 40 MiB). Keep the 64 MiB allocation and 96 MiB maximum. Compare high events without requiring a fixed count.
-
-**Hint:** Treat cgroup_setup=unavailable as an untested mechanism, not success.
-
-**Apply:** Choose a high threshold and hard max for a service, naming the scoped event and useful service signal you would review.
+Compare the high-event delta with the original run without requiring a fixed count or increase
+between runs. Usage below memory.max, positive high-event feedback and no OOM events distinguish
+the demonstrated pressure path from OOM containment. Service thresholds also need request progress
+and latency evidence alongside these scoped resource counters.

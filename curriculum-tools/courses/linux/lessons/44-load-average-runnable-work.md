@@ -85,12 +85,10 @@ workers_started is between 1 and 4, runnable_during is at least 1, runnable_work
 Load average tracks runnable and uninterruptible demand over time, not a direct CPU-percentage reading. A small workload can increase queueing pressure even when aggregate utilization is hard to interpret across many CPUs.
 
 ## Optional variation
-**Predict:** With one worker instead of four, must runnable_during equal one?
+Rerun the complete lesson, replacing `if [ "$workers" -gt 4 ]; then workers=4; fi` with
+`if [ "$workers" -gt 1 ]; then workers=1; fi`. Keep the readiness coordination and exact-PID
+cleanup. workers_started is now1.
 
-**Inspect and explain:** Compare the runnable count with the worker count and account for unrelated host work.
-
-**Vary:** Rerun the complete lesson, replacing if [ "$workers" -gt 4 ]; then workers=4; fi with if [ "$workers" -gt 1 ]; then workers=1; fi. Keep readiness gates and exact-PID cleanup.
-
-**Hint:** The slash-separated field is runnable over total tasks.
-
-**Apply:** Explain why load alone cannot identify a CPU-incident process.
+Compare that known worker count with runnable_during. The slash-separated loadavg field reports
+runnable over total tasks across the host, so unrelated work can keep the runnable count above1.
+Neither that snapshot nor smoothed load identifies a particular incident process by itself.

@@ -93,12 +93,11 @@ first_minor_delta is positive, second_minor_delta is zero or much smaller, first
 A page fault is the kernel's lazy bridge from a virtual page to a backing page. The first access allocates or maps pages, while later accesses reuse resident translations until reclaim or eviction intervenes.
 
 ## Optional variation
-**Predict:** If the second phase writes a different byte to the same offsets, should it recreate the first phase’s minor-fault delta?
+Rerun the complete lesson, changing only the second-phase region[offset]=2 to region[offset]=3.
+Keep both phase gates, the same page range and the DONE markers before sampling /proc/PID/stat.
+Retain the recorded-helper wait and marker cleanup.
 
-**Inspect and explain:** Explain why a different byte value in the second phase does not require first-touch allocation again.
-
-**Vary:** Rerun the complete lesson, changing only the second-phase region[offset]=2 to region[offset]=3. Keep both gates and the same page range.
-
-**Hint:** Use the DONE markers before sampling /proc/PID/stat.
-
-**Apply:** State what additional evidence would be needed before blaming a service latency spike on major faults.
+The second pass still uses pages established by the first pass. A different byte value does not
+itself require first-touch allocation again, so the second minor-fault delta should remain much
+smaller. Reclaim can affect actual samples. Attributing a service latency spike to major faults
+would additionally need aligned fault deltas, request timing and backing-storage evidence.

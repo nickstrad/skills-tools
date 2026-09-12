@@ -38,10 +38,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
 - All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
   PostgreSQL completion is committed in `1e64d13`.
-- Linux13–24 are accepted in `953dcc0`; Linux25–36 are also accepted with direct optional comparisons
-  and unchanged commands/metadata. The ledger has162 accepted rows and88 pending.
+- Linux13–24 are accepted in `953dcc0`, Linux25–36 in `a05be21`, and Linux37–48 are also accepted
+  with direct optional comparisons and unchanged commands/metadata. The ledger has174 accepted rows and76 pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes Linux37–72 (36 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+- Next: primary completes Linux49–72 (24 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -58,6 +58,21 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Linux37–48
+
+Primary accepted all12 memory/scheduling lessons with direct optional comparisons and local
+outcomes. Every bounded allocation, priority/affinity query, parameter/assertion substitution,
+readiness/DONE marker, scoped counter and exact-resource cleanup remains available. Lesson48
+clarifies that its existing read precedes the class change; it proves configured state, not I/O
+scheduler throughput. Setup/Run, existing code blocks, metadata and revisions exactly match
+baseline. All12 actual CLI plain/ANSI/JSON views and the72-lesson check pass. No workload, cgroup,
+mount or lab was allocated; prior runtime evidence applies. Scratch uses `linux-37-48*` and the
+temporary catalog is removed.
+
+The ledger has174 accepted and76 pending: Linux49–72 and SQLite01–51/53. Primary has read49–51,
+without edits yet. No live history/catalog change occurred. Final integration, installation,
+rollout and cleanup/readiness remain pending after content acceptance.
 
 ### Resumed acceptance checkpoint — Linux25–36
 

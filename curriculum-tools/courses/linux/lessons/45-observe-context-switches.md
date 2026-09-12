@@ -66,12 +66,11 @@ All four labeled counters are nonempty, switch_counters_present=yes, and cleanup
 A context switch records a change of the running task. Voluntary switches commonly accompany sleep or blocking I/O, while nonvoluntary switches reflect scheduler decisions such as time-slice expiry or competition.
 
 ## Optional variation
-**Predict:** If the busy helper is replaced with sleep, which comparison becomes less informative?
+Rerun the complete lesson, replacing the entire background python3 busy-loop command with
+`sleep 0.8 &`. Keep the following PID assignment, both counter observations and the exact-child
+waits and cleanup.
 
-**Inspect and explain:** Compare each process’s two counters and state what a single snapshot cannot tell you about switch rates.
-
-**Vary:** Rerun the complete lesson, replacing the entire background python3 busy-loop command with sleep 0.8 &. Keep the following PID assignment and both counter observations.
-
-**Hint:** Counters are process-local snapshots and may start nonzero.
-
-**Apply:** State what workload and CPU-placement evidence is needed before acting on a switch counter.
+Both tasks now sleep, so the samples compare two blocking tasks instead of blocking versus busy
+work. All four counters should still be present. They are process-local snapshots and can already
+be nonzero; one sample cannot give a switch rate. Workload, CPU placement and counter deltas over
+a known interval are needed before interpreting a service's scheduling cost.

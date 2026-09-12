@@ -69,12 +69,11 @@ io_change=applied, worker_ionice contains idle, io_class=idle, and cleanup=done.
 CPU scheduling weight and block-device I/O class affect different queues. A process can be CPU-favored yet I/O-deprioritized, so incident diagnosis must inspect both dimensions.
 
 ## Optional variation
-**Predict:** Does idle I/O class change the worker's CPU nice value?
+Rerun the complete lesson and insert `ps -o ni= -p "$p"` immediately after the worker=$(ionice ...)
+assignment captures the changed I/O class. Compare the CPU nice value with the queried I/O class
+before the helper exits, retaining its wait and cleanup.
 
-**Inspect and explain:** Explain why the queried I/O class and CPU nice value describe different scheduling policies.
-
-**Vary:** Rerun the complete lesson and insert ps -o ni= -p "$p" immediately after worker=$(ionice ...) captures the changed I/O class. Compare CPU niceness with I/O class before cleanup.
-
-**Hint:** Cached read throughput cannot prove I/O scheduling behavior.
-
-**Apply:** Name one CPU and one I/O measurement for a slow background compaction job.
+The idle I/O request does not change CPU niceness; the two fields describe separate policies.
+The supplied read finishes before the class change, and cached read throughput cannot demonstrate
+device scheduling. A slow compaction job needs actual CPU demand and storage-I/O evidence in
+addition to these configured priorities.

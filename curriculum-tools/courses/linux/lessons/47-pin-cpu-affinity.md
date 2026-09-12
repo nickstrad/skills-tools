@@ -69,12 +69,10 @@ allowed_list equals chosen_cpu, affinity_constrained=yes, and cleanup=done. obse
 CPU affinity restricts one task's scheduler placement set. Pinning can improve cache locality or isolate noisy work, but it can also create a smaller bottleneck when the set is too narrow.
 
 ## Optional variation
-**Predict:** If a helper is allowed on two CPUs, can psr still print only one at a time?
+Rerun the complete lesson and insert `taskset -pc "$p"` immediately after the psr assignment,
+while the helper is alive. Keep the chosen CPU within Cpus_allowed_list and retain cleanup.
 
-**Inspect and explain:** Explain the difference between the allowed CPU set and one observed processor.
-
-**Vary:** Rerun the complete lesson and insert taskset -pc "$p" immediately after the psr assignment, while the helper is alive. Compare this queried affinity with the sampled processor before cleanup.
-
-**Hint:** Never choose a CPU absent from Cpus_allowed_list.
-
-**Apply:** State what latency and queueing evidence to check before pinning production work.
+The queried affinity should name the same single chosen CPU as allowed_list. psr samples one
+processor, while affinity defines all permitted processors; a larger allowed set would still
+produce only one current-processor sample. Placement restrictions need workload latency and
+queueing evidence before being treated as a service improvement.

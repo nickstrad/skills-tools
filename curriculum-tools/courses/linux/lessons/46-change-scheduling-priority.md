@@ -82,12 +82,10 @@ nice0_observed equals shell_nice (0 in a normal interactive shell), nice10_obser
 Niceness changes a task's weight in fair scheduling; it does not reserve a CPU or guarantee a ratio. This distinction matters when translating service priority into latency and throughput expectations.
 
 ## Optional variation
-**Predict:** If the parent shell has nice 5, what niceness does **nice -n 10** request?
+Run **ps -o ni= -p $$; nice -n 1 bash -c 'ps -o ni= -p $$'**, using increment one only.
+The first value is the parent baseline; the second is one higher unless the allowed niceness
+range caps it. The child exits after reporting its value, leaving the parent unchanged.
 
-**Inspect and explain:** Run **ps -o ni= -p $$; nice -n 1 bash -c 'ps -o ni= -p $$'** and explain why the second value is relative.
-
-**Vary:** Use increment one only.
-
-**Hint:** Record parent baseline before interpreting worker output.
-
-**Apply:** Decide whether nice alone protects an interactive service from batch work.
+Read nice -n as a relative increment. For example, a baseline5 plus increment10 requests15.
+Changing scheduling weight alone does not reserve capacity or guarantee interactive latency
+against batch work.
