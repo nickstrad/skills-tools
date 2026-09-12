@@ -10,14 +10,14 @@ run-in: shell
 sessions: 1
 min-version: 16
 minutes: 45
-revision: 4
+revision: 5
 
 ## Overview
 A previously successful application read now fails. Investigate the actual error, the available
 backup and the accepted operation inventory before choosing recovery. Restore into a separate
 owned destination, prove every recovered identity and payload, and report any accepted work missing
-at that recovery point. The tutor can prepare the symptom privately; full construction remains
-available at run/full. Preparation alone does not complete the incident.
+at that recovery point. Run supplies preparation, inspection and restoration in sequence;
+the cleanup command below releases the fixture after its outcomes have been inspected.
 
 ## Syntax breakdown
 ### In plain terms
@@ -95,10 +95,10 @@ physical cause of damage nor reconstruct accepted operations absent from a backu
   also fail without checksums; a failed checksum does not identify which hardware/software caused it.
 - **inspect read|checksums|backup|operations|damage|all** reads the saved evidence with servers
   stopped. Backup inspection includes its full operation inventory and checksum log; operations
-  exposes all510 accepted rows. Use the evidence to predict which IDs a restore can recover.
+  exposes all510 accepted rows. Compare these IDs with the backup's recovery boundary.
   Full inventories remain available even when you choose a smaller first inspection packet.
-- Run **python3 "$CORRUPTION" recover restore** after recording your diagnosis and recovery
-  point. The action is recorded before copying; another action is rejected. **copy_verified**
+- **python3 "$CORRUPTION" recover restore** restores the inspected recovery point.
+  The action is recorded before copying; another action is rejected. **copy_verified**
   checks that the backup is still unchanged and copies it into a separate **restored** directory.
   A previous restore attempt is preserved rather than overwritten. A pre-start checksum check,
   actual startup and full SQL inventory comparison establish the restored state.
@@ -367,7 +367,10 @@ finally:
 PY
 python3 "$CORRUPTION_BOOTSTRAP" prepare early
 CORRUPTION=$(cat "$CORRUPTION_BOOTSTRAP.location")
+rm -- "$CORRUPTION_BOOTSTRAP" "$CORRUPTION_BOOTSTRAP.location"
 # In a new shell, set CORRUPTION to the printed absolute corruption.py path.
+python3 "$CORRUPTION" inspect all
+python3 "$CORRUPTION" recover restore
 ```
 
 ## Expected result
@@ -387,6 +390,12 @@ backup hashes and preserved damaged-source file bytes. Actual paths, checksum va
 IDs within block3 and timings are measured rather than fixed expectations. Report the known loss
 before calling the chosen recovery point acceptable; a clean restore alone does not imply no loss.
 
+After inspecting the output and saving any needed findings, remove the stopped fixture:
+
+```sh
+python3 "$CORRUPTION" cleanup
+```
+
 ## Systems lens
 Recovery is an agreement between a retained history boundary and an application's accepted work.
 Integrity checks detect some physical faults, while identity and payload reconciliation determine
@@ -395,9 +404,9 @@ best available recovery point, but its loss must be explicit. Keep original evid
 until the recovery decision is checked, then release resources with a recorded retention purpose.
 
 ## Optional variation
-Record your first two inspection choices, diagnosis, chosen backup boundary and the full accepted
-IDs you predict will be absent after restore. Run the supplied recovery and compare the actual
-inventory. Use hint2's fresh late-backup variation to change only that boundary. Explain which
-additional retained history would be needed to recover the ten later core operations, and why
-checksums, successful startup or a readable index cannot establish that those operations survived.
-After recording your conclusions, run cleanup for each owned fixture.
+After cleaning up the core fixture, rerun Run with `prepare early` changed to `prepare late` in
+the bootstrap invocation. This moves only the complete backup's boundary past the ten later commits.
+The restore now contains all510 accepted operations; new ID511 produces511 rows and amount915,712.
+The early backup would need additional retained history to recover IDs501–510. Clean checksums and
+successful startup establish physical readability, while full application inventories establish
+which accepted operations survived. Run the cleanup command for the new fixture afterward.

@@ -10,15 +10,15 @@ run-in: shell
 sessions: 1
 min-version: 16
 minutes: 35
-revision: 4
+revision: 5
 
 ## Overview
 A request remains incomplete at its supplied response deadline. Choose evidence from a real activity,
 wait, CPU and data inventory, identify the relevant sessions, and select the least disruptive policy
 that meets a fresh request's budget. Verify the client response, transaction state, connection and
 complete committed data. The short survey stops before you inspect it; applying your policy creates
-an equivalent new trial with new identities. The tutor can show only the symptom before revealing
-construction. The complete source and worked actions remain available on request.
+an equivalent new trial with new identities. Run supplies the survey, saved inspection and
+cancel-request trial together; the optional comparisons change one boundary at a time.
 
 ## Syntax breakdown
 ### In plain terms
@@ -87,7 +87,7 @@ SLO or an automatic timeout response.
   CPU deltas. It then explicitly terminates its three owned actors for fixture cleanup, checks
   rolled-back state, closes clients and stops the server. This cleanup is not the chosen policy.
   **inspect activity|deadline|data|lifecycle|all** reads the saved evidence with the server stopped.
-- After recording a diagnosis, **python3 "$CANCEL" apply cancel-request** recreates equivalent
+- **python3 "$CANCEL" apply cancel-request** recreates equivalent
   fresh actors, reinitializes only these fixture tables, saves the action and applies the policy.
   Alternatively use **apply terminate-request** on a fresh fixture to compare disconnection. One
   completed apply is allowed per fixture. The measured budget starts when the new waiting UPDATE
@@ -388,6 +388,8 @@ python3 "$CANCEL_BOOTSTRAP" survey explicit
 CANCEL=$(cat "$CANCEL_BOOTSTRAP.location")
 rm -- "$CANCEL_BOOTSTRAP" "$CANCEL_BOOTSTRAP.location"
 # In a new shell, set CANCEL to the printed absolute cancel.py path.
+python3 "$CANCEL" inspect all
+python3 "$CANCEL" apply cancel-request
 ```
 
 ## Expected result
@@ -409,6 +411,12 @@ only baseline1 for core or baseline1 plus committed2 for autocommit. All clients
 server stops. Timing, PIDs, XIDs and CPU values vary; no universal latency or CPU-capacity claim is
 made. A successful survey is not successful policy application.
 
+After inspecting the output and saving any needed findings, remove the stopped fixture:
+
+```sh
+python3 "$CANCEL" cleanup
+```
+
 ## Systems lens
 Operational intervention needs both an identity boundary and an outcome boundary. A stale PID is
 not an authority to signal, and signal acknowledgement is not a completed request. Choose the scope
@@ -416,9 +424,13 @@ of cancellation from the actual dependency and response contract, then reconcile
 boundary. Keeping a connection and keeping a transaction's writes are different outcomes.
 
 ## Optional variation
-Select two measurements before inspecting everything. Identify the blocked request and distinguish
-its dependency from independent CPU work. Choose the least disruptive policy meeting the supplied
-budget, predict its connection and data outcomes, and apply it to the fresh trial. Explain the idle
-cancel comparison from actual lock evidence. Use hint2 to change only the request's prior-write
-transaction boundary; predict and verify exactly which note survives. Optionally compare request
-termination on another fresh fixture. Record your findings and reclaim each fixture.
+After cleaning up the core fixture, rerun Run with `survey explicit` changed to `survey autocommit`
+in the bootstrap invocation. Cancellation now retains note2's earlier committed payload and the
+same connection accepts its next command without rollback. The explicit transaction loses note2
+and requires rollback before reuse. In both cases the independent holder keeps its row lock until
+the later termination comparison. Clean up the new fixture.
+
+For a separate connection comparison, rerun Run on a fresh fixture with `apply cancel-request`
+changed to `apply terminate-request`. The request returns57P01 and its exact backend disappears.
+Balance remains100; note2 survives only with the autocommit prior-write boundary. Run cleanup for
+each fixture. Saved survey PIDs remain historical; each apply creates and verifies fresh identities.

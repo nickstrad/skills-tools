@@ -16,8 +16,8 @@ revision: 4
 Run a supplied task runner through unknown admission outcome, worker loss, database crash, missed
 wake-ups and bounded overload. Reconstruct every accepted, rejected and retried request from its
 operation history, source state and independent receiver effect. Then defend an admission and
-worker-concurrency decision using repeated controlled measurements. The complete local workload is
-supplied; the final deliverable is your correctness reconciliation and causal capacity account.
+worker-concurrency decision using repeated controlled measurements. The complete local workload and
+its identity reconciliation are supplied, including the measured admission and recovery boundaries.
 
 ## Syntax breakdown
 ### In plain terms
@@ -584,12 +584,10 @@ rejection before accepting more work than the service can handle. A causal incid
 operation history with resource evidence and states which failure domains remain untested.
 
 ## Optional variation
-Before running, state the request/effect invariant, predict both unknown outcomes and choose the
-first evidence you would inspect. Afterward, reconcile every accepted, rejected and retried identity
-from history through source jobs/results and receiver receipts/credit. Explain the crash, missed
-wake-up, stale completion and freshness boundaries using their actual evidence. Then compare both
-repetitions of each capacity condition and defend one admission/concurrency policy, including its
-rejection, latency, recovery and resource costs. Separate demonstrated outcomes, documented
-mechanisms and untested host/network failures. Use hint2 to move only the worker loss before receiver
-commit; predict the changed retry effect and unchanged final recovery state. Record the account and
-clean up both fixtures.
+After inspecting the core output, run `python3 "$CAPSTONE" cleanup`. Rerun Run with `run after`
+changed to `run before` in the bootstrap invocation. Only the worker-loss boundary moves before
+the receiver commit: the retry adds one new receiver effect instead of zero. Recovery IDs1–4 still
+have exactly one receipt/result each and credit70. Compare the complete histories and both
+repetitions of each capacity condition using actual rejection, latency, throughput and receiver-lock
+measurements. The process crashes and local commits do not test host or network failure. Save any
+needed findings, then run `python3 "$CAPSTONE" cleanup` for the new fixture.

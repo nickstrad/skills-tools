@@ -4,6 +4,17 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## PostgreSQL88–92 continuation acceptance
+
+Primary accepted88–91 at revision5 with self-contained inspection/recovery commands and explicit
+owned cleanup. All12 real incident branches passed independent domain/resource audits and supplied
+cleanup. Lesson92's before-commit comparison is now direct prose; unchanged Run/revision4 reuses
+its existing accepted capstone evidence. Exact source differences, actual results, error
+classification, copied-history/revision checks and cleanup are recorded in
+[the course-local continuation report](../../curriculum-tools/courses/postgres/validation/11-legacy-continuations.md).
+All five complete CLI views pass and PostgreSQL's92-lesson source check passes. The ledger now has
+88 accepted rows and162 pending. Live learner progress/backups remain unchanged; final rollout is pending.
+
 ## Public names and skipping
 
 Commits `d0c5511` and `8ee20a9` separate public names from stored identities and add number-first

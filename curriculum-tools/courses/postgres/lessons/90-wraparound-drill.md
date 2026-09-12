@@ -10,14 +10,14 @@ run-in: shell
 sessions: 1
 min-version: 16
 minutes: 35
-revision: 4
+revision: 5
 
 ## Overview
 Several vacuum passes completed, yet part of a small ledger remains unfrozen and its frozen
 boundary does not move. Select tuple, horizon, process and durable outcome evidence to identify the
 dependency, then choose a remedy that preserves the required transaction result. Verify physical
-freeze progress and complete application state after resolution and restart. The tutor can prepare
-only the symptom packet before disclosing construction; full source remains available on request.
+freeze progress and complete application state after resolution and restart. Run supplies the full
+fixture, inspection and decision-backed resolution in sequence.
 
 ## Syntax breakdown
 ### In plain terms
@@ -102,7 +102,7 @@ outcome is not a correctness-preserving recovery strategy.
   fresh-after-restart horizons are labeled separately. Tuple inspection includes all flag rows;
   pass inspection includes actual verbose logs; decision inspection reads the committed coordinator
   record; data inspection includes the complete ledger and independently visible effect.
-- After recording a diagnosis, run **python3 "$FREEZE" recover resolve**. It saves the selected
+- **python3 "$FREEZE" recover resolve** saves the selected
   action, current dependency and durable decision before mutation. It resolves only the exact
   registered GID with **ROLLBACK PREPARED** for ABORT or **COMMIT PREPARED** for COMMIT. Supplying
   another action is rejected; the learner does not guess an outcome to release the horizon.
@@ -322,7 +322,10 @@ finally:
 PY
 python3 "$FREEZE_BOOTSTRAP" prepare ABORT
 FREEZE=$(cat "$FREEZE_BOOTSTRAP.location")
+rm -- "$FREEZE_BOOTSTRAP" "$FREEZE_BOOTSTRAP.location"
 # In a new shell, set FREEZE to the printed absolute freeze.py path.
+python3 "$FREEZE" inspect all
+python3 "$FREEZE" recover resolve
 ```
 
 ## Expected result
@@ -340,6 +343,12 @@ server restart preserves both the decision outcome and200 frozen tuples. Paths, 
 relative ages, page counts and timings vary; no forced anti-wraparound worker or real safety
 threshold is exercised.
 
+After inspecting the output and saving any needed findings, remove the stopped fixture:
+
+```sh
+python3 "$FREEZE" cleanup
+```
+
 ## Systems lens
 Background maintenance can complete its work while a foreground protocol still forbids reclamation
 or freezing. Diagnose the retained obligation and its authority, not just the worker's existence.
@@ -347,8 +356,8 @@ Correctness includes both resource progress and the transaction's required busin
 releasing a dependency with the wrong decision is not successful recovery.
 
 ## Optional variation
-Select the evidence that distinguishes a slow worker from an eligibility limit. Record which
-identities remain unfrozen, the dependency that explains them, and the source authorizing its
-resolution. Run the supplied resolve action and reconcile physical progress with application state.
-Use hint2 to change only the durable final decision to COMMIT. Predict which observation changes
-and which ledger/freeze facts remain invariant, then verify and clean up both fixtures.
+After cleaning up the core fixture, rerun Run with `prepare ABORT` changed to `prepare COMMIT` in
+the bootstrap invocation. Resolution follows that committed coordinator decision and leaves
+exactly effect `(id=1, amount=41)`, while ABORT leaves no effect. Both paths release the same prepared
+entry, freeze all200 ledger tuples and preserve the complete ledger through restart. A successful
+vacuum scan cannot resolve an outstanding transaction decision. Clean up the new fixture afterward.

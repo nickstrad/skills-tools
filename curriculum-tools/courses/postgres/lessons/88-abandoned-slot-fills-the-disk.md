@@ -10,14 +10,14 @@ run-in: shell
 sessions: 1
 min-version: 16
 minutes: 45
-revision: 4
+revision: 5
 
 ## Overview
 WAL files grew during a bounded write workload. Determine whether retained consumer history,
 unsuccessful archiving or changed write demand explains the evidence, then choose a remedy that
 restores both resource progress and complete application results. Preparation selects a case and
-stops the private server; you own the investigation and action choice. Full fixture construction
-is supplied, and the tutor can run it for you before showing only the symptom packet.
+stops the private server. Run then prints the inspection evidence; the recovery commands below
+identify which dependency each action addresses. Full fixture construction is supplied here.
 
 ## Syntax breakdown
 ### In plain terms
@@ -107,12 +107,12 @@ disconnects after every successful batch too.
   position. Data inspection compares source and receiver counts; recovery checks full contents.
   Logs show the last60 lines. All inspection output and collection timestamps remain in JSON.
 - After preparation, run **python3 "$INCIDENT" inspect all** for the complete packet, or replace
-  all with one of those evidence names. Record your diagnosis, then run exactly one of these
+  all with one of those evidence names. Match the evidence to exactly one of these
   complete commands: **python3 "$INCIDENT" recover resume**,
   **python3 "$INCIDENT" recover repair-archive**,
   **python3 "$INCIDENT" recover reduce-demand**, or
   **python3 "$INCIDENT" recover discard-reseed**. These are alternative actions, not a sequence
-  to paste together. The coaching inspect stage supplies them in separate copyable shell blocks.
+  to paste together. Expected result supplies each command with its evidence boundary.
 - **CHECKPOINT** completes a cleanup opportunity, twice where requested. Segment names can be
   removed or recycled while allocated files remain; file count need not become zero. Compare
   saved before/during/after samples and fresh reads separately. A still-needed slot or archive
@@ -136,6 +136,9 @@ disconnects after every successful batch too.
   release old segment names, reduce allocated WAL and return the slot to reserved status.
   source-before.json, source-final.json,
   receiver-before-rows.json, receiver.sqlite and recovery.json preserve the domain evidence.
+- **python3 "$INCIDENT" cleanup** checks the registered owned root and stopped server before
+  removing the fixture. A nonblocking file lock rejects overlapping controller phases. Save any
+  needed findings first; cleanup removes the receiver, archive and diagnostic files too.
 
 ## Caution
 Run in a shell with Python3, matching PostgreSQL16 server tools and test_decoding installed. Each
@@ -154,11 +157,11 @@ set -eu
 INCIDENT_BOOTSTRAP=$(mktemp /tmp/pg-incident-XXXXXX.py)
 cat > "$INCIDENT_BOOTSTRAP" <<'PY'
 
-import datetime, hashlib, json, os, pathlib, pwd, re, secrets, shutil
+import datetime, fcntl, hashlib, json, os, pathlib, pwd, re, secrets, shutil
 import sqlite3, subprocess, sys, tempfile, time
 
 phase = sys.argv[1]
-assert phase in ('prepare', 'inspect', 'recover')
+assert phase in ('prepare', 'inspect', 'recover', 'cleanup')
 if phase == 'prepare':
     cause = sys.argv[2] if len(sys.argv) > 2 else os.environ.get('INCIDENT_CASE') or secrets.choice(('slot', 'archive', 'production'))
     assert cause in ('slot', 'archive', 'production')
@@ -178,6 +181,8 @@ else:
     assert str(root) == config['root'] and root.name.startswith('pg-owned-')
     owner = pwd.getpwnam(config['owner'])
 
+phase_lock = open(root / 'phase.lock', 'a')
+fcntl.flock(phase_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
 bindir = pathlib.Path(config['bindir'])
 data, sock, log = root / 'data', root / 'socket', root / 'server.log'
 archive, gate = root / 'archive', root / 'destination-unavailable'
@@ -196,6 +201,14 @@ def server(name, *args):
 
 def sql(query):
     return run([str(bindir / 'psql'), '-X', '-At', '-v', 'ON_ERROR_STOP=1', '-c', query])
+
+if phase == 'cleanup':
+    status = subprocess.run(prefix+[str(bindir/'pg_ctl'), '-D', str(data), 'status'],
+        capture_output=True, text=True, timeout=5)
+    assert status.returncode == 3 and not (data/'postmaster.pid').exists(), 'Owned server must be stopped'
+    shutil.rmtree(root)
+    print('Removed stopped owned fixture:', root)
+    sys.exit(0)
 
 def scalar(query):
     return json.loads(sql(query))
@@ -475,15 +488,43 @@ finally:
 PY
 python3 "$INCIDENT_BOOTSTRAP" prepare
 INCIDENT=$(cat "$INCIDENT_BOOTSTRAP.location")
-# Keep INCIDENT for the inspection and recovery commands in this shell.
+rm -- "$INCIDENT_BOOTSTRAP" "$INCIDENT_BOOTSTRAP.location"
+# Keep INCIDENT for the recovery and cleanup commands below.
 # In another shell, set INCIDENT to the printed absolute incident.py path.
+python3 "$INCIDENT" inspect all
 ```
 
 ## Expected result
 Preparation completes300 baseline operations and12,000 later operations, saves the incident
 window, prints only the measured symptom and stops. That stage has not recovered the incident.
-Request inspection evidence, record a diagnosis, then execute exactly one selected recovery command
-from the coaching inspect stage. The initial cause is randomized unless explicitly selected.
+Run prints the saved incident window and a separately labeled fresh inspection. The initial cause
+is randomized unless explicitly selected. Execute exactly one matching recovery command below;
+these are alternatives. An irrelevant action is rejected without applying a remedy.
+
+If the receiver is behind, the slot's restart anchor is fixed and archiving is healthy, resume:
+
+```sh
+python3 "$INCIDENT" recover resume
+```
+
+If source and receiver agree but archive failures and pending files persist, repair the destination:
+
+```sh
+python3 "$INCIDENT" recover repair-archive
+```
+
+If the receiver and archiving keep up while the larger write windows generate more WAL, reduce demand:
+
+```sh
+python3 "$INCIDENT" recover reduce-demand
+```
+
+For the retained-consumer comparison, discard and reconstruct instead of resuming. This requires
+the fixture's complete immutable source ledger and absence of concurrent writers:
+
+```sh
+python3 "$INCIDENT" recover discard-reseed
+```
 
 For the retained-consumer case, the receiver stays at300 while the source reaches12,300; the
 restart anchor remains fixed across checkpoints and retained history exceeds the8MB target despite
@@ -503,6 +544,12 @@ compares full payloads, releases old WAL filenames, reduces WAL allocation and r
 reserved status. Actual LSNs, byte counts, timing, archived
 file counts and retained pool sizes vary; no production disk-exhaustion forecast is claimed.
 
+After inspecting the recovery output and saving any needed findings, remove the stopped fixture:
+
+```sh
+python3 "$INCIDENT" cleanup
+```
+
 ## Systems lens
 Storage growth is the combined result of production, retention obligations and allocation policy.
 A remedy must address the observed dependency and its downstream state. Dropping a cursor can
@@ -511,9 +558,10 @@ valid only when the available source still represents every required operation o
 incident-time measurements so later recovery activity does not rewrite the causal account.
 
 ## Optional variation
-Diagnose the selected case before opening fixture.json. Record the two strongest observations,
-one alternative they weaken, the chosen action and its consumer consequence. Use the inspect stage
-for exact diagnostic/recovery commands. Then run hint2's fresh retained-consumer case changing only
-the recovery choice to discard-reseed. Compare the actual gap, reconstructed contents, later tail
-and released WAL with a fresh resume case. Explain when an immutable source ledger makes this
-reconstruction possible and when a current-state snapshot would lose required historical effects.
+For a reproducible retained-consumer comparison, run `export INCIDENT_CASE=slot`, rerun Run, and use
+the discard-reseed command above. Clean up that fixture, rerun Run for a fresh slot case and use
+resume. Compare the 12,000-row gap, reconstructed contents, later delivery and released WAL. A new
+slot cannot recover its discarded continuation point; this snapshot works because every required
+operation remains in the immutable ledger. A mutable current-state snapshot can omit deleted events
+or historical effects. Clean up each fixture and run `unset INCIDENT_CASE` afterward.
+The same preparation override accepts archive or production for the other supplied recovery paths.

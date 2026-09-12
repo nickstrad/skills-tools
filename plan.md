@@ -25,33 +25,63 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - All three workers have stopped. Sol completed the 92-row preliminary inventory, checked the
   PostgreSQL structure and rendered all six edited lessons; primary acceptance is now recorded.
   Worker temporary databases and renders are removed, with no active worker processes or labs.
-- Critical new P5 finding: PostgreSQL89 and90 also omit their controller inspection/recovery/
-  cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
-  validation schedule. PG92's core is complete but its existing optional branch needs local wording.
+- PostgreSQL88–91 core continuations are now primary accepted at revision5 after12 serial real-tool
+  trials and independent outcome audits. PostgreSQL92's existing optional branch has direct wording
+  with exact Run/revision4 parity. See the current continuation checkpoint below.
 - Essentials/gRPC audits are accepted: all32 reviewed and rendered;19 Essentials prose edits,
   7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
 - PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
 - PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
-  The ledger now has83 accepted rows,167 pending. Exact exceptions and evidence are below and
+  With88–92, the ledger now has88 accepted rows,162 pending. Exact exceptions and evidence are below and
   in the validation report.
-- Next: primary repairs PostgreSQL88/89/90/91 core continuations and92 optional wording, with
-  serial owned real-tool validation; then completes early PostgreSQL pending reviews,
-  Linux13–72 and SQLite01–51/53. No new worker has been dispatched. Primary
-  still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation.
+- Next: primary completes early PostgreSQL pending reviews (50 rows), Linux13–72 (60 rows)
+  and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+  still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
   quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
   roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~16MB), including raw/refreshed
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~19MB), including raw/refreshed
   baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
   helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
   redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
   Do not regenerate `lesson-audit.tsv` over its manual acceptance notes.
-- Runtime checkpoint: SQLite validation root and review databases removed; no PostgreSQL author
-  lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
+- Runtime checkpoint: all12 newly validated PostgreSQL incident fixtures, harness evidence and
+  temporary review catalogs are removed; no author server remains. Learner hash remains
+  `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL88–92
+
+Primary restored88's local inspection and alternative recovery commands with evidence for selecting
+exactly one remedy, plus a locked stopped-root cleanup action. Lessons89–91 append their existing
+inspection and restore/decision-backed resolve/cancel-request calls. All four now supply explicit
+cleanup and retire bootstrap files after successful preparation. Their revisions advance4→5 because
+the available core experiment changes; all identities, safety, sessions and unrelated metadata stay
+stable. Lesson92 only changes Overview/Optional variation and remains revision4 with exact Run parity.
+
+All12 real branches pass:88 resume/archive/reduced-demand/discard-reseed;89 early/late backup;
+90 ABORT/COMMIT;91 cancellation/termination under explicit/autocommit prior-write boundaries.
+Independent Go audits verify full regenerated payloads, actual SQLite receipts/balance, archive and
+backup hashes, damage scope, recovered operation loss, freeze/effect/restart state, request
+SQLSTATE/deadlines, exact notes and client lifecycle. Supplied cleanup removed every fixture.
+An irrelevant88 remedy and concurrent cleanup were correctly rejected. Details and measured results
+are in `curriculum-tools/courses/postgres/validation/11-legacy-continuations.md`.
+
+Exact reviewed Run substitutions, new Expected-result fences and the four revision increments pass
+parsed comparison; all five lessons pass complete plain/ANSI/JSON rendering from a temporary catalog.
+A synthetic baseline-completion catalog confirms repeated refresh preserves history and makes88–91
+stale while92 stays done. Live-baseline `progress verify` preserves251 identities,36 progress rows
+and37 attempts on its own copy. PostgreSQL source check passes; no live catalog refresh occurred.
+Lesson92 reuses its existing accepted after/before worker-loss evidence because its controller is
+unchanged. Final tests, skill installation and live rollout are still pending after remaining content.
+
+All owned experiment roots, harness directories and temporary catalogs are gone. Scratch is19MB,
+retained only until final migration acceptance; no new raw PostgreSQL/WAL image remains. Learner lab
+readiness, learner SHA256 and every legacy backup hash pass;14GB disk remains free. The ledger has
+88 accepted rows and162 pending:50 PostgreSQL,60 Linux and52 SQLite.
 
 ### Resumed acceptance checkpoint — PostgreSQL69–87
 

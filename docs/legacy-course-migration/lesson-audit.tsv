@@ -164,11 +164,11 @@ postgres	84	idempotency-keys	prose/diagram only	Challenge	primary	Direct existin
 postgres	85	two-phase-commit	prose/diagram only	Challenge	primary	Direct existing lose_before_decision=True comparison; independent null decision authorizes fixture ABORT versus core durable COMMIT
 postgres	86	fencing-tokens-with-a-monotonic-counter	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct existing rollback_fence=True comparison and removed core prediction; acceptance begins at committed resource fence
 postgres	87	listen-notify-as-a-bus	prose/diagram only	Challenge	primary	Direct existing publish_after_listen=True comparison; wake-up count differs while durable inventory/credit remain equal
-postgres	88	abandoned-slot-fills-the-disk	pending			
-postgres	89	corrupt-a-page-and-detect-it	pending			
-postgres	90	wraparound-drill	pending			
-postgres	91	runaway-query-and-cancel	pending			
-postgres	92	postmortem-from-the-log	pending			
+postgres	88	abandoned-slot-fills-the-disk	core commands restored	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge,Revision	primary	Revision 5 restores local inspect/recovery alternatives and locked stopped-root cleanup; four real branches, rejected remedy/overlap, independent receiver and WAL checks pass
+postgres	89	corrupt-a-page-and-detect-it	core commands restored	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge,Revision	primary	Revision 5 restores inspect/restore plus cleanup command; early/late real backups verify exact loss, payloads, complete backup hashes, one-byte damage and later write
+postgres	90	wraparound-drill	core commands restored	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge,Revision	primary	Revision 5 restores inspect/decision-backed resolve plus cleanup; ABORT/COMMIT real trials freeze all 200 rows and preserve complete ledger and authorized effect
+postgres	91	runaway-query-and-cancel	core commands restored	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge,Revision	primary	Revision 5 restores inspect/cancel-request plus cleanup; four transaction/action combinations meet budget with verified client states, exact notes and no forced client kills
+postgres	92	postmortem-from-the-log	prose/diagram only	Overview,Challenge	primary	Direct existing run before comparison and cleanup; exact Run/metadata/revision parity, existing capstone core/before-commit runtime evidence reused
 postgres-essentials	1	committed-row-visibility	unchanged		primary	Direct two-session committed/private visibility walkthrough and cleanup; unchanged
 postgres-essentials	2	statement-versus-transaction-snapshot	unchanged		primary	Direct RC/RR snapshot comparison with transaction endings and cleanup; unchanged
 postgres-essentials	3	old-reader-retains-history	unchanged		primary	Direct held-reader/released-reader vacuum comparison; local horizon interpretation and cleanup; unchanged
