@@ -102,4 +102,6 @@ On an FTS5-enabled runtime the script prints fts5_capability=yes, before_rebuild
 Keep the PostgreSQL materialized-state intuition but learn SQLite's specific external-content contract. Local triggers can make source and search updates atomic in one database; they cannot repair old omissions or validate a remote indexing pipeline. A useful toolkit feature includes a repair path and a semantic consistency check.
 
 ## Optional variation
-Remove the triggers and perform one source update, then compare MATCH with a direct docs query. Design a rebuild job that records the source generation it indexed.
+After Run, open the printed fts-derived.sqlite in sqlite3. Execute `DROP TRIGGER docs_ai; DROP TRIGGER docs_ad; DROP TRIGGER docs_au;` and then `UPDATE docs SET body='generationprobe' WHERE id=2;`. A direct `SELECT count(*) FROM docs WHERE body='generationprobe';` returns 1, while `SELECT count(*) FROM docs_fts WHERE docs_fts MATCH 'generationprobe';` returns 0. Repair with the existing rebuild command and repeat MATCH; it now returns 1. Run the existing FTS external-content integrity check and page integrity check, then close the connection. A later fresh Run recreates the maintained fixture.
+
+A rebuild job must associate its result with the source generation it actually indexed, and prevent publication as current after that source changes. Recording only a completion timestamp does not identify the indexed state.

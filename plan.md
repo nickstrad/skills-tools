@@ -41,11 +41,14 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - All72 Linux lessons are accepted:13–24 in `953dcc0`,25–36 in `a05be21`,37–48 in `0e94bc0`,
   49–60 in `ca8d457`, and the final61–72 group as recorded below. Setup/Run behavior and revisions
   remain unchanged;72 has exactly two comment replacements. Linux completion is committed in `b0a3abb`.
-- SQLite01–44 are accepted. The latest eight lessons have direct comparisons and local outcomes.
-  The ledger has242 accepted rows and8 pending.
+- All54 SQLite lessons are accepted, completing all250 authored lesson audits. The final eight
+  have direct comparisons and local outcomes;53 has no invariant-writing prerequisite. A final
+  contextual search also corrected three PostgreSQL syntax references (17/18/33) to variation.
+  The ledger has250 accepted rows and zero pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes SQLite45–51/53 (8 rows). No new worker has been dispatched. Primary
-  still owns final integration and serial hazardous validation if a remaining semantic change needs it.
+- Next: primary completes final integration, copied-history acceptance, installer sync and live
+  history-preserving rollout. Full tests/vet/race/build are running; all five source checks pass.
+  No new worker has been dispatched. Primary
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
@@ -61,6 +64,24 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — all250 content audits complete
+
+SQLite45–51/53 are accepted. All Setup/Run, existing blocks, metadata and revisions remain exact;
+53 now states its invariants directly and supplies the pre-ACK restore/replay comparison, including
+the earlier job-state limit. Protocol failure variants retain the core's rejection assertions;
+snapshot/FTS comparisons include direct expected values and existing repair checks. All eight
+actual plain/ANSI/JSON views pass. Final search found only three remaining syntax uses of challenge
+in PostgreSQL17/18/33; those terminology-only edits also pass complete parity and three-format views.
+All five course checks pass with92/54/72/26/6 authored lessons. Discovery shows seven canonical
+courses with planned totals40/32/44. Remaining search matches describe SQL submission, physical
+hint bits, invalidation hints, real controller inspect/apply verbs or ordinary observation prose.
+
+The ledger is250 accepted, zero pending. Scratch uses `sqlite-final-8*` and
+`postgres-final-terminology*`; all temporary review catalogs are removed. Full final Go checks are
+running. Learner hash remains2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3;
+only the live /labs/pglab cluster runs, with14GB disk and6.8GiB memory available. No live catalog
+refresh or installer run yet. Final integration/copy acceptance/rollout/cleanup remain mandatory.
 
 ### Resumed acceptance checkpoint — SQLite37–44
 

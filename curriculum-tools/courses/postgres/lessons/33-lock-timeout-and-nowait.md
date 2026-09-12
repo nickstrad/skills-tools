@@ -49,7 +49,7 @@ when the application has useful work elsewhere.
 - **FOR UPDATE SKIP LOCKED** (SQL locking option): Ignores rows whose locks cannot be acquired immediately.
   - What it does here: Reads all rows while silently omitting id 3.
   - What it gives us: ids 1, 2, 4, 5; the plain count remains 5 because no rows were deleted.
-- **SET/RESET statement_timeout** (session setting in the challenge): Controls total runtime of a statement.
+- **SET/RESET statement_timeout** (session setting in the variation): Controls total runtime of a statement.
   - What it does here: Contrasts a runtime timeout with the lock-only timeout.
   - What it gives us: A slow query can be killed even when it is not waiting on a lock.
 - **COMMIT** (SQL transaction command): Releases A's row lock.

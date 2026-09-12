@@ -95,4 +95,6 @@ The output names an evidence directory, then prints cache_value_before=before an
 A local invalidation hint and a portable snapshot solve different problems. The counter helps an application decide to reread; the backup supplies reproducible state for a reader or recovery tool. File replacement, external caches and distributed history still require explicit generation and coordination rules.
 
 ## Optional variation
-Open a second read-only snapshot after a later commit and compare both values. Define a cache-generation and reopen protocol for replacing a source file.
+After Run, in the same shell execute `sqlite3 -bail "$source" "UPDATE cache_rows SET value='later' WHERE id=1;"`, then capture a new destination with `sqlite3 "$source" ".backup '$scratch/cache-snapshot-later.sqlite'"`. Read both snapshots using `sqlite3 -readonly` and `SELECT value FROM cache_rows WHERE id=1;`: the original snapshot retains after, while the new snapshot contains later. Check the new snapshot's integrity before using it.
+
+A source-file replacement needs a separate application generation: invalidate cached values, close connections to the old file, reopen the published generation and establish a fresh data_version baseline. Values from the old and new connections cannot serve as a shared version sequence.

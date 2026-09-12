@@ -73,7 +73,7 @@ and the subsequent 10,000 rows fitting without file growth.
   - What it is: It inserts 10,000 generated rows; repeat('y', 100) supplies their padding.
   - What it does here: New rows are allocated into holes vacuum published.
   - What it gives us: More rows while pages_after_10k_more_rows remains 1,379.
-- **VACUUM a second time (challenge)** (maintenance variation)
+- **VACUUM a second time** (maintenance variation)
   - What it is: A no-write vacuum tests whether visibility metadata allows work to be skipped.
   - What it does here: It may report “index scan not needed” and zero tuples removed.
   - What it gives us: Evidence that a clean visibility map reduces later vacuum work.

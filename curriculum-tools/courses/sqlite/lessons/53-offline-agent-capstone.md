@@ -19,9 +19,9 @@ Compose the course's local boundaries into one agent: state and intent, receiver
 ### In plain terms
 
 Each earlier experiment isolated one failure. Here several independent guarantees must hold at
-once. Start by writing four invariants: a committed debit has intent, a repeated delivery has one
+once. The four invariants are: a committed debit has intent, a repeated delivery has one
 receiver effect, an old worker cannot complete the new owner's job, and a restore contains both
-valid pages and the expected domain state. The script then challenges each invariant separately.
+valid pages and the expected domain state. The script tests each invariant separately.
 
 ### What you are learning
 
@@ -71,7 +71,7 @@ valid pages and the expected domain state. The script then challenges each invar
   job-result and schema checks. The summary is printed only after all gates succeed.
 
 ## Caution
-The script creates a unique directory, kills only its child and damages only a copy. Keep the intact backup and diagnostic files until you have explained every invariant.
+The script creates a unique directory, kills only its child and damages only a copy. Keep the intact backup and diagnostic files through inspection of the structural and domain checks.
 
 ## Run
 ```sh
@@ -180,4 +180,6 @@ The owned writer exits 137; crash_recovery=ok and uncommitted_rows=0 are asserte
 Reliable composition follows the boundaries of authority: each participant commits the facts it owns, replay crosses between participants, and recovery verifies both storage and meaning. A list of features is not a guarantee until failure experiments show their invariants survive together.
 
 ## Optional variation
-Restore the sender from a backup taken before acknowledgement while keeping the receiver current. Predict the replay and check it. Then explain why restoring a backup from before sequence allocation additionally requires a generation/rejoin policy.
+On a fresh run, immediately after the first delivery and the sender sent=0 check, capture `sqlite3 "$sender" ".backup '$lab/preack.db'"`, then finish Run. Restore that earlier snapshot into a separate file with `sqlite3 "$lab/preack.db" ".backup '$lab/preack-restored.db'"`. Its outbox still has sent=0, while the current receiver already has the receipt. Replay the original batch with `deliver "$receiver" "$lab/batch.sql"`: new_receipts is 0, receiver balance stays 90 and receipts stay 1. Record the acknowledgement in this restored file with `sqlite3 -bail "$lab/preack-restored.db" 'UPDATE outbox SET sent=1;'` and verify its sent value.
+
+This earlier snapshot also predates the job takeover, so it is not equivalent to the core's final restored job state. A backup from before sequence allocation additionally rewinds identity knowledge; use the generation/rejoin procedure to reconcile retained history before allowing new operations. Safe replay of an existing identity does not authorize reusing it for new intent.

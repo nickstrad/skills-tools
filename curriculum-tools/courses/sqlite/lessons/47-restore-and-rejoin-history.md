@@ -183,4 +183,6 @@ The restored file passes integrity_check but still proposes sequence 2. The peer
 Restoring a participant is a protocol event because the rest of the system retains observations the participant has forgotten. A generation fences the old identity space; reconciliation repairs its missing knowledge. Neither is supplied automatically by copying a valid SQLite file.
 
 ## Optional variation
-Delete the peer's retained a/g1:2 history before rejoin. Can the restored device still prove a complete receive prefix? Specify which authoritative snapshot and origin-retirement rule your system would require before accepting new writes.
+On a fresh disposable run, after the changed-identity rejection and before the history export, delete only a/g1:2 from the peer's inbox with `sqlite3 -bail "$b" "DELETE FROM inbox WHERE origin='a/g1' AND seq=2;"`. The peer's cursor and materialized note still remember later progress, but its export cannot supply the missing operation. Inspect the exported history and restored inbox: they cannot prove the complete prefix needed by this rejoin procedure, and the unchanged final three-operation assertion rejects the altered run.
+
+When complete history is unavailable, pause new writes until a protocol-defined authoritative snapshot supplies state and receive positions. Retire the old origin and admit a fresh generation under a rule that refuses ancient replay. A structurally valid local file and a cursor value alone do not supply that missing evidence.

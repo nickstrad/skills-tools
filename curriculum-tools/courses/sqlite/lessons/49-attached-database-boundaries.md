@@ -94,4 +94,4 @@ Before rollback-mode COMMIT, main_journal_bytes and aux_journal_bytes are positi
 Do not collapse 'one file', 'one connection', 'one transaction' and 'one failure domain' into the same boundary. ATTACH can coordinate local rollback-mode files when its conditions hold; WAL and independent connections have different guarantees. This is a useful local tool, not distributed consensus.
 
 ## Optional variation
-Use two independent sqlite3 processes and explain why ATTACH cannot coordinate them. Then leave one attached transaction open and inspect which journals appear.
+Compare the preceding lesson's two independent writer processes with this connection's main/aux transaction. Each independent process commits its own transaction; attaching a pathname does not enlist another connection's pending work. For the attached-journal observation, inspect the two existing stat results before the first COMMIT: both participating files have nonempty journals while that transaction is open. Then finish the existing COMMIT and integrity queries so no transaction remains held. These live artifacts demonstrate participation, not an injected cross-file crash outcome.

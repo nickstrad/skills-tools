@@ -88,7 +88,7 @@ waiting lock and the changed relation file after the reader commits.
   - What it is: It counts physical dead tuples and free space after the rewrite.
   - What it does here: It verifies the compact replacement relation.
   - What it gives us: dead_tuple_count = 0 and free_percent near the tightly packed starting value.
-- **VACUUM FULL in the challenge** (lock variation)
+- **VACUUM FULL in the variation** (lock variation)
   - What it is: The same exclusive rewrite started before a new SELECT arrives.
   - What it does here: The new reader queues behind A even though it only wants to read.
   - What it gives us: Direct evidence that the exclusive request turns the table into a temporary outage.

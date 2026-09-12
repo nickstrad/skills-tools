@@ -93,8 +93,8 @@ postgres	13	two-sessions-see-different-versions	prose/diagram only	SyntaxBreakdo
 postgres	14	commit-visibility-and-clog	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; physical hint-bit comparison and all SQL preserved
 postgres	15	xmin-horizon-blocks-cleanup	unchanged		primary	Unchanged matched churn, exact pinned backend horizon, release and BEGIN-only comparison
 postgres	16	wraparound-and-freezing	prose/diagram only	SyntaxBreakdown,SystemsLens	primary	Variation terminology and current lesson15 horizon reference; exact bounded XID/freezing experiment preserved
-postgres	17	vacuum-reclaims-in-place	unchanged		primary	Unchanged space-reuse experiment and direct second-VACUUM comparison
-postgres	18	vacuum-full-rewrites-and-locks	unchanged		primary	Unchanged rewrite/lock schedule and optional reader-blocking comparison
+postgres	17	vacuum-reclaims-in-place	prose/diagram only	SyntaxBreakdown	primary	Final contextual search updates optional-variation syntax terminology; complete experiment and comparison unchanged
+postgres	18	vacuum-full-rewrites-and-locks	prose/diagram only	SyntaxBreakdown	primary	Final contextual search updates optional-variation syntax terminology; complete experiment and comparison unchanged
 postgres	19	visibility-map-and-index-only-scans	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; complete locality/visibility-map comparison preserved
 postgres	20	autovacuum-triggers	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; bounded autovacuum poll and explicit table-option reset preserved
 postgres	21	atomic-abort	prose/diagram only	Challenge	primary	Direct failed-transaction reuse interpretation and explicit final reader commit; main abort evidence preserved
@@ -109,7 +109,7 @@ postgres	29	unknown-commit-outcome	prose/diagram only	Challenge	primary	Remove m
 postgres	30	row-locks-are-in-the-tuple	unchanged		primary	Unchanged tuple-lock and transaction-wait evidence; direct shared-holder MultiXact comparison ends both transactions
 postgres	31	lock-queue-and-blocking-pids	unchanged		primary	Unchanged three-session queue handoff and compatible FOR SHARE comparison
 postgres	32	deadlock-detection	unchanged		primary	Unchanged deadlock victim handling, conditional commit/rollback and direct ordered-acquisition comparison
-postgres	33	lock-timeout-and-nowait	unchanged		primary	Unchanged timeout/NOWAIT/SKIP LOCKED evidence and supplied bounded statement-timeout variation
+postgres	33	lock-timeout-and-nowait	prose/diagram only	SyntaxBreakdown	primary	Final contextual search updates optional-variation syntax terminology; complete experiment and comparison unchanged
 postgres	34	ddl-behind-a-long-query	unchanged		primary	Unchanged full DDL queue and timeout/retry schedules, including dropped trial column
 postgres	35	advisory-locks-as-leases	unchanged		primary	Unchanged advisory-lock scopes and supplied exact owned-session termination/reconnect comparison
 postgres	36	skip-locked-work-queue	unchanged		primary	Unchanged guarded queue/result core and claim rollback comparison; operational pause wording is a fixture deadline
@@ -239,13 +239,13 @@ sqlite	41	measure-the-writer-envelope	coaching-only prompt retired	Challenge	pri
 sqlite	42	local-oplog	coaching-only prompt retired	Challenge	primary	Direct post-rollback counter move reveals missing sequence2 with unchanged committed body
 sqlite	43	outbox-replay-after-crash	coaching-only prompt retired	Challenge	primary	Split receipt failure interpretation gives double debit80 and expected core assertion rejection
 sqlite	44	durable-job-claims	coaching-only prompt retired	Challenge	primary	Correct token-only omission interpretation: retained owner predicate still rejects stale completion
-sqlite	45	duplicate-and-lost-ack	pending			
-sqlite	46	ordering-conflicts-and-tombstones	pending			
-sqlite	47	restore-and-rejoin-history	pending			
-sqlite	48	independent-database-writers	pending			
-sqlite	49	attached-database-boundaries	pending			
-sqlite	50	cache-invalidation-and-snapshots	pending			
-sqlite	51	fts-derived-state	pending			
+sqlite	45	duplicate-and-lost-ack	coaching-only prompt retired	Challenge	primary	Direct payload-guard omission interpretation retains rejection of broken protocol
+sqlite	46	ordering-conflicts-and-tombstones	coaching-only prompt retired	Challenge	primary	Conflict retention and tombstone membership policy explained without assignment
+sqlite	47	restore-and-rejoin-history	coaching-only prompt retired	Challenge	primary	Direct missing-peer-history comparison identifies incomplete export and failed final invariant
+sqlite	48	independent-database-writers	coaching-only prompt retired	Challenge	primary	Cross-file transfer invariant and coordination responsibilities supplied directly
+sqlite	49	attached-database-boundaries	coaching-only prompt retired	Challenge	primary	Names existing independent-process and pending attached-journal comparisons
+sqlite	50	cache-invalidation-and-snapshots	coaching-only prompt retired	Challenge	primary	Direct later snapshot comparison retains original snapshot and explains cache generations
+sqlite	51	fts-derived-state	coaching-only prompt retired	Challenge	primary	Direct trigger-removal divergence followed by existing rebuild and integrity repair
 sqlite	52	wal-growth-incident	navigation comment/output cleanup	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge	primary	One printed prompt changed; SQL/session sequence and metadata unchanged; real two-session evidence verified
-sqlite	53	offline-agent-capstone	pending			
+sqlite	53	offline-agent-capstone	coaching-only prompt retired	SyntaxBreakdown,Challenge,Caution	primary	Retires invariant-writing stage and supplies pre-ACK restore/replay comparison and prior-job-state limit
 sqlite	54	sqlite-architecture-decision	navigation comment/output cleanup	Overview,SyntaxBreakdown,Code,ExpectedResult,Challenge,Caution	primary	Only trailing ADR generation removed from Run; database behavior/metadata unchanged; real contention/full restore and owned cleanup verified

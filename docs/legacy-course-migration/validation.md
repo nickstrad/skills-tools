@@ -4,6 +4,21 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Complete250-lesson content acceptance
+
+All250 ledger rows are primary accepted. SQLite45–51/53 complete the final eight: direct failure,
+snapshot, FTS repair and pre-ACK replay comparisons;53 states invariants without a writing stage.
+Every Setup/Run byte, existing block, metadata field and revision in this group matches baseline.
+All eight actual plain/ANSI/JSON views pass. Final contextual search changed only PostgreSQL17/18/33
+syntax terminology; those three complete views and parity checks also pass. Remaining search hits
+are actual SQL submission, physical/invalidation hints, controller inspect/apply operations or
+ordinary observation language, not learner coaching stages.
+
+All five source checks pass:92/54/72/26/6 authored lessons. Canonical discovery lists exactly seven
+entries with total routes40/32/44 where planned. Evidence uses `.cache/legacy-migration/sqlite-final-8*`
+and `postgres-final-terminology*`; temporary catalogs are removed. Existing runtime evidence covers
+unchanged cores. Final integration, installation and live history rollout are still pending.
+
 ## SQLite37–44 content group
 
 All eight accepted with direct optional comparisons, explicit expected outcomes and retired ADR
