@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — in flight (delegated, do not re-delegate): WP3.1 cobra tree (opus), WP4.2 roadmap package (opus). Next after they land: WP3.5 launcher, WP2.3 parity B, WP3.6 parity C, then Phase 9.**
+**Status: in progress — in flight (delegated, do not re-delegate): WP3.1 cobra tree (opus). Roadmap package landed (07d2ede). Next after WP3.1 lands: `internal/cli/roadmap.go`, WP3.5 launcher, WP2.3 parity B, WP3.6 parity C, then Phase 9.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -65,7 +65,7 @@ a separate handoff document.
 | WP3.5 Launcher | S | todo | | |
 | WP3.6 Parity gate C and smoke | S | todo | | |
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
-| WP4.2 roadmap package and command | O | in progress | | delegated to an opus subagent; package `internal/roadmap` only; `internal/cli/roadmap.go` is added by the primary after WP3.1 |
+| WP4.2 roadmap package and command | O | package done | 07d2ede | `internal/roadmap` committed; `internal/cli/roadmap.go` is added by the primary after WP3.1 lands. Uses `<root>/tutor.sqlite` already (the Phase 9 file) |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
 | WP5.2 validate and progress verify | S | todo | | |
@@ -110,6 +110,18 @@ learner progress rows that changed during the work).
   rows, not 66 as §B says; `courses.json` in the corpus is authoritative. (d) Deno's `lesson N
   --json` prints Markdown (only `show N --json` printed JSON); the Go `lesson N --json` prints the
   JSON, matching golden `lesson-NN.json`.
+- 2026-09-12 — WP4.2 findings (package `internal/roadmap`): (a) the §3.5 stale-export rule
+  ("roadmap.json older than `exported_at`") can never fire after a mutation, because nothing
+  later moves either value; the package adds a third `roadmap_meta` key, `changed_at`, stamped by
+  every mutating command and by import, and the note also prints when `changed_at` >
+  `exported_at`, when the file is missing, or when nothing was ever exported. (b) `export` sets
+  the published file's mtime to the same instant it records as `exported_at` (the kernel's
+  coarse file clock otherwise lags `time.Now()` and made a fresh export look stale). (c) A plan
+  row prints only ` — plan: <path>`; the `(32 planned)` count in the §3.5 sample is dropped
+  (counting a plan file's rows on every view is not worth the parse). (d) A topic linked to a
+  course id that does not resolve prints ` — <course>` with no counts rather than `0/0`.
+  (e) `followup choose n` is an exclusive select. (f) `schema_migrations (1, 'roadmap')` is
+  recorded in `tutor.sqlite`; WP9.1 must keep that row when it adds the progress tables.
 - 2026-09-12 — Nick: "add task to consolidate to one database since I believe we just have one
   approach now so a per course db doesn't seem necessary … handle that at the end." Decision 2
   (per-course `progress.sqlite`) is superseded by Phase 9 below: one `curriculum-tools/tutor.sqlite`
