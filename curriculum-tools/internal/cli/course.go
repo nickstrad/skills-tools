@@ -1,5 +1,5 @@
 // The per-course command factory. Every course `route.DiscoverCourses` finds becomes a top-level
-// command named after its id, carrying the learner verbs as subcommands. A plan-only (future)
+// command named after its public name, carrying the learner verbs as subcommands. A plan-only (future)
 // course gets `route` and nothing else.
 //
 // The verbs share one small context value (courseCtx) that owns flag values, database opening and
@@ -51,8 +51,9 @@ type courseCtx struct {
 	all      bool
 }
 
-// id is the course identifier the commands are named after.
-func (cc *courseCtx) id() string { return cc.disc.ID }
+// Public commands and stable storage identities are deliberately separate.
+func (cc *courseCtx) publicName() string { return cc.disc.ID }
+func (cc *courseCtx) storedID() string   { return cc.disc.StorageID() }
 
 // dbPath resolves the progress database location: the --db value (relative to the working
 // directory) or the one tutor.sqlite under the curriculum root. It never creates it.
@@ -85,7 +86,7 @@ func (cc *courseCtx) openRead() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := progress.EnsureReady(db, cc.id()); err != nil {
+	if err := progress.EnsureReady(db, cc.storedID()); err != nil {
 		db.Close()
 		if errors.Is(err, progress.ErrNotInitialized) {
 			return nil, notInitialized()
@@ -110,7 +111,7 @@ func (cc *courseCtx) openWrite() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := progress.EnsureReady(db, cc.id()); err != nil {
+	if err := progress.EnsureReady(db, cc.storedID()); err != nil {
 		db.Close()
 		if errors.Is(err, progress.ErrNotInitialized) {
 			return nil, notInitialized()
@@ -122,7 +123,7 @@ func (cc *courseCtx) openWrite() (*sql.DB, error) {
 
 // loadCourse reads courses/<id>/course.json.
 func (cc *courseCtx) loadCourse() (course.Course, error) {
-	return course.LoadCourse(cc.root, cc.id())
+	return course.LoadCourse(cc.root, cc.storedID())
 }
 
 // print writes one already-rendered block of output.
@@ -180,6 +181,9 @@ func newCourseCmd(root string, disc route.CourseDiscovery, stdout io.Writer) *co
 			fmt.Fprintln(stdout, courseHelp(disc))
 			return nil
 		},
+	}
+	if disc.ID != disc.StorageID() {
+		cmd.Aliases = []string{disc.StorageID()}
 	}
 	cmd.SetHelpFunc(func(c *cobra.Command, _ []string) {
 		if c == cmd {
@@ -296,13 +300,13 @@ func newRouteCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "route",
 		Short: "Show the fixed route and what is done",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s route [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s route [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			path, err := cc.dbPath()
 			if err != nil {
 				return usageErr("%s", err.Error())
 			}
-			r, err := route.LoadRoute(cc.root, cc.id(), path)
+			r, err := route.LoadRoute(cc.root, cc.storedID(), path)
 			if err != nil {
 				return usageErr("%s", err.Error())
 			}
@@ -343,7 +347,7 @@ type topicCompleteJSON struct {
 
 // serveNext prints the next unfinished lesson, or the matching "nothing left" message.
 func (cc *courseCtx) serveNext(db *sql.DB, asJSON bool) error {
-	row, matched, complete, err := progress.Next(db, cc.id(), cc.topic)
+	row, matched, complete, err := progress.Next(db, cc.storedID(), cc.topic)
 	if err != nil {
 		return err
 	}
@@ -351,7 +355,7 @@ func (cc *courseCtx) serveNext(db *sql.DB, asJSON bool) error {
 		if asJSON {
 			return cc.printJSON(topicNoMatchJSON{Topic: cc.topic, Matched: 0})
 		}
-		cc.print(fmt.Sprintf("No lessons match topic '%s'. Run 'tutor %s topics' to see the vocabulary, or 'search'.", cc.topic, cc.id()))
+		cc.print(fmt.Sprintf("No lessons match topic '%s'. Run 'tutor %s topics' to see the vocabulary, or 'search'.", cc.topic, cc.publicName()))
 		return nil
 	}
 	if complete {
@@ -379,7 +383,7 @@ func newLessonCmd(cc *courseCtx) *cobra.Command {
 		Short: "Show the next unfinished lesson, or lesson N",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) > 1 {
-				return usageErr("usage: tutor %s [N] lesson [--topic TEXT] [--ansi|--plain]", cc.id())
+				return usageErr("usage: tutor %s [N] lesson [--topic TEXT] [--ansi|--plain]", cc.publicName())
 			}
 			return nil
 		},
@@ -399,7 +403,7 @@ func newLessonCmd(cc *courseCtx) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			row, err := progress.Get(db, cc.id(), ordinal)
+			row, err := progress.Get(db, cc.storedID(), ordinal)
 			if err != nil {
 				return err
 			}
@@ -415,7 +419,7 @@ func newNextCmd(cc *courseCtx) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "next",
 		Short: "Show the next unfinished lesson",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s next [--topic TEXT] [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s next [--topic TEXT] [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			db, err := cc.openRead()
 			if err != nil {
@@ -434,7 +438,7 @@ func newDoneCmd(cc *courseCtx, verb, status, short string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   verb + " N",
 		Short: short,
-		Args:  exactArgs(1, fmt.Sprintf("tutor %s N %s [--note TEXT]", cc.id(), verb)),
+		Args:  exactArgs(1, fmt.Sprintf("tutor %s N %s [--note TEXT]", cc.publicName(), verb)),
 	}
 	cmd.Flags().StringVar(&cc.note, "note", "", "note to store with the progress row")
 	cmd.RunE = func(_ *cobra.Command, args []string) error {
@@ -448,9 +452,9 @@ func newDoneCmd(cc *courseCtx, verb, status, short string) *cobra.Command {
 		}
 		defer db.Close()
 		if verb == "done" {
-			err = progress.Done(db, cc.id(), ordinal, cc.note)
+			err = progress.Done(db, cc.storedID(), ordinal, cc.note)
 		} else {
-			err = progress.Skip(db, cc.id(), ordinal, cc.note)
+			err = progress.Skip(db, cc.storedID(), ordinal, cc.note)
 		}
 		if err != nil {
 			return err
@@ -466,7 +470,7 @@ func newUndoneCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "undone N",
 		Short: "Return a lesson to the todo state",
-		Args:  exactArgs(1, fmt.Sprintf("tutor %s undone N", cc.id())),
+		Args:  exactArgs(1, fmt.Sprintf("tutor %s undone N", cc.publicName())),
 		RunE: func(_ *cobra.Command, args []string) error {
 			ordinal, err := requireOrdinal(args[0])
 			if err != nil {
@@ -477,7 +481,7 @@ func newUndoneCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			if err := progress.Undone(db, cc.id(), ordinal); err != nil {
+			if err := progress.Undone(db, cc.storedID(), ordinal); err != nil {
 				return err
 			}
 			cc.print(fmt.Sprintf("Lesson %d marked todo.", ordinal))
@@ -491,7 +495,7 @@ func newNoteCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "note N TEXT...",
 		Short: "Save a note on a lesson",
-		Args:  minArgs(2, fmt.Sprintf("tutor %s note N TEXT...", cc.id())),
+		Args:  minArgs(2, fmt.Sprintf("tutor %s note N TEXT...", cc.publicName())),
 		RunE: func(_ *cobra.Command, args []string) error {
 			ordinal, err := requireOrdinal(args[0])
 			if err != nil {
@@ -506,7 +510,7 @@ func newNoteCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			if err := progress.Note(db, cc.id(), ordinal, text); err != nil {
+			if err := progress.Note(db, cc.storedID(), ordinal, text); err != nil {
 				return err
 			}
 			cc.print(fmt.Sprintf("Note saved for lesson %d.", ordinal))
@@ -520,7 +524,7 @@ func newListCmd(cc *courseCtx) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List lessons with their progress",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s list [--todo|--done|--all] [--category NAME] [--topic TEXT] [--limit N] [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s list [--todo|--done|--all] [--category NAME] [--topic TEXT] [--limit N] [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			if cc.limit < 0 {
 				return usageErr("--limit must be a positive integer")
@@ -530,7 +534,7 @@ func newListCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			rows, err := progress.List(db, cc.id(), progress.ListFilter{
+			rows, err := progress.List(db, cc.storedID(), progress.ListFilter{
 				Todo: cc.todo, Done: cc.done, All: cc.all,
 				Category: cc.category, Topic: cc.topic, Limit: cc.limit,
 			})
@@ -569,14 +573,14 @@ func newModulesCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "modules",
 		Short: "Summarize progress per module category",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s modules [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s modules [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			db, err := cc.openRead()
 			if err != nil {
 				return err
 			}
 			defer db.Close()
-			mods, err := progress.Modules(db, cc.id())
+			mods, err := progress.Modules(db, cc.storedID())
 			if err != nil {
 				return err
 			}
@@ -601,14 +605,14 @@ func newTopicsCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "topics",
 		Short: "List the tag vocabulary with progress",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s topics [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s topics [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			db, err := cc.openRead()
 			if err != nil {
 				return err
 			}
 			defer db.Close()
-			topics, err := progress.Topics(db, cc.id())
+			topics, err := progress.Topics(db, cc.storedID())
 			if err != nil {
 				return err
 			}
@@ -632,14 +636,14 @@ func newStatusCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show the course-wide completion summary",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s status [--json]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s status [--json]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			db, err := cc.openRead()
 			if err != nil {
 				return err
 			}
 			defer db.Close()
-			s, err := progress.GetStatus(db, cc.id())
+			s, err := progress.GetStatus(db, cc.storedID())
 			if err != nil {
 				return err
 			}
@@ -648,7 +652,7 @@ func newStatusCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			payload := render.Status{
-				Course: c.ID, Total: s.Total, Done: s.Done,
+				Course: c.PublicName(), Total: s.Total, Done: s.Done,
 				Todo: s.Todo, Skipped: s.Skipped, Stale: s.Stale,
 			}
 			if cc.asJSON {
@@ -665,7 +669,7 @@ func newSearchCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "search TEXT...",
 		Short: "Find lessons containing every term",
-		Args:  minArgs(1, fmt.Sprintf("tutor %s search TEXT... [--json]", cc.id())),
+		Args:  minArgs(1, fmt.Sprintf("tutor %s search TEXT... [--json]", cc.publicName())),
 		RunE: func(_ *cobra.Command, args []string) error {
 			terms := strings.Fields(strings.Join(args, " "))
 			if len(terms) == 0 {
@@ -676,7 +680,7 @@ func newSearchCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			rows, err := progress.Search(db, cc.id(), terms)
+			rows, err := progress.Search(db, cc.storedID(), terms)
 			if err != nil {
 				return err
 			}
@@ -704,17 +708,17 @@ func newInitCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
 		Short: "Create or refresh the progress database",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s init [--db PATH]", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s init [--db PATH]", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			c, err := cc.loadCourse()
 			if err != nil {
 				return err
 			}
-			lessons, err := course.LoadLessons(cc.root, cc.id())
+			lessons, err := course.LoadLessons(cc.root, cc.storedID())
 			if err != nil {
 				return err
 			}
-			if _, err := route.ReadPlanAndCatalog(cc.root, cc.id(), lessons); err != nil {
+			if _, err := route.ReadPlanAndCatalog(cc.root, cc.storedID(), lessons); err != nil {
 				return err
 			}
 			path, err := cc.dbPath()
@@ -726,7 +730,7 @@ func newInitCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			defer db.Close()
-			count, err := progress.Init(db, cc.id(), lessons)
+			count, err := progress.Init(db, cc.storedID(), lessons)
 			if err != nil {
 				return err
 			}
@@ -742,16 +746,16 @@ func newCheckCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "check",
 		Short: "Validate the lesson files against the canonical plan",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s check", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s check", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
-			lessons, err := course.LoadLessons(cc.root, cc.id())
+			lessons, err := course.LoadLessons(cc.root, cc.storedID())
 			if err != nil {
 				return err
 			}
-			if _, err := route.ReadPlanAndCatalog(cc.root, cc.id(), lessons); err != nil {
+			if _, err := route.ReadPlanAndCatalog(cc.root, cc.storedID(), lessons); err != nil {
 				return err
 			}
-			cc.print(fmt.Sprintf("%s: %d lessons OK", cc.id(), len(lessons)))
+			cc.print(fmt.Sprintf("%s: %d lessons OK", cc.publicName(), len(lessons)))
 			return nil
 		},
 	}

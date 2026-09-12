@@ -13,6 +13,36 @@ import (
 
 var demo = course.Course{ID: "demo", Name: "Demo", Description: "", Tool: "psql", MinVersion: "16", Revision: 1}
 
+func TestPublicCommandMetadata(t *testing.T) {
+	for _, name := range []string{"", "demo", "demo-legacy", "Bad Name", "../other", "-demo", "demo_legacy"} {
+		t.Run(name, func(t *testing.T) {
+			c := demo
+			c.CommandName = name
+			f := testutil.WriteCourse(t, c, []course.Lesson{testutil.Lesson(1)})
+			got, err := course.LoadCourse(f.Root, c.ID)
+			if name != "" && !course.ValidSlug(name) {
+				if err == nil || !strings.Contains(err.Error(), "commandName") {
+					t.Fatalf("invalid public name accepted: %+v, %v", got, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := name
+			if want == "" {
+				want = c.ID
+			}
+			if got.ID != "demo" || got.PublicName() != want {
+				t.Fatalf("storage/public identity: %+v", got)
+			}
+			if _, err := course.LoadLessons(f.Root, got.ID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func roundTrip(t *testing.T, c course.Course, l course.Lesson, prereqs []string) course.Lesson {
 	t.Helper()
 	data := course.FormatLessonFile(c, l, prereqs)

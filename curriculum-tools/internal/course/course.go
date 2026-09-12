@@ -29,6 +29,7 @@ type Repl struct {
 // Course is the metadata stored in courses/<id>/course.json.
 type Course struct {
 	ID          string `json:"id"`
+	CommandName string `json:"commandName,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Status      string `json:"status,omitempty"`
@@ -36,6 +37,14 @@ type Course struct {
 	MinVersion  string `json:"minVersion"`
 	Revision    int    `json:"revision"`
 	Repl        *Repl  `json:"repl,omitempty"`
+}
+
+// PublicName is the invocable command name; ID remains the on-disk and progress identity.
+func (c Course) PublicName() string {
+	if c.CommandName != "" {
+		return c.CommandName
+	}
+	return c.ID
 }
 
 // Lesson is one hands-on lesson. Prerequisites are ordinals of earlier lessons.
@@ -104,6 +113,9 @@ func LoadCourse(root, id string) (Course, error) {
 	}
 	if c.ID != id {
 		return Course{}, fmt.Errorf("%s declares id %s, expected %s", file, c.ID, id)
+	}
+	if c.CommandName != "" && !ValidSlug(c.CommandName) {
+		return Course{}, fmt.Errorf("%s: invalid commandName %q", file, c.CommandName)
 	}
 	if c.Name == "" || c.Tool == "" {
 		return Course{}, fmt.Errorf("%s: name and tool are required", file)

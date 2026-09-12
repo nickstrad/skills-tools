@@ -392,20 +392,19 @@ func planStatus(markdown string) string {
 	}
 }
 
-// courseMetadata mirrors the fields of course.json that discovery reads directly, kept separate
-// from course.Course so that a metadata.status of "" still defaults correctly per the Deno
-// behavior (metadata.status ?? "current").
-type courseMetadata struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Tool        string `json:"tool"`
-	Status      string `json:"status"`
-}
-
 // DiscoverCourses discovers installed courses and future plans without creating or mutating
 // learner state.
 func DiscoverCourses(root string) ([]CourseDiscovery, error) {
+	return discoverCourses(root, true)
+}
+
+// DiscoverIdentities validates the complete command namespace even when a lesson or route
+// cannot be loaded. Maintenance commands can then diagnose catalog errors safely.
+func DiscoverIdentities(root string) ([]CourseDiscovery, error) {
+	return discoverCourses(root, false)
+}
+
+func discoverCourses(root string, catalogs bool) ([]CourseDiscovery, error) {
 	found := map[string]CourseDiscovery{}
 
 	coursesDir := filepath.Join(root, "courses")
@@ -419,31 +418,34 @@ func DiscoverCourses(root string) ([]CourseDiscovery, error) {
 				continue
 			}
 			courseRoot := filepath.Join(coursesDir, e.Name())
-			text, ok, err := readOptional(filepath.Join(courseRoot, "course.json"))
+			_, ok, err := readOptional(filepath.Join(courseRoot, "course.json"))
 			if err != nil {
 				return nil, err
 			}
 			if !ok {
 				continue
 			}
-			var metadata courseMetadata
-			if err := decodeJSON(text, &metadata); err != nil {
-				return nil, fmt.Errorf("%s: %w", filepath.Join(courseRoot, "course.json"), err)
-			}
-			if metadata.ID != e.Name() {
-				continue
-			}
-			catalog, err := loadCatalog(root, e.Name())
+			metadata, err := course.LoadCourse(root, e.Name())
 			if err != nil {
 				return nil, err
+			}
+			var catalog []course.Lesson
+			if catalogs {
+				catalog, err = loadCatalog(root, e.Name())
+				if err != nil {
+					return nil, err
+				}
 			}
 			located, err := LocatePlan(root, e.Name())
 			if err != nil {
 				return nil, err
 			}
-			plan, err := ReadPlan(root, e.Name())
-			if err != nil {
-				return nil, err
+			var plan *PlanRoute
+			if catalogs {
+				plan, err = ReadPlan(root, e.Name())
+				if err != nil {
+					return nil, err
+				}
 			}
 			var routeEntries []Entry
 			if plan != nil {
@@ -461,7 +463,8 @@ func DiscoverCourses(root string) ([]CourseDiscovery, error) {
 				total = len(plan.Entries)
 			}
 			disc := CourseDiscovery{
-				ID:          e.Name(),
+				ID:          metadata.PublicName(),
+				StoredID:    metadata.ID,
 				Name:        firstNonEmpty(metadata.Name, e.Name()),
 				Description: metadata.Description,
 				Tool:        metadata.Tool,
@@ -501,12 +504,16 @@ func DiscoverCourses(root string) ([]CourseDiscovery, error) {
 			}
 			continue
 		}
-		entries, foundHeader, err := parseCanonical(plan.Markdown)
-		if err != nil {
-			return nil, err
-		}
-		if !foundHeader {
-			return nil, fmt.Errorf("Future course plan %s has no canonical route table", plan.Path)
+		var entries []Entry
+		if catalogs {
+			var foundHeader bool
+			entries, foundHeader, err = parseCanonical(plan.Markdown)
+			if err != nil {
+				return nil, err
+			}
+			if !foundHeader {
+				return nil, fmt.Errorf("Future course plan %s has no canonical route table", plan.Path)
+			}
 		}
 		found[id] = CourseDiscovery{
 			ID:          id,
@@ -526,6 +533,9 @@ func DiscoverCourses(root string) ([]CourseDiscovery, error) {
 	for _, d := range found {
 		result = append(result, d)
 	}
+	if err := ValidateNames(result); err != nil {
+		return nil, err
+	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result, nil
 }
@@ -540,6 +550,17 @@ func firstNonEmpty(a, b string) string {
 // LoadRoute builds the learner-facing route of one course, reading progress read-only if dbPath
 // exists and has a progress table. It never creates or modifies a database.
 func LoadRoute(root, id, dbPath string) (Route, error) {
+	discovered, err := DiscoverIdentities(root)
+	if err != nil {
+		return Route{}, err
+	}
+	publicName := id
+	for _, d := range discovered {
+		if d.ID == id || d.StorageID() == id {
+			id, publicName = d.StorageID(), d.ID
+			break
+		}
+	}
 	courseRoot := filepath.Join(root, "courses", id)
 	metadataText, hasMetadata, err := readOptional(filepath.Join(courseRoot, "course.json"))
 	if err != nil {
@@ -601,7 +622,7 @@ func LoadRoute(root, id, dbPath string) (Route, error) {
 		})
 	}
 
-	return Route{ID: id, Name: name, Lessons: lessons}, nil
+	return Route{ID: publicName, Name: name, Lessons: lessons}, nil
 }
 
 type progressRow struct {

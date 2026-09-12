@@ -56,7 +56,7 @@ func newProgressVerifyCmd(cc *courseCtx) *cobra.Command {
 	return &cobra.Command{
 		Use:   "verify",
 		Short: "Verify progress survives a refresh on a database copy",
-		Args:  exactArgs(0, fmt.Sprintf("tutor %s progress verify", cc.id())),
+		Args:  exactArgs(0, fmt.Sprintf("tutor %s progress verify", cc.publicName())),
 		RunE: func(*cobra.Command, []string) error {
 			return runProgressVerify(cc)
 		},
@@ -64,11 +64,11 @@ func newProgressVerifyCmd(cc *courseCtx) *cobra.Command {
 }
 
 func runProgressVerify(cc *courseCtx) error {
-	lessons, err := course.LoadLessons(cc.root, cc.id())
+	lessons, err := course.LoadLessons(cc.root, cc.storedID())
 	if err != nil {
 		return err
 	}
-	if _, err := route.ReadPlanAndCatalog(cc.root, cc.id(), lessons); err != nil {
+	if _, err := route.ReadPlanAndCatalog(cc.root, cc.storedID(), lessons); err != nil {
 		return err
 	}
 	sourcePath, err := cc.dbPath()
@@ -94,7 +94,7 @@ func runProgressVerify(cc *courseCtx) error {
 		return err
 	}
 
-	before, err := snapshotVerifyDatabase(copyPath, cc.id())
+	before, err := snapshotVerifyDatabase(copyPath, cc.storedID())
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func runProgressVerify(cc *courseCtx) error {
 	if err != nil {
 		return err
 	}
-	_, seedErr := progress.Seed(db, cc.id(), lessons)
+	_, seedErr := progress.Seed(db, cc.storedID(), lessons)
 	closeErr := db.Close()
 	if seedErr != nil {
 		return seedErr
@@ -110,13 +110,13 @@ func runProgressVerify(cc *courseCtx) error {
 	if closeErr != nil {
 		return closeErr
 	}
-	after, err := snapshotVerifyDatabase(copyPath, cc.id())
+	after, err := snapshotVerifyDatabase(copyPath, cc.storedID())
 	if err != nil {
 		return err
 	}
 	progressUnchanged := equalVerifyRows(before.progress, after.progress)
 	attemptsUnchanged := equalVerifyRows(before.attempts, after.attempts)
-	identitiesPreserved := verifyIdentities(cc.id(), before.lessons, after.lessons) &&
+	identitiesPreserved := verifyIdentities(cc.storedID(), before.lessons, after.lessons) &&
 		equalVerifyRows(before.otherLessonRows, after.otherLessonRows) &&
 		equalVerifyRows(before.otherPrerequisites, after.otherPrerequisites)
 	if err := verifySourceUnchanged(sourcePath, sourceInfo, original); err != nil {

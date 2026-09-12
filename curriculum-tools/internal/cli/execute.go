@@ -2,7 +2,7 @@
 // cross-course commands. Execute builds the whole tree from scratch on every call, so the CLI has
 // no process-global state and tests can run it repeatedly with different roots and databases.
 //
-// Output contract (plan.md §3.3): successful output goes to stdout; every failure prints exactly
+// Output contract (archive/plans/go-tutor-migration.md §3.3): successful output goes to stdout; every failure prints exactly
 // "Error: <message>" on stderr. Two failures append context after a blank line because the learner
 // cannot act without it: the number-first grammar error appends the usage text, and an unknown
 // course appends the course listing. Exit codes are 0 success, 2 for usage/parse errors, an
@@ -18,7 +18,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"skills-tools/tutor/internal/course"
 	"skills-tools/tutor/internal/progress"
 	"skills-tools/tutor/internal/render"
 	"skills-tools/tutor/internal/route"
@@ -108,6 +107,9 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 		discovered = degraded
 	}
 
+	if err := route.ValidateNames(discovered); err != nil {
+		return report(stderr, usageErr("%s", err.Error()))
+	}
 	cmd := newRootCmd(root, discovered, stdout, stderr)
 
 	// Cobra would report an unrecognized first token as an unknown command; the learner needs the
@@ -138,22 +140,7 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 // unknown in this mode; only the course identities matter, because every verb that needs real
 // numbers recomputes them itself.
 func degradedDiscovery(root string) ([]route.CourseDiscovery, error) {
-	installed, err := course.ListCourses(root)
-	if err != nil {
-		return nil, err
-	}
-	out := make([]route.CourseDiscovery, 0, len(installed))
-	for _, c := range installed {
-		status := c.Status
-		if status == "" {
-			status = "current"
-		}
-		out = append(out, route.CourseDiscovery{
-			ID: c.ID, Name: c.Name, Description: c.Description,
-			Tool: c.Tool, Status: status, Implemented: true,
-		})
-	}
-	return out, nil
+	return route.DiscoverIdentities(root)
 }
 
 // hasSubCommand reports whether name is a registered top-level command (hidden ones included).

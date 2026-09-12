@@ -1,7 +1,8 @@
 {
   "id": "postgres",
+  "commandName": "postgres-legacy",
   "status": "reference",
-  "name": "PostgreSQL Systems",
+  "name": "PostgreSQL Systems (Legacy)",
   "description": "PostgreSQL internals as hands-on experiments for systems and distributed-systems engineers",
   "tool": "psql",
   "minVersion": "16",

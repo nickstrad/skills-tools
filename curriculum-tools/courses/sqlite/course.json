@@ -1,7 +1,8 @@
 {
   "id": "sqlite",
+  "commandName": "sqlite-legacy",
   "status": "reference",
-  "name": "SQLite Systems",
+  "name": "SQLite Systems (Legacy)",
   "description": "Embedded state: file and connection contracts, durability, writer capacity, recovery, and offline reconciliation",
   "tool": "sqlite3",
   "minVersion": "3.53.4",

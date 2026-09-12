@@ -1,7 +1,8 @@
 {
   "id": "linux",
+  "commandName": "linux-legacy",
   "status": "reference",
-  "name": "Linux Systems",
+  "name": "Linux Systems (Legacy)",
   "description": "Linux kernel abstractions through hands-on experiments on a disposable Ubuntu VM",
   "tool": "bash",
   "minVersion": "5.1",

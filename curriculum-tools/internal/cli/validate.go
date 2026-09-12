@@ -32,9 +32,9 @@ func newValidateCmd(cc *courseCtx) *cobra.Command {
 				return err
 			}
 			if c.Repl == nil {
-				return usageErr("courses/%s/course.json has no \"repl\" block", cc.id())
+				return usageErr("courses/%s/course.json has no \"repl\" block", cc.storedID())
 			}
-			lessons, err := course.LoadLessons(cc.root, cc.id())
+			lessons, err := course.LoadLessons(cc.root, cc.storedID())
 			if err != nil {
 				return err
 			}

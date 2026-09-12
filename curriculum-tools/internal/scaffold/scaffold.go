@@ -45,7 +45,6 @@ func Course(root string, v Vars) ([]string, error) {
 	if !course.ValidSlug(v.ID) {
 		return nil, fmt.Errorf("invalid course id: %s", v.ID)
 	}
-
 	// Resolve the plan before creating any scaffold file so duplicate future identities leave no
 	// partial course behind.
 	plan, err := route.LocatePlan(root, v.ID)
@@ -63,6 +62,26 @@ func Course(root string, v Vars) ([]string, error) {
 		return nil, fmt.Errorf("course %s already exists at %s", v.ID, target)
 	} else if !os.IsNotExist(statErr) {
 		return nil, statErr
+	}
+
+	identities, err := route.DiscoverIdentities(root)
+	if err != nil {
+		return nil, err
+	}
+	// A matching planned ID may be implemented; existing public commands and aliases may not
+	// be reused as the physical identity of a different course.
+	var remaining []route.CourseDiscovery
+	for _, c := range identities {
+		if c.Implemented && (c.ID == v.ID || c.StorageID() == v.ID) {
+			return nil, fmt.Errorf("course %s already exists as %s", v.ID, c.ID)
+		}
+		if c.Planned && c.ID == v.ID {
+			continue
+		}
+		remaining = append(remaining, c)
+	}
+	if err := route.ValidateNames(append(remaining, route.CourseDiscovery{ID: v.ID})); err != nil {
+		return nil, err
 	}
 
 	values := map[string]string{

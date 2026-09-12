@@ -140,6 +140,6 @@ func RenderLesson(c course.Course, l course.Lesson, notes, dbFlag string) string
 	if notes != "" {
 		section("Your note", notes)
 	}
-	parts = append(parts, fmt.Sprintf("When you consider it complete: `tutor %s %d done%s`.", c.ID, l.Ordinal, quoteDBFlag(dbFlag)))
+	parts = append(parts, fmt.Sprintf("When you consider it complete: `tutor %s %d done%s`.", c.PublicName(), l.Ordinal, quoteDBFlag(dbFlag)))
 	return strings.Join(parts, "\n\n")
 }

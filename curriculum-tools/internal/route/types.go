@@ -29,6 +29,7 @@ type Route struct {
 // CourseDiscovery describes an installed course or a plan-only future course.
 type CourseDiscovery struct {
 	ID          string `json:"id"`
+	StoredID    string `json:"-"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Tool        string `json:"tool,omitempty"`
@@ -39,4 +40,12 @@ type CourseDiscovery struct {
 	Available   int    `json:"available"`
 	Total       int    `json:"total"`
 	PlanPath    string `json:"planPath,omitempty"`
+}
+
+// StorageID is the stable identity used for physical paths and progress joins.
+func (c CourseDiscovery) StorageID() string {
+	if c.StoredID != "" {
+		return c.StoredID
+	}
+	return c.ID
 }
