@@ -312,7 +312,7 @@ func LessonFiles(root, id string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var names []string
+	names := []string{}
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") || strings.HasPrefix(e.Name(), ".") {
 			continue
