@@ -38,7 +38,8 @@ their separate authorities; the [authoring guide](../curriculum-tools/docs/AUTHO
 lesson contract.
 
 The [gRPC and Protocol Buffers practice course](../curriculum-tools/courses/grpc/README.md)
-provides six focused CLI walkthroughs (65 minutes), with a 37-minute quick route. Its
+is retained as a six-lesson reference (65 minutes), with a 37-minute quick route. Its local tools
+and compiled artifacts were pruned at Nick’s request; reinstall them before running experiments. Its
 [authoring findings](knowledge/grpc-course.md) record the scoped coaching preference and tool quirks.
 
 [`learner-profile.md`](learner-profile.md) records Nick's stated experience and preferences. Read it

@@ -35,7 +35,9 @@ silently change PostgreSQL coaching or other curricula.
 
 Edit only curriculum TypeScript, then build `grpc` and run the normal Deno check. The service,
 schemas, pinned module checksums and installation script live in `courses/grpc/lab/`. Tools and
-compiled output are ignored and remain installed for learner use. All lessons run without network
+compiled output are ignored. At Nick’s request, the local toolchain, caches, binary and generated
+stubs were pruned on 2026-09-12 (796,069,888 allocated bytes); use the pinned installer before
+running experiments again. Source, validation evidence and progress remain intact. All lessons run without network
 downloads after installation; they listen only on loopback and use OS-assigned ports.
 
 `python3 courses/grpc/lab/validate.py` from curriculum-tools drives the standard tutor harness,

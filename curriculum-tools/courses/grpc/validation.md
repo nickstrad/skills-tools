@@ -70,3 +70,12 @@ learner practice. Download archives were removed after checksum verification and
 small text log and JSON source/evidence manifest are retained as acceptance evidence, not database
 images or live lab state. These can remain as provenance until this course revision is replaced.
 Final filesystem headroom is about 16 GB; the initial budget was 1.5 GB peak.
+
+## Later resource retirement — 2026-09-12
+
+Nick requested pruning after finishing with this course. The ignored `.tools/`, `lab/bin/` and
+`lab/generated/` directories were removed after checking that no process executable or working
+directory was using them and that they contained no tracked files. This reclaimed 796,069,888
+allocated bytes. Curriculum, schemas, service source, the pinned installer, progress and these
+historical validation records remain. The prior runs are not a claim that tools are still installed;
+run `lab/install.sh` from this course before executing the experiments again.

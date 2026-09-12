@@ -16,9 +16,16 @@ application-building assignment. Each experiment starts fresh and cleans up auto
 Total: **65 minutes** of practice. For a short first pass, lessons **1, 4 and 6** take about 37
 minutes and recreate all their own state. These are estimates, not timed requirements.
 
+## Status and reuse
+
+Nick has finished with this course for now. On 2026-09-12 its local toolchain, caches, compiled
+counter and generated stubs were pruned, reclaiming about 759 MiB. Curriculum, source, validation
+records and learner progress remain preserved. Run the installation command below before executing
+experiments again; browsing lessons and routes does not require those tools.
+
 ## Start
 
-The tools and supplied service are installed separately from lesson time. On this checkout:
+After reinstalling the tools and supplied service separately from lesson time:
 
 ```sh
 cd /root/Software/skills-tools/curriculum-tools
@@ -47,7 +54,8 @@ remain running between sessions.
 Supported target: Linux x86-64, Bash 5.1+, Python 3, curl and tar. Installation downloads about 100
 MB of release archives plus Go dependencies; allow a few minutes and up to 1.5 GB peak disk. The
 exact elapsed time depends on the network and compile cache and is separate from the 65-minute
-practice path. The authoring run prepares this checkout so the learner can start immediately.
+practice path. The original authoring run prepared the tools; they were later pruned at the
+learner’s request.
 
 ```sh
 cd /root/Software/skills-tools/curriculum-tools
