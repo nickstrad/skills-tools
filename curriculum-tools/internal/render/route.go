@@ -24,6 +24,8 @@ func RenderRoute(r route.Route) string {
 			mark = "[done] "
 		case entry.Stale:
 			mark = "[revisit] "
+		case entry.Skipped:
+			mark = "[skipped] "
 		}
 		availability := "planned"
 		if entry.Available {
@@ -32,6 +34,6 @@ func RenderRoute(r route.Route) string {
 		lines = append(lines, fmt.Sprintf("%d. %s%s — %s", entry.Ordinal, mark, entry.Title, availability))
 	}
 	return fmt.Sprintf("# %s — %d lessons, %d done\n\n", r.Name, len(r.Lessons), completed) +
-		"[done] marks completion of the current lesson revision; planned lessons are not yet available.\n\n" +
+		"[done] marks completion of the current lesson revision; [skipped] lessons are excluded from next selection. Planned lessons are not yet available.\n\n" +
 		strings.Join(lines, "\n")
 }

@@ -434,11 +434,50 @@ Primary unit tests cover metadata fallback/invalid names and namespace collision
 remains pending, as do full final suites, skip visibility and live rollout. This checkpoint commits
 the P1 interface only; lesson edits remain in the worktree for separate acceptance.
 
+P1 interface commit: `d0c5511`. Primary also owns P3 (skip visibility) now, keeping all shared
+identity/route/CLI production files with the primary while Sol's P2 test file remains exclusive.
+
 The complete 250-row ledger is `docs/legacy-course-migration/lesson-audit.tsv`, initially pending.
 The baseline comparison helper `.cache/legacy-migration/audit.go` reports exact changed parsed fields
 and rejects count/identity movement. Do not regenerate over manual acceptance notes without saving
 them. PG09 now has its mechanism diagram and navigation-comment cleanup; primary still must record
-the exact parity review. Linux01–03 are in primary review, all later chunks unassigned.
+the exact parity review. Linux01–03 are primary-accepted: only optional-comparison prose and
+lesson01's two terminology references changed; all metadata, Setup and Run bytes match baseline.
+No real experiment changed; Terra rendered all three using a removed temporary database.
+
+Dispatch next P4 chunk to Terra: exclusive ownership of Linux lesson files
+`04-normalize-shell-observations.md`, `05-coordinate-two-shell-sessions.md`,
+`06-cleanup-with-traps.md`, `07-pid-and-parentage.md`, `08-process-tree.md`,
+`09-proc-process-identity.md`, `10-command-line-and-environment.md`, `11-process-states.md`,
+`12-threads-under-task.md` under `curriculum-tools/courses/linux/lessons/`.
+Acceptance matches first three: exact main command/metadata parity, preserve useful comparisons,
+direct locally interpreted optional instructions, no coaching scaffolding. No other ownership,
+commits, labs or learner writes. Return all nine for primary review before any later chunk.
+
+Dispatch P7 to Luna (`gpt-5.6-luna`, medium), exclusive active docs/skill files:
+root `README.md`, `AGENTS.md`; `docs/README.md`, `docs/knowledge/README.md`,
+`docs/knowledge/{concise-course-cli,progressive-course-design,learner-work,postgres-essentials,
+lesson-identity-refresh,command-inventory-extraction,sqlite-lesson-gotchas}.md`;
+`curriculum-tools/docs/{AUTHORING,VALIDATION}.md`; `curriculum-tools/skills/{tutor,curriculum-author}/SKILL.md`;
+`curriculum-tools/courses/{postgres,sqlite,linux,postgres-essentials,grpc}/{README,PLAN}.md`.
+Update current public commands/skip/single-lesson guidance contextually; preserve stored paths,
+stable route tables, historical notes and future-course scope. No lessons, source code, goldens,
+live installation, this plan, audit ledger or files outside this list. No commits. Primary reviews
+all diffs and checks before acceptance.
+
+### Implementation checkpoint 2 — P2/P3 acceptance
+
+Primary read Sol's complete `internal/cli/legacy_flow_test.go` and the P1 call-site diffs.
+Its three public-name/alias fixtures share history (including quoted notes, attempts, stale and
+retired rows) and preserve an unrelated course; maintenance commands use harmless Bash fixtures.
+All three aliases/public names exercise both done/skip orders. Malformed metadata and public/alias/
+planned collisions reject before writes; degraded catalog discovery retains maintenance diagnosis.
+Sol reports full tests/vet and focused race passed; primary independently runs focused suites.
+P3 is primary-owned: `args.go`, `cli_test.go`, new `skip_flow_test.go`, course/root help,
+route types/loading/rendering and lesson footer. Number-first skip, explicit skipped/completed
+access, next/undone, separate done counts and read-only plain/ANSI/JSON display are tested.
+Only reviewed golden footer/route-legend differences changed. Full final race/build and all
+post-content checks remain pending; do not treat this checkpoint as rollout acceptance.
 
 Source anchors: `docs/README.md`; `docs/knowledge/{concise-course-cli,go-tutor-migration,
 lesson-identity-refresh,vm-resource-cleanup}.md`; `curriculum-tools/docs/AUTHORING.md`;

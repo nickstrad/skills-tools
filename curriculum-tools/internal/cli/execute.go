@@ -235,7 +235,7 @@ Usage:
 Navigation and progress maintenance:
   tutor <course> next [--topic TEXT] [--json]
   tutor <course> undone N
-  tutor <course> skip N [--note TEXT]
+  tutor <course> N skip [--note TEXT]         skip this lesson (also: skip N)
   tutor <course> note N TEXT...
   tutor <course> list [--todo|--done|--all] [--category NAME] [--topic TEXT] [--limit N] [--json]
   tutor <course> modules [--json]

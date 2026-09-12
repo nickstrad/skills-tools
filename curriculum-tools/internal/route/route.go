@@ -618,6 +618,7 @@ func LoadRoute(root, id, dbPath string) (Route, error) {
 			Title:     entry.Title,
 			Available: isAvailable,
 			Done:      completed && !stale,
+			Skipped:   isAvailable && hasSaved && saved.status == "skipped",
 			Stale:     stale,
 		})
 	}

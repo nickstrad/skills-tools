@@ -189,4 +189,6 @@ Only after A finishes, run this complete transaction in Session B:
 B should read 1, print f and decline, leaving rr_serial_final_on_call = 1. The final Session A
 commands restore its default and drop the fixture.
 
+To skip this lesson: `tutor postgres-essentials 8 skip --db '/root/tutor-migration/golden/postgres-essentials/db-init/progress.sqlite'`.
+
 When you consider it complete: `tutor postgres-essentials 8 done --db '/root/tutor-migration/golden/postgres-essentials/db-init/progress.sqlite'`.

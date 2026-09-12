@@ -51,8 +51,8 @@ var valuedFlags = map[string]bool{
 var ordinalRE = regexp.MustCompile(`^[1-9]\d*$`)
 
 // errNumberForm is the grammar error for a lesson number that is not followed by exactly one of
-// the two verbs that accept one. It is a usage error: the CLI appends the usage text to it.
-var errNumberForm = errors.New("use tutor <course> NUMBER lesson|done")
+// the three verbs that accept one. It is a usage error: the CLI appends the usage text to it.
+var errNumberForm = errors.New("use tutor <course> NUMBER lesson|done|skip")
 
 // errTopicWithNumber rejects `tutor <course> N lesson --topic X`: --topic picks the next matching
 // lesson, so it is meaningless next to an explicit number.
@@ -128,7 +128,7 @@ func NormalizeArgs(args []string) ([]string, error) {
 		return nil, errNumberForm
 	}
 	verb := args[scan.positions[2]]
-	if verb != "lesson" && verb != "done" {
+	if verb != "lesson" && verb != "done" && verb != "skip" {
 		return nil, errNumberForm
 	}
 	if scan.has("--topic") {

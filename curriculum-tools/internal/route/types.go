@@ -16,6 +16,7 @@ type RouteEntry struct {
 	Title     string `json:"title"`
 	Available bool   `json:"available"`
 	Done      bool   `json:"done"`
+	Skipped   bool   `json:"skipped"`
 	Stale     bool   `json:"stale"`
 }
 

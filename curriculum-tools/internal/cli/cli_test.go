@@ -22,9 +22,12 @@ func TestNormalizeArgs(t *testing.T) {
 	}{
 		{name: "number then lesson", args: []string{"c", "3", "lesson"}, want: []string{"c", "lesson", "3"}},
 		{name: "number then done", args: []string{"c", "3", "done"}, want: []string{"c", "done", "3"}},
-		{name: "number then route", args: []string{"c", "3", "route"}, wantErr: "use tutor <course> NUMBER lesson|done"},
+		{name: "number then skip with literal note", args: []string{"c", "--note", "done", "3", "skip"}, want: []string{"c", "--note", "done", "skip", "3"}},
+		{name: "verb first skip", args: []string{"c", "skip", "3"}, want: []string{"c", "skip", "3"}},
+		{name: "extra skip positional", args: []string{"c", "3", "skip", "extra"}, wantErr: "use tutor <course> NUMBER lesson|done|skip"},
+		{name: "number then route", args: []string{"c", "3", "route"}, wantErr: "use tutor <course> NUMBER lesson|done|skip"},
 		{name: "verb then number is unchanged", args: []string{"c", "lesson", "3"}, want: []string{"c", "lesson", "3"}},
-		{name: "number with no verb", args: []string{"c", "3"}, wantErr: "use tutor <course> NUMBER lesson|done"},
+		{name: "number with no verb", args: []string{"c", "3"}, wantErr: "use tutor <course> NUMBER lesson|done|skip"},
 		{name: "valued flag before the number", args: []string{"c", "--db", "x", "3", "lesson"}, want: []string{"c", "--db", "x", "lesson", "3"}},
 		{name: "flags interleaved and trailing", args: []string{"c", "3", "--plain", "done", "--note", "hi"}, want: []string{"c", "done", "--plain", "3", "--note", "hi"}},
 		{name: "inline flag value", args: []string{"c", "--db=x", "3", "done"}, want: []string{"c", "--db=x", "done", "3"}},
@@ -171,7 +174,7 @@ func TestExecute(t *testing.T) {
 			name: "route before init",
 			args: []string{"demo", "route", "--db", "{db}"},
 			out: "# Demo Course — 10 lessons, 0 done\n\n" +
-				"[done] marks completion of the current lesson revision; planned lessons are not yet available.\n\n" +
+				"[done] marks completion of the current lesson revision; [skipped] lessons are excluded from next selection. Planned lessons are not yet available.\n\n" +
 				"1. Lesson 1 title — available\n2. Lesson 2 title — available\n3. Lesson 3 title — available\n" +
 				"4. Lesson 4 title — available\n5. Lesson 5 title — available\n6. Lesson 6 title — available\n" +
 				"7. Lesson 7 title — available\n8. Lesson 8 title — available\n9. Lesson 9 title — available\n" +
@@ -203,7 +206,7 @@ func TestExecute(t *testing.T) {
 			name: "route after done shows [done]",
 			args: []string{"demo", "route", "--db", "{db}"},
 			out: "# Demo Course — 10 lessons, 1 done\n\n" +
-				"[done] marks completion of the current lesson revision; planned lessons are not yet available.\n\n" +
+				"[done] marks completion of the current lesson revision; [skipped] lessons are excluded from next selection. Planned lessons are not yet available.\n\n" +
 				"1. Lesson 1 title — available\n2. Lesson 2 title — available\n3. [done] Lesson 3 title — available\n" +
 				"4. Lesson 4 title — available\n5. Lesson 5 title — available\n6. Lesson 6 title — available\n" +
 				"7. Lesson 7 title — available\n8. Lesson 8 title — available\n9. Lesson 9 title — available\n" +
@@ -334,7 +337,7 @@ func TestExecute(t *testing.T) {
 			name: "planned course route",
 			args: []string{"future-demo", "route"},
 			out: "# Future Demo — 2 lessons, 0 done\n\n" +
-				"[done] marks completion of the current lesson revision; planned lessons are not yet available.\n\n" +
+				"[done] marks completion of the current lesson revision; [skipped] lessons are excluded from next selection. Planned lessons are not yet available.\n\n" +
 				"1. One — planned\n2. Two — planned\n",
 		},
 		{
@@ -370,13 +373,13 @@ func TestExecute(t *testing.T) {
 		{
 			name: "number without a verb",
 			args: []string{"demo", "3"},
-			err:  "Error: use tutor <course> NUMBER lesson|done\n\n" + usageText() + "\n",
+			err:  "Error: use tutor <course> NUMBER lesson|done|skip\n\n" + usageText() + "\n",
 			code: 2,
 		},
 		{
 			name: "number with an unsupported verb",
 			args: []string{"demo", "3", "route"},
-			err:  "Error: use tutor <course> NUMBER lesson|done\n\n" + usageText() + "\n",
+			err:  "Error: use tutor <course> NUMBER lesson|done|skip\n\n" + usageText() + "\n",
 			code: 2,
 		},
 		{

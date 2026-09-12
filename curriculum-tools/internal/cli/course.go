@@ -270,7 +270,7 @@ Learner flow:
 Navigation and progress maintenance:
   tutor %s next [--topic TEXT] [--json]
   tutor %s undone N
-  tutor %s skip N [--note TEXT]
+  tutor %s N skip [--note TEXT]         skip this lesson (also: skip N)
   tutor %s note N TEXT...
   tutor %s list [--todo|--done|--all] [--category NAME] [--topic TEXT] [--limit N] [--json]
   tutor %s modules [--json]

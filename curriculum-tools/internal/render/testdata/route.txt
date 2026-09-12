@@ -1,6 +1,6 @@
 # PostgreSQL Essentials — 40 lessons, 22 done
 
-[done] marks completion of the current lesson revision; planned lessons are not yet available.
+[done] marks completion of the current lesson revision; [skipped] lessons are excluded from next selection. Planned lessons are not yet available.
 
 1. [done] An uncommitted write is private to its transaction — available
 2. [done] Choose a fresh statement view or a stable transaction view — available
