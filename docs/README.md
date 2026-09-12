@@ -14,11 +14,11 @@ start. The September 2026 report is a historical inventory, not a deletion allow
 ## Learning roadmap
 
 The current [PostgreSQL Essentials route](../curriculum-tools/courses/postgres-essentials/PLAN.md)
-lists 40 bounded lessons with specific outcomes. Its first 26 are authored; `pgcoach` opens this
-course. Nick currently reports about ten minutes per lesson; the plan's 20–30 minute ranges are
-older nominal estimates, not measured pace. [Implementation findings](knowledge/postgres-essentials.md)
-explain separate progress, reference access and validation. The old 9–12 coaching pilot is no
-longer the entry path.
+lists 40 bounded lessons with specific outcomes. Its first 26 are authored and available through
+`tutor postgres-essentials`. Nick currently reports about ten minutes per lesson; the plan's 20–30
+minute ranges are older nominal estimates, not measured pace. [Implementation findings](knowledge/postgres-essentials.md)
+explain course-scoped progress, reference access and validation. The old 9–12 pilot is archived
+history, not the entry path.
 
 Future courses are first defined as inexpensive Markdown routes in
 [`../future-courses/`](../future-courses/). Start with its [planning guide](../future-courses/README.md)
@@ -49,9 +49,9 @@ those projects. The [website and résumé notes](knowledge/learner-background-so
 professional background, further project exposure, and provenance for the learner's OS/Linux/DDIA
 readings.
 
-The learning roadmap lives in the shared learner database: `bin/tutor roadmap` lists the topics by
-track with course progress, `bin/tutor roadmap show <slug>` prints a topic's goals, terminal diagram
-and 2–4 optional Go follow-ups, and the committed snapshot is
+The learning roadmap lives in the shared learner database, `curriculum-tools/tutor.sqlite`:
+`bin/tutor roadmap` lists topics by track with course progress, `bin/tutor roadmap show <slug>`
+prints a topic's goals, terminal diagram and 2–4 optional Go follow-ups, and the committed snapshot is
 `curriculum-tools/roadmap/roadmap.json`. Use it when choosing what to learn or author next; its
 planned topics are not yet implemented courses. The archived Markdown roadmap and its
 [reference notes](../archive/learning-path/README.md) preserve detailed software choices, research,
@@ -93,10 +93,7 @@ planning and fact checking; it is not assigned learner work or a progression gat
 
 Improve reusable research notes when new verification changes a conclusion.
 
-## Systems project builder
-
-[Systemscoach](../systems-projects/README.md) turns a selected engineering write-up into a minimum
-approved project agenda and short lesson batches. It is separate from the tool-internals courses.
-[Project ideas](../systems-projects/docs/project-ideas.md) preserve the learner’s supplied shortlist;
-[builder findings](knowledge/systemscoach.md) explain its CLI, progress identities and validation.
-The repository resource/cleanup rules apply to every project and batch.
+The [archive index](../archive/README.md) preserves retired course proposals, tools and
+implementation records. Archived material is provenance; active authoring guidance remains in the
+future-course, authoring and batch-workflow documents linked above. The repository resource and
+cleanup rules apply to every validation batch.

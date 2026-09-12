@@ -1,9 +1,11 @@
 # skills-tools
 
-Durable home for local, Deno-based systems curricula and their Codex skills. The
-tools keep lesson content in Git and learner progress in local SQLite files that
-are intentionally ignored. They display exercises and track progress; they do
-not execute lesson commands for you.
+Durable home for local, Go-based systems curricula and their Codex skills. The
+tools keep Markdown lesson content in Git and learner progress in the ignored
+`curriculum-tools/tutor.sqlite` database. A normal lesson view displays the
+commands and evidence for you to run. Authors may explicitly run
+`tutor <course> validate` against isolated state; viewing a lesson does not run
+its commands or change completion.
 
 ## Projects
 
@@ -11,7 +13,7 @@ not execute lesson commands for you.
 
 Machine bootstrap scripts. `scripts/lab-setup.sh` turns a fresh Ubuntu droplet
 into the development environment everything here assumes (PostgreSQL, SQLite,
-DuckDB, Deno, Node, Go, Docker, Claude Code, Codex, mosh/tmux, and the usual
+DuckDB, Go, Docker, Claude Code, Codex, mosh/tmux, and the usual
 Linux debugging tools). Run it first on a new VM; see `scripts/README.md`.
 
 ### `curriculum-tools/`
@@ -23,13 +25,13 @@ courses.
 - Course authoring skill, reusable course template, build tooling, validation
   harness, and tests
 - [PostgreSQL Essentials](curriculum-tools/courses/postgres-essentials/PLAN.md): a fixed 40-lesson
-  route, with the first 26 available through `pgcoach`; Nick currently takes about ten minutes per
+  route, with the first 26 available; Nick currently takes about ten minutes per
   lesson, while its older 20–30 minute labels remain unmeasured author estimates
 - Original PostgreSQL reference (92 lessons in 15 modules), complete SQLite course,
   and complete Linux Systems course (72 lessons in 12 modules)
 - [gRPC and Protocol Buffers](curriculum-tools/courses/grpc/README.md): six focused CLI experiments,
   about 65 minutes total, retained as reference; reinstall its pruned tools before running experiments
-- Per-course wrapper skills under `courses/<course>/skill/`
+- A shared tutor skill and course authoring skill under `curriculum-tools/skills/`
 
 ### `archive/`
 
@@ -38,37 +40,36 @@ legacy metadata. Current curricula, progress and future course plans remain in t
 
 ## Requirements
 
-- Deno 2
+- Go 1.26 or newer
 - The course's command-line tool when actually running exercises (`psql`,
   `duckdb`, `sqlite3`, etc.)
 
 On a fresh droplet, `scripts/lab-setup.sh` installs the common database and shell tools.
 The gRPC course has its own [pinned installer](curriculum-tools/courses/grpc/README.md).
 
-The launchers use `DENO_BIN` when set, then `deno` on `PATH`, with a final
-fallback to `/root/.deno/bin/deno` on these droplets.
+The launcher builds the Go CLI from `curriculum-tools/` and can use `TUTOR_BIN`
+to run an already-built binary. `tutor install` creates the canonical launcher
+and skill links for both supported agents.
 
 ## Quick start
 
 ```sh
 cd ~/Software/skills-tools
 
-# Generalized engine
-./curriculum-tools/bin/tutor courses
-./curriculum-tools/bin/tutor postgres-essentials init
-./curriculum-tools/bin/tutor postgres-essentials route
-./curriculum-tools/courses/postgres/bin/pgcoach route
-./curriculum-tools/courses/postgres/bin/pgcoach 1 lesson
-./curriculum-tools/courses/postgres/bin/pgcoach 1 done
-./curriculum-tools/bin/tutor linux init
-./curriculum-tools/bin/tutor linux 1 lesson
-./curriculum-tools/bin/tutor linux 1 done
+bin/tutor courses
+bin/tutor roadmap
+bin/tutor postgres-essentials route
+bin/tutor postgres-essentials init
+bin/tutor postgres-essentials 1 lesson
+bin/tutor postgres-essentials 1 done
+bin/tutor install
 ```
 
-Use `--db PATH` with course commands when you want isolated progress. Displaying
-a lesson never marks it complete; only `<course CLI> <number> done` does. The generic forms are
+Run `bin/tutor <course> init` before the first completion to initialize or refresh
+that course in the shared database. Use `--db PATH` with course commands when
+you need an isolated copy. Displaying a lesson never marks it complete;
+only `tutor <course> <number> done` does. The generic forms are
 `tutor <course> <number> lesson|done`; `tutor <course> lesson` opens the next unfinished lesson.
-Older `pretty`, `show`, and `done NUMBER` spellings remain compatibility aliases.
 `tutor <course> route` labels completed, available, and planned lessons. It can also show a valid
 `future-courses/<folder>/course.md` route before the course is implemented; those planned rows do
 not create completion records.
@@ -87,15 +88,15 @@ course remains a reference, not the implementation target for that proposal.
 
 ## Install the local skills and launchers
 
-Use the repository helper to check or install the canonical symlinks for both supported agents and
-the course launchers. It has no dependencies and does not modify course catalogs or progress:
+Use the tutor installer to check or install the canonical launcher and skills for both supported
+agents. It does not modify course catalogs or progress:
 
 ```sh
-python3 scripts/school-links.py --check
-python3 scripts/school-links.py --install
+bin/tutor install --check
+bin/tutor install
 ```
 
-See [`scripts/README.md`](scripts/README.md) for supported targets and alternate destination flags.
+See [`scripts/README.md`](scripts/README.md) for bootstrap details and supported course tools.
 
 ## Documentation and knowledge base for agents
 
@@ -113,33 +114,32 @@ follow-up.
 
 ```sh
 cd curriculum-tools
-deno task build postgres
-deno task build linux
-deno task check
-deno task test
+go test ./...
+go vet ./...
+tutor postgres-essentials check
 ```
 
 See `curriculum-tools/docs/AUTHORING.md` for the lesson contract and pedagogy,
-and `curriculum-tools/docs/VALIDATION.md` for real-tool validation. Built
-`lessons.json` files are versioned; generated progress databases are not.
+and `curriculum-tools/docs/VALIDATION.md` for real-tool validation. The tutor
+CLI reads Markdown lesson source directly; the shared progress database is ignored.
 
 ## Repository layout
 
 ```text
 skills-tools/
-├── scripts/                machine bootstrap (lab-setup.sh) and utilities
-├── curriculum-tools/       generalized engine, courses, authoring skill, and validation tools
-├── future-courses/         inexpensive fixed-route plans; no runnable lessons or progress
-├── docs/knowledge/         findings for future agents; read the index before starting work
-├── .gitignore              excludes runtime state, secrets, logs, and editor files
+├── bin/tutor               Go CLI launcher
+├── curriculum-tools/
+│   ├── cmd/tutor/         CLI entry point
+│   ├── internal/          course, route, progress, render, roadmap, harness and link packages
+│   ├── courses/           course packages and Markdown lesson source
+│   ├── skills/            shared tutor and curriculum-author skills
+│   ├── roadmap/           committed roadmap snapshot
+│   ├── templates/course/  new-course scaffold
+│   └── go.mod             Go module
+├── future-courses/        inexpensive fixed-route plans; no runnable lessons or progress
+├── docs/                  guidance and durable findings for future agents
+├── archive/               historical plans, tools and validation records
+├── scripts/               machine bootstrap and container test utilities
+├── .gitignore             excludes runtime state, secrets, logs and editor files
 └── README.md
 ```
-
-## Systems projects
-
-[Systemscoach](systems-projects/README.md) is a separate project track: interview around an engineering
-write-up, agree a bounded agenda, then author small batches of local systems experiments. Its learner
-flow should follow the same `NUMBER lesson|done` contract without a mandatory review stage. Native
-CLIs and supplied scaffolding keep learning focused on mechanisms; necessary core logic uses Go
-first. [Saved project ideas](systems-projects/docs/project-ideas.md) preserve the learner’s 15
-examples. No project is preselected.

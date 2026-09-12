@@ -8,10 +8,15 @@ no authored lessons and does not migrate completion.
 Use the shared learner flow:
 
 ```sh
+cd /root/Software/skills-tools
 bin/tutor linux route
 bin/tutor linux 1 lesson
 bin/tutor linux 1 done
 ```
+
+Progress is stored by course identity in the shared `../../tutor.sqlite` database. The same CLI
+also provides `tutor linux check` for the Markdown catalog and `tutor linux validate` for isolated
+real-tool evidence.
 
 The 72-lesson outline and safety contracts are in [PLAN.md](PLAN.md). The historical refactor
 proposal is in [OVERPLAN.md](../../../archive/course-history/linux/OVERPLAN.md), and real validation

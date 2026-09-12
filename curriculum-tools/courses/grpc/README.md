@@ -28,7 +28,7 @@ experiments again; browsing lessons and routes does not require those tools.
 After reinstalling the tools and supplied service separately from lesson time:
 
 ```sh
-cd /root/Software/skills-tools/curriculum-tools
+cd /root/Software/skills-tools
 bin/tutor grpc init
 bin/tutor grpc route
 bin/tutor grpc 1 lesson
@@ -49,6 +49,9 @@ reaps its server and removes that directory. Output stays in the terminal. Rerun
 repeat it. Lesson 4's restart intentionally resets the counter. No permanent lab server needs to
 remain running between sessions.
 
+The course's progress is stored by course identity in `../../tutor.sqlite`. The shared commands
+also support `tutor grpc check` and `tutor grpc validate` for catalog and isolated real-tool checks.
+
 ## One-time installation or repair
 
 Supported target: Linux x86-64, Bash 5.1+, Python 3, curl and tar. Installation downloads about 100
@@ -68,10 +71,10 @@ versions/checksums are recorded in lab/go.mod and lab/go.sum. Tools live under t
 .tools directory, generated code under lab/generated, and the counter binary under lab/bin. Nothing
 is added to your global PATH; the lesson's setup loads its tools into that shell.
 
-If this repository is moved, update the source path in curriculum/common.ts and rebuild; the current
-lesson setup deliberately names this shared workspace. Dependency installation needs internet
-access. Running the finished lessons does not. A restricted agent sandbox may require permission to
-bind local sockets; run learner commands in a normal terminal on the VM.
+Lesson source is Markdown under `lessons/`, and the current setup deliberately names this shared
+workspace. Dependency installation needs internet access. Running the finished lessons does not. A
+restricted agent sandbox may require permission to bind local sockets; run learner commands in a
+normal terminal on the VM.
 
 ## What the fixture demonstrates
 

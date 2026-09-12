@@ -1,5 +1,8 @@
 # First three essentials lessons: acceptance evidence
 
+The log and artifact files below predate the Go CLI and retain their original command spellings as
+historical evidence.
+
 This is the historical first-batch record. Lessons 1–6 are now available; see
 [second-batch acceptance](batch-two.md) for the current checks and cleanup.
 

@@ -45,7 +45,7 @@ batch. Do not invent a tested outcome to make the plan look complete.
 On an implementation request, use the agreed plan to author only the requested small batch, usually
 3–4 lessons. Link the implemented course's PLAN.md back here for its canonical route; keep runtime
 and validation details in that course. Update availability here without duplicating the route.
-Keep later planned lessons out of generated catalogs until they exist. Existing courses with
+Keep later planned lessons out of the tutor's available catalog until their Markdown files exist. Existing courses with
 canonical PLAN.md files can retain them; link rather than migrate for its own sake.
 
 ## Shared learner experience
@@ -54,7 +54,8 @@ The generic engine supplies `tutor <course> route`, `tutor <course> <number> les
 `tutor <course> <number> done`; `tutor <course> lesson` selects the next unfinished lesson. A
 plan-only route, such as `tutor sqlite-essentials route`, can show planned rows without creating
 progress. A lesson must be implemented before it can be served or completed, and only explicit
-`done` records completion. Existing wrappers such as `pgcoach` may provide the same commands.
+`done` records completion. Installed courses share `curriculum-tools/tutor.sqlite`, with course
+identities keeping lesson history separate.
 
 The shared renderer and lesson contract are maintained in the
 [authoring guide](../curriculum-tools/docs/AUTHORING.md). The implementation sequence, review,

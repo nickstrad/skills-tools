@@ -8,10 +8,15 @@ no authored lessons and does not migrate completion.
 Use the shared learner flow:
 
 ```sh
+cd /root/Software/skills-tools
 bin/tutor sqlite route
 bin/tutor sqlite 1 lesson
 bin/tutor sqlite 1 done
 ```
+
+Progress is stored by course identity in the shared `../../tutor.sqlite` database. The same CLI
+also provides `tutor sqlite check` for the Markdown catalog and `tutor sqlite validate` for isolated
+real-tool evidence.
 
 The 54-lesson outline and safety contracts are in [PLAN.md](PLAN.md). Historical implementation
 analysis is in [REWORK-PLAN.md](../../../archive/course-history/sqlite/REWORK-PLAN.md), and real

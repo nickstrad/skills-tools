@@ -2,27 +2,18 @@
 
 Bootstrap and utility scripts for the machines this repository's tools run on.
 
-## School launchers and skills
+## Tutor launcher and skills
 
-`python3 scripts/school-links.py --check` audits all three launchers and the six shared skills for
-both Codex and Claude without writing files. Run from the repository root. A nonzero result means
-links are missing, copies need synchronization, or a conflicting path needs attention.
+From the repository root, `bin/tutor install --check` audits the canonical launcher and shared
+skills without writing files. `bin/tutor install` installs symlinks into `/usr/local/bin`,
+`~/.codex/skills`, and `~/.claude/skills`. It preflights every destination, refuses differing files
+or unrelated symlinks, and removes only retired links that can be identified as belonging to this
+checkout. The installer does not open learner progress or run a lesson.
 
-`python3 scripts/school-links.py --install` installs canonical symlinks into `/usr/local/bin`,
-`~/.codex/skills`, and `~/.claude/skills`. It checks every destination first, refuses differing files
-or unrelated symlinks, and only replaces copied skill directories when every file, permission and
-symlink matches the repository source. It removes the known obsolete `pgtutor` symlink without
-following it or deleting any original course data. Other paths named `pgtutor` are left alone.
-The installer downloads nothing and never opens learner progress or runs a lesson.
-
-`pgcoach` opens PostgreSQL Essentials. The original PostgreSQL curriculum and progress remain
-stored for reuse; the old `pgtutor` CLI is retired. `tutor` serves all tool courses;
-`systemscoach` serves systems projects.
 Use `--bin-dir`, `--codex-skills`, and `--claude-skills` for alternate installation destinations.
-Permission to write system/user skill directories may be required by an agent sandbox.
-
-Run `python3 scripts/school-links_test.py` to verify read-only checking, repeat installation,
-conflict preservation, copied-skill replacement and obsolete-link retirement in disposable directories.
+Permission to write system/user skill directories may be required by an agent sandbox. The shared
+CLI stores all course progress and roadmap state in `curriculum-tools/tutor.sqlite`; installation
+does not modify that database.
 
 ## `lab-setup.sh`
 
@@ -39,7 +30,7 @@ What it installs:
   `postgresql` meta-package, so a new droplet gets the current stable major),
   `postgresql-contrib`, `libpq-dev`, SQLite, and the DuckDB CLI.
 - **Runtimes and agents**: Node.js 22 through NVM (set as default), npm,
-  OpenAI Codex, Claude Code (native installer), Deno, and the latest stable Go
+  OpenAI Codex, Claude Code (native installer), and the latest stable Go
   discovered from go.dev.
 - **Containers**: Docker Engine, Buildx, and Compose from the official Docker
   Apt repository. Connect to a running daemon before starting container labs.
@@ -53,7 +44,7 @@ What it installs:
   (`mkfs.ext4`), and `sudo`. Droplet images preinstall most of these; the bare
   `ubuntu:24.04` image does not, so the script names them explicitly.
 - **Shell config**: a marked block appended once to `~/.bashrc` with the PATH
-  entries for Go, Deno, DuckDB, Claude Code, and NVM, plus `fd`/`bat` aliases
+  entries for Go, DuckDB, Claude Code, and NVM, plus `fd`/`bat` aliases
   for the Ubuntu package names.
 
 Usage on a fresh droplet, as root or a sudo-capable user:
@@ -67,8 +58,8 @@ pgwork
 ```
 
 The script is idempotent enough to re-run: apt packages upgrade in place, NVM
-and the `.bashrc` block are skipped when present, and Deno, DuckDB, Go, Codex,
-and Claude Code are upgraded to their current releases. It ends by printing the
+and the `.bashrc` block are skipped when present, and DuckDB, Go, Codex, and
+Claude Code are upgraded to their current releases. It ends by printing the
 installed versions.
 
 Bootstrap installs tools; it does not explicitly enable, start, or stop host daemons.

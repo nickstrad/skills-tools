@@ -49,6 +49,9 @@ Shared interface: `tutor <id> <n> lesson|done`. One complete lesson includes exp
 commands, expected evidence, interpretation and cleanup. No separate review step or required
 external reading. Planned lessons are not available through the CLI until authored.
 `tutor <id> route` reads this plan and shows completion/availability without creating progress.
+Implemented courses use the shared `curriculum-tools/tutor.sqlite` database with course-scoped
+lesson identities and history. Course tooling is Go 1.26 or newer; lesson experiments use the
+native command named by the course.
 
 Describe the first small implementation batch only when needed. Preserve existing reference
 courses and progress. Link to reusable fixtures or notes; do not build them during planning.

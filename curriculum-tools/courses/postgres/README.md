@@ -32,14 +32,16 @@ The learner path is now [PostgreSQL Essentials](../postgres-essentials/README.md
 lesson. There is no requirement to take the old 9–12 coaching pilot.
 
 ```sh
-bin/pgcoach route
-bin/pgcoach 1 lesson
-bin/pgcoach 1 done
+cd /root/Software/skills-tools
+bin/tutor postgres route
+bin/tutor postgres 1 lesson
+bin/tutor postgres 1 done
 ```
 
-`pgcoach` defaults to the new course. Its numbering and progress are separate from this original
-92-lesson reference. Use `tutor postgres NUMBER lesson` for reference content and
-`tutor postgres route` for reference progress/navigation; legacy `pgcoach --reference` forms remain.
+This reference course has its own course identity and progress history inside the shared
+`curriculum-tools/tutor.sqlite` database. Use `tutor postgres NUMBER lesson` for reference content and
+`tutor postgres route` for reference navigation; the Essentials route is
+`tutor postgres-essentials route`.
 Do not use old completion numbers for new lessons. `lesson` includes the concepts, labelled terminal
 diagram, commands, expected evidence, interpretation, and cleanup. Older `review`, `full`, and
 `start` spellings are compatibility aliases, not separate stages. Only explicit `NUMBER done`
@@ -53,19 +55,19 @@ commands only prepare a stopped symptom packet: inspect and explicitly apply the
 before treating the incident as recovered. The cancellation incident applies a policy to a fresh
 equivalent trial after its survey is stopped. Record evidence and use its printed cleanup action.
 
-The generic CLI is `../../bin/tutor postgres`. Its supported `init` command synchronizes built
-lesson metadata into a catalog while preserving stable IDs/history/progress. Author validation uses
-`init --db /tmp/owned-copy/progress.sqlite` on a SQLite backup of learner progress; it does not
-refresh the real learner catalog implicitly. Apply a newly built catalog to the learner's database
-only as authorized by the learner, through the CLI rather than direct database edits.
+From the repository root, `bin/tutor postgres` is the generic CLI. Its `init` command synchronizes Markdown lesson
+metadata into the shared catalog while preserving stable IDs, course history and progress. Author
+validation uses `init --db /tmp/owned-copy/tutor.sqlite` on a copied database; it does not refresh
+the real learner catalog implicitly. Apply newly authored lessons through the CLI rather than
+direct database edits.
 
 ## Author and validate
 
 Read repository AGENTS.md, [AUTHORING](../../docs/AUTHORING.md), the curriculum-author skill and
-[the knowledge index](../../../docs/knowledge/README.md). Edit curriculum TypeScript. The retired
-[coaching guides](../../../archive/course-history/postgres/guides/README.md) are archived reference
-material. From curriculum-tools, build with `/root/.deno/bin/deno task build postgres`, then run the
-appropriate real-tool checks, `deno task check` and `deno task test`. The generic SQL harness skips
+[the knowledge index](../../../docs/knowledge/README.md). Edit Markdown lesson files under
+`lessons/`. The retired coaching guides are archived reference material. From curriculum-tools,
+run `tutor postgres check`, then the appropriate real-tool checks and `tutor postgres validate`.
+The generic SQL harness skips
 shell lessons and its completion count does not classify errors; execute shell cores and exact
 rendered hints independently and inspect complete outcomes.
 

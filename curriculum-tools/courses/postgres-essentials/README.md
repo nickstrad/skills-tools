@@ -41,39 +41,39 @@ tour is needed before starting them. Lessons 25–26 supply their own temporary 
 ## Use
 
 ```sh
-pgcoach route
-pgcoach 1 lesson
-pgcoach 1 done
-pgcoach
+cd /root/Software/skills-tools
+bin/tutor postgres-essentials route
+bin/tutor postgres-essentials 1 lesson
+bin/tutor postgres-essentials 1 done
+bin/tutor postgres-essentials lesson
 ```
 
-The launcher is `../postgres/bin/pgcoach` if it is not on PATH. `lesson` is the complete unit:
+Run these commands from the repository root with `bin/tutor` (or use an installed
+`tutor`). Progress for every installed course and the learning roadmap is stored
+in `curriculum-tools/tutor.sqlite`. `lesson` is the complete unit:
 concise mechanism explanation, a labelled terminal diagram when useful, setup and commands, expected
 evidence, interpretation, optional variations, and cleanup. Any retained reading metadata is shown
 as separate optional context; it adds no commands, output requirement, or progression step. Diagrams
 appear before commands and remain readable without ANSI colour. Only explicit `NUMBER done` records
 completion. There are no typed answers, required notes, homework, reading checkpoints, separate
-review stage, or pause/resume state. Older `review`, `full`, and `start` spellings remain hidden
-compatibility aliases for `lesson`.
+review stage, or pause/resume state.
 
 The same reusable flow is available to every course through `tutor <course> <number> lesson|done`;
 `tutor <course> lesson` opens its next unfinished lesson. New courses do not need their own
 renderer. `tutor <course> route` shows completed, available, and planned entries, matching
-`pgcoach route`.
+the canonical route table.
 
 To initialize or refresh the available lesson catalog while preserving completions, run this from
-`curriculum-tools/`:
+the repository root:
 
 ```sh
 bin/tutor postgres-essentials init
 ```
 
-The original 92-lesson course and its progress are preserved. It remains accessible with
-`tutor postgres NUMBER lesson` and `pgcoach --reference NUMBER lesson`; historical `start`,
-`review`, `run`, `full` and `syntax` aliases open the same complete reference lesson. The new
-essentials numbering is 1–40; the original eight completions are prerequisites by learner context,
-not completions of these new experiments. Use the printed `pgcoach NUMBER done` command for
-Essentials.
+The original 92-lesson course and its course-scoped history are preserved. It remains accessible
+with `tutor postgres NUMBER lesson`. The essentials numbering is 1–40; the original eight
+completions are prerequisites by learner context, not completions of these new experiments. Course
+identities keep the two routes' progress separate in the shared database.
 
 ## Lab and validation
 

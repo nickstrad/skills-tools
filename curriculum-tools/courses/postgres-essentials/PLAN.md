@@ -13,7 +13,8 @@ row versions and HOT. No requirement to repeat them or take the old TOAST/cache/
 evidence, interpretation, and cleanup. Put diagrams before commands, label them, connect them to the
 evidence, and keep them readable without colour. Optional references and variations are not
 homework. There are no typed guesses, reports, review view, pause, or checkpoint stage; only
-explicit `pgcoach NUMBER done` records completion.
+explicit `tutor postgres-essentials NUMBER done` records completion. Progress for this course is
+stored in the shared `curriculum-tools/tutor.sqlite` database.
 
 ## Fixed sequence and intended outcomes
 
@@ -94,16 +95,14 @@ Retain PostgreSQL storage internals already learned; do not repeat them just to 
 
 ## Identity, implementation and validation
 
-`curriculum/*.ts` is source; `lessons.json` is generated and contains only real available lessons.
-The numbered table above is the canonical route; the shared route/build logic reads it and labels
-completed, available, and planned entries for `pgcoach route` and `tutor postgres-essentials route`.
-Tests check all available entries against the built catalog. A separate `postgres-essentials` course
-ID keeps numbering 1–40 and new progress separate from the original 92-lesson catalog. `pgcoach`
-opens essentials by default; the reference remains available through `tutor postgres NUMBER lesson`
-and legacy `pgcoach --reference` forms. Old completion records are never copied to new lesson
-identities. Only explicit `pgcoach NUMBER done` or `tutor <course> NUMBER done` commands write
-status. Every tool course is accessible through the generic tutor lesson renderer; the existing
-pgcoach presentation remains compatible, not an adapter future courses must reimplement.
+`lessons/*.md` is the source; the tutor CLI parses those Markdown files and serves only real available
+lessons. The numbered table above is the canonical route; `tutor <course> route` compares it with
+the authored files and labels completed, available, and planned entries. Tests check all available
+entries against their Markdown source. A separate `postgres-essentials` course ID
+keeps numbering 1–40 and course-scoped progress separate from the original 92-lesson catalog. The
+reference remains available through `tutor postgres NUMBER lesson`. Old completion records are
+never copied to new lesson identities. Only explicit `tutor <course> NUMBER done` commands write
+status. Every tool course is accessible through the generic tutor lesson renderer.
 
 The first batch's tags are mvcc, snapshots, isolation, vacuum and retention. Batch two adds storage,
 reclamation, read-committed, lost-update, concurrency, row-locks and concurrency-control. Validate
