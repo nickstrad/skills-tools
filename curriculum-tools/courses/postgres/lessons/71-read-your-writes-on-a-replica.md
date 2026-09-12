@@ -385,7 +385,8 @@ It does not promise globally latest data, serializability or writer election. Du
 validate the history and authority contract before using either the token or a fallback endpoint.
 
 ## Optional variation
-Change only the timeout response policy: use pgcoach hint2 to return an explicit fresh read from
-the pinned primary while the replica remains paused, then resume and verify the replica result.
-Explain the extra primary load and why a500ms replica deadline cannot also describe the total
-fallback response time. State what must change in this policy when writer authority changes.
+In a copy of the supplied Run block, change only `fallback = False` to `fallback = True`.
+On replica timeout, this returns an explicit fresh read from the pinned primary while the replica
+remains paused, then resumes and verifies the replica result. The fallback adds primary work and
+time beyond the500ms replica deadline. A writer-authority change requires validating the history
+and current writer endpoint before using this policy.

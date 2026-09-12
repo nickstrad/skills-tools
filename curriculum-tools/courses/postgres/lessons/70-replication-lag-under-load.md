@@ -309,6 +309,7 @@ then query under a fresh snapshot. Read-your-writes additionally needs a deadlin
 response when the boundary cannot be met, which the next experiment implements.
 
 ## Optional variation
-Double only the committed receipt workload to4,000 using the complete pgcoach hint2 variation.
-Predict the paused result and final sum, then compare receive/replay byte gaps and measured resume
-cost. Explain why doubling rows need not exactly double WAL bytes, elapsed time or reported time lag.
+In a copy of the supplied Run block, change only `requested_rows = 2000` to `requested_rows = 4000`.
+The paused standby still shows only row0/amount1. After resume, both nodes contain4,001 correct
+rows with sum8,002,001. Compare receive/replay byte gaps and measured resume cost; WAL framing,
+page work and scheduling mean doubling rows need not double bytes, elapsed time or reported lag.

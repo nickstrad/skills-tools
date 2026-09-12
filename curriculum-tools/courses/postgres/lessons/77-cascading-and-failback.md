@@ -16,7 +16,7 @@ revision: 4
 Move the writer from an original node to a standby, rebuild the original endpoint as a verified
 follower, and execute the controlled return. Refuse a stale candidate, close admission, verify the
 last acknowledged work, exclude the outgoing writer and only then promote. Restart the returned
-primary and verify every receipt. Cascading is optional depth in hint2; failback and cleanup are
+primary and verify every receipt. Cascading is an optional comparison below; failback and cleanup are
 part of both complete scripts.
 
 ## Syntax breakdown
@@ -98,7 +98,7 @@ physical forwarding through a standby before it is stopped and removed from the 
   replacement into the original data path. This is an explicit full rebuild, not a claim that the
   old files can simply restart on a different history. The new receiver uses **owned_failback**,
   the original socket and a pinned **recovery_target_timeline=2**. An actual INSERT fails25006.
-- In optional hint2, **clone_from** takes a third verified backup from this recovering middle node,
+- In the optional cascade, **clone_from** takes a third verified backup from this recovering middle node,
   with **owned_cascade** created on that immediate upstream. Full-page writes, replication-role
   authentication and sender capacity allow the standby to serve the backup and WAL. Give the leaf
   its own socket/data/log, pin timeline2 and point its receiver at the middle node.
@@ -514,7 +514,7 @@ parents1 and2; epoch2 is rejected. After clearing owned overrides and an actual 
 a primary on the original socket. Receipt3 acknowledges there and exact final IDs0,1,2,3 and notes
 match all four acknowledgements. There are no probe99 rows, live replacement writers or slots.
 
-Hint2 additionally proves replacement→middle→leaf streaming on timeline2, with the middle still in
+The optional cascade additionally proves replacement→middle→leaf streaming on timeline2, with the middle still in
 recovery, only one direct replacement sender and exact IDs0,1,2 at every hop before return. Leaf and
 its slot are stopped/released first. Both scripts finally stop all owned nodes and retain evidence.
 Actual LSNs, system identifiers, timings and file sizes vary; neither transfer uses a fixed sleep
@@ -528,8 +528,9 @@ A cascade changes the transport path and resource obligations; it does not grant
 or make an asynchronous leaf part of a synchronous commit guarantee.
 
 ## Optional variation
-Run the optional hint2 cascade variation. Before receipt2, predict which source each receiver and
-sender should report, then verify that a later receipt crosses both hops while the middle remains
-in recovery. Explain why the leaf's slot belongs to the middle and why it must be released before
-that topology is dismantled. For a planned return to a preferred host, state the evidence needed
-before each authority change and what policy applies if the readiness deadline expires.
+In a copy of the supplied Run block, change only `include_cascade = False` to `include_cascade = True`.
+Compare each receiver's source and sender link, then verify receipt2 crosses replacement→middle→leaf
+while the middle remains in recovery. The leaf consumes the middle's WAL, so its slot belongs there;
+the supplied cleanup stops the leaf and releases that slot before dismantling the topology.
+Both authority transfers retain the same readiness checks. An expired readiness deadline leaves
+the candidate unready and does not authorize promotion.

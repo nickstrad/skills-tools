@@ -313,7 +313,7 @@ wait for each commit to become readable on the follower, and the existence of a 
 choose a new leader or stop an old writer. The next experiments separate those boundaries explicitly.
 
 ## Optional variation
-Terminate the owned receiver, commit one additional receipt and observe a different streaming PID
-plus complete caught-up rows using the pgcoach hint2 variation. Identify which evidence establishes
-reconnection and which establishes application catch-up; explain what source unavailability would
-require that this receiver-only failure did not exercise.
+In a copy of the supplied Run block, change only `reconnect = False` to `reconnect = True`.
+This terminates the owned receiver and commits one additional receipt. The changed streaming PID
+and fresh log line prove reconnection; receipt2/amount20 on the standby proves application catch-up.
+The source stays available, so this comparison does not exercise writer replacement or fencing.

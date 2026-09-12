@@ -562,10 +562,10 @@ one-coordinator experiment does not supply consensus, coordinator election, heur
 cross-database snapshot isolation or independent-host durability.
 
 ## Optional variation
-Predict the independent SQLite read and both participant states when the coordinator is killed
-before its decision transaction commits. Run the complete hint2 variation and compare it with core's
-loss after A finalizes. Identify the evidence authorizing COMMIT versus ABORT, and explain why
-recovery may not choose a new outcome after a durable COMMIT. Specify what evidence and authority an
-operator needs to resolve an orphaned prepared GID; explain why a missing GID or a timed-out caller
-is insufficient. Use the temporary sum175, blocked writer and retained250 rows to describe the
-availability and observation costs of this protocol.
+In a copy of the supplied Run block, change only `lose_before_decision = False` to
+`lose_before_decision = True`. The coordinator's private SQLite transaction sees COMMIT, but an
+independent reader sees no decision when the process is killed. Both participants remain prepared
+at visible100/100. Recovery durably records ABORT, then resolves them with zero deltas. Compare
+this with the core's durable COMMIT and75/125 result: recovery must obey a committed decision.
+A missing GID or caller timeout alone establishes no outcome; the registered operation, durable
+decision and participant receipts supply the resolution evidence in this known-coordinator fixture.

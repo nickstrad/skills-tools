@@ -26,8 +26,8 @@ actual application roles, and the complete accepted-write history must agree wit
 The issuer says which epoch a worker received; the resource remembers the highest epoch it has
 committed. Fencing rejects an older epoch at that resource. It cannot undo an old worker's write
 that committed before the new fence, and merely executing a new fence inside BEGIN is insufficient.
-The supplied driver coordinates unfamiliar role and process details; inspect its SQL, make a
-prediction about the waiting writer, then use actual state and permission errors to defend the rule.
+The supplied driver coordinates unfamiliar role and process details. Inspect its SQL and compare
+the waiting writer's result with the actual resource state and permission errors.
 
 ### What you are learning
 
@@ -493,9 +493,8 @@ credentials. This colocated experiment does not turn a counter into consensus or
 an external write fence.
 
 ## Optional variation
-Predict A's waiting write when B rolls back its attempted resource fence. Run the complete hint2
-variation and identify the exact state transition after which A starts being rejected. Explain the
-extra accepted history row and why it does not contradict fencing. Then specify the issuer policy,
-worker credentials, resource interface, epoch retention and failure boundaries for a worker that may
-resume after takeover. Identify what guarantees remain if callers can update the resource directly,
-and why multiple writes with the same valid epoch still need separate idempotency when retried.
+In a copy of the supplied Run block, change only `rollback_fence = False` to `rollback_fence = True`.
+After B rolls back, A's waiting old-token write commits A-racing at epoch1/revision3. A fresh B
+write then commits the resource fence at epoch2/revision4, after which token1 is rejected. The
+extra accepted history row precedes that durable fence and does not bypass it. Protected resource
+access remains essential; repeated writes with one valid epoch still need separate idempotency.

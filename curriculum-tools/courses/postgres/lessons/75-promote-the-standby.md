@@ -726,8 +726,9 @@ process and admitting the new route. It does not establish zero-loss failover fr
 asynchronous primary, automatic elections or production fencing across supervisor restarts.
 
 ## Optional variation
-Use pgcoach hint2 to start controlled cutover with replay deliberately paused before the last
-acknowledged write. Predict the rejected candidate inventory and state the evidence required to
-resume cutover. Then explain what this reachable-writer procedure cannot prove if the old primary
-is unreachable, which external fencing fact would be required, and how acknowledged receipt
-inventory affects the choice of authoritative history.
+In a copy of the supplied Run block, keep the first unsafe scenario unchanged. In the second
+controller, where `controlled = True`, change only `lagging = False` to `lagging = True`.
+The paused candidate initially has only ID0 and is refused. After replay resumes, the same marker
+and acknowledged-receipt checks must pass before cutover. This procedure can stop a reachable
+writer; an unreachable old writer requires independent exclusion evidence before granting a new
+writer authority, and acknowledged receipts still need reconciliation with the chosen history.

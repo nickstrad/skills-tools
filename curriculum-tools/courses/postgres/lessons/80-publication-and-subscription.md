@@ -105,7 +105,7 @@ older table continues receiving work while the new table is still copying.
   **Transaction/COMMIT** returns one exact end_lsn, avoiding a guessed idle insertion boundary.
 - During each paused copy, each source batch updates IDs1–10 by one and changes their note,
   deletes one distinct seed ID starting at41, and inserts one new ID starting at101. Core runs two
-  committed batches; hint2 runs four. Their COMMIT boundaries must be later than the sampled sync
+  committed batches; the optional variation runs four. Their COMMIT boundaries must be later than the sampled sync
   slot start. Fresh source contents change while the subscriber remains empty and its worker is
   still blocked in state d. Record the complete source rows and every committed boundary.
 - **release** sends **pg_advisory_unlock** and **psql \q** to the keeper, checks true/success and
@@ -506,7 +506,7 @@ match102 items and101 ledger rows, both ready, one active pgoutput main slot/sen
 or sync errors. Temporary gate clients, subscription, publication and source slots are cleaned up;
 all owned servers stop and their evidence remains.
 
-Hint2 doubles only the overlap workload to four batches per table. It has the same100-row copied
+The optional variation doubles only the overlap workload to four batches per table. It has the same100-row copied
 images,48 tail events per table, IDs1–10 reaching value4, four seed deletions/new inserts, and the
 same final row counts with their corresponding exact payloads. LSNs, XIDs, worker PIDs, sampled
 intermediate states and timing vary. No throughput result or equality of different coordination
@@ -520,8 +520,8 @@ applied transaction boundaries are separate responsibilities. Observe complete r
 handoff, then verify new work after readiness before allowing the replica to answer for that data.
 
 ## Optional variation
-Run hint2 with four source write batches during each paused COPY instead of two. Predict the copied
-images, tail-event count, deleted/new IDs and final values before comparing the audit and both
-servers. Explain why the final row counts stay unchanged despite more changes, why srsublsn is not
-an exported snapshot ID, and which readiness checks an application needs while a newly published
-table is still copying but an older table continues to stream.
+In a copy of the supplied Run block, change only `batches = 2` to `batches = 4`. Each paused COPY
+still supplies100 seed images, followed by48 tail events; IDs1–10 reach value4. Each additional
+batch deletes and inserts one row, preserving final row counts while changing the exact inventory.
+Compare the audit and complete contents on both servers. A synchronization LSN is not an exported
+snapshot identifier, and readiness belongs to each table even while another table keeps streaming.

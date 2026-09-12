@@ -457,7 +457,8 @@ unchanged relation blocks, but data correctness and lost-work accounting matter 
 or elapsed-time comparison.
 
 ## Optional variation
-Use pgcoach hint2 to acknowledge three old-branch writes instead of one before choosing timeline2.
-Predict the exact discarded set and final target/source inventory. Explain what reconciliation
-would be required if any discarded receipt represented a customer-visible obligation, and why
-successful pg_rewind plus streaming does not resolve that business outcome.
+In a copy of the supplied Run block, change only `old_writes = 1` to `old_writes = 3`.
+Before timeline2 is chosen, the old branch acknowledges IDs1–3. Rewind discards all three from
+the live target; both final nodes contain IDs0,100,200. The preserved inventory and cold image
+retain evidence of the discarded branch. Successful physical repair does not fulfill a customer
+obligation represented by a discarded receipt; that requires separate reconciliation.

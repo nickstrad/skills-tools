@@ -119,7 +119,7 @@ disappeared before that snapshot. This experiment measures each boundary indepen
 - Enable and commit900. It arrives and origin advances, while complete comparison still finds
   exactly ID1 stale, ID2 extra and ID600 missing. No later write overwrites these discrepancies.
   A new cursor and a working stream therefore do not constitute gap recovery.
-- Hint2 adds **ALTER SUBSCRIPTION REFRESH PUBLICATION WITH (copy_data=true)** at this point; core
+- The optional variation adds **ALTER SUBSCRIPTION REFRESH PUBLICATION WITH (copy_data=true)** at this point; core
   omits that one action. Both then commit the same901 receipt. The existing table's relation state
   is unchanged and the same three discrepancies remain. Refresh registers newly published tables;
   its copy_data option does not recopy a table already registered with this subscription.
@@ -527,7 +527,7 @@ An actual missing-slot streaming startup error follows ENABLE; the observed subs
 enabled with apply/sync counters0 until the driver explicitly disables it.
 
 The same-name replacement slot starts beyond the gap. Old COMMIT records remain physically
-inspectable, but receipt900 and an advancing origin coexist with discrepancies1,2,600. Hint2's
+inspectable, but receipt900 and an advancing origin coexist with discrepancies1,2,600. The optional
 REFRESH(copy_data=true), followed by the same901 control receipt, leaves those discrepancies and the
 existing table relation state unchanged.
 
@@ -547,7 +547,8 @@ the first while leaving the others unresolved; progress metrics cannot choose th
 its data requirements.
 
 ## Optional variation
-Run hint2 and predict whether REFRESH with copy_data=true will change the three discrepancies on an
-already-ready table. Explain why a successful new901 receipt is insufficient evidence. For a search
-index and a billing/audit consumer, separately decide whether this resnapshot is enough, what
-additional history or reconciliation is needed, and which gates must hold before each resumes work.
+In a copy of the supplied Run block, change only `try_refresh = False` to `try_refresh = True`.
+REFRESH with copy_data=true leaves the already-ready table's discrepancies1,2,600 unchanged even
+though receipt901 arrives. The subsequent actual resnapshot repairs current contents, but neither
+consumer generation receives the missing historical1000 event. A current projection can be rebuilt
+from a snapshot; an audit or independently committed effect may still require historical reconciliation.

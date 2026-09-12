@@ -95,7 +95,7 @@ changes. A separate schema error shows why source DDL and subscriber compatibili
   before the source-authoritative decision removes it. Core **DELETE WHERE id=600**, followed by
   **ALTER SUBSCRIPTION ENABLE**, lets the original transaction replay. Full contents and origin
   must catch up through602, then a newly committed ID700 proves later work still applies.
-- Hint2 changes only the uniqueness recovery policy. **ALTER SUBSCRIPTION SKIP (lsn='...')** uses
+- The optional variation changes only the uniqueness recovery policy. **ALTER SUBSCRIPTION SKIP (lsn='...')** uses
   the validated logged finish LSN, then ENABLE resumes apply. Even when origin reaches602 and
   both later receipts exist, full comparison must find exactly four discrepancies: old ID1, extra
   ID2, wrong local ID600 and missing610. Skipping affects the whole transaction, including its
@@ -446,7 +446,7 @@ rows remain absent on the subscriber. The logged finish LSN matches the physical
 it is distinct from the end boundary used by the post-recovery apply gate.
 
 Core removes the saved local collision from the replicated table, enables apply and recovers the
-whole failed transaction plus queued work. Hint2 skips that transaction first: origin advances and
+whole failed transaction plus queued work. The optional variation skips that transaction first: origin advances and
 601/602 arrive, but exactly IDs1,2,600,610 disagree. Explicit stopped-apply/source-paused reconciliation
 removes those differences. Both paths then verify a newly streamed700 receipt and complete equality.
 
@@ -466,8 +466,8 @@ and evidence that subsequent work succeeds. Schema compatibility is another part
 not a property supplied automatically by the replication connection.
 
 ## Optional variation
-Run hint2 and predict every discrepancy caused by skipping the four-operation transaction. Explain
-why merely replacing the conflicting600 row is insufficient after skip, and why an advancing origin
-and unchanged error count do not establish agreement. For a service with independent subscriber
-writes, state how you would decide authority, pause or version the comparison, preserve disputed
-values and reconcile before admitting reads again.
+In a copy of the supplied Run block, change only `skip_then_reconcile = False` to
+`skip_then_reconcile = True`. Skipping the four-operation transaction leaves discrepancies at
+IDs1,2,600,610 even after origin progress resumes and601/602 arrive. Replacing only600 would leave
+the other three unresolved. The supplied branch stops apply, pauses source changes, preserves the
+disputed image and reconciles the complete inventory before verifying a new streamed receipt.

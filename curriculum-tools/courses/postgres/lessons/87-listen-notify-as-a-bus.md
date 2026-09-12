@@ -431,9 +431,9 @@ PostgreSQL credit is not an independent external receiver commit; the outbox les
 additional boundary.
 
 ## Optional variation
-Predict the startup notification count when job1 moves from before to after LISTEN commit, with
-its publication still before the first durable scan. Run the complete hint2 variation and explain
-why final credits remain identical. Then design a worker's startup/reconnect sequence, bounded poll
-policy and local commit boundary using evidence from the one-wake/two-job batch, lost listener,
-one-wake/five-job recovery and empty redundant scan. State what changes if the business effect is
-an external API and can commit independently of this database.
+In a copy of the supplied Run block, change only `publish_after_listen = False` to
+`publish_after_listen = True`. Job1 now commits after LISTEN registration but before the first
+durable scan. Startup has one wake-up instead of zero, with the same credit5 and final total72.
+The scan reconciles durable jobs regardless of wake-up count; registration-before-scan, bounded
+polling and atomic local effects remain the worker's recovery contract. An external API can commit
+independently and needs the additional receiver/acknowledgement boundary from the outbox lesson.

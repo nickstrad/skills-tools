@@ -490,9 +490,9 @@ new effect. Keeping an identity guard can refuse reexecution after cached result
 cost of retained identity storage and explicit reconciliation when callers still need an answer.
 
 ## Optional variation
-Predict the first waiter's result when the winner aborts instead of committing. Run the complete
-variation in coaching hint2; compare the CTE output, the independent balance before recovery and
-committed history afterward. Explain why rolling back the insert-only diagnostic is necessary.
-Then specify the key namespace, payload agreement, retry bound, result retention and expired-key
-admission rule for an API whose clients may retry months later. Use account3's repeated debit and
-account4's refusal to defend the tradeoff; do not assume expiring keys makes retries safe.
+In a copy of the supplied Run block, change only `winner_aborts = False` to `winner_aborts = True`.
+Compare the first waiter's one-null-result CTE output, independent balance and later committed
+history. The insert-only diagnostic rolls back so a fresh complete request can apply the sole
+debit20; final domain values match the core. Account3's repeated debit after key deletion and
+account4's refusal with a retained key show why payload agreement, identity retention and
+expired-key admission rules remain part of an API's retry contract.

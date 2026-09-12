@@ -409,8 +409,8 @@ rebuild, then prove new work still arrives. Slot status and postmaster readiness
 establish application readiness.
 
 ## Optional variation
-Use pgcoach hint2 to cap the oversized disconnected slot at4MB before returning the consumer.
-Predict which slot fields and files change, inspect the actual failed restart, then verify the
-supplied rebuild and later streamed receipt. Choose a retention budget and reinitialization policy
-for a replica whose offline duration is uncertain; explain what measurements beyond this bounded
-trial would support that budget.
+In a copy of the supplied Run block, change only `invalidate = False` to `invalidate = True`.
+This caps the oversized disconnected slot at4MB before returning the consumer. Inspect the lost
+slot, removed history and failed catch-up, then verify the supplied rebuild and later streamed
+receipt. Both paths finish with32,002 exact rows and sum512,048,001. A retention cap can require
+reinitialization; choosing a service budget also needs its WAL rate, offline duration and rebuild cost.

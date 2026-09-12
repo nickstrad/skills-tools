@@ -145,25 +145,25 @@ postgres	65	connection-saturation	unchanged		primary	Direct PCAP_HOLD_MS compari
 postgres	66	idle-in-transaction-kills-you	prose/diagram only	Challenge	primary	Existing OBS_AUTOCOMMIT=1 switch; explains row99 persistence and SQLSTATE00000 after timeout
 postgres	67	table-and-index-usage-counters	prose/diagram only	Challenge	primary	Retained direct customer-lookup/index comparison; owned cleanup explicitly repeats first Setup DROP after optional rollback
 postgres	68	read-the-server-log	prose/diagram only	Challenge	primary	Direct rollback/log interpretation and matching holder-committed expected-value check; original intended optional outcome and main commands preserved
-postgres	69	build-a-streaming-standby	pending			
-postgres	70	replication-lag-under-load	pending			
-postgres	71	read-your-writes-on-a-replica	pending			
-postgres	72	synchronous-replication-blocks-commit	pending			
-postgres	73	hot-standby-query-conflict	pending			
-postgres	74	replication-slot-retains-wal	pending			
-postgres	75	promote-the-standby	pending			
-postgres	76	rewind-the-old-primary	pending			
-postgres	77	cascading-and-failback	pending			
-postgres	78	decode-the-log	pending			
-postgres	79	slot-position-and-acknowledgement	pending			
-postgres	80	publication-and-subscription	pending			
-postgres	81	conflicts-stop-the-apply-worker	pending			
-postgres	82	slot-lag-and-disk	pending			
-postgres	83	transactional-outbox	pending			
-postgres	84	idempotency-keys	pending			
-postgres	85	two-phase-commit	pending			
-postgres	86	fencing-tokens-with-a-monotonic-counter	pending			
-postgres	87	listen-notify-as-a-bus	pending			
+postgres	69	build-a-streaming-standby	prose/diagram only	Challenge	primary	Existing reconnect=True branch; changed receiver identity/log plus receipt2 prove distinct reconnect and catch-up boundaries
+postgres	70	replication-lag-under-load	prose/diagram only	Challenge	primary	Existing requested_rows=4000 switch; paused row0 and caught-up 4001-row/sum8002001 outcomes preserved
+postgres	71	read-your-writes-on-a-replica	prose/diagram only	Challenge	primary	Existing fallback=True branch; pinned-primary result and separate replica deadline/authority limits explained
+postgres	72	synchronous-replication-blocks-commit	prose/diagram only	Challenge	primary	Existing reconnect_instead_of_cancel=True branch; normal acknowledgement versus warning with identical five receipts
+postgres	73	hot-standby-query-conflict	prose/diagram only	Challenge	primary	Existing delete_stride=4 branch; survivors and retained-version cost explained for both feedback policies
+postgres	74	replication-slot-retains-wal	prose/diagram only	Challenge	primary	Existing invalidate=True branch; missing-history failure, verified rebuild and later streamed receipt retained
+postgres	75	promote-the-standby	prose/diagram only	Challenge	primary	Only second controlled=True scenario changes lagging=True; unsafe comparison and cutover refusal/readiness retained
+postgres	76	rewind-the-old-primary	prose/diagram only	Challenge	primary	Existing old_writes=3 branch; discarded acknowledged IDs1-3 and final IDs0/100/200 accounted for
+postgres	77	cascading-and-failback	prose/diagram only	Overview,SyntaxBreakdown,ExpectedResult,Challenge	primary	Existing include_cascade=True branch; obsolete references replaced across prose; middle/leaf slot cleanup and failback readiness retained
+postgres	78	decode-the-log	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct existing full_identity=True comparison; old-row fields, absent DDL and commit order explained
+postgres	79	slot-position-and-acknowledgement	prose/diagram only	SyntaxBreakdown,ExpectedResult,Challenge,Caution	primary	Direct existing crash_source=True comparison; receiver receipts remain across acknowledged-slot rewind; source-crash scope explicit
+postgres	80	publication-and-subscription	prose/diagram only	SyntaxBreakdown,ExpectedResult,Challenge	primary	Direct existing batches=4 comparison; unchanged snapshot images, 48 tail events and complete final inventories
+postgres	81	conflicts-stop-the-apply-worker	prose/diagram only	SyntaxBreakdown,ExpectedResult,Challenge	primary	Direct existing skip_then_reconcile=True comparison; four discrepancies and stopped-apply reconciliation explicit
+postgres	82	slot-lag-and-disk	prose/diagram only	SyntaxBreakdown,ExpectedResult,Challenge	primary	Direct existing try_refresh=True comparison; ready-table refresh leaves gap; current resnapshot does not recreate historical event
+postgres	83	transactional-outbox	prose/diagram only	SyntaxBreakdown,ExpectedResult,Challenge	primary	Direct existing lose_after_ack=True comparison; only B reclaimed with unchanged durable credit18
+postgres	84	idempotency-keys	prose/diagram only	Challenge	primary	Direct existing winner_aborts=True comparison; insert-only diagnostic rollback, sole debit and retained-key tradeoff
+postgres	85	two-phase-commit	prose/diagram only	Challenge	primary	Direct existing lose_before_decision=True comparison; independent null decision authorizes fixture ABORT versus core durable COMMIT
+postgres	86	fencing-tokens-with-a-monotonic-counter	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct existing rollback_fence=True comparison and removed core prediction; acceptance begins at committed resource fence
+postgres	87	listen-notify-as-a-bus	prose/diagram only	Challenge	primary	Direct existing publish_after_listen=True comparison; wake-up count differs while durable inventory/credit remain equal
 postgres	88	abandoned-slot-fills-the-disk	pending			
 postgres	89	corrupt-a-page-and-detect-it	pending			
 postgres	90	wraparound-drill	pending			

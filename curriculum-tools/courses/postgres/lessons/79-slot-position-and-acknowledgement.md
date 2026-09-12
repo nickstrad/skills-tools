@@ -114,7 +114,7 @@ never use a newer source position merely because it is available.
   to the first batch's parsed COMMIT LSN; observe returned end_lsn and confirmed_flush_lsn equal it,
   then kill that consumer after the acknowledgement. The next peek must contain exactly the later
   two-event payload, while the receiver still has only the first ten events and total145.
-- Optional hint2 performs **pg_ctl -m immediate -w -t20 stop** on the owned source before another
+- The optional variation performs **pg_ctl -m immediate -w -t20 stop** on the owned source before another
   checkpoint can persist the advanced position. The separate receiver stays running with its ten
   receipts and total145. Restart the source, verify both original system identities, and require
   its recovered confirmation below the already-acknowledged COMMIT boundary. This supplied failure
@@ -138,7 +138,7 @@ Run the complete shell script with Python3, matching PostgreSQL16 binaries and t
 installed; PGBIN may select the binary folder. Two independently initialized PostgreSQL processes
 use fresh owned data directories and private sockets with TCP disabled. Inherited PG/PGLAB settings
 are ignored. Root uses runuser as the postgres OS owner. Allow a few hundred MB per retained run.
-Only owned psql clients are killed; hint2 deliberately crashes only the owned source with an
+The core kills only owned psql clients; the optional variation also crashes the owned source with an
 immediate stop. Finally stops clients/servers and drops the source's named slots.
 
 The driver owns the only consumer. It accepts one known INSERT-only schema, stable event IDs and a
@@ -478,7 +478,7 @@ before source acknowledgement leaves ten receipts and total145. Replay adds0 new
 payload under event10 fails22000 without changing state.
 
 Advance only through the first batch's COMMIT, then lose the acknowledging client. The later
-IDs20,21 remain pending. In hint2, an actual source crash returns the slot to its earlier saved
+IDs20,21 remain pending. In the optional variation, an actual source crash returns the slot to its earlier saved
 position and replays the first batch while the independent receiver retains total145; deduplication
 again adds0. After the final two events commit and are acknowledged, both safe inventories exactly
 match IDs10–21/deltas10–21 and total186, including after receiver restart. No pending safe events or
@@ -497,8 +497,9 @@ it does not make source and receiver one distributed transaction or remove recov
 when receipts or required source history are lost.
 
 ## Optional variation
-Run hint2, changing only source failure after acknowledgement: crash it before the advanced slot
-position is checkpointed. Predict the recovered source position, replayed batch and receiver total.
-Explain why the receiver must keep deduplication receipts even after acknowledgement, why using the
-source's newest WAL position would risk skipping IDs20,21, and what recovery policy is needed if
-required receipts or source history have already been discarded.
+In a copy of the supplied Run block, change only `crash_source = False` to `crash_source = True`.
+This crashes the source after acknowledgement but before the advanced slot position is checkpointed.
+Compare its recovered position and replayed batch with the receiver's retained total145: replay
+adds no credit because receipts still identify the completed effects. Acknowledgement does not
+eliminate that retention obligation. Advancing to the newest source WAL position would skip the
+pending IDs20,21; missing receipts or source history require reconciliation beyond this retry path.

@@ -415,7 +415,8 @@ an ambiguous client outcome, reconcile by the stable request receipt before retr
 receives an explicit local-commit warning; it does not pretend to have lost the response.
 
 ## Optional variation
-Change only the disconnected ID5 wait's resolution: use pgcoach hint2 to reconnect the standby
-instead of canceling. Compare the warning, acknowledgement and authoritative receipt outcomes.
-Choose a per-transaction policy for critical orders versus rebuildable telemetry, then explain the
-availability cost and what evidence is required before retrying a canceled or disconnected client.
+In a copy of the supplied Run block, change only `reconnect_instead_of_cancel = False` to
+`reconnect_instead_of_cancel = True`. This resolves ID5's wait by reconnecting the standby.
+Compare the normal COMMIT acknowledgement with the core's local-commit warning; both ultimately
+retain the same five receipts. Waiting for replication adds an availability dependency. After an
+ambiguous client outcome, reconcile the stable receipt before retrying the transaction.

@@ -73,6 +73,28 @@ the92-lesson check passes. No new real-tool run was needed for these editorial c
 Log: `.cache/legacy-migration/postgres-58-68-parity.log`. Its render views remain until final
 acceptance; temporary catalogs are removed and no server or experiment lab was allocated.
 
+## PostgreSQL69–87 editorial acceptance
+
+All19 lessons now point directly to their existing controller switches, with local comparison
+outcomes. The switches cover receiver restart, paused-replay workloads, primary fallback,
+synchronous-wait resolution, feedback retention, slot invalidation/rebuild, cutover readiness,
+rewind history and cascade/failback; then replica identity, acknowledged-slot crash replay,
+snapshot/tail overlap, conflict skip/reconciliation, resnapshot, outbox acknowledgement loss,
+idempotency-race abort, coordinator-decision loss, rolled-back fences and LISTEN registration order.
+
+Primary verified switch-dependent assertions and outcome inventories. Lesson75 specifies the
+second controlled=True controller, so its unsafe baseline remains intact. Remaining hint references
+in77–83 and86's introductory prediction were removed contextually. Source SQL/programs, session
+coordination, cleanup, safety, revisions and all fenced/indented prose blocks match the baseline.
+No runtime behavior changed; existing accepted branch evidence remains applicable.
+
+The69–77 and78–87 passes each refreshed a disposable catalog and verified every lesson's JSON
+against parsed source, complete plain content, ANSI styling and canonical footer. Both passed,
+as did the92-lesson source check. Logs are
+`.cache/legacy-migration/postgres-{69-77,78-87}-parity.log`; paired renders remain under matching
+`review/` directories until final acceptance. Temporary catalogs were removed, and no servers,
+replicas, workload clients or lab directories were allocated.
+
 ## Essentials and gRPC presentation audit
 
 All26 authored Essentials lessons and all6 gRPC lessons are primary-reviewed. Essentials has19

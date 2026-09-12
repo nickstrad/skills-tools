@@ -30,9 +30,12 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   validation schedule. PG92's core is complete but its existing optional branch needs local wording.
 - Essentials/gRPC audits are accepted: all32 reviewed and rendered;19 Essentials prose edits,
   7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
-- PostgreSQL58–68 are accepted:10 editorial changes and65 unchanged. The ledger now has64
-  accepted rows,186 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary continues PostgreSQL69–87, then remaining PostgreSQL prose/continuations,
+- PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
+- PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
+  The ledger now has83 accepted rows,167 pending. Exact exceptions and evidence are below and
+  in the validation report.
+- Next: primary repairs PostgreSQL88/89/90/91 core continuations and92 optional wording, with
+  serial owned real-tool validation; then completes early PostgreSQL pending reviews,
   Linux13–72 and SQLite01–51/53. No new worker has been dispatched. Primary
   still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -40,7 +43,7 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
   quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
   roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~15MB), including raw/refreshed
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~16MB), including raw/refreshed
   baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
   helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
   redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
@@ -49,6 +52,28 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL69–87
+
+Primary reviewed and accepted all19 existing replication/logical/durable-protocol lessons. Their
+optional comparisons now identify the already implemented switch in Run and explain its outcome
+without a prediction or follow-on policy-submission prompt. PostgreSQL75 explicitly changes only
+lagging in the second controlled=True controller, preserving the first unsafe scenario. Additional
+hint references in77–83 are removed from Overview/Syntax/Caution/Expected result as applicable;
+86's introductory prediction is replaced with direct state/permission observation. No Setup, Run,
+fenced/indented prose command, diagram, metadata or revision changes occurred.
+
+Both bounded verification passes (69–77 and78–87) independently created and removed a temporary
+catalog and compared exact source/JSON, complete plain output and ANSI styling for every lesson.
+PostgreSQL's92-lesson check passes. Primary inspected the existing switch-dependent assertions,
+documented inventories, failure boundaries, cleanup and all prose changes. Retained logs/renders:
+`.cache/legacy-migration/postgres-{69-77,78-87}-parity.log` and corresponding review directories.
+These editorial changes reuse existing accepted real-tool evidence; no replica or server was started.
+Final checkpoint verification: learner database SHA256 and every legacy-backup hash match baseline;
+learner identity/readiness query passes and only its PostgreSQL postmaster is running. No editorial
+verifier or temporary catalog remains. Retained baseline/render evidence is16MB, with14GB disk free.
+The following substantive work is still unaccepted:55 PostgreSQL rows (including88–92),60 Linux
+rows and52 SQLite rows. Final tests, installation and live rollout remain pending.
 
 ### Resumed acceptance checkpoint — PostgreSQL58–68
 

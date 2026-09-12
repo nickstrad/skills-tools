@@ -108,7 +108,7 @@ completion; receipt identity and credit must commit together on the receiver.
   while all source sent_at values remain NULL and pgrowlocks still finds zero source row locks.
   Core kills the actual relay Python process here and waits for its negative exit. The receiver's
   committed7 survives while source ownership remains claimed; there is no simulated PUBLISH step.
-- Hint2 moves only that kill boundary. The parent sends **ACK**; the relay executes the guarded
+- The optional variation moves only that kill boundary. The parent sends **ACK**; the relay executes the guarded
   source acknowledgement and writes a second marker after its successful commit. Independently
   verify source status sent before killing the relay. Its message stays sent and is not reclaimed;
   the other abandoned receiver attempt still needs recovery.
@@ -123,7 +123,7 @@ completion; receipt identity and credit must commit together on the receiver.
 - Recovery captures generation2 tokens using the same short claim statement. Before doing work,
   try each old token's acknowledgement and require 0. Then apply the exact retained payload:
   core's already-credited A returns0 and keeps7; B returns1 and adds11. Each valid generation2
-  acknowledgement must change exactly one row. Hint2 reclaims only B because A was already sent.
+  acknowledgement must change exactly one row. The optional variation reclaims only B because A was already sent.
 - An additional duplicate receiver call for A still returns0 at total18. Its duplicate/stale source
   acknowledgement returns0. Reusing A's identity with amount999 must actually raise22023/payload
   mismatch and preserve all receipts/credit. The final join checks full payloads, not just totals.
@@ -522,7 +522,7 @@ abandoned but the receiver7 durable.
 
 After controlled expiry, core reclaims both at generation2. Old-token acknowledgements affect0 rows;
 A's receiver retry applies0 and keeps7, B applies1 and reaches18, then both valid acknowledgements
-commit. Hint2 kills A's relay after its source sent commit instead: A remains sent at generation1,
+commit. The optional variation kills A's relay after its source sent commit instead: A remains sent at generation1,
 only B is reclaimed at generation2, and final credit is still18. An empty claim and duplicate
 acknowledgement both return0 work. A duplicate receiver call adds0; changed amount999 is rejected
 with22023 and no data change.
@@ -541,7 +541,8 @@ repeated execution changes its business state. Their combined contract depends o
 retained receipts and the enforced commit order, not on a sent label or a printed publication.
 
 ## Optional variation
-Run hint2 and predict which claim generation and attempt count changes when relay loss moves past
-source acknowledgement. Explain why only one message is reclaimed while the same two credits
-remain. For a service relay, specify the durable event identity, receipt retention, expiry/takeover,
-receiver-commit/acknowledgement order and evidence you would use after a missing response.
+In a copy of the supplied Run block, change only `lose_after_ack = False` to `lose_after_ack = True`.
+Compare claim generations and attempts when relay loss moves past source acknowledgement. A stays
+sent at generation1, so only B is reclaimed at generation2; the same two durable credits total18.
+Receipt identity prevents repeat effects, while claim generation controls who may acknowledge.
+Preserve receiver-commit-before-acknowledgement ordering and retained receipts across missing replies.

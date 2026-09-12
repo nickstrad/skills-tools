@@ -445,7 +445,8 @@ snapshot free. Treat cancellation as a reason to restart the entire read transac
 snapshot, and budget retained space when reader survival is the chosen policy.
 
 ## Optional variation
-Change only deletion density using pgcoach hint2: delete multiples of4 instead of every even ID.
-Predict the surviving result, retained-version count and final free-space change under both
-feedback policies. Choose a policy for an interactive replica versus long analytics reads, including
-retry behavior, permitted retained space and evidence that a reader's horizon has been released.
+In a copy of the supplied Run block, change only `delete_stride = 2` to `delete_stride = 4`.
+Both feedback policies now leave7,500 survivors with sum37,500,000. Feedback protects2,500 old
+versions until the reader's horizon is released; final vacuum then removes them. Compare physical
+retention and free space with the core. Reader survival consumes primary storage, while a canceled
+read must restart its transaction with a fresh snapshot.

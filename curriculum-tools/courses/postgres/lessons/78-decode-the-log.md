@@ -55,7 +55,7 @@ while an older transaction remains open; its lower transaction ID does not reser
   deadlines bound calls. **sql** returns captured output; any unexpected nonzero process exit fails.
 - **CREATE EXTENSION pg_walinspect** enables SQL inspection of retained physical WAL.
   **decode_receipts(id PRIMARY KEY,note NOT NULL,value NOT NULL)** constrains the workload's identity
-  and payload. In hint2, **ALTER TABLE ... REPLICA IDENTITY FULL** is set before slot creation;
+  and payload. In the optional variation, **ALTER TABLE ... REPLICA IDENTITY FULL** is set before slot creation;
   **pg_class.relreplident** verifies f rather than the core's d for DEFAULT.
 - **pg_create_logical_replication_slot('owned_decode','test_decoding')** creates this database's
   named logical stream with the example text plugin. It does not install a publication or subscriber.
@@ -399,8 +399,8 @@ consumer must use the promised transaction/schema/identity contract rather than 
 raw position or assume decoding itself commits a downstream effect.
 
 ## Optional variation
-Run hint2 with only replica identity changed to FULL. Predict the extra old-row fields in UPDATE
-and DELETE, then compare the exact events and unchanged final table. Explain why that additional
-row identity does not provide the missing ALTER TABLE command. For an audit or search consumer,
-choose the before-image and schema-change policy you need, and explain why the older open
-transaction's XID must not be used to hold back the newer committed result in this experiment.
+In a copy of the supplied Run block, change only `full_identity = False` to `full_identity = True`.
+Compare the extra old note/value fields in UPDATE and DELETE with the unchanged final table.
+FULL supplies more row identity but still does not emit the missing ALTER TABLE command; schema
+changes need their own consumer policy. Commit order remains independent of XID allocation order,
+so the older open XID does not prevent consuming the newer committed result.
