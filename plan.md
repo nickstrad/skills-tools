@@ -35,10 +35,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL01–08 are also accepted: five prose edits, three unchanged, committed as `dafcf23`.
 - PostgreSQL10–20 are accepted in `abf7a63`: eight prose edits, three unchanged.
 - PostgreSQL21–37 are accepted in `1780e76`: four prose edits,13 unchanged.
-- PostgreSQL47/49 are accepted after restoring/directly naming their comparisons. The ledger now
-  has126 accepted rows and124 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes PostgreSQL39–45/48/50–53 (12 rows), Linux13–72 (60 rows)
-  and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+- PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
+- All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
+  The ledger has138 accepted rows and112 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes Linux13–72 (60 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -55,6 +55,21 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — final twelve PostgreSQL lessons
+
+Primary accepted39–45/48/50–53: nine unchanged lessons and three prose edits. Lesson39 uses variation
+terminology;48 names the existing matched-update section with the archived note='changed'
+substitution and committed-note counts;52 removes prediction and gives the exact archived
+id1003/amount10 substitutions. All Setup/Run, identities, safety, sessions and revisions are unchanged.
+Prior real evidence in PostgreSQL validation03/04 covers these same optional comparisons; no lab
+was allocated. Complete parsed-field and actual CLI plain/ANSI/JSON checks pass, as does the
+92-lesson source check. Scratch manifest/log/views use `postgres-final-12*`.
+
+All92 PostgreSQL rows are accepted. Total138 accepted,112 pending: Linux13–72 and SQLite01–51/53.
+Primary has begun reading Linux13–24; no Linux edits in this checkpoint. Remaining final checks,
+installation and live rollout are unchanged. Scratch remains about20MB until final acceptance;
+only the learner PostgreSQL server remains, with14GB disk and6.9GiB memory available.
 
 ### Resumed acceptance checkpoint — PostgreSQL47/49
 

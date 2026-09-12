@@ -40,7 +40,7 @@ matters because a wrong row count can make PostgreSQL choose an expensive join o
   - What it gives us: Updated reltuples and entries in pg_stats; the sample means estimates can vary slightly.
 - **default_statistics_target** (planner-statistics setting)
   - What it is: A target controlling the amount of statistics collected.
-  - What it does here: Its default value determines the usual sample size; the challenge raises it to test accuracy and planning overhead.
+  - What it does here: Its default value determines the usual sample size; the variation raises it to test accuracy and planning overhead.
   - What it gives us: Larger MCV and histogram summaries, at the cost of more analysis and possibly planning work.
 - **pg_class.relpages and reltuples** (system catalog columns)
   - What they are: Approximate physical page and row counts for a relation.

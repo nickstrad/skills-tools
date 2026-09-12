@@ -138,4 +138,12 @@ The second transaction's xid has physical insertion/index work and Transaction/A
 Write-ahead ordering permits recovery to redo data-page changes using durable log records. Transaction visibility additionally depends on commit/abort state and the reader's snapshot. Retained WAL is a physical history, not a table of successful application requests, and recovering a database requires suitable starting data plus all required history. An aborted operation can consume log, CPU and storage work while leaving no visible row.
 
 ## Optional variation
-Repeat on a fresh fixture, changing only the UPDATE target from the unindexed amount column to the indexed id key. Predict whether HOT remains possible, inspect the additional index work and verify the different intended final row.
+Rerun Setup and Run, replacing `set amount=99 where id=1002` with
+`set id=1003 where id=1002`. In the committed-row check, replace
+`id=1002 and amount=99` with `id=1003 and amount=10`. Keep the remaining commands,
+including settings restoration and table cleanup, unchanged.
+
+Changing the indexed key prevents HOT here. Compare the ordinary UPDATE and additional B-tree
+records with the core's HOT_UPDATE. The final row count remains100, id6 is absent, and the inserted
+row now has id1003 and amount10. All domain and flush checks still return true; WAL bytes and
+record counts remain measured values.

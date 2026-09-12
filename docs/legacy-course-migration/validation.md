@@ -4,6 +4,29 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Final PostgreSQL content group
+
+All92 PostgreSQL lessons are primary accepted. The last12 are39–45/48/50–53: nine unchanged and
+three prose-only changes. Lesson39 renames a variation reference. Lesson48 replaces the unavailable
+hint reference with the existing matched-update subsection, the archived `note='changed'`
+substitution and direct committed-note counts. Lesson52 replaces prediction with the archived
+`id=1003` update and `id=1003 and amount=10` result-check substitutions. Setup/Run and every
+identity, session, safety and revision field are unchanged. These comparisons already existed;
+the changes make their exact substitutions and local interpretation available in the lesson.
+
+Prior real-tool evidence covers48's100 HOT updates in both matched tables and52's ordinary UPDATE,
+additional B-tree work and correct final rows: see
+[index acceptance](../../curriculum-tools/courses/postgres/validation/03-indexes.md) and
+[WAL acceptance](../../curriculum-tools/courses/postgres/validation/04-wal-records-images.md).
+Source correspondence was checked against `9fc73b2`'s archived `guides/12-indexes.ts` and
+`curriculum/wal-records.ts`. No experiment was changed and no new lab was allocated.
+
+All12 pass exact parsed allowed-field/command/metadata parity and complete actual CLI
+plain/ANSI/JSON rendering from an independently created and removed catalog. PostgreSQL check
+passes with92 lessons. Manifest/log/views use `.cache/legacy-migration/postgres-final-12*`.
+The ledger now has138 accepted rows and112 pending; Linux and SQLite audits, final integration
+checks, installation and live catalog refresh remain outstanding.
+
 ## PostgreSQL88–92 continuation acceptance
 
 Primary accepted88–91 at revision5 with self-contained inspection/recovery commands and explicit

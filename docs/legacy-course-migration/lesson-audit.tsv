@@ -115,21 +115,21 @@ postgres	35	advisory-locks-as-leases	unchanged		primary	Unchanged advisory-lock 
 postgres	36	skip-locked-work-queue	unchanged		primary	Unchanged guarded queue/result core and claim rollback comparison; operational pause wording is a fixture deadline
 postgres	37	unique-constraint-race	unchanged		primary	Unchanged uniqueness wait/error/no-op experiment and direct upsert/rollback comparisons
 postgres	38	explain-analyze-buffers	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Retired unsupplied seq_page_cost coaching prompt and dangling syntax bullet; core cost explanation and commands preserved
-postgres	39	statistics-drive-plans	pending			
-postgres	40	index-scan-vs-seq-scan-crossover	pending			
-postgres	41	join-strategies	pending			
-postgres	42	work-mem-spills-to-disk	pending			
-postgres	43	parallel-query	pending			
-postgres	44	pg-stat-statements-as-tracing	pending			
-postgres	45	btree-page-anatomy	pending			
+postgres	39	statistics-drive-plans	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; complete statistics and generic/custom-plan experiments unchanged
+postgres	40	index-scan-vs-seq-scan-crossover	unchanged		primary	Complete selectivity sweep, forced paths, cost-model comparison and direct range variation retained
+postgres	41	join-strategies	unchanged		primary	Complete join/spill and Memoize comparisons retain direct evidence, fixed answers and setting resets
+postgres	42	work-mem-spills-to-disk	unchanged		primary	Complete sort/top-N/hash-spill experiment and fixed-query memory comparison retained
+postgres	43	parallel-query	unchanged		primary	Complete planned/launched-worker and serial/parallel evidence with cleanup retained
+postgres	44	pg-stat-statements-as-tracing	unchanged		primary	Scoped aggregate telemetry intervals and direct snapshot comparison retained without shared reset
+postgres	45	btree-page-anatomy	unchanged		primary	Complete matched B-tree anatomy and optional composite-index build/drop comparison retained
 postgres	46	create-index-concurrently-and-invalid-indexes	coaching-only prompt retired	Challenge	primary	Retired missing-hint replay of failure/repair already supplied completely in core; three-session ordering preserved
 postgres	47	bounded-online-migration	material experiment change	Challenge,Revision	primary	Restore exact archived retention SQL; revision 1 to 2; core and repeated independent/sequential variation runtime pass with full retained identities/priorities and cleanup
-postgres	48	partial-and-covering-indexes	pending			
+postgres	48	partial-and-covering-indexes	prose/diagram only	Challenge	primary	Names existing matched-update subsection and archived note substitution; supplies committed-note counts and local HOT interpretation
 postgres	49	index-bloat-from-churn	prose/diagram only	Challenge	primary	Direct existing wider-range block and all four bound substitutions; unchanged core/revision; real core/variation preserve full payloads and replace a valid index
-postgres	50	unique-index-enforcement-under-concurrency	pending			
-postgres	51	keyset-pagination-and-concurrent-writes	pending			
-postgres	52	every-change-is-a-wal-record	pending			
-postgres	53	full-page-writes-after-checkpoint	pending			
+postgres	50	unique-index-enforcement-under-concurrency	unchanged		primary	Complete partial uniqueness wait/error/handover and direct released-history comparison retained
+postgres	51	keyset-pagination-and-concurrent-writes	unchanged		primary	Complete keyset/OFFSET insert schedule and repeatable-read comparison with cleanup retained
+postgres	52	every-change-is-a-wal-record	coaching-only prompt retired	Challenge	primary	Replaces prediction with exact archived indexed-key update and expected-row substitutions; WAL/cleanup core unchanged
+postgres	53	full-page-writes-after-checkpoint	unchanged		primary	Complete page-image ranges and pglz comparison retain protected settings, equal data and cleanup
 postgres	54	commit-means-fsync	prose/diagram only	Challenge	primary	Direct existing WAL_BATCH=5 switch; 400 useful increments and optional supplied file probe preserved
 postgres	55	wal-files-and-recycling	prose/diagram only	Challenge	primary	Direct existing segments=20 switch and retention interpretation; no executable changes
 postgres	56	crash-and-redo	prose/diagram only	Challenge	primary	Direct existing commit_second=True switch; locally interprets COMMIT and recovered 2 receipts/amount30 versus 1/10

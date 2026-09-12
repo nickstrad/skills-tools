@@ -176,6 +176,12 @@ answer and data invariant fixed during that comparison. A small active subset an
 payload may justify different designs from a frequently changing payload.
 
 ## Optional variation
-Repeat the matched update trial, changing note instead of amount on the same100 spaced rows.
-Because neither secondary index stores note, can both tables now use HOT? Compare transaction-local
-counters and equal post-update contents. The hint recreates neither table beyond the supplied setup.
+Rerun Setup, then repeat only the final matched-update section of Run, from `begin;` through the
+`same_contents` check. In both UPDATE statements, replace `amount=amount+1` with `note='changed'`;
+keep `where id%20=0`, the transaction-local counter query and COMMIT unchanged.
+
+Neither table indexes note, so both now permit HOT. The validated fresh fixture reports100 updates
+and100 HOT updates for each table. Compare the actual counters: eligibility still needs room on the
+heap page. The row counts and amount sums remain equal. Also run
+`select count(*) from ix_hot_plain where note='changed';` and the same query for `ix_hot_cover`;
+both return100, verifying that the intended note changes committed in both tables.
