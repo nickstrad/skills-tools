@@ -1,0 +1,17 @@
+{
+  "available": 26,
+  "copied_refresh_and_views": "passed",
+  "live_refresh": true,
+  "logical_history_unchanged": true,
+  "copied_history_matches_before": true,
+  "copied_history_after_refresh_unchanged": true,
+  "progress_rows": 22,
+  "attempt_rows": 23,
+  "next_view": "# Lesson 23: Connect commit acknowledgement to durable log work",
+  "temporary_copy_removed": true,
+  "reference_history_unchanged": true,
+  "reference_fingerprints_unchanged": {
+    "progress.sqlite": "395120677c76babdd5cfeab3e5fc3089f3e457e0a42d6907a79cddce369a9ac6",
+    "progress.sqlite-wal": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

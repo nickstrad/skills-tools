@@ -1,5 +1,6 @@
 {
   "id": "linux",
+  "status": "reference",
   "name": "Linux Systems",
   "description": "Linux kernel abstractions through hands-on experiments on a disposable Ubuntu VM",
   "tool": "bash",

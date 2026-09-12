@@ -1,202 +1,268 @@
-import { run as runTutor } from "../../../src/main.ts";
-import type { Lesson } from "../../../src/types.ts";
-import { ROUTE } from "../route.ts";
-import { render, runEssentials } from "./coach.ts";
 import { DatabaseSync } from "node:sqlite";
+import { run as runTutor } from "../../../src/main.ts";
+import { normalizeEssentialsArgs, runEssentials } from "./coach.ts";
 
-const catalog: Lesson[] = JSON.parse(
-  await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
-);
+type Capture = {
+  out: string[];
+  err: string[];
+  io: { log: (s: string) => void; error: (s: string) => void };
+};
+
+function capture(): Capture {
+  const out: string[] = [], err: string[] = [];
+  return { out, err, io: { log: (s) => out.push(s), error: (s) => err.push(s) } };
+}
+
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
-function capture() {
-  const out: string[] = [], err: string[] = [];
-  return { out, err, io: { log: (s: string) => out.push(s), error: (s: string) => err.push(s) } };
-}
 
-function history(path: string): string {
-  const db = new DatabaseSync(path, { readOnly: true });
-  try {
-    return JSON.stringify([
-      db.prepare("SELECT * FROM progress ORDER BY lesson_id").all(),
-      db.prepare("SELECT * FROM attempts ORDER BY id").all(),
-    ]);
-  } finally {
-    db.close();
-  }
-}
+const lessons = JSON.parse(
+  await Deno.readTextFile(new URL("../lessons.json", import.meta.url)),
+) as Array<{
+  ordinal: number;
+  slug: string;
+  setup?: string;
+  code: string;
+  overview: string;
+  syntaxBreakdown: string;
+  expectedResult: string;
+  systemsLens: string;
+  runIn: string;
+  sessions: number;
+}>;
 
-Deno.test("fixed 40-lesson route starts with the available actual lessons and complete commands", () => {
-  assert(
-    ROUTE.length === 40 && catalog.length === 26,
-    "route or authored batch drifted",
+function learnerOutput(value: string): string {
+  return value.replace(
+    /(When you consider it complete: `)tutor postgres-essentials(?= [0-9]+ done(?:[ `]|$))/g,
+    "$1pgcoach",
   );
-  assert(new Set(ROUTE.map((l) => l.slug)).size === 40, "duplicate route identity");
-  for (const [i, lesson] of catalog.entries()) {
-    assert(
-      ROUTE[i].slug === lesson.slug && ROUTE[i].title === lesson.title,
-      "lesson does not match route",
-    );
-    assert(
-      lesson.estimatedMinutes >= 20 && lesson.estimatedMinutes <= 30,
-      "timing outside chosen scope",
-    );
-    const shown = render(lesson, "lesson", "/tmp/a learner's progress.sqlite");
-    const language = lesson.runIn === "shell" ? "sh" : "sql";
-    const core = shown.split("## What the experiment showed")[0];
-    const blocks = [...core.matchAll(new RegExp("```" + language + "\\n([\\s\\S]*?)\\n```", "g"))]
-      .map((m) => m[1]);
-    assert(
-      blocks.length >= 2 && blocks[0] === lesson.setup &&
-        blocks.slice(1).join("\n\n") === lesson.code,
-      "render changed experiment/session blocks",
-    );
-    assert(
-      shown.includes(
-        lesson.sessions === 1 ? "Open one experiment terminal" : "Open two experiment terminals",
-      ),
-      "terminal instructions disagree with session count",
-    );
-    assert(shown.indexOf("```text") < shown.indexOf("## Setup"), "visual introduced too late");
-    assert(
-      shown.indexOf("### In plain terms") < shown.indexOf("## Setup"),
-      "concepts introduced too late",
-    );
-    assert(
-      shown.includes(lesson.expectedResult) && shown.includes(lesson.systemsLens),
-      "complete lesson lost evidence or interpretation",
-    );
-    assert(
-      !shown.includes("open review") && !shown.includes(" review --db"),
-      "separate review step remains",
-    );
-    assert(shown.includes(" done --db"), "lesson does not lead to explicit completion");
-    assert(!shown.includes("Core reading"), "unbudgeted reading introduced");
-    if (lesson.runIn === "shell") {
-      assert(
-        !shown.includes("psql -X -h") && !shown.includes("ROLLBACK in"),
-        "shell lesson sent learner into psql",
-      );
-    }
-    if (["checkpoint-writeback", "crash-replay"].includes(lesson.slug)) {
-      assert(
-        shown.includes("owned cluster removal record") && !shown.includes("schema removal record"),
-        "private server cleanup was described as schema cleanup",
-      );
-    }
-    if (lesson.challenge) assert(shown.includes(lesson.challenge), "optional variation hidden");
-  }
-});
+}
 
-Deno.test("selection, completion and batch boundary use only essentials progress", async () => {
-  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-coach-test-" });
-  const db = dir + "/a learner's progress.sqlite";
-  const call = async (args: string[]) => {
-    const c = capture();
-    const code = await runEssentials([...args, "--db", db], c.io);
-    assert(code === 0, c.err.join("\n"));
-    return c.out.join("\n");
-  };
+Deno.test("the thin wrapper preserves all 26 authored lesson context and shared output", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-wrapper-test-" });
+  const db = `${dir}/a learner's progress.sqlite`;
   try {
+    const initialized = capture();
     assert(
-      await runTutor(["postgres-essentials", "init", "--db", db], capture().io) === 0,
-      "init failed",
+      await runTutor(["postgres-essentials", "init", "--db", db], initialized.io) === 0,
+      initialized.err.join("\n"),
     );
-    assert((await call([])).includes("Essentials 1/40"), "default selected wrong route");
-    assert(await call(["1", "start"]) === await call(["1", "lesson"]), "start alias changed");
-    assert(await call(["1", "full"]) === await call(["1", "lesson"]), "full alias changed");
-    assert(
-      await call(["1", "review"]) === await call(["1", "lesson"]),
-      "review still splits the lesson",
-    );
-    await call(["1", "done"]);
-    await call(["3", "done"]);
-    const before = await Deno.readFile(db);
-    const historyBefore = history(db);
-    const route = await call(["route"]);
-    assert(
-      route.includes("[done] marks a completed lesson"),
-      "route lacks completion marker legend",
-    );
-    assert(route.includes("1. [done] An uncommitted write"), "completed lesson is unmarked");
-    assert(route.includes("2. Choose a fresh statement"), "unfinished lesson missing");
-    assert(!route.includes("2. [done]"), "unfinished lesson is marked done");
-    assert(route.includes("3. [done] An old reader"), "second completed lesson is unmarked");
-    for (let n = 1; n <= catalog.length; n++) {
-      for (const stage of ["lesson", "review", "full"]) {
-        const text = await call([String(n), stage]);
-        assert(text.includes("--db '/tmp/"), "footer lost copied progress argument");
+    for (const lesson of lessons) {
+      assert(lesson.syntaxBreakdown.includes("### Mechanism map"), `${lesson.slug}: map missing`);
+      assert(
+        lesson.syntaxBreakdown.includes("### Terminals and cleanup"),
+        `${lesson.slug}: terminal context missing`,
+      );
+      const direct = capture();
+      const wrapped = capture();
+      assert(
+        await runTutor([
+          "postgres-essentials",
+          String(lesson.ordinal),
+          "lesson",
+          "--db",
+          db,
+          "--plain",
+        ], direct.io) === 0,
+        direct.err.join("\n"),
+      );
+      assert(
+        await runEssentials(
+          [String(lesson.ordinal), "lesson", "--db", db, "--plain"],
+          wrapped.io,
+        ) === 0,
+        wrapped.err.join("\n"),
+      );
+      const expected = learnerOutput(direct.out.join("\n"));
+      const actual = wrapped.out.join("\n");
+      assert(actual === expected, `${lesson.slug}: wrapper diverged from shared lesson output`);
+      assert(actual.includes(lesson.overview), `${lesson.slug}: overview lost`);
+      assert(actual.includes(lesson.syntaxBreakdown), `${lesson.slug}: syntax context lost`);
+      assert(actual.includes(lesson.setup ?? ""), `${lesson.slug}: setup lost`);
+      assert(actual.includes(lesson.code), `${lesson.slug}: experiment lost`);
+      assert(actual.includes(lesson.expectedResult), `${lesson.slug}: expected result lost`);
+      assert(actual.includes(lesson.systemsLens), `${lesson.slug}: systems lens lost`);
+      assert(
+        actual.indexOf("### Mechanism map") < actual.indexOf("## Setup"),
+        `${lesson.slug}: mechanism map comes after setup`,
+      );
+      if (lesson.runIn === "tool") {
+        assert(actual.includes("psql -X -h /tmp -p 5440"), `${lesson.slug}: connection lost`);
+      }
+      if (lesson.sessions > 1) {
+        assert(
+          actual.includes("Session A") && actual.includes("Session B"),
+          `${lesson.slug}: sessions lost`,
+        );
+      }
+      if (lesson.runIn === "shell") {
+        assert(
+          !actual.includes("Open one experiment terminal"),
+          `${lesson.slug}: shell rendered as psql`,
+        );
       }
     }
-    assert(
-      (await call([String(catalog.length + 1), "lesson"])).includes("planned, not yet available"),
-      "pending lesson served",
-    );
-    const after = await Deno.readFile(db);
-    assert(history(db) === historyBefore, "view changed history, possibly through SQLite WAL");
-    assert(
-      before.length === after.length && before.every((b, i) => b === after[i]),
-      "view wrote progress",
-    );
-    for (
-      const args of [["done"], [String(catalog.length + 1), "done"], ["41", "lesson"], [
-        "1",
-        "--topic",
-        "mvcc",
-      ]]
-    ) {
-      assert(
-        await runEssentials([...args, "--db", db], capture().io) !== 0,
-        "invalid input accepted",
-      );
-    }
-    for (let n = 1; n <= catalog.length; n++) await call([String(n), "done"]);
-    assert(
-      (await call([])).includes(`remaining ${40 - catalog.length} are planned`),
-      "batch incorrectly completed the whole course",
-    );
-    assert(
-      (await call([])).includes(`Before we prepare lesson ${catalog.length + 1}`),
-      "feedback boundary missing",
-    );
-    assert(
-      (await call(["--topic", "nonexistent"])).includes("No available lesson"),
-      "topic miss broken",
-    );
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
 });
 
-Deno.test("installed launcher opens essentials and explicitly preserves reference access", async () => {
-  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-launcher-test-" });
-  const db = dir + "/progress.sqlite";
-  const launcher = new URL("../../postgres/bin/pgcoach", import.meta.url).pathname;
+Deno.test("wrapper and shared route use the canonical 40 entry plan", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-route-test-" });
+  const db = `${dir}/route.sqlite`;
   try {
-    await runTutor(["postgres-essentials", "init", "--db", db], capture().io);
-    const result = await new Deno.Command(launcher, { args: ["1", "lesson", "--db", db] }).output();
+    const direct = capture();
+    const wrapped = capture();
     assert(
-      result.success && new TextDecoder().decode(result.stdout).includes("Essentials 1/40"),
-      "launcher did not switch",
+      await runTutor(["postgres-essentials", "route", "--db", db], direct.io) === 0,
+      direct.err.join("\n"),
     );
-    const reference = dir + "/reference.sqlite";
-    await runTutor(["postgres", "init", "--db", reference], capture().io);
-    const old = await new Deno.Command(launcher, {
-      args: ["--reference", "1", "full", "--db", reference],
-    }).output();
+    assert(await runEssentials(["route", "--db", db], wrapped.io) === 0, wrapped.err.join("\n"));
     assert(
-      old.success &&
-        new TextDecoder().decode(old.stdout).includes("Build a disposable lab cluster"),
-      "reference access lost",
+      wrapped.out.join("\n") === direct.out.join("\n"),
+      "route wrapper diverged from shared route",
     );
-    const oldNavigation = await new Deno.Command(launcher, {
-      args: ["--reference", "8", "start", "--db", reference],
-    }).output();
+    const route = wrapped.out.join("\n");
+    assert(route.includes("# PostgreSQL Essentials — 40 lessons"), "route count missing");
     assert(
-      oldNavigation.success &&
-        new TextDecoder().decode(oldNavigation.stdout).includes("pgcoach --reference 8 run"),
-      "reference footer switches back to essentials",
+      route.includes("26. Reconcile committed and aborted work after a crash"),
+      "last authored lesson missing",
+    );
+    assert(
+      route.includes("27. Prove a backup can restore the intended data"),
+      "planned boundary missing",
+    );
+    assert(!/^\d+\. \[done\]/m.test(route), "read-only route created progress");
+    assert(!await exists(db), "route created a progress database");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("saved stage aliases all select the generic complete lesson", () => {
+  assert(
+    JSON.stringify(normalizeEssentialsArgs([])) === JSON.stringify(["lesson"]),
+    "bare coach no longer selects next lesson",
+  );
+  assert(
+    JSON.stringify(normalizeEssentialsArgs(["--topic", "mvcc"])) ===
+      JSON.stringify(["--topic", "mvcc", "lesson"]),
+    "topic-only coach no longer selects next lesson",
+  );
+  assert(
+    JSON.stringify(normalizeEssentialsArgs(["--db"])) === JSON.stringify(["--db"]),
+    "missing --db value swallowed by default lesson",
+  );
+  for (const alias of ["start", "review", "run", "full", "syntax"]) {
+    assert(
+      JSON.stringify(normalizeEssentialsArgs(["7", alias, "--db", "/tmp/a learner.sqlite"])) ===
+        JSON.stringify(["7", "lesson", "--db", "/tmp/a learner.sqlite"]),
+      `${alias} was not normalized`,
+    );
+  }
+});
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await Deno.stat(path);
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return false;
+    throw error;
+  }
+}
+
+Deno.test("viewing and invalid commands do not mutate a temporary progress fixture", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-progress-test-" });
+  const db = `${dir}/quoted tutor postgres learner.sqlite`;
+  try {
+    const init = capture();
+    assert(
+      await runTutor(["postgres-essentials", "init", "--db", db], init.io) === 0,
+      init.err.join("\n"),
+    );
+    const bare = capture();
+    assert(await runEssentials(["--db", db, "--plain"], bare.io) === 0, bare.err.join("\n"));
+    assert(bare.out.join("\n").includes("# Lesson 1:"), "bare coach did not select next lesson");
+    const topic = capture();
+    assert(
+      await runEssentials(["--topic", "mvcc", "--db", db, "--plain"], topic.io) === 0,
+      topic.err.join("\n"),
+    );
+    assert(
+      topic.out.join("\n").includes("# Lesson 1:"),
+      "topic-only coach did not select next lesson",
+    );
+    await runEssentials(["1", "done", "--db", db], capture().io);
+    const before = await Deno.readFile(db);
+    const output = capture();
+    assert(
+      await runEssentials(["1", "lesson", "--db", db], output.io) === 0,
+      output.err.join("\n"),
+    );
+    assert(output.out.join("\n").includes("pgcoach 1 done --db '"), "quoted db footer lost");
+    assert(
+      output.out.join("\n").includes("tutor postgres learner.sqlite"),
+      "quoted db path was rewritten",
+    );
+    const after = await Deno.readFile(db);
+    assert(
+      before.every((byte, i) => byte === after[i]) && before.length === after.length,
+      "lesson view mutated progress",
+    );
+    const malformed = capture();
+    assert(await runEssentials(["--db"], malformed.io) !== 0, "missing --db value accepted");
+    assert(
+      malformed.err.join("\n").includes("requires a value"),
+      "missing --db became the default lesson",
+    );
+    for (const args of [["done"], ["27", "done"], ["41", "lesson"], ["1", "--topic", "mvcc"]]) {
+      assert(
+        await runEssentials([...args, "--db", db], capture().io) !== 0,
+        `invalid input accepted: ${args.join(" ")}`,
+      );
+    }
+    const sqlite = new DatabaseSync(db, { readOnly: true });
+    try {
+      assert(
+        Number(sqlite.prepare("SELECT count(*) n FROM progress WHERE status='done'").get()?.n) ===
+          1,
+        "invalid input changed progress",
+      );
+    } finally {
+      sqlite.close();
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("route marks a stale completion for the current revision", async () => {
+  const dir = await Deno.makeTempDir({ prefix: "pg-essentials-stale-route-test-" });
+  const db = `${dir}/progress.sqlite`;
+  try {
+    const init = capture();
+    assert(
+      await runTutor(["postgres-essentials", "init", "--db", db], init.io) === 0,
+      init.err.join("\n"),
+    );
+    const done = capture();
+    assert(
+      await runTutor(["postgres-essentials", "1", "done", "--db", db], done.io) === 0,
+      done.err.join("\n"),
+    );
+    const sqlite = new DatabaseSync(db);
+    try {
+      sqlite.prepare("UPDATE progress SET completed_revision=0 WHERE lesson_id=1").run();
+    } finally {
+      sqlite.close();
+    }
+    const route = capture();
+    assert(await runEssentials(["route", "--db", db], route.io) === 0, route.err.join("\n"));
+    assert(
+      /^1\. \[revisit\]/m.test(route.out.join("\n")),
+      "stale completion was not marked revisit",
     );
   } finally {
     await Deno.remove(dir, { recursive: true });

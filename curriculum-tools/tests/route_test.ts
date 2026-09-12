@@ -89,13 +89,24 @@ Deno.test("future and uninitialized routes are visible without allocating a data
 
 Deno.test("Markdown route parsing supports the shared template and refuses ambiguous identities", () => {
   const route = parseRoute(
-    "| 1 | A lesson / `a-lesson` | evidence |\n| 2 | **Another lesson** (`another-lesson`) | evidence |",
+    "| # | Lesson / stable slug | Evidence |\n| --- | --- | --- |\n| 1 | A lesson / `a-lesson` | evidence |\n| 2 | **Another lesson** (`another-lesson`) | evidence |",
   );
   assert(
     route.length === 2 && route[0].title === "A lesson" && route[1].title === "Another lesson",
     "title parsing failed",
   );
-  for (const text of ["| 2 | A / `a` |", "| 1 | A / `a` |\n| 2 | B / `a` |"]) {
+  for (
+    const text of [
+      "| # | Lesson / stable slug |\n| --- | --- |\n| 2 | A / `a` |",
+      "| # | Lesson / stable slug |\n| --- | --- |\n| 1 | A / `a` |\n| 2 | B / `a` |",
+      "| # | Lesson / stable slug |\n| --- | --- |\n| 1 | A |",
+      "| # | Lesson / stable slug |\n| --- | --- |\n| x | A / `a` |",
+      "| # | Lesson / stable slug |\n| --- | --- |\n| 1 | A / `a` and `b` |",
+      "| # | Lesson / stable slug |\n| --- | --- |",
+      "| # | Lesson / stable slug |\n| nope | nope |\n| 1 | A / `a` |",
+      "| # | Lesson / stable slug |\n| --- | --- |\n| 1 | A / `a` |\n| 2 | B / `b`",
+    ]
+  ) {
     let failed = false;
     try {
       parseRoute(text);
@@ -104,4 +115,6 @@ Deno.test("Markdown route parsing supports the shared template and refuses ambig
     }
     assert(failed, "ambiguous route accepted");
   }
+  const fenced = "```md\n| # | Lesson / stable slug |\n| --- | --- |\n| 1 | Fake / `fake` |\n```";
+  assert(parseRoute(fenced).length === 0, "a fenced example became a route");
 });

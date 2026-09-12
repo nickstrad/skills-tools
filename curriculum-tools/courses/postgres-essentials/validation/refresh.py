@@ -37,9 +37,12 @@ def inspect(path, available):
     hashes = fingerprints(path)
     launcher = str(engine / 'courses/postgres/bin/pgcoach')
     for ordinal in range(1, available+1):
-        for stage in ('lesson', 'review', 'full'):
+        for stage in ('lesson', 'start', 'review', 'run', 'full', 'syntax'):
             rendered = run([launcher, str(ordinal), stage, '--db', str(path)])
-            assert f'Essentials {ordinal}/40' in rendered
+            assert f'# Lesson {ordinal}:' in rendered
+            assert '## Expected result' in rendered
+            assert '## Systems lens' in rendered
+            assert '### Mechanism map' in rendered
     assert history(path) == before, 'Rendering changed history'
     assert fingerprints(path) == hashes, 'Rendering wrote the catalog'
     next_view = run([launcher, '--db', str(path)])
@@ -73,11 +76,18 @@ def main():
     assert history(reference) == ref_history and fingerprints(reference) == ref_hashes
     report = {'available': len(catalog), 'copied_refresh_and_views': 'passed',
               'live_refresh': args.apply, 'logical_history_unchanged': True,
+              'copied_history_matches_before': True,
+              'copied_history_after_refresh_unchanged': True,
               'progress_rows': len(before['progress']), 'attempt_rows': len(before['attempts']),
               'next_view': next_lesson, 'temporary_copy_removed': not Path(scratch).exists(),
+              'reference_history_unchanged': True,
               'reference_fingerprints_unchanged': ref_hashes}
-    assert Path(args.report).name == args.report and args.report.endswith('.json')
-    (course/'validation'/args.report).write_text(json.dumps(report, indent=2)+'\n')
+    report_path = Path(args.report)
+    if not report_path.is_absolute():
+        assert report_path.name == args.report and args.report.endswith('.json')
+        report_path = course/'validation'/report_path
+    assert report_path.suffix == '.json'
+    report_path.write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps(report, indent=2))
 
 

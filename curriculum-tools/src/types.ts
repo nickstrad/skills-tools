@@ -1,10 +1,10 @@
-/** A bounded external study item, such as a book section, paper, or video segment. */
+/** Legacy source metadata retained to read original catalogs without data migration. */
 export type StudyResource = {
   source: string;
   locator: string;
 };
 
-/** Legacy reading metadata, now displayed as optional excerpts rather than a required pause. */
+/** Retired reading-stage data, preserved in old catalogs but never displayed in lessons. */
 export type StudyCheckpoint = {
   core: StudyResource[];
   optionalDepth?: StudyResource[];
@@ -18,21 +18,12 @@ export type Lesson = {
   title: string;
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
-  /** Kebab-case topic labels (book chapters, systems concepts) used by `--topic` and `topics`. */
+  /** Kebab-case topic labels used by `--topic` and `topics`. */
   tags: string[];
   prerequisites: number[];
-  /**
-   * One-line citation of where the course's canonical book covers this lesson (chapter number,
-   * title, section), printed with the metadata. Say plainly when it is not covered (optional).
-   */
+  /** Retired source fields: preserve original data; do not add to new lessons or render them. */
   reading?: string;
-  /**
-   * How the experiment overlaps with the cited chapter: what the chapter explains that the lesson
-   * shows live, and where the lesson goes beyond or differs from it (optional; omit when the book
-   * does not cover the lesson).
-   */
   readingNotes?: string;
-  /** Optional reading excerpts retained for compatibility with older curricula. */
   studyCheckpoint?: StudyCheckpoint;
   /** What you are about to observe and why it matters. */
   overview: string;
@@ -78,6 +69,8 @@ export type Course = {
   id: string;
   name: string;
   description: string;
+  /** Discovery label; existing full-length courses remain available as references. */
+  status?: "current" | "reference";
   /** Name of the interactive tool lessons run in (psql, duckdb, sqlite3...). */
   tool: string;
   /** Minimum tool version lessons assume unless they set their own. */

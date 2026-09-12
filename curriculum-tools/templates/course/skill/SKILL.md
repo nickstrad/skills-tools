@@ -34,8 +34,8 @@ numbers.
 
 Show the explanation, terminal diagrams, exact setup/code, expected results, interpretation, and
 cleanup together. Essential concepts and unfamiliar commands must appear before the experiment.
-There is no separate review step, required prediction response, written report, or reading stop.
-Offer focused help when requested instead of imposing a series of coaching stages.
+There is no separate review step, required prediction response, or written report. Offer focused
+help when requested instead of imposing a series of coaching stages.
 
 ASCII/ANSI terminal diagrams are first-class teaching content. Preserve their labels, alignment, and
 placement before setup. Lean toward adding a small explanatory diagram when a mechanism benefits:
@@ -43,10 +43,9 @@ ownership, state changes, competing timelines, tree/page layouts, queues, or log
 readable without color and explain its connection to the observation. Do not alter supplied
 experiment commands or claim an improvised variation has been validated.
 
-Optional references, variations, and legacy study-checkpoint excerpts never block progression. For a
-full lesson request, preserve all experiment content and cautions; for a narrower question, answer
-it directly. Existing long reference lessons keep their honest estimates. New lessons target about
-ten minutes including context and cleanup, with a fifteen-minute core ceiling.
+Optional variations never block progression. For a full lesson request, preserve all experiment
+content and cautions; for a narrower question, answer it directly. New lessons target about ten
+minutes including context and cleanup, with a fifteen-minute core ceiling.
 
 ## Progress invariants
 

@@ -1,5 +1,6 @@
 {
   "id": "postgres",
+  "status": "reference",
   "name": "PostgreSQL Systems",
   "description": "PostgreSQL internals as hands-on experiments for systems and distributed-systems engineers",
   "tool": "psql",

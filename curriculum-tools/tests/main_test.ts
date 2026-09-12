@@ -551,10 +551,39 @@ Deno.test("ANSI and plain output flags are mutually exclusive", async () => {
   }
 });
 
-Deno.test("courses lists every course directory", async () => {
+Deno.test("courses discovers current, reference and plan-only routes without creating progress", async () => {
   const out = capture();
-  await run(["courses"], out.io);
-  if (!out.stdout[0].includes("postgres")) throw new Error(out.stdout[0]);
+  const dir = await Deno.makeTempDir({ prefix: "course-discovery-" });
+  try {
+    if (await run(["courses", "--json", "--db", `${dir}/absent.sqlite`], out.io)) {
+      throw new Error(out.stderr.join("\n"));
+    }
+    const rows = JSON.parse(out.stdout[0]);
+    for (const course of await listCourses()) {
+      const row = rows.find((x: { id: string }) => x.id === course.id);
+      if (!row?.implemented || row.available < 1) throw new Error(`missing ${course.id}`);
+      if (row.status !== (course.status ?? "current")) throw new Error(`wrong status ${course.id}`);
+    }
+    for (const id of ["sqlite-essentials", "linux-v2"]) {
+      const row = rows.find((x: { id: string }) => x.id === id);
+      if (!row || row.implemented || row.available !== 0 || row.status !== "proposed") {
+        throw new Error(`plan-only course advertised as runnable: ${id}`);
+      }
+    }
+    const essentials = rows.find((x: { id: string }) => x.id === "postgres-essentials");
+    if (essentials.available !== 26 || essentials.total !== 40) {
+      throw new Error("Essentials discovery disagrees with authored and planned counts");
+    }
+    const files = Array.from(Deno.readDirSync(dir));
+    if (files.length) throw new Error("discovery created state");
+    const text = capture();
+    await run(["courses"], text.io);
+    if (!text.stdout[0].includes("tutor linux-v2 route")) {
+      throw new Error("missing planned route command");
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
 });
 
 Deno.test("buildLessons resolves slug prerequisites and rejects forward references", () => {
@@ -607,7 +636,7 @@ Deno.test("buildLessons resolves slug prerequisites and rejects forward referenc
   if (!threw) throw new Error("forward prerequisite accepted");
 });
 
-Deno.test("build keeps an optional reading line and pretty prints it before the overview", () => {
+Deno.test("build preserves legacy source metadata without requiring it on new lessons", () => {
   const course: Course = {
     id: "x",
     name: "X",
@@ -759,7 +788,7 @@ Deno.test("build trims and validates a study checkpoint", () => {
   }
 });
 
-Deno.test("pretty prints an optional reference between Meta and Overview when a lesson has one", async () => {
+Deno.test("lesson output omits retired citations and preserves complete experiment context", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
@@ -773,27 +802,14 @@ Deno.test("pretty prints an optional reference between Meta and Overview when a 
       throw new Error(out.stderr[0]);
     }
     const text = out.stdout[0];
-    const meta = text.indexOf("\n**Meta:** ");
-    const reading = text.indexOf(
-      "\n**Optional reference:** Book, Chapter 9  \n",
-    );
-    const overview = text.indexOf("\n## Overview\n");
-    const notes = text.indexOf(
-      "\n## Optional reference context\n",
-    );
-    const breakdown = text.indexOf("\n## Syntax breakdown\n");
     if (
-      !(meta > 0 && reading > meta && overview > reading && notes > overview)
+      text.includes("Book, Chapter 9") || text.includes("overlap text") ||
+      text.includes("Optional reference")
+    ) throw new Error("retired reading leaked into lesson");
+    for (
+      const section of ["Overview", "Syntax breakdown", "Run", "Expected result", "Systems lens"]
     ) {
-      throw new Error(text);
-    }
-    if (breakdown < notes) throw new Error(text);
-    if (
-      !text.includes(
-        "Optional depth; all required context is in this lesson.\n\noverlap text",
-      )
-    ) {
-      throw new Error(text);
+      if (!text.includes(`## ${section}`)) throw new Error(`missing ${section}`);
     }
     const styled = capture();
     await run([COURSE, "pretty", "1", "--db", path, "--ansi"], styled.io);
@@ -805,7 +821,7 @@ Deno.test("pretty prints an optional reference between Meta and Overview when a 
   }
 });
 
-Deno.test("legacy checkpoint sources render as optional reading without blocking the lesson", async () => {
+Deno.test("legacy source metadata stays in JSON but never appears in lesson output", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
@@ -836,22 +852,10 @@ Deno.test("legacy checkpoint sources render as optional reading without blocking
     }
     const text = out.stdout[0];
     const challenge = text.indexOf("\n## Optional variation\n");
-    const checkpoint = text.indexOf(
-      "\n## Optional reading\n",
-    );
     const note = text.indexOf("\n## Your note\n");
-    if (!(challenge >= 0 && challenge < checkpoint && checkpoint < note)) {
-      throw new Error(text);
-    }
-    if (
-      !text.includes("\n### Selected excerpts\n- Book — Section 2") ||
-      !text.includes("\n### Optional depth\nRead these only if you want to go deeper.") ||
-      !text.includes("\n### Why here\nThe experiment made the ordering visible.")
-    ) {
-      throw new Error(text);
-    }
-    if (text.includes("Stop here") || text.includes("before continuing")) {
-      throw new Error("required reading gate remains");
+    if (!(challenge >= 0 && note > challenge)) throw new Error(text);
+    for (const retired of ["## Optional reading", "Book — Section 2", "Figure 1", "Why here"]) {
+      if (text.includes(retired)) throw new Error(`retired metadata rendered: ${retired}`);
     }
     const corrupted = new DatabaseSync(path);
     corrupted.prepare(

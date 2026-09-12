@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadRoute, renderRoute } from "./route.ts";
+import { discoverCourses, loadRoute, renderRoute } from "./route.ts";
 import {
   type Course,
   type Lesson,
@@ -93,15 +93,14 @@ function usage(): string {
   return `Hands-on systems tutor: one engine, one curriculum per tool.
 
 Usage:
-  tutor courses
+  tutor courses [--json]
   tutor <course> init [--db PATH]
   tutor <course> [NUMBER] lesson [--topic TEXT] [--ansi|--plain]
   tutor <course> NUMBER done [--note TEXT]
   tutor <course> route [--json]
+
+Navigation and progress maintenance:
   tutor <course> next [--topic TEXT] [--json]
-  tutor <course> show <NUMBER> [--json|--ansi|--plain]
-  tutor <course> pretty [NUMBER | --topic TEXT] [--ansi|--plain]
-  tutor <course> done <NUMBER> [--note TEXT]
   tutor <course> undone <NUMBER>
   tutor <course> skip <NUMBER> [--note TEXT]
   tutor <course> note <NUMBER> <TEXT>
@@ -111,8 +110,13 @@ Usage:
   tutor <course> status [--json]
   tutor <course> search <TEXT> [--json]
 
+Compatibility forms:
+  tutor <course> show <NUMBER> [--json|--ansi|--plain]
+  tutor <course> pretty [NUMBER | --topic TEXT] [--ansi|--plain]
+  tutor <course> done <NUMBER> [--note TEXT]
+
 Every course command accepts --db PATH to use a different progress database.
-'show' and 'pretty' print a lesson as Markdown, styled with ANSI colours when stdout is a terminal
+'lesson' prints complete Markdown, styled with ANSI colours when stdout is a terminal
 (--ansi forces colours, --plain disables them).
 --topic matches every word against lesson tags, category, and title (e.g. --topic "buffer cache");
 'topics' lists the tag vocabulary with progress so a reading topic can be mapped onto lessons.
@@ -447,18 +451,11 @@ function renderLesson(row: Row, course: Course, progressPath?: string): string {
   if ((x.tags as string[]).length) {
     meta.push(`**Topics:** ${(x.tags as string[]).join(", ")}`);
   }
-  if (x.reading) meta.push(`**Optional reference:** ${x.reading}`);
   meta.push(`Lesson ID: ${x.ordinal}`);
   // Two trailing spaces make each metadata line a hard break in Markdown.
   const parts = [`# Lesson ${x.ordinal}: ${x.title}`, meta.join("  \n")];
   const section = (title: string, body: unknown) => parts.push(`## ${title}\n${body}`);
   section("Overview", x.overview);
-  if (x.readingNotes) {
-    section(
-      "Optional reference context",
-      `Optional depth; all required context is in this lesson.\n\n${x.readingNotes}`,
-    );
-  }
   section("Syntax breakdown", x.syntaxBreakdown);
   if (x.caution) section("Caution", x.caution);
   if (x.setup) section("Setup", fence(x.setup, lang));
@@ -466,26 +463,6 @@ function renderLesson(row: Row, course: Course, progressPath?: string): string {
   section("Expected result", x.expectedResult);
   section("Systems lens", x.systemsLens);
   if (x.challenge) section("Optional variation", x.challenge);
-  if (x.studyCheckpoint) {
-    const checkpoint = x.studyCheckpoint as StudyCheckpoint;
-    const body = [
-      "These retained reference excerpts are optional. You can continue without a reading stop.",
-      `### Selected excerpts\n${
-        checkpoint.core.map((item) => `- ${item.source} — ${item.locator}`).join("\n")
-      }`,
-    ];
-    if (checkpoint.optionalDepth?.length) {
-      body.push(
-        `### Optional depth\nRead these only if you want to go deeper.\n\n${
-          checkpoint.optionalDepth
-            .map((item) => `- ${item.source} — ${item.locator}`)
-            .join("\n")
-        }`,
-      );
-    }
-    body.push(`### Why here\n${checkpoint.rationale}`);
-    section("Optional reading", body.join("\n\n"));
-  }
   if (x.notes) section("Your note", x.notes);
   const flags = progressPath ? " --db '" + progressPath.replaceAll("'", "'\\''") + "'" : "";
   parts.push(`When you consider it complete: \`tutor ${course.id} ${x.ordinal} done${flags}\`.`);
@@ -564,15 +541,22 @@ export async function run(
     return 0;
   }
   if (first === "courses") {
-    const courses = await listCourses();
-    io.log(
-      parsed.flags.has("--json")
-        ? JSON.stringify(courses, null, 2)
-        : courses.map((c) => `${c.id.padEnd(12)} ${c.name} (${c.tool}) - ${c.description}`).join(
-          "\n",
-        ) || "No courses found.",
-    );
-    return 0;
+    try {
+      if (rest0.length) throw new Error("courses does not accept a course or lesson number");
+      const courses = await discoverCourses(TOOL_ROOT);
+      io.log(
+        parsed.flags.has("--json")
+          ? JSON.stringify(courses, null, 2)
+          : courses.map((c) =>
+            `${c.id} — ${c.name} [${c.status}] · ${c.available}/${c.total} available\n` +
+            `  tutor ${c.id} route`
+          ).join("\n\n") || "No courses found.",
+      );
+      return 0;
+    } catch (error) {
+      io.error(`Error: ${(error as Error).message}`);
+      return 2;
+    }
   }
   const courseId = first;
   let [command, ...rest] = rest0;

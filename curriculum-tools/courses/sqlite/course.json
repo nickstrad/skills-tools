@@ -1,5 +1,6 @@
 {
   "id": "sqlite",
+  "status": "reference",
   "name": "SQLite Systems",
   "description": "Embedded state: file and connection contracts, durability, writer capacity, recovery, and offline reconciliation",
   "tool": "sqlite3",
