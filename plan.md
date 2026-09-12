@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — next WP2.2 (delegated), WP3.1, WP3.3/3.4/4.2 (delegated). Baseline commit `368734b`.**
+**Status: in progress — in flight (delegated, do not re-delegate): WP3.1 cobra tree (opus), WP4.2 roadmap package (opus). Next after they land: WP3.5 launcher, WP2.3 parity B, WP3.6 parity C, then Phase 9.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -56,16 +56,16 @@ a separate handoff document.
 | WP1.4 Parity gate A | S | done | see log | 250/250 lessons byte-identical (Markdown and JSON); done as `internal/render/parity_test.go` (skips without `$WORK`; deleted in WP8.4) instead of a hidden command |
 | WP1.5 Course template | S | done | see log | `templates/course/lessons/01-example.md` is byte-canonical (`FormatLessonFile` reproduces it) |
 | WP2.1 progress schema and seed | F | done | see log | `Open` uses `_txlock=immediate`; read verbs use `OpenReadOnly` (`mode=ro`); Go `Init` on baseline copies == Deno `init` dumps for all 5 courses |
-| WP2.2 Progress operations | S | todo | | |
+| WP2.2 Progress operations | S | done | 8f9b2e2 | `GetStatus` (name clash with type); `Topics` NULL-finished scan fix |
 | WP2.3 Parity gate B | S | todo | | |
-| WP3.1 Cobra tree | O | todo | | |
+| WP3.1 Cobra tree | O | in progress | | delegated to an opus subagent; owns `internal/cli/*`, `cmd/tutor/main.go`; wires scaffold and links, not roadmap |
 | WP3.2 route package | S | done | 18e4ea8 | `DiscoverCourses` on the real root equals golden `courses.json` |
-| WP3.3 new-course scaffold | S | todo | | |
-| WP3.4 links and install | S | todo | | |
+| WP3.3 new-course scaffold | S | done | 5f35a4c | package `internal/scaffold` (not `internal/cli`); CLI wiring in WP3.1 |
+| WP3.4 links and install | S | done | 1c96ad4 | package `internal/links`; `install` command wired in WP3.1 |
 | WP3.5 Launcher | S | todo | | |
 | WP3.6 Parity gate C and smoke | S | todo | | |
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
-| WP4.2 roadmap package and command | O | todo | | |
+| WP4.2 roadmap package and command | O | in progress | | delegated to an opus subagent; package `internal/roadmap` only; `internal/cli/roadmap.go` is added by the primary after WP3.1 |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
 | WP5.2 validate and progress verify | S | todo | | |
