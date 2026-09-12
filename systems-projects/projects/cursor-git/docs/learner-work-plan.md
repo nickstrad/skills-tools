@@ -20,7 +20,8 @@ approval is needed for these splits. Existing draft references use original numb
 | 9. Evict and reconstruct (original 8a) | Capture expected refs/content with native commands, then check a reconstruction after eviction against those expectations. | Scoped eviction of all local Git copies and authority-only rebuild plumbing. | Reconstruction recovers the expected refs/content with no local source repository. | 20 / 8 min |
 | 10. Audit a rebuilt replica (original 8b) | Construct reachable-object and integrity comparisons for two replicas; choose commands to diagnose a failed rebuild and compare cold/warm request/byte counts. | Cold-start authority fixture, rebuild drivers and bounded metrics. | Independent integrity checks agree, warm/cold costs are visible, and missing published input blocks a fresh rebuild. | 20 / 8 min |
 
-Hints progress from the invariant to the needed API/ordering, then a worked solution in review.
+Hints progress from the invariant to the needed API/ordering, then a worked solution in the lesson
+after the learner task.
 The lesson page gives a clear task and external acceptance checks before revealing the answer.
 Validation must exercise the actual learner path, including a wrong choice and correction; running
 the old completed helper is not sufficient. Setup may use a supplied worked binary so unfinished

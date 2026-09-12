@@ -108,8 +108,8 @@ Execute `$SYSTEMS/bin/systemscoach` with the learner's requested arguments (or i
 
 Reads do not update progress or selection. Never infer completion from command success, reading,
 or conversation. Tests must set SYSTEMSCOACH_STATE to a fresh scratch directory. The old review
-command is only a compatibility alias for the complete lesson. Existing review.md content is
-included below the task; new lessons may keep interpretation in lesson.md. The coach
+command is only a compatibility alias for the complete lesson and reads the merged lesson source.
+Interpretation and any worked solution belong below the task in lesson.md. The coach
 renders commands; it does not execute experiments. Do not run a learner exercise for them unless asked.
 When coaching, help with the next useful step and offer hints before volunteering the full answer;
 provide the full answer when requested. Do not silently fill the learner's reserved edits.

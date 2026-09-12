@@ -52,7 +52,8 @@ docs/format.md, skills/systemscoach/SKILL.md and /root/.bashrc. Primary owns REA
 
 ## Publication acceptance
 
-Read all six lesson/review pages; run every rendered core code block in real disposable fixtures.
+Read the available lesson pages and their legacy interpretation sources; run every rendered core
+code block in real disposable fixtures.
 Inspect HTTP status/body/ETag, actual Git OIDs and refs, winner/loser history and restart persistence.
 Exercise same-branch conflict and independent-branch retry. Repeat races with reversed candidate
 order; bounded sampling is evidence, not a proof of distributed storage guarantees. Test launch

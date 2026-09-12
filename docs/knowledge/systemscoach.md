@@ -17,8 +17,8 @@ New lessons target 10–15 minutes, including a meaningful command/edit/investig
 evidence, interpretation, and cleanup. Existing 15–25-minute metadata remains valid history. The
 `lesson` output is complete: it teaches the mechanism and useful terminal diagram before the task,
 then includes evidence guidance, interpretation, an “attempt first” worked reference, and cleanup.
-Legacy `review.md` remains an optional source file folded into that output; `review` is a read-only
-compatibility alias, not a separate stage. Only explicit `done` writes the project engine's JSON
+Existing `review.md` content was merged into `lesson.md`; the file reader has been removed.
+`review` remains a read-only command alias for that same complete lesson. Only explicit `done` writes the project engine's JSON
 receipt.
 
 ## Ongoing systems knowledge
@@ -39,7 +39,8 @@ their draft/approved status, available/total counts and route/start commands wit
 from reserved top-level command names: using one expanded predicate for both accidentally admitted
 top-level words as Markdown view names; a regression test now rejects that form.
 
-The launcher can find the repository's existing Go toolchain when `go` is absent from PATH. The
+The launcher can find the shared `/usr/local/go/bin/go` installation when `go` is absent from PATH.
+It no longer borrows the retired gRPC toolchain or its course-local caches. The
 user's Bash configuration includes idempotent PATH entries for the launcher and toolchain; fresh
 interactive Bash and direct launcher calls work from `/tmp` with a minimal initial PATH. This does
 not require an alias or alter course selection/progress. Go remains a prerequisite on other hosts.

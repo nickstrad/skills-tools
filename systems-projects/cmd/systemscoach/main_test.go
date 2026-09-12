@@ -22,14 +22,13 @@ func fixture(t *testing.T) (Coach, *bytes.Buffer) {
 			{Slug: "second", Title: "Second", Minutes: 20, Revision: 1, Outcome: "See the second effect", Prerequisites: []string{"first"}, Available: false},
 		}}
 		saveProject(t, c, p)
-		for _, view := range []string{"lesson", "review"} {
-			path := c.page(id, "first", view)
-			if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-				t.Fatal(err)
-			}
-			if err := os.WriteFile(path, []byte(id+" "+view+" body\n```sh\nprintf 'inspect me\\n'\n```\n"), 0600); err != nil {
-				t.Fatal(err)
-			}
+		path := c.page(id, "first", "lesson")
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		body := id + " lesson body\n```sh\nprintf 'inspect me\\n'\n```\n\n## Interpretation\n\n" + id + " interpretation body\n"
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
 		}
 	}
 	return c, out
@@ -69,13 +68,19 @@ func TestReadOnlyViewsAndExplicitCompletion(t *testing.T) {
 	if _, err := os.Stat(c.state); !os.IsNotExist(err) {
 		t.Fatal("reads created progress state")
 	}
-	if !strings.Contains(out.String(), "printf 'inspect me\\n'") {
+	if !strings.Contains(out.String(), "printf 'inspect me\\n'") || !strings.Contains(out.String(), "alpha interpretation body") {
 		t.Fatal("rendered commands changed")
 	}
 	out.Reset()
 	call(t, c, "alpha", "1", "lesson")
-	if !strings.Contains(out.String(), "alpha lesson body") || !strings.Contains(out.String(), "alpha review body") || strings.Contains(out.String(), "Review: systemscoach") {
-		t.Fatal("lesson must contain interpretation without a separate review step")
+	lessonOutput := out.String()
+	if !strings.Contains(lessonOutput, "alpha lesson body") || !strings.Contains(lessonOutput, "alpha interpretation body") || strings.Count(lessonOutput, "alpha interpretation body") != 1 || strings.Contains(lessonOutput, "Review: systemscoach") {
+		t.Fatal("lesson must contain merged interpretation exactly once")
+	}
+	out.Reset()
+	call(t, c, "alpha", "1", "review")
+	if out.String() != lessonOutput {
+		t.Fatal("review alias must render the merged lesson exactly")
 	}
 	rejected(t, c, "alpha", "done")
 	call(t, c, "alpha", "1", "done")
@@ -159,7 +164,7 @@ func TestIdentitySurvivesReorderAndRevisionRequiresNewCompletion(t *testing.T) {
 }
 
 func TestDraftAndInvalidRoutes(t *testing.T) {
-	c, _ := fixture(t)
+	c, out := fixture(t)
 	p, _ := c.load("alpha")
 	p.Status = "draft"
 	p.Lessons[0].Available = false
@@ -184,10 +189,16 @@ func TestDraftAndInvalidRoutes(t *testing.T) {
 	rejected(t, c, "check", "alpha")
 	p.Lessons[0].Minutes = 10
 	saveProject(t, c, p)
-	if err := os.Remove(c.page("alpha", "first", "review")); err != nil {
+	legacy := c.page("alpha", "first", "review")
+	if err := os.WriteFile(legacy, []byte("legacy interpretation must be ignored\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	call(t, c, "check", "alpha")
+	out.Reset()
+	call(t, c, "alpha", "1", "lesson")
+	if strings.Contains(out.String(), "legacy interpretation must be ignored") {
+		t.Fatal("legacy review source was rendered")
+	}
 	call(t, c, "alpha", "1", "lesson")
 	if err := os.Remove(c.page("alpha", "first", "lesson")); err != nil {
 		t.Fatal(err)

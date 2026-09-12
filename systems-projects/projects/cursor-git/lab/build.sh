@@ -7,8 +7,11 @@ root=$(realpath -e -- "$1")
 [[ $(cat "$root/.cursor-git-owned") == "$root" ]] || exit 1
 here=$(cd -- "$(dirname -- "$0")" && pwd)
 systems=$(cd -- "$here/../../.." && pwd)
+legacy_tools=$(dirname "$systems")/curriculum-tools/courses/grpc/.tools
+[[ "${GOPATH:-}" != "$legacy_tools/gopath" ]] || unset GOPATH
+[[ "${GOCACHE:-}" != "$legacy_tools/go-cache" ]] || unset GOCACHE
 if ! command -v go >/dev/null 2>&1; then
-  export PATH="$systems/../curriculum-tools/courses/grpc/.tools/go/bin:$PATH"
+  export PATH="/usr/local/go/bin:$PATH"
 fi
 cd "$systems"
 go build -trimpath -o "$root/cursor" ./projects/cursor-git/lab/cursor

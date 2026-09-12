@@ -101,3 +101,13 @@ These are trusted tiny full-pack fixtures with JSON branch preconditions and nat
 complete Git network push implementation, multi-host durability test or production scaling evidence.
 Prepared Git ref-transaction integration, operation-ID reconciliation and replay are not claimed as
 implemented. Lessons 4–6 are the next proposed batch, only when requested.
+
+## Later source layout migration — 2026-09-12
+
+The original run above used separate lesson/review files. Their interpretation is now in each
+`lesson.md`; the current manifest records the merged source. The
+[source transformation record](source-layout-migration-20260912.md) preserves both the historical
+accepted hashes and the immediate-before hashes, which differed for the first three lesson pages.
+Exact old/new renderer output was compared for all three available lessons and aliases, and all
+seven merged source bodies were checked against the previous renderer’s concatenation. This was
+a content-preserving source migration; no original object-store experiment was rerun.

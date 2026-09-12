@@ -5,10 +5,17 @@ export SYSTEMSCOACH_ROOT="${SYSTEMSCOACH_ROOT:-$SYSTEMS_ROOT}"
 if [ -n "${SYSTEMSCOACH_BIN:-}" ]; then
   exec "$SYSTEMSCOACH_BIN" "$@"
 fi
+legacy_tools=$(dirname "$SYSTEMS_ROOT")/curriculum-tools/courses/grpc/.tools
+if [ "${GOPATH:-}" = "$legacy_tools/gopath" ]; then
+  unset GOPATH
+fi
+if [ "${GOCACHE:-}" = "$legacy_tools/go-cache" ]; then
+  unset GOCACHE
+fi
 if ! command -v go >/dev/null 2>&1; then
-  bundled_go="$SYSTEMS_ROOT/../curriculum-tools/courses/grpc/.tools/go/bin/go"
-  if [ -x "$bundled_go" ]; then
-    PATH=$(dirname "$bundled_go"):$PATH
+  shared_go=/usr/local/go/bin/go
+  if [ -x "$shared_go" ]; then
+    PATH=$(dirname "$shared_go"):$PATH
     export PATH
   fi
 fi

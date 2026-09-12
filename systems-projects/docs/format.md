@@ -11,7 +11,6 @@ systems-projects/
     docs/sources.md                  source claims, lab choices and open questions
     curriculum/<stable-slug>/
       lesson.md                     complete teaching, learner task, evidence, interpretation, cleanup
-      review.md                     optional legacy interpretation source, folded into lesson display
     lab/                            supplied service launchers, fixtures, core-logic stubs/solutions
     validation/batch-N.md            measured evidence and cleanup
   .state/                           ignored learner state, never authored or committed
@@ -31,9 +30,9 @@ Lesson fields: `slug` (unique stable kebab-case identifier), `title`, `minutes` 
 1–25; target 10–15 for new lessons and preserve honest older 15–25 estimates),
 `revision` (positive integer), `outcome` (what is observed and the resulting decision),
 `prerequisites` (optional earlier slugs), `available` (boolean).
-An available lesson needs nonempty `lesson.md` and an approved agenda. A legacy `review.md` may
-remain as a separate source file and is folded into the complete lesson display; it is not required
-for new work. `check` validates structure; the author still must inspect real experiment evidence.
+An available lesson needs a nonempty `lesson.md` and an approved agenda. Interpretation and the
+worked reference belong in that same lesson file. `check` validates structure; the author still
+must inspect real experiment evidence.
 Planned lessons need no empty Markdown scaffolds. The CLI stops at the first unfinished planned
 lesson instead of skipping ahead. Prerequisites describe learning dependencies; they do not impose
 completion or quiz gates.
@@ -53,7 +52,8 @@ systemscoach lesson                   # first unfinished step of selected topic
 systemscoach check wal-git
 ```
 
-`systemscoach <topic> <n> review` is a hidden compatibility alias for the complete `lesson` output.
+`systemscoach <topic> <n> review` is a hidden compatibility alias for the complete `lesson` output;
+it reads only the merged `lesson.md`.
 
 `SYSTEMSCOACH_ROOT` points to this project folder; the launcher supplies its own location by default.
 A compiled binary invoked directly needs this variable set (otherwise it uses the working directory).

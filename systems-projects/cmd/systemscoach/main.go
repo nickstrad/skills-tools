@@ -132,17 +132,12 @@ func (c Coach) load(id string) (Project, error) {
 			if p.Status != "approved" {
 				return p, errors.New("draft agendas cannot publish available lessons")
 			}
-			for _, view := range []string{"lesson", "review"} {
-				body, err := os.ReadFile(c.page(id, l.Slug, view))
-				if view == "review" && errors.Is(err, os.ErrNotExist) {
-					continue // New lessons can include interpretation in lesson.md.
-				}
-				if err != nil {
-					return p, err
-				}
-				if len(strings.TrimSpace(string(body))) == 0 {
-					return p, fmt.Errorf("%s: empty %s view", l.Slug, view)
-				}
+			body, err := os.ReadFile(c.page(id, l.Slug, "lesson"))
+			if err != nil {
+				return p, err
+			}
+			if len(strings.TrimSpace(string(body))) == 0 {
+				return p, fmt.Errorf("%s: empty lesson view", l.Slug)
 			}
 		}
 	}
@@ -349,19 +344,11 @@ func (c Coach) run(args []string) error {
 		fmt.Fprintf(c.out, "Completed %s %d: %s\nRoute: systemscoach %s route\n", topic, n, l.Title, topic)
 		return nil
 	}
-	// The old review command is an alias, not a separate learning stage.
 	body, err := os.ReadFile(c.page(topic, l.Slug, "lesson"))
 	if err != nil {
 		return err
 	}
-	interpretation, err := os.ReadFile(c.page(topic, l.Slug, "review"))
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
 	fmt.Fprintf(c.out, "# %s %d/%d: %s\n\nCore: %d minutes, including context, experiment and cleanup.\n\n%s\n", p.Title, n, len(p.Lessons), l.Title, l.Minutes, body)
-	if len(interpretation) > 0 {
-		fmt.Fprintf(c.out, "\n## Interpretation and optional worked solution\n\nRead after the learner task above.\n\n%s\n", interpretation)
-	}
 	fmt.Fprintf(c.out, "\nWhen you consider it complete: systemscoach %s %d done\n", topic, n)
 	return nil
 }
