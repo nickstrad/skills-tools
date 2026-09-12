@@ -81,7 +81,10 @@ a separate handoff document.
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |
 | WP8.2 Knowledge cleanup | S | todo | | |
 | WP8.3 Machine install and sweep | S | todo | | |
-| WP8.4 Final acceptance | F | todo | | |
+| WP9.1 Consolidated progress schema and migration command | F | todo | | |
+| WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | todo | | |
+| WP9.3 Documentation for the single database | S | todo | | |
+| WP8.4 Final acceptance | F | todo | | runs after Phase 9 |
 
 **Decision and finding log.** Append dated entries when Nick answers a question, a decision in §2
 changes, or a WP discovers something later WPs must know (driver quirks, parity exceptions,
@@ -108,6 +111,12 @@ learner progress rows that changed during the work).
   rows, not 66 as §B says; `courses.json` in the corpus is authoritative. (d) Deno's `lesson N
   --json` prints Markdown (only `show N --json` printed JSON); the Go `lesson N --json` prints the
   JSON, matching golden `lesson-NN.json`.
+- 2026-09-12 — Nick: "add task to consolidate to one database since I believe we just have one
+  approach now so a per course db doesn't seem necessary … handle that at the end." Decision 2
+  (per-course `progress.sqlite`) is superseded by Phase 9 below: one `curriculum-tools/tutor.sqlite`
+  holds every course's lessons/progress/attempts plus the roadmap tables. Phase 9 runs after
+  Phase 7 and before WP8.1, so the golden corpus is still present to re-run parity, and the
+  original per-course files are kept as read-only backups until Nick removes them.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 
@@ -1063,9 +1072,74 @@ CLI) — run after WP3.1
   Review focus: `grep -rn "pgcoach\|systemscoach\|deno \|deno task\|lessons.json\|school-links" --exclude-dir=archive --exclude-dir=.git .`
   returns only validation logs under `courses/*/validation/`.
 
+### Phase 9 — One database for progress and roadmap (requested 2026-09-12; runs after Phase 7, before WP8.1)
+
+Goal: retire the five `courses/<id>/progress.sqlite` files. One `curriculum-tools/tutor.sqlite`
+(gitignored, the file WP4.2 already uses for the roadmap) holds every course's lesson rows,
+progress and attempts. Learner history is copied, never re-derived; the old files stay as
+backups.
+
+Fixed design (WP9.1 may refine wording, not semantics):
+
+- Schema: `lessons` gains `course_id TEXT NOT NULL` as its first data column; the uniqueness
+  constraints become `UNIQUE (course_id, ordinal)` and `UNIQUE (course_id, slug)`; ids stay
+  global integers, so `progress`, `attempts` and `lesson_prerequisites` keep referencing
+  `lessons(id)` unchanged. Indexes: `lessons_course_ordinal_idx (course_id, active, ordinal)`,
+  `lessons_category_ordinal_idx (course_id, category, ordinal)`. `schema_migrations` records
+  version 7 `consolidate courses`. Roadmap tables (§3.5) live in the same file unchanged.
+- Every query in `internal/progress` takes the course id and adds `l.course_id=?`; `Seed`
+  parks and re-parks only that course's rows (`offset` computed over the course's rows).
+  `LESSON_SELECT` and all output strings are unchanged, so the golden corpus remains the oracle.
+- Migration: `tutor progress consolidate [--db PATH] [--from-dir DIR]` (one-shot, safe to
+  re-run: refuses when the target already has rows for that course unless `--replace`). For each
+  installed course with a `courses/<id>/progress.sqlite`: refuse if `-wal`/`-journal` is
+  non-empty (`Close the learner's progress writer before consolidating`); open the source
+  read-only; copy `lessons` (all rows, active and retired, remapping `id` → `next free id`),
+  `lesson_prerequisites`, `progress`, `attempts` with the remapped ids and original timestamps;
+  verify row counts and per-slug `status/completed_revision/notes` equality between source and
+  target inside the same transaction; then rename the source trio to
+  `curriculum-tools/.cache/legacy-progress/<id>/progress.sqlite*` and print a per-course report
+  `{course, lessons, progress, attempts, backup}`. `tutor <course> init` afterwards refreshes rows
+  from the lesson files exactly as before (identity by slug within the course).
+- `--db PATH` keeps its meaning (an alternate database file) and remains a persistent course
+  flag; the default is `<root>/tutor.sqlite`. Read verbs still open read-only; `route` still
+  reads progress only when the file exists and has a `progress` table (now filtered by course).
+  Plan-only courses are unaffected. The roadmap counter reads the same file read-only.
+- `progress verify` copies the one file and seeds only the named course on the copy.
+
+**WP9.1 — Schema, queries, seed and the consolidate command** · tier F · depends: WP7.4
+
+- Owns: `internal/progress/*`, `internal/cli/progress_consolidate.go` (+ tests), `.gitignore`
+  (`curriculum-tools/tutor.sqlite*` already covered by `*.sqlite*` rules — verify).
+- Tests: every WP2.1/WP2.2 test passes with a course id; two fixture courses in one database do
+  not see each other's rows (`Next`, `Topics`, `Status`, `Seed` parking); consolidating copies
+  of the five baseline databases into one temp file yields per-course dumps equal to the WP0.1
+  `dump.json` (ids remapped, everything else identical); re-running refuses; `--replace` works;
+  a non-empty `-wal` is refused. Commit: "Consolidate course progress into one database".
+
+**WP9.2 — CLI, route, roadmap switch and parity re-run** · tier F · depends: WP9.1
+
+- Owns: `internal/cli/*`, `internal/route/*` (progress read), `internal/roadmap/*` (counter),
+  `bin/tutor` if needed, `$WORK/parity-d/`.
+- Steps: default `--db` becomes `<root>/tutor.sqlite`; the read-only guarantee tests are
+  re-run; parity: consolidate copies of the five baselines into `$WORK/parity-d/tutor.sqlite`,
+  run the WP2.3 comparison with `--db` pointing at that file for every course (the lesson
+  footer differs only by the `--db` path, compare after substituting it), expect empty diffs;
+  then run the real migration on the machine: `bin/tutor progress consolidate`, confirm
+  `tutor postgres-essentials route` equals golden `route.txt`, record the backup paths and
+  the row counts in §A. Commit: "Serve every course from tutor.sqlite".
+
+**WP9.3 — Documentation** · tier S · depends: WP9.2
+
+- Owns: `AGENTS.md` (progress sentences), `README.md`, `docs/README.md`,
+  `curriculum-tools/docs/{AUTHORING,VALIDATION}.md`, `docs/knowledge/lesson-identity-refresh.md`,
+  `docs/knowledge/go-tutor-migration.md` (section "One database"), `curriculum-tools/skills/tutor/SKILL.md`.
+- Replace every "per-course `progress.sqlite`" statement with the single-file description and the
+  backup location; `tutor <course> init` wording unchanged. Commit: "Document the single progress database".
+
 ### Phase 8 — Remove the old toolchain, clean knowledge, accept
 
-**WP8.1 — Archive-then-delete the Deno engine** · tier S · depends: all Phase 1–7 packages
+**WP8.1 — Archive-then-delete the Deno engine** · tier S · depends: all Phase 1–7 and Phase 9 packages
 
 - Commit A ("Archive the Deno engine before removal"): `git mv` `curriculum-tools/src`,
   `curriculum-tools/tests`, `curriculum-tools/deno.json`, `curriculum-tools/courses/*/curriculum`,
@@ -1147,9 +1221,10 @@ firecracker 2, kubernetes 3, kafka 3, git 2 (total 49).
    `curriculum-tools/`. No `.ts`, `deno.json`, or tooling `.py` outside `archive/` and history.
 2. Golden parity: all 250 `lesson --plain` outputs, `route`, `status --json`, `topics --json`,
    `modules`, `search vacuum`, `courses` byte-identical to the Deno corpus (after `jq -S`).
-3. Learner progress: SHA256 of every `progress.sqlite` (+wal/shm) matches WP0.1 or differs only
-   by rows the learner completed meanwhile (each listed). `tutor postgres-essentials route`
-   shows the same done/revisit rows as the golden `route.txt`.
+3. Learner progress: after Phase 9, `tutor.sqlite` contains, per course, exactly the lesson
+   identities, `progress` rows and `attempts` rows of the WP0.1 dumps (or differs only by rows
+   the learner completed meanwhile, each listed); the per-course backups' SHA256 match WP0.1.
+   `tutor postgres-essentials route` shows the same done/revisit rows as the golden `route.txt`.
 4. `/labs/pglab` answers on port 5440 with its original data directory; no validation ran
    against it.
 5. From `/tmp` with a minimal PATH: `tutor`, `tutor courses`, `tutor roadmap`,
@@ -1170,6 +1245,6 @@ firecracker 2, kubernetes 3, kafka 3, git 2 (total 49).
 - **Learner activity during the work** → all comparisons on copies; acceptance reports the diff.
 - **Offline module proxy** → vendor in WP0.3.
 - **Cobra and `3 lesson`** → `NormalizeArgs` runs before Cobra; tested in WP3.1.
-- Deferred: one consolidated progress database; renaming `curriculum-tools/`; porting the four
+- Deferred: renaming `curriculum-tools/`; porting the four
   Essentials `lab/*.py` fixtures and `courses/grpc/lab` to Go; turning the archived `cursor-git`
   project into a `tutor` course; removing Deno from `lab-setup.sh` and the VM.
