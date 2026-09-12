@@ -29,14 +29,6 @@ xid that deleted it, so the first thing to understand is where xids come from. T
 single cluster-wide counter, and they are handed out lazily: a transaction that only reads never
 takes one. You will watch a transaction stay xid-less through several reads, take an xid at its
 first write, and see a second session take the very next number from the same counter.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Operations on Tuples", "Virtual Transactions"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
-      readingNotes: code`
-Chapter 3 explains where creating and deleting transaction IDs are recorded in tuple headers, while
-Chapter 12 explains the transaction-ID locks that let concurrent transactions wait for one another.
-This lesson makes the allocation timing visible with PostgreSQL's xid8 functions and pg_locks; run it
-before reading those sections so the book's tuple and lock diagrams have a concrete experiment to
-attach to.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -194,13 +186,6 @@ three things: a low water mark (every xid below it has finished), a high water m
 above it started after us and is invisible), and the list of xids in between that were still running
 when the snapshot was taken. You will watch a second session's xid appear in that in-progress list
 and then vanish from it when it commits.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (sections "What is a Snapshot?", "Snapshot Structure")`,
-      readingNotes: code`
-Chapter 4 describes the xmin, xmax, and in-progress transaction list that form a PostgreSQL snapshot.
-The lesson prints each component while a writer remains open, then repeats the read after commit so
-the list and visibility decision change live. Run the experiment first, then use the chapter to
-formalize the watermarks and visibility rules shown by the output.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -336,13 +321,6 @@ An UPDATE in PostgreSQL never overwrites a row. It writes a new tuple and stamps
 deleted by the updating xid, so both versions sit on the page at once and each session is routed to
 the one its snapshot allows. Here a REPEATABLE READ reader keeps reading the old version while a
 writer commits a new one, and you dump the page to see both.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Row Version Visibility"); Chapter 2 "Isolation" (section "Repeatable Read")`,
-      readingNotes: code`
-Chapter 4 explains how a snapshot chooses among tuple versions, and Chapter 2 explains why
-REPEATABLE READ keeps that choice stable. This lesson shows both sides at once: raw page inspection
-reveals old and new tuples while Session A continues to read the old one. Run it before the chapters
-if the page dump is new to you, then read the visibility rules afterward.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -462,33 +440,7 @@ A tuple header says which xid created it, but not whether that xid committed. Th
 somewhere else: the commit log, pg_xact, two bits per transaction. You will abort a transaction that
 wrote rows, prove the rows are still physically on the page, and prove they are invisible only
 because pg_xact says their creator aborted.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Operations on Tuples")`,
-      readingNotes: code`
-Chapter 3 describes insert, commit, abort, and update as tuple operations whose physical effects are
-separate from commit status. This lesson makes that separation concrete by reading pg_xact_status,
-then inspecting aborted tuple headers that remain on the page. Read the chapter after running the
-experiment to connect its tuple diagrams to the aborted and committed examples.`,
       revision: 4,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 3 §§3.2–3.3 "Row Version Layout" and "Operations on Tuples" (printed pp. 64–74)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 4 §§4.1–4.3 (printed pp. 80–86)`,
-          },
-        ],
-        rationale: code`
-You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility.
-Read these sections to connect the tuple headers and commit/abort status to the formal snapshot
-model before the horizon and freezing work. Skip from the PG14 text: exact infomask bit values,
-catalog output, and example transaction numbers; resume with the horizon experiment when you finish.
-`,
-      },
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -661,13 +613,6 @@ same bounded, separately committed update churn twice. In the baseline, VACUUM r
 In the pinned run, Session B holds a repeatable-read snapshot, so the same cleanup must retain them.
 You will match VACUUM's removable cutoff to B's exact backend_xmin, release B, and measure that
 logical rows never changed while dead versions became reusable space.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 4 "Snapshots" (section "Transaction Horizon"); Chapter 6 "Vacuum and Autovacuum" (section "Database Horizon Revisited")`,
-      readingNotes: code`
-Chapter 4 defines the transaction horizon as the oldest snapshot that may still need a row version,
-and Chapter 6 applies that horizon to vacuum cleanup. The matched baseline and pinned runs separate
-ordinary pruning from retention caused by an old snapshot. Read after the experiment to connect B's
-backend_xmin and VACUUM's removable cutoff to the formal horizon model.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -815,13 +760,6 @@ meaning within a window of 2^31 transactions. A row whose creating xid falls out
 would suddenly look like it came from the future. Freezing is the escape hatch: mark a tuple as
 unconditionally visible so its xid stops mattering. You will measure the age of the table, burn a
 couple of thousand xids to move it, freeze, and watch the age snap back to zero.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 7 "Freezing" (sections "Transaction ID Wraparound", "Tuple Freezing and Visibility Rules", "Manual Freezing")`,
-      readingNotes: code`
-Chapter 7 explains why a 32-bit xid needs freezing, how frozen tuples are treated as universally
-visible, and how manual VACUUM FREEZE advances a relation's frozen horizon. This lesson burns xids in
-a small lab and inspects the tuple flags before and after freezing. Run it first for intuition, then
-read the chapter to understand the safety margins and freeze ages used in production.`,
       syntaxBreakdown: code`
 ### In plain terms
 

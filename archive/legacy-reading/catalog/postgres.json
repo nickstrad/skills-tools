@@ -1,0 +1,625 @@
+{
+  "format": 1,
+  "sourceRevision": "df6211c2ccf07ee7b0890c9f8aaf4ebbca8b4539",
+  "course": "postgres",
+  "lessons": {
+    "build-lab-cluster": {
+      "ordinal": 1,
+      "slug": "build-lab-cluster",
+      "reading": "PostgreSQL 14 Internals, Chapter 1 \"Introduction\" (sections \"Data Organization\" and \"Processes and Memory\")",
+      "readingNotes": "Chapter 1 describes, on paper, exactly what initdb lays down here: a cluster as one directory\nholding several databases, each database as a set of files under base/, and the fixed set of\nserver processes that pg_ctl starts (the postmaster and its background workers). The book names\nthe directories and files; this lesson creates them, so after running it you can open\n$PGLAB/primary and match every name in the chapter's \"Data Organization\" section to a real\nfolder.\n\nWhat the book adds that the lesson does not: the chapter also explains the client-server\nprotocol and how shared memory is split between processes, which nothing in this lesson touches\nyet (the process-model lesson in this module and the buffer-cache lesson in module 02 pick those\nup). What the lesson adds: the configuration block and the archive directory are course\nconveniences the book does not discuss. Read the chapter after the lab is up, with a terminal\nopen in $PGLAB/primary."
+    },
+    "shell-and-psql-toolkit": {
+      "ordinal": 2,
+      "slug": "shell-and-psql-toolkit",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\"."
+    },
+    "install-lab-extensions": {
+      "ordinal": 3,
+      "slug": "install-lab-extensions",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (section \"Page Structure\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Vacuum\"); Chapter 9 \"Buffer Cache\" (sections \"Cache Hits\", \"Cache Warming\")",
+      "readingNotes": "The book uses the same families of internals that these extensions expose: page structure in\nChapter 3, vacuum's cleanup and visibility information in Chapter 6, and cache contents in\nChapter 9. This lesson only installs the inspection tools; the later storage lessons make the\nbook's structures visible. Read the cited sections after installation, when you can immediately\ntry their page, vacuum, and cache vocabulary against the lab.\n\nThe book does not cover every extension here: **pg_freespacemap**, **pg_walinspect**, **pg_stat_statements**,\n**amcheck**, and the connection helpers are course tooling rather than book examples. PostgreSQL 16\nalso has views and output details newer than the PostgreSQL 14 examples in the book, but the\nunderlying page, vacuum, and cache mechanisms are the same."
+    },
+    "process-model": {
+      "ordinal": 4,
+      "slug": "process-model",
+      "reading": "PostgreSQL 14 Internals, Chapter 1 \"Introduction\" (sections \"Processes and Memory\", \"Clients and the Client-Server Protocol\"); Chapter 15 \"Locks on Memory Structures\" (section \"Monitoring Waits\")",
+      "readingNotes": "Chapter 1 supplies the process and client/server model behind this inventory: a postmaster accepts\nconnections and PostgreSQL creates a backend process for each client, while auxiliary processes\nhandle shared work. The lesson observes the live process list and settings; Chapter 15 adds the\nwait-event vocabulary used to interpret idle or blocked processes. Read Chapter 1 first for the\nmodel, run this survey, then use Chapter 15 when a later lesson needs wait details.\n\nThe book explains the architecture rather than exhausting max_connections or measuring process\ncost. The exact background-process list and backend_type labels can vary with PostgreSQL version\nand enabled features, so treat names as a live inventory rather than a fixed count."
+    },
+    "table-is-a-file": {
+      "ordinal": 5,
+      "slug": "table-is-a-file",
+      "reading": "PostgreSQL 14 Internals, Chapter 1 \"Introduction\" (sections \"Files and Forks\", \"Pages\")",
+      "readingNotes": "The experiment makes Chapter 1's physical model concrete: a relation has a main file made of pages,\nand its relfilenode identifies that file. The book explains forks, page size, and naming in more\ndetail than the queries do; run this lesson first, then read those sections while matching the\ndatabase OID, relfilenode, and fork files on disk."
+    },
+    "page-header-and-line-pointers": {
+      "ordinal": 6,
+      "slug": "page-header-and-line-pointers",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (section \"Page Structure\")",
+      "readingNotes": "Chapter 3 describes the same PageHeaderData, item pointers, free-space gap, and tuple placement\nthat pageinspect decodes here. The lesson provides a live page from PostgreSQL 16, while the book's\nexamples use PostgreSQL 14; read the section after running it so the field names have physical\nmeaning rather than being an unexplained list."
+    },
+    "update-writes-a-new-tuple": {
+      "ordinal": 7,
+      "slug": "update-writes-a-new-tuple",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (sections \"Row Version Layout\", \"Operations on Tuples\")",
+      "readingNotes": "The three physical versions expose Chapter 3's row-version layout and its insert/update operations:\nt_xmin records the creating transaction, t_xmax the transaction that replaces a version, and t_ctid\nlinks the chain. The book explains visibility and tuple header bits more fully; run this experiment\nfirst, then read the cited sections before module 03 introduces snapshots."
+    },
+    "hot-updates-and-fillfactor": {
+      "ordinal": 8,
+      "slug": "hot-updates-and-fillfactor",
+      "reading": "PostgreSQL 14 Internals, Chapter 5 \"Page Pruning and HOT Updates\" (sections \"Page Pruning\", \"HOT Updates\")",
+      "readingNotes": "This workload demonstrates the book's HOT condition directly: free space on the same page plus no\nindexed-column change lets PostgreSQL avoid a new index entry, while pruning turns old chain slots\ninto redirects or dead items. The book works through chain mechanics in more depth; run the lesson,\nthen read both sections to explain the counters and page flags."
+    },
+    "toast-and-large-values": {
+      "ordinal": 9,
+      "slug": "toast-and-large-values",
+      "reading": "PostgreSQL 14 Internals, Chapter 1 \"Introduction\" (section \"TOAST\"); Chapter 3 \"Pages and Tuples\" (section \"TOAST\")",
+      "readingNotes": "The two values show the TOAST path described in Chapters 1 and 3: compression can keep a large\ndatum inline, while an incompressible datum becomes a pointer plus chunks in a side relation. The\nbook explains the tuple and chunk layout; this lesson additionally measures detoasting buffers and\nPostgreSQL 16 output. Read after running it, when heap_bytes and toast_bytes have concrete meaning."
+    },
+    "buffer-cache-and-io": {
+      "ordinal": 10,
+      "slug": "buffer-cache-and-io",
+      "reading": "PostgreSQL 14 Internals, Chapter 9 \"Buffer Cache\" (sections \"Cache Hits\", \"Cache Misses\"); Chapter 10 \"Write-Ahead Log\" (section \"Checkpoint\")",
+      "readingNotes": "The EXPLAIN buffer counters and pg_buffercache rows make Chapter 9's cache hits and misses visible,\nwhile CHECKPOINT connects them to Chapter 10's dirty-page flushing and recovery boundary. The book\nexplains eviction and checkpoint design in more depth; run the scans first, then read both chapters\nto interpret hit/read/dirtied and why a checkpoint does not evict pages.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 1 §1.1, subheadings \"Files and Forks\" and \"Pages\" (printed pp. 24–28)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 3 §3.1 \"Page Structure\" (printed pp. 62–64)"
+          }
+        ],
+        "rationale": "You have observed relation files, page allocation, tuple layout, cached pages, and dirty-page\nflushing. Read these bounded sections to consolidate the physical model before the course moves into\ntransaction IDs. Skip exact example filenames, relfilenodes, and catalog output in the book."
+      }
+    },
+    "xids-and-the-transaction-counter": {
+      "ordinal": 11,
+      "slug": "xids-and-the-transaction-counter",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (sections \"Operations on Tuples\", \"Virtual Transactions\"); Chapter 12 \"Relation-Level Locks\" (section \"Locks on Transaction IDs\")",
+      "readingNotes": "Chapter 3 explains where creating and deleting transaction IDs are recorded in tuple headers, while\nChapter 12 explains the transaction-ID locks that let concurrent transactions wait for one another.\nThis lesson makes the allocation timing visible with PostgreSQL's xid8 functions and pg_locks; run it\nbefore reading those sections so the book's tuple and lock diagrams have a concrete experiment to\nattach to."
+    },
+    "snapshot-anatomy": {
+      "ordinal": 12,
+      "slug": "snapshot-anatomy",
+      "reading": "PostgreSQL 14 Internals, Chapter 4 \"Snapshots\" (sections \"What is a Snapshot?\", \"Snapshot Structure\")",
+      "readingNotes": "Chapter 4 describes the xmin, xmax, and in-progress transaction list that form a PostgreSQL snapshot.\nThe lesson prints each component while a writer remains open, then repeats the read after commit so\nthe list and visibility decision change live. Run the experiment first, then use the chapter to\nformalize the watermarks and visibility rules shown by the output."
+    },
+    "two-sessions-see-different-versions": {
+      "ordinal": 13,
+      "slug": "two-sessions-see-different-versions",
+      "reading": "PostgreSQL 14 Internals, Chapter 4 \"Snapshots\" (section \"Row Version Visibility\"); Chapter 2 \"Isolation\" (section \"Repeatable Read\")",
+      "readingNotes": "Chapter 4 explains how a snapshot chooses among tuple versions, and Chapter 2 explains why\nREPEATABLE READ keeps that choice stable. This lesson shows both sides at once: raw page inspection\nreveals old and new tuples while Session A continues to read the old one. Run it before the chapters\nif the page dump is new to you, then read the visibility rules afterward."
+    },
+    "commit-visibility-and-clog": {
+      "ordinal": 14,
+      "slug": "commit-visibility-and-clog",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (section \"Operations on Tuples\")",
+      "readingNotes": "Chapter 3 describes insert, commit, abort, and update as tuple operations whose physical effects are\nseparate from commit status. This lesson makes that separation concrete by reading pg_xact_status,\nthen inspecting aborted tuple headers that remain on the page. Read the chapter after running the\nexperiment to connect its tuple diagrams to the aborted and committed examples.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 3 §§3.2–3.3 \"Row Version Layout\" and \"Operations on Tuples\" (printed pp. 64–74)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 4 §§4.1–4.3 (printed pp. 80–86)"
+          }
+        ],
+        "rationale": "You observed transaction IDs, snapshots, multiple row versions, and commit-log visibility.\nRead these sections to connect the tuple headers and commit/abort status to the formal snapshot\nmodel before the horizon and freezing work. Skip from the PG14 text: exact infomask bit values,\ncatalog output, and example transaction numbers; resume with the horizon experiment when you finish."
+      }
+    },
+    "xmin-horizon-blocks-cleanup": {
+      "ordinal": 15,
+      "slug": "xmin-horizon-blocks-cleanup",
+      "reading": "PostgreSQL 14 Internals, Chapter 4 \"Snapshots\" (section \"Transaction Horizon\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Database Horizon Revisited\")",
+      "readingNotes": "Chapter 4 defines the transaction horizon as the oldest snapshot that may still need a row version,\nand Chapter 6 applies that horizon to vacuum cleanup. The matched baseline and pinned runs separate\nordinary pruning from retention caused by an old snapshot. Read after the experiment to connect B's\nbackend_xmin and VACUUM's removable cutoff to the formal horizon model."
+    },
+    "wraparound-and-freezing": {
+      "ordinal": 16,
+      "slug": "wraparound-and-freezing",
+      "reading": "PostgreSQL 14 Internals, Chapter 7 \"Freezing\" (sections \"Transaction ID Wraparound\", \"Tuple Freezing and Visibility Rules\", \"Manual Freezing\")",
+      "readingNotes": "Chapter 7 explains why a 32-bit xid needs freezing, how frozen tuples are treated as universally\nvisible, and how manual VACUUM FREEZE advances a relation's frozen horizon. This lesson burns xids in\na small lab and inspects the tuple flags before and after freezing. Run it first for intuition, then\nread the chapter to understand the safety margins and freeze ages used in production."
+    },
+    "vacuum-reclaims-in-place": {
+      "ordinal": 17,
+      "slug": "vacuum-reclaims-in-place",
+      "reading": "PostgreSQL 14 Internals, Chapter 6 \"Vacuum and Autovacuum\" (sections \"Vacuum\", \"Vacuum Phases\"); Chapter 8 \"Rebuilding Tables and Indexes\" (section \"Full Vacuuming\")",
+      "readingNotes": "Chapter 6 describes vacuum's heap, index, and free-space phases, while Chapter 8 contrasts ordinary\nvacuum with rewriting operations that can reduce the file. This lesson watches the file remain the\nsame size while its holes become reusable, then fills those holes with new rows. Run it before the\nchapters so the phase accounting has visible evidence to explain."
+    },
+    "vacuum-full-rewrites-and-locks": {
+      "ordinal": 18,
+      "slug": "vacuum-full-rewrites-and-locks",
+      "reading": "PostgreSQL 14 Internals, Chapter 8 \"Rebuilding Tables and Indexes\" (section \"Full Vacuuming\"); Chapter 12 \"Relation-Level Locks\" (sections \"Relation-Level Locks\", \"Wait Queue\")",
+      "readingNotes": "Chapter 8 explains that VACUUM FULL rebuilds a relation, while Chapter 12 explains the\nAccessExclusiveLock and wait queue that make the rebuild block readers. This lesson holds an\nAccessShareLock first, observes VACUUM FULL waiting, and then compares relfilenodes before and after\nthe rewrite. Run it before reading the lock and rebuild sections so their operational cost is clear."
+    },
+    "visibility-map-and-index-only-scans": {
+      "ordinal": 19,
+      "slug": "visibility-map-and-index-only-scans",
+      "reading": "PostgreSQL 14 Internals, Chapter 6 \"Vacuum and Autovacuum\" (section \"Vacuum\"); Chapter 20 \"Index Scans\" (section \"Index-Only Scans\")",
+      "readingNotes": "Chapter 6 explains VACUUM's visibility work, and Chapter 20 explains how an index-only scan avoids\nheap visits when visibility is known. This lesson uses pg_visibility_map_summary and EXPLAIN to show\nHeap Fetches at zero, then dirties scattered pages and watches fetches return. Run it before the\nchapters, then read Chapter 20 to relate the all-visible map bits to the executor's plan."
+    },
+    "autovacuum-triggers": {
+      "ordinal": 20,
+      "slug": "autovacuum-triggers",
+      "reading": "PostgreSQL 14 Internals, Chapter 6 \"Vacuum and Autovacuum\" (sections \"Automatic Vacuum and Analysis\", \"Monitoring\")",
+      "readingNotes": "Chapter 6 explains the dead-tuple threshold formula, the launcher and worker, and the monitoring views\nthat show completed or active vacuum work. This lesson lowers one table's threshold, creates bounded\nwrite batches, and records the observed backlog and worker counters. Run it first, then read the\nchapter to place an observed completion or the bounded diagnostic outcome in the control loop.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 4 §4.5 \"Transaction Horizon\" (printed pp. 87–89)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 6 §§6.1–6.3 (printed pp. 102–109)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 6 §6.5, subheadings \"About the Autovacuum Mechanism\", \"Which Tables Need to be Vacuumed?\", and \"Which Tables Need to Be Analyzed?\" (printed pp. 110–113)"
+          }
+        ],
+        "rationale": "You observed version cleanup, in-place reuse, visibility information, and an autovacuum threshold.\nRead these bounded sections to connect the safety horizon and the background control loop. Skip exact\nautovacuum defaults, threshold numbers, and monitoring output; continue when you have the mechanism."
+      }
+    },
+    "atomic-abort": {
+      "ordinal": 21,
+      "slug": "atomic-abort",
+      "reading": "PostgreSQL 14 Internals, Chapter 3 \"Pages and Tuples\" (sections \"Operations on Tuples\", \"Subtransactions\")",
+      "readingNotes": "Chapter 3 explains how INSERT and UPDATE create row versions and how commit or abort marks those\nversions visible or invisible. This lesson focuses on rollback and the client-facing failed\ntransaction state after the earlier MVCC experiment established the physical mechanism; read the chapter before or after the\nexperiment to connect the error to tuple-level state."
+    },
+    "read-committed-sees-each-statement": {
+      "ordinal": 22,
+      "slug": "read-committed-sees-each-statement",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (sections \"Read Committed\", \"Repeatable Read\")",
+      "readingNotes": "Chapter 2 describes Read Committed snapshots per statement and Repeatable Read snapshots per\ntransaction. The two-session race below is the live version of those rules; the experiment adds\npsql output and a direct comparison of values, so run it after reading the chapter or use it first\nas a concrete preview."
+    },
+    "lost-update-under-read-committed": {
+      "ordinal": 23,
+      "slug": "lost-update-under-read-committed",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (sections \"Isolation Levels and Anomalies in SQL Standard\", \"Read Committed\"); Chapter 13 \"Row-Level Locks\" (section \"Row-Level Locking Modes\")",
+      "readingNotes": "Chapter 2 names lost updates as an isolation anomaly, while Chapter 13 explains the row-lock modes\nused by FOR UPDATE. This lesson puts both ideas in one sequence: first an application-level race,\nthen server-side arithmetic and an explicit row lock. Read the chapters before the experiment if\nyou want the lock terminology; otherwise use the output to make the anomaly concrete."
+    },
+    "optimistic-concurrency-with-version-columns": {
+      "ordinal": 24,
+      "slug": "optimistic-concurrency-with-version-columns",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Read Committed\")",
+      "readingNotes": "Chapter 2 explains the predicate recheck after a concurrent update. This experiment applies it to\nan application version token and makes the client's conflict decision explicit. The earlier lost-\nupdate lesson supplies the pessimistic comparison; the book does not prescribe document merging."
+    },
+    "repeatable-read-blocks-then-fails": {
+      "ordinal": 25,
+      "slug": "repeatable-read-blocks-then-fails",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Repeatable Read\")",
+      "readingNotes": "Chapter 2 explains that Repeatable Read protects a transaction's snapshot and raises a serialization\nfailure when a concurrent committed update would invalidate it. This lesson stages the wait and\nshows SQLSTATE 40001 plus the failed-transaction state; run it after the chapter to connect the\nvisible error to snapshot rules."
+    },
+    "write-skew": {
+      "ordinal": 26,
+      "slug": "write-skew",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Repeatable Read\")",
+      "readingNotes": "Chapter 2 explains Repeatable Read's snapshot isolation and why it detects write/write conflicts but\nnot every read/write dependency. This lesson turns that limitation into the on-call invariant and\nthen points toward predicate locking; read it after the chapter so the broken invariant has a clear\nsnapshot-isolation explanation."
+    },
+    "serializable-ssi": {
+      "ordinal": 27,
+      "slug": "serializable-ssi",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Serializable\"); Chapter 14 \"Miscellaneous Locks\" (section \"Predicate Locks\")",
+      "readingNotes": "Chapter 2 introduces Serializable Snapshot Isolation and its serialization failures; Chapter 14\ndescribes predicate locks as records of read ranges rather than ordinary blocking locks. This lesson\nshows SIReadLock rows while the on-call race is open and the failure at COMMIT. Read both chapters\nbefore running it, then use the output to distinguish a predicate lock from a waiting row lock."
+    },
+    "retry-loop-and-idempotency": {
+      "ordinal": 28,
+      "slug": "retry-loop-and-idempotency",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Serializable\")",
+      "readingNotes": "Chapter 2 explains why a serialization failure can require a new attempt. This lesson adds the client boundary: a complete transaction, including its read and decision, starts again in a fresh connection. The shell scheduling gate and attempt logs are course additions. Read after observing the failure and recovery.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 2 §2.3 \"Isolation Levels in PostgreSQL\" (printed pp. 44–60)"
+          }
+        ],
+        "rationale": "You observed statement snapshots, lost updates, snapshot-isolation anomalies, SSI and whole-transaction retries. Read this section to consolidate the isolation guarantees before the unknown-outcome experiment. Skip exact timing, defaults and example output from the PostgreSQL14 text."
+      }
+    },
+    "unknown-commit-outcome": {
+      "ordinal": 29,
+      "slug": "unknown-commit-outcome",
+      "reading": "PostgreSQL 14 Internals does not provide this application protocol; Chapter 2 \"Isolation\" and Chapter 13 \"Row-Level Locks\" provide transaction and contention background."
+    },
+    "row-locks-are-in-the-tuple": {
+      "ordinal": 30,
+      "slug": "row-locks-are-in-the-tuple",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (sections \"Lock Design\", \"Row-Level Locking Modes\"); Chapter 12 \"Relation-Level Locks\" (section \"Locks on Transaction IDs\")",
+      "readingNotes": "Chapters 12 and 13 explain that row locks are represented through tuple metadata and waits on the\nlocker transaction ID. This lesson shows the same mechanism live through pgrowlocks, pg_stat_activity,\nand pg_locks; read the chapters before running it to recognize the xid and lock-mode vocabulary."
+    },
+    "lock-queue-and-blocking-pids": {
+      "ordinal": 31,
+      "slug": "lock-queue-and-blocking-pids",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"Wait Queue\"); Chapter 12 \"Relation-Level Locks\" (section \"Wait Queue\")",
+      "readingNotes": "The wait-queue sections of Chapters 12 and 13 explain why a blocked lock request has a blocker and\nwhy later requests remain queued. This lesson adds pg_blocking_pids and wait-event output as an\noperational view of that graph; read the chapters first, then use this experiment to practice\nidentifying the current head of the queue."
+    },
+    "deadlock-detection": {
+      "ordinal": 32,
+      "slug": "deadlock-detection",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"Deadlocks\")",
+      "readingNotes": "Chapter 13's deadlock section explains the cycle formed by conflicting row updates and the detector's\nvictim behavior. This lesson reproduces that cycle and records the DETAIL and CONTEXT diagnostics;\nread the section before running it, then compare its abstract graph with the two concrete statements."
+    },
+    "lock-timeout-and-nowait": {
+      "ordinal": 33,
+      "slug": "lock-timeout-and-nowait",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"No-Wait Locks\")",
+      "readingNotes": "Chapter 13 describes no-wait row-lock behavior and the alternatives to blocking. This lesson\ncompares NOWAIT and SKIP LOCKED with the operational lock_timeout setting, which the book does not\ndemonstrate as a timeout policy. Read the chapter before running it, then treat the output as a\ndecision table for contention handling."
+    },
+    "ddl-behind-a-long-query": {
+      "ordinal": 34,
+      "slug": "ddl-behind-a-long-query",
+      "reading": "PostgreSQL 14 Internals, Chapter 12 \"Relation-Level Locks\" (sections \"Relation-Level Locks\", \"Wait Queue\")",
+      "readingNotes": "Chapter 12 explains relation-level lock modes and the wait queue that makes an AccessExclusiveLock\nrequest block later readers. This lesson demonstrates the operational head-of-line effect with\npg_locks and pg_stat_activity; read the chapter first, then use the three sessions to see why a\nqueued migration can affect queries that do not conflict with the original reader."
+    },
+    "advisory-locks-as-leases": {
+      "ordinal": 35,
+      "slug": "advisory-locks-as-leases",
+      "reading": "PostgreSQL 14 Internals, Chapter 14 \"Miscellaneous Locks\" (section \"Advisory Locks\")",
+      "readingNotes": "Chapter 14 describes advisory locks as application-chosen lock keys and distinguishes their scope\nfrom ordinary relation or row locks. This lesson makes session and transaction scope visible in\npg_locks and adds the nonblocking try function; read the chapter before running it, then consider\nthe session-loss and external-resource limits described in the lesson's systems lens."
+    },
+    "skip-locked-work-queue": {
+      "ordinal": 36,
+      "slug": "skip-locked-work-queue",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"No-Wait Locks\")",
+      "readingNotes": "Chapter 13 explains how SKIP LOCKED avoids waiting for a row held by another transaction. Durable claims, expiry and generation-checked completion are application protocols added by this lesson; the book does not supply this queue. Read after observing the two claim transactions."
+    },
+    "unique-constraint-race": {
+      "ordinal": 37,
+      "slug": "unique-constraint-race",
+      "reading": "PostgreSQL 14 Internals, Chapter 12 \"Relation-Level Locks\" (section \"Locks on Transaction IDs\"); Chapter 19 \"Index Access Methods\" (section \"Indexing Engine Interface\")",
+      "readingNotes": "Chapter 12 explains waits on transaction IDs, and Chapter 19 describes index access-method properties\nincluding uniqueness enforcement. This lesson combines those mechanisms in a two-inserter race and\nadds the user-facing ON CONFLICT outcome, which the book does not present as a full exercise. Read\nthe chapters before running it, then use pg_locks to connect the index decision to xid state.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 12 §12.5 \"Wait Queue\" (printed pp. 206–209)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 13 §13.1 \"Lock Design\" (printed pp. 210–211)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 13 §13.4 \"Wait Queue\", subheading \"Exclusive Modes\" (printed pp. 215–220)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 13 §13.6 \"Deadlocks\" (printed pp. 225–230)"
+          }
+        ],
+        "rationale": "You observed tuple row locks, blocking queues, durable claims and deadlocks. Read these selected\nsections to consolidate row-lock storage, queued ownership, and deadlock detection. Keep the lessons\nas your primary treatment of NOWAIT/SKIP LOCKED, advisory locks, and unique-key races; the assigned\nexcerpts do not cover those workflows. Skip from the PG14 text: multixact internals, exact lock\ncatalog rows, and version-specific output/API details; continue after completing these core sections."
+      }
+    },
+    "explain-analyze-buffers": {
+      "ordinal": 38,
+      "slug": "explain-analyze-buffers",
+      "reading": "PostgreSQL 14 Internals, Chapter 16 \"Query Execution Stages\" (section \"Simple Query Protocol\"); Chapter 18 \"Table Access Methods\" (section \"Sequential Scans\"); Chapter 9 \"Buffer Cache\" (section \"Cache Hits\")",
+      "readingNotes": "Chapter 16 supplies the parse, plan, and execution vocabulary that this lesson reads in EXPLAIN;\nChapter 18 explains why the sequential scan visits every heap page, and Chapter 9 explains shared\nbuffer hits. The experiment adds a hands-on comparison of estimates, actual rows, and buffer counts,\nplus a rollback proof that EXPLAIN ANALYZE executes writes. Read the chapters before or after; run\nthe experiment first if you want the plan lines to provide the examples."
+    },
+    "statistics-drive-plans": {
+      "ordinal": 39,
+      "slug": "statistics-drive-plans",
+      "reading": "PostgreSQL 14 Internals, Chapter 17 \"Statistics\" (sections \"Basic Statistics\", \"Most Common Values\", \"Multivariate Statistics\")",
+      "readingNotes": "Chapter 17 explains sampled column summaries, most-common-value lists, histograms, and multivariate\nstatistics. This lesson makes those structures visible through pg_stats and pg_statistic_ext_data,\nthen demonstrates missing, stale, and correlated statistics. Read the chapter after the first run\nso the estimates you see have a concrete explanation.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 16 §16.2, subheadings \"Planning\" and \"Execution\" (printed pp. 257–265)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 17 §§17.1–17.5 (printed pp. 271–282; stop before §17.6 on p. 283)"
+          }
+        ],
+        "rationale": "You observed EXPLAIN estimates versus actuals, buffer evidence, and several ways statistics produce\nbad row estimates in these two experiments. Read these focused sections to consolidate the planner pipeline\nand the sampled evidence behind estimates before the next lessons turn to access paths, joins,\nmemory, and parallelism. Skip from the PG14 text: exact estimates, sample contents, default\nstatistics targets, and version-specific planner output/API names; continue to the access-path\nexperiment when you finish."
+      }
+    },
+    "index-scan-vs-seq-scan-crossover": {
+      "ordinal": 40,
+      "slug": "index-scan-vs-seq-scan-crossover",
+      "reading": "PostgreSQL 14 Internals, Chapter 20 \"Index Scans\" (sections \"Regular Index Scans\", \"Comparison of Various Access Methods\"); Chapter 18 \"Table Access Methods\" (section \"Sequential Scans\")",
+      "readingNotes": "Chapter 20 compares regular, bitmap, and index-only access paths, while Chapter 18 explains the\nsequential scan and its cost. This experiment sweeps selectivity, disables paths for comparison,\nand changes random_page_cost to show how the hardware model moves the crossover. Read the chapters\nafter running the sweep so the plan changes have concrete examples."
+    },
+    "join-strategies": {
+      "ordinal": 41,
+      "slug": "join-strategies",
+      "reading": "PostgreSQL 14 Internals, Chapter 21 \"Nested Loop\" (section \"Nested Loop Joins\"); Chapter 22 \"Hashing\" (section \"Hash Joins\"); Chapter 23 \"Sorting and Merging\" (sections \"Merge Joins\", \"Comparison of Join Methods\")",
+      "readingNotes": "Chapters 21–23 describe the three join algorithms that this lesson forces over the same tables.\nThe experiment adds EXPLAIN buffer evidence, Memoize hit counts, and a deliberately undersized\nwork_mem so a hash join spills into batches. Read the chapters before or after; the forced plans\nmake the trade-offs especially easy to compare with the book's diagrams."
+    },
+    "work-mem-spills-to-disk": {
+      "ordinal": 42,
+      "slug": "work-mem-spills-to-disk",
+      "reading": "PostgreSQL 14 Internals, Chapter 23 \"Sorting and Merging\" (section \"Sorting\"); Chapter 22 \"Hashing\" (section \"Hash Joins\"); Chapter 16 \"Query Execution Stages\" (section \"Simple Query Protocol\")",
+      "readingNotes": "Chapter 23 describes in-memory and external sorting, and Chapter 22 describes hash operations that\npartition when memory is insufficient. Chapter 16 provides execution-stage context. This lesson\nadds work_mem threshold experiments and scoped temporary-file counter deltas. Read the\nchapters after the run to connect Sort Method and Batches lines to the algorithms."
+    },
+    "parallel-query": {
+      "ordinal": 43,
+      "slug": "parallel-query",
+      "reading": "PostgreSQL 14 Internals, Chapter 18 \"Table Access Methods\" (sections \"Parallel Plans\", \"Parallel Sequential Scans\", \"Parallel Execution Limitations\")",
+      "readingNotes": "Chapter 18 explains parallel plans, parallel sequential scans, worker limits, and restrictions.\nThis lesson makes those limits visible through Workers Planned versus Workers Launched, Gather\nMerge, and an unsafe function, then measures the overhead on the local lab. Read the chapter before\nor afterward; the plan output is a useful live companion to its parallel diagrams."
+    },
+    "pg-stat-statements-as-tracing": {
+      "ordinal": 44,
+      "slug": "pg-stat-statements-as-tracing",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 16 \"Query Execution Stages\"."
+    },
+    "btree-page-anatomy": {
+      "ordinal": 45,
+      "slug": "btree-page-anatomy",
+      "reading": "PostgreSQL 14 Internals, Chapter 25 \"B-tree\" (sections \"Overview\", \"Page Layout\")",
+      "readingNotes": "Chapter 25 explains the B-tree levels, page layout, high keys, and leaf links that this lesson\nopens with pageinspect. The experiment adds a size comparison between integer and wide text keys,\nand uses amcheck to verify the structure. Read the chapter before or after; the block-by-block\ninspection is a useful concrete companion to its diagrams."
+    },
+    "create-index-concurrently-and-invalid-indexes": {
+      "ordinal": 46,
+      "slug": "create-index-concurrently-and-invalid-indexes",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\"."
+    },
+    "bounded-online-migration": {
+      "ordinal": 47,
+      "slug": "bounded-online-migration",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\"; Chapter 13 \"Row-Level Locks\"."
+    },
+    "partial-and-covering-indexes": {
+      "ordinal": 48,
+      "slug": "partial-and-covering-indexes",
+      "reading": "PostgreSQL 14 Internals, Chapter 19 \"Index Access Methods\" (section \"Indexing Engine Interface\"); Chapter 20 \"Index Scans\" (section \"Index-Only Scans\")",
+      "readingNotes": "Chapter 19 explains index access-method properties and Chapter 20 explains index-only scans. This\nlesson applies those ideas to partial predicates and INCLUDE payload columns, measuring both the\nsmaller hot-set index and the wider covering index. Read the chapters before or after; the plan and\nsize comparisons show the trade-off the book describes."
+    },
+    "index-bloat-from-churn": {
+      "ordinal": 49,
+      "slug": "index-bloat-from-churn",
+      "reading": "PostgreSQL 14 Internals, Chapter 5 \"Page Pruning and HOT Updates\" (section \"Page Pruning for Indexes\"); Chapter 8 \"Rebuilding Tables and Indexes\" (sections \"Full Vacuuming\", \"Other Rebuilding Methods\"); Chapter 25 \"B-tree\" (section \"Page Layout\")",
+      "readingNotes": "Chapter 5 explains dead index entries and page pruning, Chapter 8 explains rebuilding, and Chapter\n25 supplies B-tree page-layout context. This experiment measures bloat after indexed-column churn,\nshows why VACUUM cannot shrink the file, and then uses REINDEX CONCURRENTLY to replace it. Read the\nchapters after the first measurements so density and fragmentation have visible examples."
+    },
+    "unique-index-enforcement-under-concurrency": {
+      "ordinal": 50,
+      "slug": "unique-index-enforcement-under-concurrency",
+      "reading": "PostgreSQL 14 Internals, Chapter 19 \"Index Access Methods\" (section \"Indexing Engine Interface\"); Chapter 12 \"Relation-Level Locks\" (section \"Locks on Transaction IDs\")",
+      "readingNotes": "Chapter 19 explains the indexing-engine uniqueness property, and Chapter 12 explains waits on a\ntransaction ID when a conflicting change is uncommitted. This experiment makes a partial unique\nindex enforce one active owner row and observes the losing insert wait and error. Read both chapters\nbefore or after; use the live wait to connect the index invariant to transaction locking."
+    },
+    "keyset-pagination-and-concurrent-writes": {
+      "ordinal": 51,
+      "slug": "keyset-pagination-and-concurrent-writes",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 20 \"Index Scans\"."
+    },
+    "every-change-is-a-wal-record": {
+      "ordinal": 52,
+      "slug": "every-change-is-a-wal-record",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Logging\", \"WAL Structure\")",
+      "readingNotes": "Chapter 10 explains ordered WAL records and their physical layout. Decode a known transaction first, then use the chapter to connect its heap, index and transaction records to write-ahead ordering. Record inspection alone does not test crash recovery; a later exercise does."
+    },
+    "full-page-writes-after-checkpoint": {
+      "ordinal": 53,
+      "slug": "full-page-writes-after-checkpoint",
+      "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (section \"Fault Tolerance\"); Chapter 10 \"Write-Ahead Log\" (section \"Recovery\")",
+      "readingNotes": "The book explains torn-page protection and how recovery applies full-page images. Measure the first-touch evidence, then read those sections to connect the extra bytes to recovery correctness. The compression variation changes the representation cost while keeping protection enabled."
+    },
+    "commit-means-fsync": {
+      "ordinal": 54,
+      "slug": "commit-means-fsync",
+      "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (sections \"Performance\", \"Fault Tolerance\")",
+      "readingNotes": "Chapter 11 explains the performance and failure consequences of WAL settings. Run the comparison first, then connect waiting for local WAL flush with the acknowledgement contract. The optional file probe measures a different boundary from a full database transaction."
+    },
+    "wal-files-and-recycling": {
+      "ordinal": 55,
+      "slug": "wal-files-and-recycling",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"WAL Structure\", \"WAL Setup\")",
+      "readingNotes": "Chapter 10 supplies the segment, recycling and WAL-budget model; it does not cover archive_command\nor pg_stat_archiver. This experiment extends that model to a failing consumer. Actual backup\nrestoration follows in the recovery lessons."
+    },
+    "crash-and-redo": {
+      "ordinal": 56,
+      "slug": "crash-and-redo",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Recovery\")",
+      "readingNotes": "Chapter 10 explains restarting from a checkpoint's redo point and applying physical records. Read it\nafter predicting the result; the experiment connects that model to the transaction-status and page\nvisibility mechanisms from earlier lessons. pg_walinspect is a newer SQL inspection interface."
+    },
+    "wal-size-of-operations": {
+      "ordinal": 57,
+      "slug": "wal-size-of-operations",
+      "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (sections \"Fault Tolerance\", \"WAL Levels\"); Chapter 5 \"Page Pruning and HOT Updates\" (section \"HOT Updates\")",
+      "readingNotes": "The book supplies WAL-mode and HOT eligibility mechanisms. It does not directly price these\nCOPY/INSERT/batching comparisons; the measured workload extends that background. Read Chapter5\nagain if the same amount update produces different index work in the two matched fixtures."
+    },
+    "checkpoint-anatomy": {
+      "ordinal": 58,
+      "slug": "checkpoint-anatomy",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Background Writing\", \"WAL Setup\")",
+      "readingNotes": "Chapter 10 explains write-ahead ordering, checkpoint completion and background writing. Read after\nthe experiment to separate the redo starting boundary from the later checkpoint record. This fixture\nuses PostgreSQL16 pg_stat_bgwriter counters and the newer pg_walinspect interface."
+    },
+    "redo-point-bounds-recovery": {
+      "ordinal": 59,
+      "slug": "redo-point-bounds-recovery",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Recovery\")",
+      "readingNotes": "Chapter 10 explains the redo position and startup recovery. Read after comparing the stopped control\nfile with the fresh recovery log. This experiment adds bounded readiness and domain checks; neither\nWAL address distance nor the log's rounded elapsed time is an application's recovery-time objective."
+    },
+    "max-wal-size-forces-checkpoints": {
+      "ordinal": 60,
+      "slug": "max-wal-size-forces-checkpoints",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Setup\")",
+      "readingNotes": "Chapter 10's WAL setup section connects WAL generation, checkpoint scheduling and configuration.\nUse the study checkpoint after the experiment to consolidate this module. The fixture measures\nPostgreSQL16 counters with1MB segments; book defaults and exact example counts do not apply.",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 10 §§10.1–10.4 (printed pp. 164–175)"
+          },
+          {
+            "source": "PostgreSQL 14 Internals",
+            "locator": "Chapter 10 §10.6 \"WAL Setup\" (printed pp. 177–181)"
+          }
+        ],
+        "rationale": "You observed WAL records, commit boundaries, crash replay and checkpoint work. Read these sections\nto consolidate WAL-before-data, LSNs, segment layout, redo bounds, recovery and configuration\ntradeoffs. Keep the experiments as your primary treatment of measured commit latency and page-image\ncosts. Skip the PG14 checkpoint defaults, example segment names/LSNs and exact pg_waldump output.\nResume with the actual base-backup experiment when you finish."
+      }
+    },
+    "base-backup": {
+      "ordinal": 61,
+      "slug": "base-backup",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "point-in-time-recovery": {
+      "ordinal": 62,
+      "slug": "point-in-time-recovery",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "wait-events-tell-you-where-time-goes": {
+      "ordinal": 63,
+      "slug": "wait-events-tell-you-where-time-goes",
+      "reading": "PostgreSQL 14 Internals, Chapter 15 \"Locks on Memory Structures\" (sections \"Monitoring Waits\", \"Sampling\")",
+      "readingNotes": "Chapter 15 explains wait monitoring and sampling. Use its vocabulary after the experiment to distinguish a sampled wait from a complete request history; this exercise also combines client state and an explicit blocking relationship."
+    },
+    "pg-stat-io-by-backend-type": {
+      "ordinal": 64,
+      "slug": "pg-stat-io-by-backend-type",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 9 \"Buffer Cache\"."
+    },
+    "connection-saturation": {
+      "ordinal": 65,
+      "slug": "connection-saturation",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\" (section \"Clients and the Client-Server Protocol\")."
+    },
+    "idle-in-transaction-kills-you": {
+      "ordinal": 66,
+      "slug": "idle-in-transaction-kills-you",
+      "reading": "PostgreSQL 14 Internals, Chapter 8 \"Rebuilding Tables and Indexes\" (section \"Precautions\"); Chapter 4 \"Snapshots\" (section \"Transaction Horizon\")",
+      "readingNotes": "These chapters explain why retained transactions or snapshots obstruct maintenance. This experiment focuses on transaction and connection cleanup; the earlier horizon experiments establish reclamation effects. Read afterward for the distinction between a held snapshot and a backend that is merely idle between statements."
+    },
+    "table-and-index-usage-counters": {
+      "ordinal": 67,
+      "slug": "table-and-index-usage-counters",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 6 \"Vacuum and Autovacuum\"."
+    },
+    "read-the-server-log": {
+      "ordinal": 68,
+      "slug": "read-the-server-log",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Setup\"); Chapter 15 \"Locks on Memory Structures\" (section \"Monitoring Waits\")",
+      "readingNotes": "The book connects checkpoint and wait logging to their underlying mechanisms. This exercise adds bounded file access, client identity and an independently read transaction outcome. Read afterward; logging configuration cannot reconstruct events that were never recorded."
+    },
+    "build-a-streaming-standby": {
+      "ordinal": 69,
+      "slug": "build-a-streaming-standby",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "replication-lag-under-load": {
+      "ordinal": 70,
+      "slug": "replication-lag-under-load",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "read-your-writes-on-a-replica": {
+      "ordinal": 71,
+      "slug": "read-your-writes-on-a-replica",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "synchronous-replication-blocks-commit": {
+      "ordinal": 72,
+      "slug": "synchronous-replication-blocks-commit",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "hot-standby-query-conflict": {
+      "ordinal": 73,
+      "slug": "hot-standby-query-conflict",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "replication-slot-retains-wal": {
+      "ordinal": 74,
+      "slug": "replication-slot-retains-wal",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "promote-the-standby": {
+      "ordinal": 75,
+      "slug": "promote-the-standby",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "rewind-the-old-primary": {
+      "ordinal": 76,
+      "slug": "rewind-the-old-primary",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "cascading-and-failback": {
+      "ordinal": 77,
+      "slug": "cascading-and-failback",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "decode-the-log": {
+      "ordinal": 78,
+      "slug": "decode-the-log",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "slot-position-and-acknowledgement": {
+      "ordinal": 79,
+      "slug": "slot-position-and-acknowledgement",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "publication-and-subscription": {
+      "ordinal": 80,
+      "slug": "publication-and-subscription",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 \"Snapshots\" and Chapter 11 \"WAL Modes\"."
+    },
+    "conflicts-stop-the-apply-worker": {
+      "ordinal": 81,
+      "slug": "conflicts-stop-the-apply-worker",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 \"WAL Modes\"."
+    },
+    "slot-lag-and-disk": {
+      "ordinal": 82,
+      "slug": "slot-lag-and-disk",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "transactional-outbox": {
+      "ordinal": 83,
+      "slug": "transactional-outbox",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 13 \"Row-Level Locks\"."
+    },
+    "idempotency-keys": {
+      "ordinal": 84,
+      "slug": "idempotency-keys",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 \"Relation-Level Locks\"."
+    },
+    "two-phase-commit": {
+      "ordinal": 85,
+      "slug": "two-phase-commit",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 \"Pages and Tuples\"."
+    },
+    "fencing-tokens-with-a-monotonic-counter": {
+      "ordinal": 86,
+      "slug": "fencing-tokens-with-a-monotonic-counter",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 14 \"Miscellaneous Locks\"."
+    },
+    "listen-notify-as-a-bus": {
+      "ordinal": 87,
+      "slug": "listen-notify-as-a-bus",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 \"Introduction\"."
+    },
+    "abandoned-slot-fills-the-disk": {
+      "ordinal": 88,
+      "slug": "abandoned-slot-fills-the-disk",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    },
+    "corrupt-a-page-and-detect-it": {
+      "ordinal": 89,
+      "slug": "corrupt-a-page-and-detect-it",
+      "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (section \"Fault Tolerance\")",
+      "readingNotes": "Chapter 11 explains page checksums, corruption detection and protection against non-atomic writes.\nRead its Fault Tolerance section after the initial diagnosis. This experiment changes one payload\nbyte while preserving the page structure, then verifies detection offline and through a real heap\nread. The separate cold-backup restore and complete operation reconciliation go beyond the book;\nuse the earlier recovery lessons to compare this bounded recovery point with base-backup/WAL replay."
+    },
+    "wraparound-drill": {
+      "ordinal": 90,
+      "slug": "wraparound-drill",
+      "reading": "PostgreSQL 14 Internals, Chapter 7 \"Freezing\" (sections \"Transaction ID Wraparound\", \"Managing Freezing\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Monitoring\")",
+      "readingNotes": "Chapter 7 explains freezing and the relation/database horizons that bound transaction-ID age;\nChapter 6 supplies vacuum monitoring context. Read after diagnosing why the completed passes do\nnot finish freezing. This exercise applies that mechanism to a durable prepared-transaction\nobligation, whose decision protocol is outside the book and comes from the earlier2PC lesson.\nIt does not lower wraparound thresholds, burn large numbers of XIDs or simulate a production deadline."
+    },
+    "runaway-query-and-cancel": {
+      "ordinal": 91,
+      "slug": "runaway-query-and-cancel",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 15 \"Locks on Memory Structures\"."
+    },
+    "postmortem-from-the-log": {
+      "ordinal": 92,
+      "slug": "postmortem-from-the-log",
+      "reading": "PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 \"Write-Ahead Log\"."
+    }
+  }
+}

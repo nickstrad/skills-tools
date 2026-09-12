@@ -256,8 +256,6 @@ Each error disables apply while the source continues committing; inspect the fai
 queued work and independent data before repairing the cause and checking complete agreement.
 The variation skips the uniqueness transaction, measures every resulting discrepancy, then reconciles
 those rows explicitly before repeating schema recovery.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
   caution: code`
 Run the complete shell script with Python3 and PostgreSQL16 server binaries plus pg_walinspect;
 PGBIN can select the binary folder. It owns fresh source/subscriber directories, processes and

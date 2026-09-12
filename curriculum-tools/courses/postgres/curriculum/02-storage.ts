@@ -18,13 +18,6 @@ Before any of the clever parts (MVCC, WAL, replication) make sense you need the 
 table is one or more OS files, cut into fixed 8 KB pages, addressed by relfilenode. In this lesson
 you create a table, find its file on disk, and check that the number the server reports and the
 number the filesystem reports are the same number.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 1 "Introduction" (sections "Files and Forks", "Pages")`,
-      readingNotes: code`
-The experiment makes Chapter 1's physical model concrete: a relation has a main file made of pages,
-and its relfilenode identifies that file. The book explains forks, page size, and naming in more
-detail than the queries do; run this lesson first, then read those sections while matching the
-database OID, relfilenode, and fork files on disk.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -187,13 +180,6 @@ Open one 8 KB page with pageinspect and read its layout: a 24-byte header, an ar
 pointers growing forwards, and tuples packed backwards from the end. The gap between them is the
 page's free space. This slotted-page layout is why a row has a stable address (ctid) even though
 the bytes move around inside the page.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Page Structure")`,
-      readingNotes: code`
-Chapter 3 describes the same PageHeaderData, item pointers, free-space gap, and tuple placement
-that pageinspect decodes here. The lesson provides a live page from PostgreSQL 16, while the book's
-examples use PostgreSQL 14; read the section after running it so the field names have physical
-meaning rather than being an unexplained list.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -302,14 +288,6 @@ Update one row twice and then look at the page. You will find three tuples for o
 chained together by t_ctid, with the transaction ids that created and killed each version written
 into the tuple headers. This is the physical fact underneath everything module 03 says about MVCC,
 and the reason bloat exists at all.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Row Version Layout", "Operations on Tuples")`,
-      readingNotes: code`
-The three physical versions expose Chapter 3's row-version layout and its insert/update operations:
-t_xmin records the creating transaction, t_xmax the transaction that replaces a version, and t_ctid
-links the chain. The book explains visibility and tuple header bits more fully; run this experiment
-first, then read the cited sections before module 03 introduces snapshots.
-`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -439,14 +417,6 @@ A Heap-Only Tuple (HOT) update can put a replacement row version on the old row'
 new index entry, but it needs page space and unchanged indexed columns. Compare matched tables at
 fillfactor 100 and 70, first with one long transaction and then with separately committed updates.
 The counters, page counts, and tuple pointers show why both free space and transaction shape matter.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 5 "Page Pruning and HOT Updates" (sections "Page Pruning", "HOT Updates")`,
-      readingNotes: code`
-This workload demonstrates the book's HOT condition directly: free space on the same page plus no
-indexed-column change lets PostgreSQL avoid a new index entry, while pruning turns old chain slots
-into redirects or dead items. The book works through chain mechanics in more depth; run the lesson,
-then read both sections to explain the counters and page flags.
-`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -655,14 +625,6 @@ Create two rows with short labels and bodies of 100,000 characters: repeated x f
 varied text for id = 2. Inspect how compression and TOAST chunk storage keep their heap tuples
 small, then compare reading only the label with counting body characters for id = 2. Finally,
 compare changing that row's label with replacing its body to explore when external storage is reused.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 1 "Introduction" (section "TOAST"); Chapter 3 "Pages and Tuples" (section "TOAST")`,
-      readingNotes: code`
-The two values show the TOAST path described in Chapters 1 and 3: compression can keep a large
-datum inline, while an incompressible datum becomes a pointer plus chunks in a side relation. The
-book explains the tuple and chunk layout; this lesson additionally measures detoasting buffers and
-PostgreSQL 16 output. Read after running it, when heap_bytes and toast_bytes have concrete meaning.
-`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -852,36 +814,11 @@ storage policy?`,
       estimatedMinutes: 20,
       prerequisites: ["table-is-a-file", "install-lab-extensions"],
       revision: 4,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 1 §1.1, subheadings "Files and Forks" and "Pages" (printed pp. 24–28)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 3 §3.1 "Page Structure" (printed pp. 62–64)`,
-          },
-        ],
-        rationale: code`
-You have observed relation files, page allocation, tuple layout, cached pages, and dirty-page
-flushing. Read these bounded sections to consolidate the physical model before the course moves into
-transaction IDs. Skip exact example filenames, relfilenodes, and catalog output in the book.`,
-      },
       overview: code`
 Every page a backend touches goes through shared_buffers. Read a table whose pages were pushed out
 of the cache and see the reads turn into hits on the second pass; then dirty some pages and watch a
 CHECKPOINT clean them without evicting them. This is a write-back cache with an explicit flush
 point, and the flush point is what bounds crash recovery time.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 9 "Buffer Cache" (sections "Cache Hits", "Cache Misses"); Chapter 10 "Write-Ahead Log" (section "Checkpoint")`,
-      readingNotes: code`
-The EXPLAIN buffer counters and pg_buffercache rows make Chapter 9's cache hits and misses visible,
-while CHECKPOINT connects them to Chapter 10's dirty-page flushing and recovery boundary. The book
-explains eviction and checkpoint design in more depth; run the scans first, then read both chapters
-to interpret hit/read/dirtied and why a checkpoint does not evict pages.
-`,
       syntaxBreakdown: code`
 ### In plain terms
 

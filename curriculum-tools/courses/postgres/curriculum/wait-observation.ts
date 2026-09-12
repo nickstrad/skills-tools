@@ -95,10 +95,6 @@ export const WAIT_OBSERVATION: Draft = {
   slug: "wait-events-tell-you-where-time-goes",
   title: "Diagnose a stalled writer from state, waits and blocker samples",
   tags: ["wait-events", "observability", "process-model", "row-locks"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 15 "Locks on Memory Structures" (sections "Monitoring Waits", "Sampling")`,
-  readingNotes:
-    code`Chapter 15 explains wait monitoring and sampling. Use its vocabulary after the experiment to distinguish a sampled wait from a complete request history; this exercise also combines client state and an explicit blocking relationship.`,
   difficulty: "intermediate",
   safetyLevel: "locking",
   runIn: "tool",

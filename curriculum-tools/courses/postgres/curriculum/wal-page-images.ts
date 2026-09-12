@@ -63,10 +63,6 @@ export const WAL_PAGE_IMAGES: Draft = {
   estimatedMinutes: 25,
   revision: 4,
   prerequisites: ["every-change-is-a-wal-record", "page-header-and-line-pointers"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (section "Fault Tolerance"); Chapter 10 "Write-Ahead Log" (section "Recovery")`,
-  readingNotes:
-    code`The book explains torn-page protection and how recovery applies full-page images. Measure the first-touch evidence, then read those sections to connect the extra bytes to recovery correctness. The compression variation changes the representation cost while keeping protection enabled.`,
   overview:
     code`A checkpoint changes which page modifications need a recovery image. Measure two updates of the same row, checkpoint again, and repeat the update. Then compress the page images and compare bytes for the same logical result without disabling protection.`,
   caution:

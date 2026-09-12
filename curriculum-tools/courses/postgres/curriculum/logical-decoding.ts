@@ -192,8 +192,6 @@ Inspect how a selected output plugin represents schema changes and old row value
 older transaction open while a newer one commits and is decoded. This separates physical log
 order, commit order and application visibility. The optional variation changes replica identity
 from DEFAULT to FULL while preserving the workload.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, pg_walinspect and
 test_decoding installed. PGBIN may select the binary folder. The script creates one fresh private

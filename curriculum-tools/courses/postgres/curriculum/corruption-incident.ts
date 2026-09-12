@@ -265,13 +265,6 @@ export const CORRUPTION_INCIDENT: Draft = {
     "visibility-map-and-index-only-scans",
     "point-in-time-recovery",
   ],
-  reading: code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (section "Fault Tolerance")`,
-  readingNotes: code`
-Chapter 11 explains page checksums, corruption detection and protection against non-atomic writes.
-Read its Fault Tolerance section after the initial diagnosis. This experiment changes one payload
-byte while preserving the page structure, then verifies detection offline and through a real heap
-read. The separate cold-backup restore and complete operation reconciliation go beyond the book;
-use the earlier recovery lessons to compare this bounded recovery point with base-backup/WAL replay.`,
   overview: code`
 A previously successful application read now fails. Investigate the actual error, the available
 backup and the accepted operation inventory before choosing recovery. Restore into a separate

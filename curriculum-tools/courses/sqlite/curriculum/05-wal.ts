@@ -409,24 +409,6 @@ SELECT 'current rows', count(*) FROM queue;`,
         "The general lesson transfers to replication lag, retained queue offsets and version garbage collection: a slow observer can control reclamation. SQLite makes the ownership local and concrete. Your application's transaction lifetimes are part of its storage-capacity contract, even if its queries are read-only.",
       challenge:
         code`Set a WAL size alert and choose a policy for readers that exceed it: cancellation, restart, or allowing growth.`,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[SQLite Write-Ahead Logging](https://sqlite.org/wal.html)",
-            locator:
-              "§1 “Overview”; §§2–2.3 “How WAL Works”; §§3–3.3 “Activating And Configuring WAL Mode”; §9 “Sometimes Queries Return SQLITE_BUSY In WAL Mode”; omit the struck-through pre-3.11 warning and §11 bug mechanics",
-          },
-        ],
-        optionalDepth: [
-          {
-            source: "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
-            locator:
-              "Section 4, especially 4.3–4.6 (checkpointing, reset and reuse, the reader algorithm, and the WAL-index)",
-          },
-        ],
-        rationale:
-          "You just saw a live reader hold back checkpoint progress while committed writes enlarged the WAL sidecar. Read these bounded sections before continuing to connect that evidence to WAL append and commit records, reader end-marks, checkpointing, reuse, and the fact that WAL still has busy cases and one writer. The 3.53.4 course minimum includes the WAL-reset fix; older SQLite 3.7.0–3.51.2 installations should use 3.51.3+ or an official fixed backport for production.",
-      },
       caution:
         code`WAL is same-host coordination, not replication or consensus; do not place the files on NFS, SMB, or a synchronized cloud directory.`,
       revision: 1,

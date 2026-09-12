@@ -157,8 +157,6 @@ Pause replay on an owned synchronous standby and compare local, remote-flush and
 commit policies. Inspect the actual waiting transaction's WAL record and primary visibility, then
 stop the standby and cancel a required acknowledgement. Reconcile every receipt before deciding
 whether the write needs a retry; the variation reconnects the standby instead of canceling.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".`,
   caution: code`
 Run the complete shell script with Python3, matching PostgreSQL16 binaries and pg_walinspect,
 including pg_basebackup/pg_verifybackup; PGBIN may select the binary folder. It creates a private

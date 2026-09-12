@@ -336,27 +336,6 @@ SELECT 'after_reuse' AS phase, page_count, freelist_count FROM pragma_page_count
         "Reusable space and returned filesystem space are different resources. SQLite's freelist can satisfy new allocations inside the existing file; VACUUM rewrites the database to compact it. Budget the rewrite's temporary storage and availability separately, much as PostgreSQL VACUUM FULL differs from ordinary vacuum.",
       caution:
         "The copy path is the reserved lab artifact TUTOR_SQLITE_DB-vacuum.db and a rerun overwrites that copy. The source is quiescent in DELETE mode at the copy step; this is not a generally safe recipe for copying a live WAL database.",
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
-            locator:
-              `§1.2 “Pages”; §1.3.2 “Page Size”; §§1.5–1.7 “The Freelist”, “B-tree Pages”, and “Cell Payload Overflow Pages”; §§2.3–2.5 on rowid tables, WITHOUT ROWID tables, and indexes`,
-          },
-        ],
-        optionalDepth: [
-          {
-            source: "[Architecture of SQLite](https://sqlite.org/arch.html)",
-            locator: `“Overview”, “B-Tree”, and “Page Cache”`,
-          },
-        ],
-        rationale: code`
-You just observed page-aligned growth, B-tree shape, rowid and WITHOUT ROWID layout differences,
-overflow chains, and freelist reuse across lessons 8–13. Read these bounded file-format sections to
-connect those observations into one physical model of pages, keys, payload, and free space before
-moving on to journals; the optional architecture excerpts are enrichment, not a prerequisite.
-        `,
-      },
       revision: 1,
       minVersion: "3.53.4",
     },

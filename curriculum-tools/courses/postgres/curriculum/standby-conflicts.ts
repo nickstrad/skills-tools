@@ -187,8 +187,6 @@ the primary. First classify the actual recovery cancellation. Then enable feedba
 its protecting horizon on the primary: the reader survives while primary VACUUM retains deleted
 versions. Release the reader and feedback, reclaim those versions and compare fresh application
 results; the variation deletes one quarter instead of one half of the rows.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".`,
   caution: code`
 Run the complete shell script with Python3, matching PostgreSQL16 binaries and pgstattuple,
 including pg_basebackup/pg_verifybackup; PGBIN may select the binary folder. It creates a private

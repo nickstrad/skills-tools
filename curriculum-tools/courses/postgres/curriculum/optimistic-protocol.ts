@@ -11,11 +11,6 @@ export const OPTIMISTIC_EDIT: Draft = {
   estimatedMinutes: 20,
   prerequisites: ["lost-update-under-read-committed"],
   tags: ["optimistic-concurrency", "lost-update", "read-committed", "retries"],
-  reading: 'PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Read Committed")',
-  readingNotes: code`
-Chapter 2 explains the predicate recheck after a concurrent update. This experiment applies it to
-an application version token and makes the client's conflict decision explicit. The earlier lost-
-update lesson supplies the pessimistic comparison; the book does not prescribe document merging.`,
   overview: code`
 Two editors read the same document without holding database transactions open while they think.
 Each save includes the version it read. A stale save affects zero rows, allowing its caller to

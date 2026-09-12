@@ -252,8 +252,6 @@ follower, and execute the controlled return. Refuse a stale candidate, close adm
 last acknowledged work, exclude the outgoing writer and only then promote. Restart the returned
 primary and verify every receipt. Cascading is optional depth in hint2; failback and cleanup are
 part of both complete scripts.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
   caution: code`
 Run the complete supplied shell script with Python3 and matching PostgreSQL16 server binaries;
 PGBIN may select their folder. Fresh private sockets and owned data directories isolate this round

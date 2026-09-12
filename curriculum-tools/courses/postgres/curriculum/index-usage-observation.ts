@@ -4,8 +4,6 @@ export const INDEX_USAGE: Draft = {
   slug: "table-and-index-usage-counters",
   title: "Decide whether a zero-scan index still earns its place",
   tags: ["statistics", "observability", "index-scans", "buffer-cache"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 6 "Vacuum and Autovacuum".`,
   difficulty: "intermediate",
   safetyLevel: "ddl",
   runIn: "tool",

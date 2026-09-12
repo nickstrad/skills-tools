@@ -257,8 +257,6 @@ export const RESOURCE_FENCING: Draft = {
   title: "Fencing tokens: enforce the resource boundary and its commit order",
   revision: 4,
   tags: ["fencing", "leases", "optimistic-concurrency", "transactions", "distributed-patterns"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 14 "Miscellaneous Locks".`,
   difficulty: "advanced",
   safetyLevel: "privileged",
   runIn: "shell",

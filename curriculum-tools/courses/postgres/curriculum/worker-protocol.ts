@@ -9,9 +9,6 @@ export const WORK_QUEUE: Draft = {
   revision: 4,
   overview:
     "A row lock protects a short transaction; a job may run much longer than that transaction. You will commit two separate claims, let another worker take over an expired claim, and try to complete with the old ownership generation. Completion and its database result must agree even when a worker resumes late.",
-  reading: 'PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "No-Wait Locks")',
-  readingNotes:
-    "Chapter 13 explains how SKIP LOCKED avoids waiting for a row held by another transaction. Durable claims, expiry and generation-checked completion are application protocols added by this lesson; the book does not supply this queue. Read after observing the two claim transactions.",
   setup: code`
 drop table if exists wq_results;
 drop table if exists wq_jobs;

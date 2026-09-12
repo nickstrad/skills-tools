@@ -285,8 +285,6 @@ publication refresh and repeat the handoff. Pause each actual COPY worker after 
 a subscriber audit records the original snapshot separately from later INSERT, UPDATE and DELETE
 transactions. Require complete contents and a post-ready streamed receipt before declaring success.
 The variation doubles the committed write batches during each paused copy.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 4 "Snapshots" and Chapter 11 "WAL Modes".',
   caution: code`
 Run the complete shell script with Python3, PostgreSQL16 server binaries and pg_walinspect available;
 PGBIN may select the binary folder. Fresh source/subscriber processes have independent data and

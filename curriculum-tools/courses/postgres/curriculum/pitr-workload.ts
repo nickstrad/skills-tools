@@ -211,8 +211,6 @@ Restore an actual backup to named points before and after a destructive committe
 both restored job/receipt histories with their source, verify archived timeline ancestry and write
 a different marker on each branch. The variation selects the later target first, showing why timeline
 allocation order is not a ranking of the application states those histories contain.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run in a shell with Python3 and matching PostgreSQL16 server tools, pg_basebackup, pg_verifybackup
 and pg_walinspect; PGBIN may select the binary folder. The script deletes rows only on a fresh owned

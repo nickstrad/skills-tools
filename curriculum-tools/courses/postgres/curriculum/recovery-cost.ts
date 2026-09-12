@@ -145,12 +145,6 @@ Recover matching receipt datasets with either an old checkpoint or a checkpoint 
 load. Each case includes the same committed tail write, so both must actually replay WAL. Run two
 pairs in reversed order on fresh owned clusters, inspect the replayed interval, and measure client
 and domain readiness separately from the log's sampled redo duration.`,
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Recovery")`,
-  readingNotes: code`
-Chapter 10 explains the redo position and startup recovery. Read after comparing the stopped control
-file with the fresh recovery log. This experiment adds bounded readiness and domain checks; neither
-WAL address distance nor the log's rounded elapsed time is an application's recovery-time objective.`,
   caution: code`
 This shell script deliberately crashes four newly allocated /tmp/pg-owned-* clusters in sequence.
 It ignores existing PG connection variables and PGLAB. Use Python3 and PostgreSQL16 server tools,

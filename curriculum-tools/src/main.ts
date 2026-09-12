@@ -2,13 +2,8 @@ import { DatabaseSync } from "node:sqlite";
 import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverCourses, loadRoute, renderRoute } from "./route.ts";
-import {
-  type Course,
-  type Lesson,
-  type StudyCheckpoint,
-  validateLessons,
-  validateStudyCheckpoint,
-} from "./types.ts";
+import { dropLegacyReadingColumns, exportLegacyReading } from "./legacy_reading.ts";
+import { type Course, type Lesson, validateLessons } from "./types.ts";
 
 type Row = Record<string, unknown>;
 type Output = { log(value: string): void; error(value: string): void };
@@ -31,9 +26,6 @@ CREATE TABLE IF NOT EXISTS lessons (
   category TEXT NOT NULL,
   difficulty TEXT NOT NULL CHECK (difficulty IN ('beginner','intermediate','advanced')),
   tags TEXT NOT NULL DEFAULT ',',
-  reading TEXT NOT NULL DEFAULT '',
-  reading_notes TEXT NOT NULL DEFAULT '',
-  study_checkpoint TEXT NOT NULL DEFAULT '',
   overview TEXT NOT NULL,
   syntax_breakdown TEXT NOT NULL,
   setup TEXT NOT NULL DEFAULT '',
@@ -95,6 +87,7 @@ function usage(): string {
 Usage:
   tutor courses [--json]
   tutor <course> init [--db PATH]
+  tutor <course> migrate [--db PATH] [--archive PATH]
   tutor <course> [NUMBER] lesson [--topic TEXT] [--ansi|--plain]
   tutor <course> NUMBER done [--note TEXT]
   tutor <course> route [--json]
@@ -119,7 +112,7 @@ Every course command accepts --db PATH to use a different progress database.
 'lesson' prints complete Markdown, styled with ANSI colours when stdout is a terminal
 (--ansi forces colours, --plain disables them).
 --topic matches every word against lesson tags, category, and title (e.g. --topic "buffer cache");
-'topics' lists the tag vocabulary with progress so a reading topic can be mapped onto lessons.
+'topics' lists the tag vocabulary with progress so related lessons can be found quickly.
 The normal flow is NUMBER lesson, then NUMBER done. A lesson includes its explanation and results.
 Displaying a lesson never marks it done. The older pretty/show/done NUMBER commands remain available.`;
 }
@@ -133,6 +126,7 @@ function parseArgs(args: string[]) {
     "--limit",
     "--note",
     "--topic",
+    "--archive",
   ]);
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -224,7 +218,15 @@ async function loadLessons(course: string): Promise<Lesson[]> {
   return lessons;
 }
 
-function migrate(db: DatabaseSync): void {
+const DEFAULT_LEGACY_ARCHIVE = resolve(TOOL_ROOT, "..", "archive", "legacy-reading");
+
+/** Upgrade only the progress schema; lesson rows and learner history are untouched. */
+export function migrateSchema(
+  db: DatabaseSync,
+  course: string,
+  dbFile: string,
+  archiveRoot = DEFAULT_LEGACY_ARCHIVE,
+): { archive?: string; rows: number; dropped: string[] } {
   db.exec("BEGIN IMMEDIATE");
   try {
     db.exec(SCHEMA);
@@ -239,32 +241,13 @@ function migrate(db: DatabaseSync): void {
       "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(2,'lesson tags')",
     )
       .run();
-    if (!columns.some((c) => c.name === "reading")) {
-      db.exec(
-        "ALTER TABLE lessons ADD COLUMN reading TEXT NOT NULL DEFAULT ''",
-      );
-    }
+    const archived = exportLegacyReading(db, course, dbFile, archiveRoot);
+    const dropped = dropLegacyReadingColumns(db);
     db.prepare(
-      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(3,'lesson reading')",
-    )
-      .run();
-    if (!columns.some((c) => c.name === "reading_notes")) {
-      db.exec(
-        "ALTER TABLE lessons ADD COLUMN reading_notes TEXT NOT NULL DEFAULT ''",
-      );
-    }
-    db.prepare(
-      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(4,'lesson reading notes')",
-    ).run();
-    if (!columns.some((c) => c.name === "study_checkpoint")) {
-      db.exec(
-        "ALTER TABLE lessons ADD COLUMN study_checkpoint TEXT NOT NULL DEFAULT ''",
-      );
-    }
-    db.prepare(
-      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(5,'lesson study checkpoint')",
+      "INSERT OR IGNORE INTO schema_migrations(version,name) VALUES(6,'remove legacy reading metadata')",
     ).run();
     db.exec("COMMIT");
+    return { archive: archived?.path, rows: archived?.rows ?? 0, dropped };
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
@@ -274,13 +257,12 @@ function migrate(db: DatabaseSync): void {
 async function seed(db: DatabaseSync, course: string): Promise<number> {
   const lessons = await loadLessons(course);
   const upsert = db.prepare(`
-    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,reading,reading_notes,study_checkpoint,
+    INSERT INTO lessons(id,ordinal,slug,title,category,difficulty,tags,
       overview,syntax_breakdown,setup,code,expected_result,systems_lens,challenge,caution,
       safety_level,run_in,sessions,min_version,estimated_minutes,revision)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,slug=excluded.slug,title=excluded.title,
       category=excluded.category,difficulty=excluded.difficulty,tags=excluded.tags,
-      reading=excluded.reading,reading_notes=excluded.reading_notes,study_checkpoint=excluded.study_checkpoint,
       overview=excluded.overview,
       syntax_breakdown=excluded.syntax_breakdown,setup=excluded.setup,code=excluded.code,
       expected_result=excluded.expected_result,systems_lens=excluded.systems_lens,
@@ -312,9 +294,6 @@ async function seed(db: DatabaseSync, course: string): Promise<number> {
         x.category,
         x.difficulty,
         `,${(x.tags ?? []).join(",")},`,
-        x.reading ?? "",
-        x.readingNotes ?? "",
-        x.studyCheckpoint ? JSON.stringify(x.studyCheckpoint) : "",
         x.overview,
         x.syntaxBreakdown,
         x.setup ?? "",
@@ -368,22 +347,6 @@ function tagsOf(row: Row): string[] {
   return String(row.tags ?? "").split(",").filter(Boolean);
 }
 
-function parseStudyCheckpoint(raw: unknown): StudyCheckpoint | undefined {
-  if (raw === undefined || raw === null || raw === "") return undefined;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(String(raw));
-  } catch {
-    throw new Error("invalid stored study checkpoint: malformed JSON");
-  }
-  try {
-    validateStudyCheckpoint(parsed, "stored study checkpoint");
-  } catch (error) {
-    throw new Error(`invalid stored study checkpoint: ${(error as Error).message}`);
-  }
-  return parsed;
-}
-
 /** SQL filter matching every whitespace-separated word of a topic against tags, category, title. */
 function topicFilter(topic: string): { sql: string; values: string[] } {
   const terms = topic.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -396,7 +359,6 @@ function topicFilter(topic: string): { sql: string; values: string[] } {
 }
 
 function cleanLesson(row: Row): Row {
-  const studyCheckpoint = parseStudyCheckpoint(row.study_checkpoint);
   return {
     ordinal: row.ordinal,
     slug: row.slug,
@@ -404,9 +366,6 @@ function cleanLesson(row: Row): Row {
     category: row.category,
     difficulty: row.difficulty,
     tags: tagsOf(row),
-    reading: row.reading || undefined,
-    readingNotes: row.reading_notes || undefined,
-    ...(studyCheckpoint ? { studyCheckpoint } : {}),
     status: row.stale ? "stale" : row.status,
     sessions: row.sessions,
     runIn: row.run_in,
@@ -607,11 +566,36 @@ export async function run(
     return 2;
   }
   const path = dbPath(courseId, parsed.flags);
+  if (command === "migrate" && rest.length) {
+    io.error("Error: migrate does not accept a lesson number");
+    return 2;
+  }
   let db: DatabaseSync | undefined;
   try {
     db = openDb(path);
+    if (command === "migrate") {
+      if (rest.length) throw new Error("migrate does not accept a lesson number");
+      const archive = parsed.flags.get("--archive");
+      const archiveRoot = typeof archive === "string"
+        ? (isAbsolute(archive) ? archive : resolve(Deno.cwd(), archive))
+        : DEFAULT_LEGACY_ARCHIVE;
+      const result = migrateSchema(db, courseId, path, archiveRoot);
+      io.log(
+        parsed.flags.has("--json")
+          ? JSON.stringify(result, null, 2)
+          : result.dropped.length
+          ? "Migrated " + result.rows + " lesson rows; dropped " + result.dropped.join(", ") +
+            (result.archive ? "; archive " + result.archive : "")
+          : "Schema already uses the current lesson fields; no legacy columns found.",
+      );
+      return 0;
+    }
     if (command === "init" || command === "seed") {
-      migrate(db);
+      const archive = parsed.flags.get("--archive");
+      const archiveRoot = typeof archive === "string"
+        ? (isAbsolute(archive) ? archive : resolve(Deno.cwd(), archive))
+        : DEFAULT_LEGACY_ARCHIVE;
+      migrateSchema(db, courseId, path, archiveRoot);
       const count = await seed(db, courseId);
       io.log(`Initialized ${count} ${course.name} lessons in ${path}`);
       return 0;

@@ -93,10 +93,6 @@ export const LOG_OBSERVATION: Draft = {
   slug: "read-the-server-log",
   title: "Correlate a lock-wait log with the transaction's actual outcome",
   tags: ["logging", "observability", "postmortem", "incident"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "WAL Setup"); Chapter 15 "Locks on Memory Structures" (section "Monitoring Waits")`,
-  readingNotes:
-    code`The book connects checkpoint and wait logging to their underlying mechanisms. This exercise adds bounded file access, client identity and an independently read transaction outcome. Read afterward; logging configuration cannot reconstruct events that were never recorded.`,
   difficulty: "intermediate",
   safetyLevel: "privileged",
   runIn: "tool",

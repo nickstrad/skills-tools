@@ -46,8 +46,6 @@ export const MIGRATION: Draft = {
     "skip-locked-work-queue",
     "ddl-behind-a-long-query",
   ],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 "Relation-Level Locks"; Chapter 13 "Row-Level Locks".`,
   overview: code`
 Add a typed priority beside a legacy text field while writers continue using the old format. Bound
 DDL waits, commit backfill batches independently and deliberately skip a locked historical row.

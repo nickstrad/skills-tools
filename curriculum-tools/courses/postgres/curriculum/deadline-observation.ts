@@ -103,10 +103,6 @@ export const DEADLINE_OBSERVATION: Draft = {
   slug: "idle-in-transaction-kills-you",
   title: "Verify what a deadline cancels, rolls back and disconnects",
   tags: ["timeouts", "connections", "observability", "gc-horizon"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 8 "Rebuilding Tables and Indexes" (section "Precautions"); Chapter 4 "Snapshots" (section "Transaction Horizon")`,
-  readingNotes:
-    code`These chapters explain why retained transactions or snapshots obstruct maintenance. This experiment focuses on transaction and connection cleanup; the earlier horizon experiments establish reclamation effects. Read afterward for the distinction between a held snapshot and a backend that is merely idle between statements.`,
   difficulty: "intermediate",
   safetyLevel: "locking",
   runIn: "shell",

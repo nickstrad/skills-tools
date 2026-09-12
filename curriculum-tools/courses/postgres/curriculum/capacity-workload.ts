@@ -15,8 +15,6 @@ export const CAPACITY: Draft = {
     "pg-stat-statements-as-tracing",
     "row-locks-are-in-the-tuple",
   ],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 "Introduction" (section "Clients and the Client-Server Protocol").`,
   overview: code`
 More active clients can increase waiting without increasing completed work. Run a fixed transaction
 count against one deliberately serialized counter, varying client concurrency while recording

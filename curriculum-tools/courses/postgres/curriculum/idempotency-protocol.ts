@@ -280,8 +280,6 @@ export const IDEMPOTENCY_KEYS: Draft = {
   title: "Idempotency keys: recover concurrent and unknown request outcomes",
   revision: 4,
   tags: ["idempotency", "unique-constraints", "retries", "distributed-patterns"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 "Relation-Level Locks".`,
   difficulty: "advanced",
   safetyLevel: "privileged",
   runIn: "shell",

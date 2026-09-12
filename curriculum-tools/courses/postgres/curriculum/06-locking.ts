@@ -63,12 +63,6 @@ views, so “waiting for a row” becomes a concrete transaction-id wait.
   - What it does here: Lets B's blocked UPDATE finish.
   - What it gives us: B writes the row and pgrowlocks reports still_locked = 0.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (sections "Lock Design", "Row-Level Locking Modes"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
-      readingNotes: code`
-Chapters 12 and 13 explain that row locks are represented through tuple metadata and waits on the
-locker transaction ID. This lesson shows the same mechanism live through pgrowlocks, pg_stat_activity,
-and pg_locks; read the chapters before running it to recognize the xid and lock-mode vocabulary.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -170,13 +164,6 @@ turns that graph into rows you can read before and after the first transaction c
   - What it does here: Wakes B, but C remains behind B until B commits.
   - What it gives us: The second observation proving one-step-at-a-time queue draining.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Wait Queue"); Chapter 12 "Relation-Level Locks" (section "Wait Queue")`,
-      readingNotes: code`
-The wait-queue sections of Chapters 12 and 13 explain why a blocked lock request has a blocker and
-why later requests remain queued. This lesson adds pg_blocking_pids and wait-event output as an
-operational view of that graph; read the chapters first, then use this experiment to practice
-identifying the current head of the queue.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -284,11 +271,6 @@ aborted unit of work.
   - What it gives us: Both final rows contain the surviving transaction's values.
 - **\set, :ERROR, :SQLSTATE and \if** (psql control flow): Save the last statement's error flag, report its SQLSTATE and choose ROLLBACK or COMMIT in that same client. A backend error releases its transaction locks, allowing the survivor to finish; the explicit rollback then clears the failed client state.
 `,
-      reading: code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "Deadlocks")`,
-      readingNotes: code`
-Chapter 13's deadlock section explains the cycle formed by conflicting row updates and the detector's
-victim behavior. This lesson reproduces that cycle and records the DETAIL and CONTEXT diagnostics;
-read the section before running it, then compare its abstract graph with the two concrete statements.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -395,13 +377,6 @@ when the application has useful work elsewhere.
   - What it does here: Lets B's final NOWAIT query succeed.
   - What it gives us: id = 3 is available after the commit.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 13 "Row-Level Locks" (section "No-Wait Locks")`,
-      readingNotes: code`
-Chapter 13 describes no-wait row-lock behavior and the alternatives to blocking. This lesson
-compares NOWAIT and SKIP LOCKED with the operational lock_timeout setting, which the book does not
-demonstrate as a timeout policy. Read the chapter before running it, then treat the output as a
-decision table for contention handling.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -504,13 +479,6 @@ blocking: the queued exclusive request makes the whole line wait.
   - What it does here: Lets B's ALTER run, then allows C's queued SELECT to run.
   - What it gives us: rows_now = 5 and x_values = 0 after the column exists.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 12 "Relation-Level Locks" (sections "Relation-Level Locks", "Wait Queue")`,
-      readingNotes: code`
-Chapter 12 explains relation-level lock modes and the wait queue that makes an AccessExclusiveLock
-request block later readers. This lesson demonstrates the operational head-of-line effect with
-pg_locks and pg_stat_activity; read the chapter first, then use the three sessions to see why a
-queued migration can affect queries that do not conflict with the original reader.`,
       setup: code`
 create table if not exists lk_t(id int primary key, val text);
 truncate lk_t;
@@ -636,13 +604,6 @@ transaction boundary.
   - What it does here: Holds key 99 only while B's transaction is open.
   - What it gives us: A pg_locks row inside the transaction and none afterward.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 14 "Miscellaneous Locks" (section "Advisory Locks")`,
-      readingNotes: code`
-Chapter 14 describes advisory locks as application-chosen lock keys and distinguishes their scope
-from ordinary relation or row locks. This lesson makes session and transaction scope visible in
-pg_locks and adds the nonblocking try function; read the chapter before running it, then consider
-the session-loss and external-resource limits described in the lesson's systems lens.`,
       code: code`
 -- Session A
 begin;
@@ -761,42 +722,7 @@ NOTHING, safely inserts zero rows.
   - What it does here: Makes the two winning A rows easy to compare.
   - What it gives us: (1, A) and (2, A), with no B row.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs"); Chapter 19 "Index Access Methods" (section "Indexing Engine Interface")`,
-      readingNotes: code`
-Chapter 12 explains waits on transaction IDs, and Chapter 19 describes index access-method properties
-including uniqueness enforcement. This lesson combines those mechanisms in a two-inserter race and
-adds the user-facing ON CONFLICT outcome, which the book does not present as a full exercise. Read
-the chapters before running it, then use pg_locks to connect the index decision to xid state.`,
       revision: 4,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 12 §12.5 "Wait Queue" (printed pp. 206–209)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 13 §13.1 "Lock Design" (printed pp. 210–211)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 13 §13.4 "Wait Queue", subheading "Exclusive Modes" (printed pp. 215–220)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 13 §13.6 "Deadlocks" (printed pp. 225–230)`,
-          },
-        ],
-        rationale: code`
-You observed tuple row locks, blocking queues, durable claims and deadlocks. Read these selected
-sections to consolidate row-lock storage, queued ownership, and deadlock detection. Keep the lessons
-as your primary treatment of NOWAIT/SKIP LOCKED, advisory locks, and unique-key races; the assigned
-excerpts do not cover those workflows. Skip from the PG14 text: multixact internals, exact lock
-catalog rows, and version-specific output/API details; continue after completing these core sections.
-`,
-      },
       setup: code`
 create table if not exists lk_uniq(k int primary key, who text);
 truncate lk_uniq;`,

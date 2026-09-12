@@ -427,29 +427,6 @@ sqlite3 "$TUTOR_SQLITE_DB-batch" 'SELECT count(*) AS rows FROM t;'
         code`Application batching removes transaction boundaries: these 200 rows share one commit and one rollback fate. That is different from PostgreSQL group commit, where independent transactions can share a durability flush while retaining separate outcomes. In SQLite, choose batch size jointly with writer occupancy, latency, and the amount of work that must be repeated after failure.`,
       challenge:
         code`Change 200 rows to 2000 and plot sync calls against row count; predict where measurement becomes dominated by other overhead.`,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[Atomic Commit In SQLite](https://sqlite.org/atomiccommit.html)",
-            locator:
-              `§§3.4–3.5, 3.7–3.11, 4.2, and 4.6: rollback-journal updates, database writes, synchronization, journal invalidation, and hot-journal recovery`,
-          },
-        ],
-        optionalDepth: [
-          {
-            source:
-              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
-            locator: `§§3.2 and 4.1 on disabling sync and non-powersafe flash controllers`,
-          },
-        ],
-        rationale: code`
-You just saw rollback journals appear and disappear, hot-journal recovery restore committed state,
-sync-call differences under FULL/NORMAL/OFF, and batching amortize transaction-boundary work across
-lessons 14–19. Read these rollback-mode sections to explain the required write and sync ordering
-behind that evidence before moving on; this document does not describe WAL, and the corruption
-material is optional operational context.
-        `,
-      },
       revision: 3,
     },
   ],

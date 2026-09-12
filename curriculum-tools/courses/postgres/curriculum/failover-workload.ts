@@ -183,8 +183,6 @@ without stopping the old writer; inventory the resulting two writable histories.
 controlled cutover: close admission, revoke the old application login, verify all acknowledged
 receipts on the candidate and stop the old primary before promotion. Test the old endpoint and
 routing token, then accept a new write. The variation begins controlled cutover with replay paused.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including
 pg_basebackup/pg_verifybackup; PGBIN may select the binary folder. It deliberately creates split

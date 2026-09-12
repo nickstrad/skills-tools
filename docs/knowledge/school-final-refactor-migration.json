@@ -1,0 +1,57 @@
+[
+  {
+    "course": "grpc",
+    "lesson_rows": 6,
+    "progress_rows": 6,
+    "attempt_rows": 6,
+    "all_nonlegacy_rows_unchanged": true,
+    "legacy_values_archived": true,
+    "integrity_and_foreign_keys": "passed",
+    "display_unchanged": true,
+    "archive": "archive/legacy-reading/databases/grpc/progress.sqlite-9bf8d89f9b274e1a.json"
+  },
+  {
+    "course": "linux",
+    "lesson_rows": 72,
+    "progress_rows": 0,
+    "attempt_rows": 0,
+    "all_nonlegacy_rows_unchanged": true,
+    "legacy_values_archived": true,
+    "integrity_and_foreign_keys": "passed",
+    "display_unchanged": true,
+    "archive": "archive/legacy-reading/databases/linux/progress.sqlite-c94fc8c53c3b1202.json"
+  },
+  {
+    "course": "postgres",
+    "lesson_rows": 99,
+    "progress_rows": 8,
+    "attempt_rows": 8,
+    "all_nonlegacy_rows_unchanged": true,
+    "legacy_values_archived": true,
+    "integrity_and_foreign_keys": "passed",
+    "display_unchanged": true,
+    "archive": "archive/legacy-reading/databases/postgres/progress.sqlite-01986485002591ce.json"
+  },
+  {
+    "course": "postgres-essentials",
+    "lesson_rows": 26,
+    "progress_rows": 22,
+    "attempt_rows": 23,
+    "all_nonlegacy_rows_unchanged": true,
+    "legacy_values_archived": true,
+    "integrity_and_foreign_keys": "passed",
+    "display_unchanged": true,
+    "archive": "archive/legacy-reading/databases/postgres-essentials/progress.sqlite-cc1f6caf8a6bee08.json"
+  },
+  {
+    "course": "sqlite",
+    "lesson_rows": 48,
+    "progress_rows": 0,
+    "attempt_rows": 0,
+    "all_nonlegacy_rows_unchanged": true,
+    "legacy_values_archived": true,
+    "integrity_and_foreign_keys": "passed",
+    "display_unchanged": true,
+    "archive": "archive/legacy-reading/databases/sqlite/progress.sqlite-1589945c0a30531a.json"
+  }
+]

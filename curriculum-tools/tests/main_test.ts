@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { resolve } from "node:path";
-import { listCourses, run, TOOL_ROOT } from "../src/main.ts";
+import { listCourses, migrateSchema, run, TOOL_ROOT } from "../src/main.ts";
+import { readLegacyArchive, restoreLegacyReading } from "../src/legacy_reading.ts";
 import { buildLessons, type Course, type Module } from "../src/types.ts";
 
 function capture() {
@@ -110,97 +111,105 @@ Deno.test("init seeds every lesson and is idempotent", async () => {
     const row = db.prepare(
       "SELECT count(*) AS count, min(ordinal) AS first, max(ordinal) AS last FROM lessons WHERE active=1",
     ).get() as Record<string, number>;
-    const checkpointColumn = db.prepare(
-      "SELECT name FROM pragma_table_info('lessons') WHERE name='study_checkpoint'",
-    ).get();
+    const legacyColumns = db.prepare(
+      "SELECT name FROM pragma_table_info('lessons') WHERE name IN ('reading','reading_notes','study_checkpoint')",
+    ).all();
     const migration = db.prepare(
-      "SELECT name FROM schema_migrations WHERE version=5",
+      "SELECT name FROM schema_migrations WHERE version=6",
     ).get() as Record<string, string> | undefined;
     db.close();
     const expected = await lessonCount();
     if (row.count !== expected || row.first !== 1 || row.last !== expected) {
       throw new Error(JSON.stringify(row));
     }
-    if (!checkpointColumn || migration?.name !== "lesson study checkpoint") {
-      throw new Error("study checkpoint migration was not installed");
+    if (legacyColumns.length || migration?.name !== "remove legacy reading metadata") {
+      throw new Error("legacy reading schema was installed");
     }
   } finally {
     await Deno.remove(dir, { recursive: true });
   }
 });
 
-Deno.test("init migrates a pre-checkpoint database without changing old lesson data", async () => {
-  const dir = await Deno.makeTempDir();
-  const path = `${dir}/progress.sqlite`;
-  try {
-    const db = new DatabaseSync(path);
-    db.exec(`
-      CREATE TABLE lessons (
-        id INTEGER PRIMARY KEY,
-        ordinal INTEGER NOT NULL UNIQUE,
-        slug TEXT NOT NULL UNIQUE,
-        title TEXT NOT NULL,
-        category TEXT NOT NULL,
-        difficulty TEXT NOT NULL,
-        tags TEXT NOT NULL DEFAULT ',',
-        reading TEXT NOT NULL DEFAULT '',
-        reading_notes TEXT NOT NULL DEFAULT '',
-        overview TEXT NOT NULL,
-        syntax_breakdown TEXT NOT NULL,
-        setup TEXT NOT NULL DEFAULT '',
-        code TEXT NOT NULL,
-        expected_result TEXT NOT NULL,
-        systems_lens TEXT NOT NULL,
-        challenge TEXT NOT NULL DEFAULT '',
-        caution TEXT NOT NULL DEFAULT '',
-        safety_level TEXT NOT NULL,
-        run_in TEXT NOT NULL,
-        sessions INTEGER NOT NULL DEFAULT 1,
-        min_version TEXT NOT NULL,
-        estimated_minutes INTEGER NOT NULL,
-        revision INTEGER NOT NULL DEFAULT 1,
-        active INTEGER NOT NULL DEFAULT 1,
-        updated_at TEXT NOT NULL DEFAULT ''
-      );
-      INSERT INTO lessons(
-        id, ordinal, slug, title, category, difficulty, overview, syntax_breakdown,
-        code, expected_result, systems_lens, safety_level, run_in, min_version,
-        estimated_minutes
-      ) VALUES(900, 900, 'old-lesson', 'Old lesson', 'old', 'beginner',
-        'old overview', 'old syntax', 'old code', 'old result', 'old lens',
-        'read-only', 'tool', '1', 1);
-    `);
-    db.close();
-    const out = capture();
-    if (await run([COURSE, "init", "--db", path], out.io) !== 0) {
-      throw new Error(out.stderr.join("\n"));
-    }
-    const migrated = new DatabaseSync(path);
-    const column = migrated.prepare(
-      "SELECT name FROM pragma_table_info('lessons') WHERE name='study_checkpoint'",
-    ).get();
-    const old = migrated.prepare(
-      "SELECT title, study_checkpoint FROM lessons WHERE id=900",
-    ).get() as Record<string, string>;
-    migrated.close();
-    if (!column || old.title !== "Old lesson" || old.study_checkpoint !== "") {
-      throw new Error(JSON.stringify({ column, old }));
-    }
-  } finally {
-    await Deno.remove(dir, { recursive: true });
-  }
-});
-
-Deno.test("re-seeding preserves progress and checkpoint metadata", async () => {
+Deno.test("migrate archives legacy fields and preserves rows and learner history", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
-    const checkpoint = db.prepare(
-      "SELECT ordinal FROM lessons WHERE active=1 AND study_checkpoint<>'' ORDER BY ordinal LIMIT 1",
-    ).get() as { ordinal: number } | undefined;
+    db.exec("ALTER TABLE lessons ADD COLUMN reading TEXT NOT NULL DEFAULT ''");
+    db.exec("ALTER TABLE lessons ADD COLUMN reading_notes TEXT NOT NULL DEFAULT ''");
+    db.exec("ALTER TABLE lessons ADD COLUMN study_checkpoint TEXT NOT NULL DEFAULT ''");
+    db.prepare(
+      "UPDATE lessons SET reading=?,reading_notes=?,study_checkpoint=? WHERE ordinal=1",
+    ).run("Book, Chapter 1", "private explanatory note", '{"raw":true}');
+    db.prepare(
+      "UPDATE lessons SET active=0,ordinal=1000,reading=?,reading_notes=?,study_checkpoint=? WHERE ordinal=2",
+    ).run("Retired book", "Retired note", "retired raw");
     db.close();
-    if (!checkpoint) throw new Error("test course must contain a study checkpoint");
-    const ordinal = String(checkpoint.ordinal);
+    await run([COURSE, "done", "1", "--note", "learner history", "--db", path], capture().io);
+    const before = new DatabaseSync(path);
+    const old = before.prepare(
+      "SELECT id,slug,ordinal,title,reading,reading_notes,study_checkpoint FROM lessons WHERE ordinal=1",
+    ).get() as Record<string, unknown>;
+    const ids = before.prepare("SELECT id,slug,ordinal FROM lessons ORDER BY id").all();
+    const progress = before.prepare("SELECT * FROM progress ORDER BY lesson_id").all();
+    const attempts = before.prepare("SELECT * FROM attempts ORDER BY id").all();
+    before.close();
+    const archiveRoot = `${dir}/archive`;
+    const out = capture();
+    if (await run([COURSE, "migrate", "--db", path, "--archive", archiveRoot], out.io) !== 0) {
+      throw new Error(out.stderr.join("\n"));
+    }
+    const migrated = new DatabaseSync(path);
+    const columns = migrated.prepare(
+      "SELECT name FROM pragma_table_info('lessons') WHERE name IN ('reading','reading_notes','study_checkpoint')",
+    ).all();
+    const current = migrated.prepare("SELECT id,slug,ordinal FROM lessons ORDER BY id").all();
+    const currentProgress = migrated.prepare("SELECT * FROM progress ORDER BY lesson_id").all();
+    const currentAttempts = migrated.prepare("SELECT * FROM attempts ORDER BY id").all();
+    migrated.close();
+    const archiveFile = [...Deno.readDirSync(`${archiveRoot}/databases/postgres`)].find((x) =>
+      x.name.endsWith(".json")
+    );
+    if (!archiveFile) throw new Error("legacy archive was not written");
+    const archived = readLegacyArchive(`${archiveRoot}/databases/postgres/${archiveFile.name}`);
+    const lesson = archived.lessons[old.slug as string];
+    const retired = ids.find((row) =>
+      Number((row as Record<string, unknown>).ordinal) === 1000
+    ) as Record<string, unknown>;
+    if (
+      columns.length || JSON.stringify(ids) !== JSON.stringify(current) ||
+      JSON.stringify(progress) !== JSON.stringify(currentProgress) ||
+      JSON.stringify(attempts) !== JSON.stringify(currentAttempts) ||
+      lesson?.reading !== old.reading || lesson?.reading_notes !== old.reading_notes ||
+      lesson?.study_checkpoint !== old.study_checkpoint ||
+      Object.keys(archived.lessons).length !== ids.length ||
+      !retired || archived.lessons[retired.slug as string]?.reading !== "Retired book" ||
+      !out.stdout[0].includes("dropped")
+    ) {
+      throw new Error(
+        JSON.stringify({
+          columns,
+          ids,
+          current,
+          progress,
+          currentProgress,
+          attempts,
+          currentAttempts,
+          lesson,
+          old,
+        }),
+      );
+    }
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("re-seeding preserves progress after legacy fields are removed", async () => {
+  const { dir, path } = await initTemp();
+  try {
+    const db = new DatabaseSync(path);
+    const ordinal = "1";
+    db.close();
     await run(
       [COURSE, "done", ordinal, "--note", "completed the experiment", "--db", path],
       capture().io,
@@ -211,7 +220,7 @@ Deno.test("re-seeding preserves progress and checkpoint metadata", async () => {
     const lesson = JSON.parse(shown.stdout[0]);
     if (
       lesson.status !== "done" || lesson.notes !== "completed the experiment" ||
-      !lesson.studyCheckpoint || lesson.studyCheckpoint.core.length === 0
+      "studyCheckpoint" in lesson || "reading" in lesson || "readingNotes" in lesson
     ) {
       throw new Error(shown.stdout[0]);
     }
@@ -636,7 +645,7 @@ Deno.test("buildLessons resolves slug prerequisites and rejects forward referenc
   if (!threw) throw new Error("forward prerequisite accepted");
 });
 
-Deno.test("build preserves legacy source metadata without requiring it on new lessons", () => {
+Deno.test("build emits only active lesson fields", () => {
   const course: Course = {
     id: "x",
     name: "X",
@@ -660,27 +669,19 @@ Deno.test("build preserves legacy source metadata without requiring it on new le
   const modules: Module[] = [{
     category: "c",
     title: "m",
-    lessons: [
-      {
-        ...draft,
-        slug: "a",
-        reading: "\nBook, Chapter 1  ",
-        readingNotes: "n",
-      },
-      { ...draft, slug: "b" },
-    ],
+    lessons: [{ ...draft, slug: "a" }, { ...draft, slug: "b" }],
   }];
   const lessons = buildLessons(course, modules);
   if (
-    lessons[0].reading !== "Book, Chapter 1" ||
-    lessons[0].readingNotes !== "n" ||
-    "reading" in lessons[1] || "readingNotes" in lessons[1]
+    Object.keys(lessons[0]).some((key) =>
+      ["reading", "readingNotes", "studyCheckpoint"].includes(key)
+    )
   ) {
     throw new Error(JSON.stringify(lessons));
   }
 });
 
-Deno.test("build rejects malformed reading metadata", () => {
+Deno.test("build rejects no retired metadata because Draft has no retired fields", () => {
   const course: Course = {
     id: "x",
     name: "X",
@@ -702,110 +703,27 @@ Deno.test("build rejects malformed reading metadata", () => {
     runIn: "tool" as const,
     estimatedMinutes: 1,
   };
-  for (
-    const metadata of [
-      { reading: "Book, Chapter 1\nsection 2" },
-      { readingNotes: "Notes without a citation" },
-    ]
-  ) {
-    let threw = false;
-    try {
-      buildLessons(course, [{
-        category: "c",
-        title: "m",
-        lessons: [{ ...draft, ...metadata }],
-      }]);
-    } catch {
-      threw = true;
-    }
-    if (!threw) {
-      throw new Error(
-        `accepted malformed metadata: ${JSON.stringify(metadata)}`,
-      );
-    }
-  }
-});
-
-Deno.test("build trims and validates a study checkpoint", () => {
-  const course: Course = {
-    id: "x",
-    name: "X",
-    description: "",
-    tool: "x",
-    minVersion: "1",
-    revision: 1,
-  };
-  const draft = {
-    slug: "a",
-    title: "t",
-    difficulty: "beginner" as const,
-    overview: "o",
-    syntaxBreakdown: "s",
-    code: "c",
-    expectedResult: "e",
-    systemsLens: "l",
-    safetyLevel: "read-only" as const,
-    runIn: "tool" as const,
-    estimatedMinutes: 1,
-    studyCheckpoint: {
-      core: [{ source: "  Book  ", locator: "  Section 1  " }],
-      optionalDepth: [{ source: "Paper", locator: "  2:00–4:00  " }],
-      rationale: "  Connect the evidence to the model.  ",
-    },
-  };
-  const lessons = buildLessons(course, [{
-    category: "c",
-    title: "m",
-    lessons: [draft],
-  }]);
+  const lessons = buildLessons(course, [{ category: "c", title: "m", lessons: [draft] }]);
   if (
-    lessons[0].studyCheckpoint?.core[0].source !== "Book" ||
-    lessons[0].studyCheckpoint.core[0].locator !== "Section 1" ||
-    lessons[0].studyCheckpoint.optionalDepth?.[0].locator !== "2:00–4:00" ||
-    lessons[0].studyCheckpoint.rationale !== "Connect the evidence to the model."
+    Object.keys(lessons[0]).some((key) =>
+      ["reading", "readingNotes", "studyCheckpoint"].includes(key)
+    )
   ) {
-    throw new Error(JSON.stringify(lessons[0].studyCheckpoint));
-  }
-
-  const malformed = [
-    { core: [], rationale: "why" },
-    { core: [{ source: "Book\n", locator: "Section 1" }], rationale: "why" },
-    { core: [{ source: "Book", locator: "" }], rationale: "why" },
-    { core: [{ source: "Book", locator: "Section 1" }], rationale: "  " },
-  ];
-  for (const studyCheckpoint of malformed) {
-    let threw = false;
-    try {
-      buildLessons(course, [{
-        category: "c",
-        title: "m",
-        lessons: [{ ...draft, studyCheckpoint }],
-      }]);
-    } catch {
-      threw = true;
-    }
-    if (!threw) throw new Error(`accepted ${JSON.stringify(studyCheckpoint)}`);
+    throw new Error(JSON.stringify(lessons[0]));
   }
 });
 
 Deno.test("lesson output omits retired citations and preserves complete experiment context", async () => {
   const { dir, path } = await initTemp();
   try {
-    const db = new DatabaseSync(path);
-    db.prepare(
-      "UPDATE lessons SET reading = ?, reading_notes = ? WHERE ordinal = 1",
-    )
-      .run("Book, Chapter 9", "overlap text");
-    db.close();
     const out = capture();
     if (await run([COURSE, "pretty", "1", "--db", path], out.io) !== 0) {
       throw new Error(out.stderr[0]);
     }
     const text = out.stdout[0];
-    if (
-      text.includes("Book, Chapter 9") || text.includes("overlap text") ||
-      text.includes("Optional reference")
-    ) throw new Error("retired reading leaked into lesson");
+    if (text.includes("Optional reading") || text.includes("Study checkpoint")) {
+      throw new Error("retired reading stage leaked into lesson");
+    }
     for (
       const section of ["Overview", "Syntax breakdown", "Run", "Expected result", "Systems lens"]
     ) {
@@ -821,54 +739,67 @@ Deno.test("lesson output omits retired citations and preserves complete experime
   }
 });
 
-Deno.test("legacy source metadata stays in JSON but never appears in lesson output", async () => {
+Deno.test("restoration is explicit and restores archived values by stable identity", async () => {
   const { dir, path } = await initTemp();
   try {
     const db = new DatabaseSync(path);
-    db.prepare(
-      "UPDATE lessons SET challenge = ?, study_checkpoint = ? WHERE ordinal = 1",
-    ).run(
-      "try the same observation with another value",
-      JSON.stringify({
-        core: [{ source: "Book", locator: "Section 2" }],
-        optionalDepth: [{ source: "Paper", locator: "Figure 1" }],
-        rationale: "The experiment made the ordering visible.",
-      }),
-    );
+    db.exec("ALTER TABLE lessons ADD COLUMN reading TEXT NOT NULL DEFAULT ''");
+    db.exec("ALTER TABLE lessons ADD COLUMN reading_notes TEXT NOT NULL DEFAULT ''");
+    db.exec("ALTER TABLE lessons ADD COLUMN study_checkpoint TEXT NOT NULL DEFAULT ''");
+    db.prepare("UPDATE lessons SET reading=?,reading_notes=?,study_checkpoint=? WHERE ordinal=1")
+      .run("Book", "Notes", "Raw JSON");
+    const before = db.prepare("SELECT id,slug FROM lessons WHERE ordinal=1").get() as Record<
+      string,
+      unknown
+    >;
     db.close();
-    await run([COURSE, "note", "1", "remember the ordering", "--db", path], capture().io);
-    const json = capture();
-    await run([COURSE, "show", "1", "--db", path, "--json"], json.io);
-    const parsed = JSON.parse(json.stdout[0]);
+    const migrated = new DatabaseSync(path);
+    const archiveRoot = `${dir}/archive`;
+    const result = migrateSchema(migrated, COURSE, path, archiveRoot);
+    migrated.close();
+    const archiveFile = [...Deno.readDirSync(`${archiveRoot}/databases/postgres`)].find((x) =>
+      x.name.endsWith(".json")
+    );
+    if (!archiveFile || !result.archive) throw new Error("archive missing");
+    const archive = readLegacyArchive(`${archiveRoot}/databases/postgres/${archiveFile.name}`);
+    const broken = {
+      ...archive,
+      lessons: {
+        ...archive.lessons,
+        "missing-lesson": {
+          id: 999999,
+          ordinal: 999999,
+          slug: "missing-lesson",
+          reading: "missing",
+          reading_notes: "missing",
+          study_checkpoint: "missing",
+        },
+      },
+    };
+    const failedRestore = new DatabaseSync(path);
+    let restoreFailed = false;
+    try {
+      restoreLegacyReading(failedRestore, broken);
+    } catch {
+      restoreFailed = true;
+    }
+    const afterFailedColumns = failedRestore.prepare(
+      "SELECT name FROM pragma_table_info('lessons') WHERE name IN ('reading','reading_notes','study_checkpoint')",
+    ).all();
+    failedRestore.close();
+    if (!restoreFailed || afterFailedColumns.length) {
+      throw new Error("failed restore committed partial schema");
+    }
+    const restored = new DatabaseSync(path);
+    restoreLegacyReading(restored, archive);
+    const row = restored.prepare(
+      "SELECT id,slug,reading,reading_notes,study_checkpoint FROM lessons WHERE id=?",
+    ).get(Number(before.id)) as Record<string, unknown>;
+    restored.close();
     if (
-      parsed.studyCheckpoint.core[0].locator !== "Section 2" ||
-      parsed.studyCheckpoint.optionalDepth[0].source !== "Paper"
-    ) {
-      throw new Error(json.stdout[0]);
-    }
-    const out = capture();
-    if (await run([COURSE, "pretty", "1", "--db", path, "--plain"], out.io) !== 0) {
-      throw new Error(out.stderr[0]);
-    }
-    const text = out.stdout[0];
-    const challenge = text.indexOf("\n## Optional variation\n");
-    const note = text.indexOf("\n## Your note\n");
-    if (!(challenge >= 0 && note > challenge)) throw new Error(text);
-    for (const retired of ["## Optional reading", "Book — Section 2", "Figure 1", "Why here"]) {
-      if (text.includes(retired)) throw new Error(`retired metadata rendered: ${retired}`);
-    }
-    const corrupted = new DatabaseSync(path);
-    corrupted.prepare(
-      "UPDATE lessons SET study_checkpoint = ? WHERE ordinal = 1",
-    ).run("not-json");
-    corrupted.close();
-    const bad = capture();
-    if (await run([COURSE, "show", "1", "--db", path, "--json"], bad.io) !== 1) {
-      throw new Error("corrupt checkpoint was accepted");
-    }
-    if (!bad.stderr[0].includes("invalid stored study checkpoint: malformed JSON")) {
-      throw new Error(bad.stderr[0]);
-    }
+      row.slug !== before.slug || row.reading !== "Book" || row.reading_notes !== "Notes" ||
+      row.study_checkpoint !== "Raw JSON"
+    ) throw new Error(JSON.stringify({ before, row }));
   } finally {
     await Deno.remove(dir, { recursive: true });
   }

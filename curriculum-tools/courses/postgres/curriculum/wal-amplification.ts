@@ -139,12 +139,6 @@ Compare how much physical work different write paths require to produce the same
 from fresh matching layouts, separate transaction batching from bulk loading, then change only a
 secondary index for the same update. Use record evidence and verified final values to decide which
 costs could matter to an archive, replica or migration workload.`,
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (sections "Fault Tolerance", "WAL Levels"); Chapter 5 "Page Pruning and HOT Updates" (section "HOT Updates")`,
-  readingNotes: code`
-The book supplies WAL-mode and HOT eligibility mechanisms. It does not directly price these
-COPY/INSERT/batching comparisons; the measured workload extends that background. Read Chapter5
-again if the same amount update produces different index work in the two matched fixtures.`,
   caution: code`
 Run the complete script in a shell with Python3 and PostgreSQL server binaries plus pg_walinspect.
 PGBIN may choose the binary directory. The embedded helper creates a unique /tmp/pg-owned-* cluster

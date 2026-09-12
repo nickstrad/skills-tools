@@ -151,8 +151,6 @@ paused. Mint a token after COMMIT, then require a matching known history and rep
 bound before taking a fresh application snapshot. Exercise a deadline that returns no data,
 wrong-history rejection and successful catch-up; decide whether an explicit primary fallback is
 appropriate for a caller whose replica deadline expired.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including
 pg_basebackup/pg_verifybackup; PGBIN may select their folder. It creates private source/standby data

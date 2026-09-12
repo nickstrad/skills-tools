@@ -1,0 +1,161 @@
+{
+  "format": 1,
+  "sourceRevision": "df6211c2ccf07ee7b0890c9f8aaf4ebbca8b4539",
+  "course": "postgres-essentials",
+  "lessons": {
+    "committed-row-visibility": {
+      "ordinal": 1,
+      "slug": "committed-row-visibility",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Read Committed\"); Chapter 4 \"Snapshots\" (section \"Row Version Visibility\")",
+      "readingNotes": "Optional after the experiment: the book explains how row versions and transaction outcomes implement these views. This lesson uses PostgreSQL 16 and deliberately avoids inspecting numeric snapshot internals; they are unnecessary for the visibility decision here."
+    },
+    "statement-versus-transaction-snapshot": {
+      "ordinal": 2,
+      "slug": "statement-versus-transaction-snapshot",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (sections \"Read Committed\", \"Repeatable Read\"); Chapter 4 \"Snapshots\" (section \"Row Version Visibility\")",
+      "readingNotes": "Optional after the experiment: the book gives the implementation behind snapshot lifetime. The PostgreSQL 16 behavior tested here matches the stable-view distinction. Write conflicts and serialization anomalies are separate lessons later in this route."
+    },
+    "old-reader-retains-history": {
+      "ordinal": 3,
+      "slug": "old-reader-retains-history",
+      "reading": "PostgreSQL 14 Internals, Chapter 4 \"Snapshots\" (section \"Transaction Horizon\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Database Horizon Revisited\")",
+      "readingNotes": "Optional after the experiment: the book explains the horizons that bound safe reclamation. Here a tiny table and one known reader isolate the cause; real systems may have several readers or other retention obligations. pgstattuple supplies physical evidence in PostgreSQL 16."
+    },
+    "reusable-space-versus-file-size": {
+      "ordinal": 4,
+      "slug": "reusable-space-versus-file-size",
+      "reading": "PostgreSQL 14 Internals, Chapter 1 \"Introduction\" (section \"Files and Forks\"); Chapter 6 \"Vacuum and Autovacuum\" (sections \"Vacuum\", \"Vacuum Phases\"); Chapter 8 \"Rebuilding Tables and Indexes\" (section \"Full Vacuuming\")",
+      "readingNotes": "Optional after the experiment: Chapters 1 and 6 explain relation forks and how vacuum makes dead tuple space available for reuse. Chapter 8 contrasts that in-place cleanup with a table rewrite. This lesson controls heap-tail truncation and uses pgstattuple on PostgreSQL 16 to make the difference measurable."
+    },
+    "lost-update-and-atomic-write": {
+      "ordinal": 5,
+      "slug": "lost-update-and-atomic-write",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (sections \"Isolation Levels and Anomalies in SQL Standard\", \"Read Committed\")",
+      "readingNotes": "Optional after the experiment: the book names the lost-update anomaly and explains how Read Committed handles a row changed by another transaction. This PostgreSQL 16 run makes that rule visible with one controlled row; later lessons cover explicit row locks, retries and multi-row decisions."
+    },
+    "row-lock-protects-decision": {
+      "ordinal": 6,
+      "slug": "row-lock-protects-decision",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Read Committed\"); Chapter 13 \"Row-Level Locks\" (sections \"Lock Design\", \"Row-Level Locking Modes\")",
+      "readingNotes": "Optional after the experiment: Chapter 2 explains why a Read Committed statement can use a newer committed row after waiting, while Chapter 13 explains how FOR UPDATE represents and coordinates a row lock. This lesson observes the application decision and the wait directly; lock catalogs, lock modes beyond FOR UPDATE, and deadlocks appear later in the route."
+    },
+    "reject-stale-edit": {
+      "ordinal": 7,
+      "slug": "reject-stale-edit",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Read Committed\")",
+      "readingNotes": "Optional after the experiment: Chapter 2 explains the Read Committed statement views and update coordination beneath these commands. The version column, affected-row check, and merge decision are an application protocol layered on that behavior rather than a PostgreSQL isolation level."
+    },
+    "multi-row-write-skew": {
+      "ordinal": 8,
+      "slug": "multi-row-write-skew",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Repeatable Read\")",
+      "readingNotes": "Optional after the experiment: the section explains PostgreSQL snapshot isolation and the conflicts Repeatable Read detects. This experiment concentrates on the complementary case: a rule spanning rows can fail even though neither transaction overwrites the other's row."
+    },
+    "serializable-protects-invariant": {
+      "ordinal": 9,
+      "slug": "serializable-protects-invariant",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Serializable\")",
+      "readingNotes": "Optional after the experiment: the section explains PostgreSQL Serializable Snapshot Isolation and serialization anomalies. This controlled schedule makes its application consequence concrete; full-transaction retry behavior is added in the next lesson."
+    },
+    "whole-transaction-retry": {
+      "ordinal": 10,
+      "slug": "whole-transaction-retry",
+      "reading": "PostgreSQL 14 Internals, Chapter 2 \"Isolation\" (section \"Serializable\")",
+      "readingNotes": "Optional after running: Chapter 2 explains serialization failures and the need to retry. The bounded Python client, attempt evidence and controlled scheduling are supplied course code; the book does not provide this client implementation."
+    },
+    "unknown-commit-outcome": {
+      "ordinal": 11,
+      "slug": "unknown-commit-outcome",
+      "reading": "Not covered by PostgreSQL 14 Internals (application response protocol); closest background: Chapter 2 \"Isolation\"."
+    },
+    "durable-request-identity": {
+      "ordinal": 12,
+      "slug": "durable-request-identity",
+      "reading": "Not directly covered in PostgreSQL 14 Internals; Chapter 13 \"Row-Level Locks\" is the closest background on waits between transactions."
+    },
+    "find-the-blocker": {
+      "ordinal": 13,
+      "slug": "find-the-blocker",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"Wait Queue\"); Chapter 12 \"Relation-Level Locks\" (section \"Wait Queue\"); Chapter 15 \"Locks on Memory Structures\" (section \"Monitoring Waits\")",
+      "readingNotes": "Optional after running: Chapters 12–13 explain why conflicting work queues behind a transaction, and Chapter 15 explains wait monitoring. This experiment uses PostgreSQL 16's pg_blocking_pids function and pg_stat_activity to turn those mechanisms into a live blocker edge."
+    },
+    "deadlock-cycle": {
+      "ordinal": 14,
+      "slug": "deadlock-cycle",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"Deadlocks\")",
+      "readingNotes": "Optional after running: Chapter 13 explains the deadlock detector and shows cycles between row updates. The experiment adds immediate SQLSTATE capture and final-state checks so the detector's choice is treated as a failed whole attempt rather than as one failed statement."
+    },
+    "timeout-and-transaction-state": {
+      "ordinal": 15,
+      "slug": "timeout-and-transaction-state",
+      "reading": "PostgreSQL 14 Internals, Chapter 13 \"Row-Level Locks\" (section \"No-Wait Locks\")",
+      "readingNotes": "Optional after running: Chapter 13 compares lock_timeout with statement_timeout in its discussion of bounded lock acquisition. This experiment extends that mechanism into client handling: an error inside BEGIN leaves a failed transaction block that must be rolled back before a pooled connection is reused."
+    },
+    "read-a-plan-as-evidence": {
+      "ordinal": 16,
+      "slug": "read-a-plan-as-evidence",
+      "reading": "PostgreSQL 14 Internals, Chapter 16 \"Query Execution Stages\" (section \"Simple Query Protocol\"); Chapter 18 \"Table Access Methods\" (section \"Sequential Scans\"); Chapter 9 \"Buffer Cache\" (section \"Cache Hits\")",
+      "readingNotes": "Optional after the experiment: Chapters 16 and 18 connect query execution with sequential table access, while Chapter 9 explains shared-buffer hits. This PostgreSQL 16 experiment uses executor instrumentation to connect those mechanisms to row flow and page access."
+    },
+    "statistics-and-estimates": {
+      "ordinal": 17,
+      "slug": "statistics-and-estimates",
+      "reading": "PostgreSQL 14 Internals, Chapter 17 \"Statistics\" (sections \"Basic Statistics\", \"Most Common Values\")",
+      "readingNotes": "Optional after the experiment: Chapter 17 explains sampled statistics and the most-common-value frequencies used in selectivity estimates. The controlled PostgreSQL 16 fixture makes one stale description visible before refreshing it explicitly."
+    },
+    "index-crossover": {
+      "ordinal": 18,
+      "slug": "index-crossover",
+      "reading": "PostgreSQL 14 Internals, Chapter 20 \"Index Scans\" (sections \"Regular Index Scans\", \"Comparison of Various Access Methods\"); Chapter 18 \"Table Access Methods\" (section \"Sequential Scans\")",
+      "readingNotes": "Optional after the experiment: Chapters 18 and 20 describe sequential and regular index access. The experiment adds PostgreSQL 16 planner evidence and a controlled comparison; it does not turn the observed crossover into a production tuning threshold."
+    },
+    "composite-index-order": {
+      "ordinal": 19,
+      "slug": "composite-index-order",
+      "reading": "PostgreSQL 14 Internals, Chapter 20 \"Index Scans\" (sections \"Regular Index Scans\", \"Comparison of Various Access Methods\"); Chapter 25 \"B-tree\"",
+      "readingNotes": "Optional after the experiment: Chapters 20 and 25 explain B-tree traversal and ordered index access. This lesson applies those mechanisms to a multicolumn workload and deliberately avoids claiming that the less useful order must add a Sort node."
+    },
+    "index-only-needs-visibility": {
+      "ordinal": 20,
+      "slug": "index-only-needs-visibility",
+      "reading": "PostgreSQL 14 Internals, Chapter 20 \"Index Scans\" (section \"Index-Only Scans\"); Chapter 6 \"Vacuum and Autovacuum\" (section \"Vacuum\")",
+      "readingNotes": "Optional after the experiment: Chapter 20 connects covering indexes, index-only plans and Heap Fetches; Chapter 6 explains the vacuum work that maintains the visibility map. The experiment uses PostgreSQL 16 instrumentation but the page-level mechanism is the same."
+    },
+    "sort-spill": {
+      "ordinal": 21,
+      "slug": "sort-spill",
+      "reading": "PostgreSQL 14 Internals, Chapter 23 \"Sorting and Merging\" (section \"Sorting\"); Chapter 16 \"Query Execution Stages\" (section \"Simple Query Protocol\")",
+      "readingNotes": "Optional after the experiment: Chapter 23 explains quicksort, top-N heapsort and external sorting, while Chapter 16 places work_mem at executor-operation scope. The live plans add PostgreSQL 16 buffer and temporary-I/O evidence for one bounded query."
+    },
+    "join-memory": {
+      "ordinal": 22,
+      "slug": "join-memory",
+      "reading": "PostgreSQL 14 Internals, Chapter 22 \"Hashing\" (section \"Hash Joins\"); Chapter 16 \"Query Execution Stages\" (section \"Simple Query Protocol\")",
+      "readingNotes": "Optional after the experiment: Chapter 22 explains one-pass and two-pass hash joins, including batches written to temporary files. Chapter 16 places work_mem at executor-operation scope. The live PostgreSQL 16 plans expose the batch count and temporary block traffic for one controlled join."
+    },
+    "commit-and-wal": {
+      "ordinal": 23,
+      "slug": "commit-and-wal",
+      "reading": "PostgreSQL 14 Internals, Chapter 11 \"WAL Modes\" (sections \"Performance\" and \"Fault Tolerance\")",
+      "readingNotes": "Optional after the experiment: Chapter 11 connects commit acknowledgement policy with performance and fault tolerance. Chapter 10 supplies the earlier WAL-ordering background. The live PostgreSQL 16 functions expose positions in that log; the saved pre-commit position is a measured lower bound, not the location of the transaction's commit record."
+    },
+    "wal-per-useful-write": {
+      "ordinal": 24,
+      "slug": "wal-per-useful-write",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"WAL Structure\")",
+      "readingNotes": "Optional after the experiment: Chapter 10 describes WAL records and transaction commit logging. This experiment measures the complete LSN interval around actual statements and commits, whereas EXPLAIN's WAL counters alone would omit the later COMMIT record."
+    },
+    "checkpoint-writeback": {
+      "ordinal": 25,
+      "slug": "checkpoint-writeback",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (sections \"Checkpoint\", \"Background Writing\", \"WAL Setup\").",
+      "readingNotes": "Chapter 10 explains the checkpoint and background-writer machinery that moves dirty buffers toward durable storage, plus the WAL ordering that makes those writes safe. Run the experiment first to establish the surprising fact: a checkpoint can write pages changed by an open transaction without making that transaction visible.\n\nThe controller uses PostgreSQL 16 and pg_buffercache for relation-specific measurement; the book describes PostgreSQL 14 internals and does not make this transaction-visibility comparison for you."
+    },
+    "crash-replay": {
+      "ordinal": 26,
+      "slug": "crash-replay",
+      "reading": "PostgreSQL 14 Internals, Chapter 10 \"Write-Ahead Log\" (section \"Recovery\")",
+      "readingNotes": "Optional after the experiment: Chapter 10 explains the checkpoint starting point and recovery from WAL. Here PostgreSQL 16 performs real process-crash recovery, while a deliberately small inventory makes the visibility of each transaction outcome inspectable."
+    }
+  }
+}

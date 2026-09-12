@@ -75,10 +75,6 @@ export const WAL_RECORDS: Draft = {
   estimatedMinutes: 25,
   revision: 4,
   prerequisites: ["install-lab-extensions", "update-writes-a-new-tuple"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Logging", "WAL Structure")`,
-  readingNotes:
-    code`Chapter 10 explains ordered WAL records and their physical layout. Decode a known transaction first, then use the chapter to connect its heap, index and transaction records to write-ahead ordering. Record inspection alone does not test crash recovery; a later exercise does.`,
   overview:
     code`Physical work and committed business state are different evidence. Identify one transaction's WAL records and relation blocks, verify its resulting rows, then show that an aborted transaction still consumed WAL. Vary the indexed key to connect an application update with its additional storage work.`,
   caution:

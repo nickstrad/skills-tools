@@ -453,27 +453,6 @@ SELECT 'different payload rejected', balance, (SELECT count(*) FROM applied_oper
         code`Change the first COMMIT to ROLLBACK after the account UPDATE, then run the second attempt. Predict claim 2 and the final balance: the local claim and account change should both disappear, allowing the retry to claim op-42 and apply the effect. Now imagine an email or payment call happened between the UPDATE and ROLLBACK. Which local rows disappear, and what effect can SQLite not undo?`,
       caution:
         "Keep the payload guard, receipt and domain effect in the same transaction. Do not insert a new data-changing statement between the receipt INSERT and its changes()-gated UPDATE. A duplicate key with changed meaning is an error, not successful deduplication.",
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[Isolation In SQLite](https://sqlite.org/isolation.html)",
-            locator: `“Isolation Between Database Connections” and “Isolation And Concurrency”`,
-          },
-          {
-            source:
-              "[File Locking And Concurrency In SQLite Version 3](https://sqlite.org/lockingv3.html)",
-            locator:
-              `§§2–3, §4.1, and §5: the five locking states, obtaining locks, and rollback-mode lock transitions`,
-          },
-        ],
-        rationale: code`
-You just observed deferred and immediate admission, reader/writer blocking, bounded busy waits,
-transaction-error scopes, and idempotent retries across lessons 20–25. Read these short
-rollback-mode documents to turn the observed errors into a state-machine model of serialized writes,
-serializable isolation, rollback locking, and retry boundaries before moving on to WAL; ignore the locking document’s old
-1024-byte example and trust the runtime page size instead.
-        `,
-      },
       revision: 3,
       minVersion: "3.53.4",
     },

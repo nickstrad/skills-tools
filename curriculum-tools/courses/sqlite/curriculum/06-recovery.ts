@@ -483,31 +483,6 @@ INSERT INTO observations SELECT x, printf('reading-%04d', x) FROM n;`,
         "Surviving structure determines what salvage can reach, and coarse extraction boundaries can lose more rows than the damaged bytes alone would suggest. A validated backup plus a rehearsed retrieval/restore process supports a recovery objective; salvage is a contingent fallback. An integrity-valid restored replica may still need the history repair taught in module 08.",
       challenge:
         code`Zero the table's root page (rootpage in sqlite_schema) instead of a leaf and rerun the chunk loop. Explain why the salvage rate collapses even though most leaf bytes are untouched, and what that says about where backups must be verified.`,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[SQLite Backup API](https://sqlite.org/backup.html)",
-            locator:
-              "Sections 1 (Using the SQLite Online Backup API), 1.1 (Other Backup Techniques), and 3.1 (File and Database Connection Locking)",
-          },
-          {
-            source:
-              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
-            locator:
-              "Sections 1.2 (Backup or restore while a transaction is active), 1.3 (Deleting a hot journal), and 1.4 (Mispairing database files and hot journals)",
-          },
-        ],
-        optionalDepth: [
-          {
-            source:
-              "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
-            locator:
-              "Sections 2.1 (Filesystems with broken or missing lock implementations), 2.5 (Unlinking or renaming a database file while in use), and 3.2 (Disabling sync using PRAGMAs)",
-          },
-        ],
-        rationale:
-          "Across lessons 32–37 you saw a main-file copy miss live WAL state, created engine-coordinated snapshots, checked both structural and domain integrity, recovered from a bounded page quota, and measured salvage from a damaged copy. Read these excerpts before continuing to distinguish a consistent backup from byte copying or salvage, and to understand why live journals and their database file must remain paired.",
-      },
       caution:
         "Only the reserved TUTOR_SQLITE_DB.damaged.db copy is byte-edited; reruns overwrite named damaged/recovered/recover-output lab artifacts. Preserve the original source and never point dd at it. Inspect errors from every salvage range: an unrelated execution error is not evidence of a corrupt range.",
       revision: 3,

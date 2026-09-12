@@ -187,8 +187,6 @@ history explicitly, fence and stop the old writer, and preserve its complete rec
 plus a verified cold file archive before running pg_rewind. Inspect the dry run and actual rewrite,
 repair copied endpoint settings, then prove the target follows the selected history read-only and
 receives a new receipt. The variation adds three old-branch acknowledgements instead of one.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including pg_rewind,
 pg_controldata, pg_basebackup and pg_verifybackup; PGBIN may select the binary folder. Only fresh

@@ -135,12 +135,6 @@ Change 2,000 receipts in a quiet owned cluster and compare a heap page in shared
 same page in the data file. Request a checkpoint, then connect the written page, retained cache
 entries, advanced redo point, checkpoint WAL record and published counter delta. This makes the
 checkpoint's recovery responsibility visible without treating WAL distance as elapsed recovery time.`,
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Background Writing", "WAL Setup")`,
-  readingNotes: code`
-Chapter 10 explains write-ahead ordering, checkpoint completion and background writing. Read after
-the experiment to separate the redo starting boundary from the later checkpoint record. This fixture
-uses PostgreSQL16 pg_stat_bgwriter counters and the newer pg_walinspect interface.`,
   caution: code`
 Run the supplied script in a shell with Python3, PostgreSQL16 server binaries and pg_buffercache,
 pageinspect and pg_walinspect installed. Set PGBIN to the PostgreSQL16 binary directory if needed.

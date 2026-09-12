@@ -126,12 +126,6 @@ Both committed and unfinished changes can reach durable WAL before a crash. Run 
 an owned cluster, decode the two transactions' records, then compare physical tuple headers with
 independently visible receipts after recovery. Explain why replaying an INSERT is insufficient to
 promise a successful application operation.`,
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "Checkpoint", "Recovery")`,
-  readingNotes: code`
-Chapter 10 explains restarting from a checkpoint's redo point and applying physical records. Read it
-after predicting the result; the experiment connects that model to the transaction-status and page
-visibility mechanisms from earlier lessons. pg_walinspect is a newer SQL inspection interface.`,
   caution: code`
 This script deliberately uses immediate shutdown on its newly allocated /tmp/pg-owned-* cluster.
 It does not use your existing lab connection or PGLAB. Use a shell with Python3, PostgreSQL server

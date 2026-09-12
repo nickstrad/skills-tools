@@ -355,24 +355,6 @@ printf 'two_writer final_rows=%s final_wal_bytes=%s logs=%s,%s\n' "$(sqlite3 "$d
         "Batching trades fewer commits for longer writer occupancy and a larger retry unit. Busy timeout is a bounded admission wait, not extra write capacity. Carry the mechanism into an architecture decision, but obtain sustained, minimally instrumented measurements of the actual workload before claiming that its latency/error budgets fit.",
       challenge:
         "Keep the total row count fixed while changing batch size. Then repeat the contention case with busy_timeout 100: predict the first ten outcomes and total waiting before measuring. For the ADR, adapt the supplied unpaced phase to a representative workload and separate successful transaction latency from rejected admission latency; label measurements you have not made.",
-      studyCheckpoint: {
-        core: [
-          {
-            source: "[SQLite Query Planning](https://sqlite.org/queryplanner.html)",
-            locator:
-              "Sections 1.1–1.3 (Tables Without Indices, Lookup By Rowid, Lookup By Index), 1.6–1.7 (Multi-Column Indices, Covering Indexes), 2 (Sorting), 3 (Searching And Sorting At The Same Time), and 4 (WITHOUT ROWID tables)",
-          },
-        ],
-        optionalDepth: [
-          {
-            source:
-              "[SQLite: Past, Present, and Future](https://www.vldb.org/pvldb/vol15/p3535-gaffney.pdf)",
-            locator: "Section 2, “Architecture”",
-          },
-        ],
-        rationale:
-          "Across lessons 38–41 you observed scans become searches, measured index read/write costs, let ANALYZE change a plan, and measured a workload-specific writer envelope. Read these sections before continuing to connect that evidence to search cost, locality, sorting work, and the trade-offs behind WITHOUT ROWID; the paper is optional historical context, not a source of current benchmark promises.",
-      },
       caution:
         "Use only the printed disposable evidence directory. The holder releases after ten acknowledged attempts, not a guessed sleep interval. This instrumented CLI fixture excludes realistic arrivals, host crashes and power loss; its throughput is not a sizing recommendation.",
       safetyLevel: "locking",

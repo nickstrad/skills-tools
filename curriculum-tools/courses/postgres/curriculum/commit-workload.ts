@@ -117,10 +117,6 @@ export const COMMIT_WORKLOAD: Draft = {
   revision: 4,
   estimatedMinutes: 30,
   prerequisites: ["every-change-is-a-wal-record", "build-lab-cluster"],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 11 "WAL Modes" (sections "Performance", "Fault Tolerance")`,
-  readingNotes:
-    code`Chapter 11 explains the performance and failure consequences of WAL settings. Run the comparison first, then connect waiting for local WAL flush with the acknowledgement contract. The optional file probe measures a different boundary from a full database transaction.`,
   overview:
     code`Compare synchronous and asynchronous commit waiting with one and four clients, using a fixed amount of useful work and raw transaction latencies. Verify every committed increment before interpreting throughput or WAL-sync counters. A second sweep reverses the order so one warm-up sequence does not silently become the conclusion.`,
   caution:

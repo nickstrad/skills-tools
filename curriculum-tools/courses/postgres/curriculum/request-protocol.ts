@@ -63,8 +63,6 @@ leaves a different question: did the database commit before the response was los
 responses in two controlled fixtures, replay the same request in a fresh transaction, and inspect
 one debit and a stored result for each successful request. A competing replay then tests the same
 identity while the first caller still has an open transaction.`,
-  reading: code`
-PostgreSQL 14 Internals does not provide this application protocol; Chapter 2 "Isolation" and Chapter 13 "Row-Level Locks" provide transaction and contention background.`,
   syntaxBreakdown: code`
 ### In plain terms
 

@@ -349,8 +349,6 @@ export const DISK_INCIDENT: Draft = {
   runIn: "shell",
   estimatedMinutes: 45,
   prerequisites: ["wal-files-and-recycling", "replication-slot-retains-wal", "slot-lag-and-disk"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   overview: code`
 WAL files grew during a bounded write workload. Determine whether retained consumer history,
 unsuccessful archiving or changed write demand explains the evidence, then choose a remedy that

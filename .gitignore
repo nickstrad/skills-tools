@@ -26,3 +26,4 @@ coverage/
 .coverage/
 tmp/
 temp/
+archive/legacy-reading/databases/

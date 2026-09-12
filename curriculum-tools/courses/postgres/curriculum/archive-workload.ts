@@ -106,12 +106,6 @@ An archive consumer that cannot accept completed WAL prevents PostgreSQL from re
 history. Cause that failure in a fresh private cluster, exceed its small WAL target with a bounded
 workload, then repair the consumer and prove every selected segment arrived unchanged. Decide which
 measurements would warn you before retained history exhausted a service's disk.`,
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (sections "WAL Structure", "WAL Setup")`,
-  readingNotes: code`
-Chapter 10 supplies the segment, recycling and WAL-budget model; it does not cover archive_command
-or pg_stat_archiver. This experiment extends that model to a failing consumer. Actual backup
-restoration follows in the recovery lessons.`,
   caution: code`
 Run in a shell with Python 3 and PostgreSQL server binaries installed; PGBIN may name their directory.
 The script creates its own /tmp/pg-owned-* directory and socket, disables TCP, and stops that server

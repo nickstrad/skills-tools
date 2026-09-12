@@ -19,13 +19,6 @@ Plain VACUUM removes dead tuples and their index entries, records the freed spac
 map. It can truncate empty pages at the end, but cannot move live rows to consolidate interior holes.
 In this fixture the file stays the same size. Observe reclaimed tuple space, then insert 10000 new
 rows and measure whether they fit inside the existing allocation.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 6 "Vacuum and Autovacuum" (sections "Vacuum", "Vacuum Phases"); Chapter 8 "Rebuilding Tables and Indexes" (section "Full Vacuuming")`,
-      readingNotes: code`
-Chapter 6 describes vacuum's heap, index, and free-space phases, while Chapter 8 contrasts ordinary
-vacuum with rewriting operations that can reduce the file. This lesson watches the file remain the
-same size while its holes become reusable, then fills those holes with new rows. Run it before the
-chapters so the phase accounting has visible evidence to explain.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -165,13 +158,6 @@ SELECT - may touch the table meanwhile. Here a plain reader gets in first and ho
 AccessShareLock; VACUUM FULL then queues behind it, and you can watch the ungranted lock row from
 the reader's session. When the reader commits, the rewrite runs and pg_relation_filepath changes:
 the table is now a different file on disk.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 8 "Rebuilding Tables and Indexes" (section "Full Vacuuming"); Chapter 12 "Relation-Level Locks" (sections "Relation-Level Locks", "Wait Queue")`,
-      readingNotes: code`
-Chapter 8 explains that VACUUM FULL rebuilds a relation, while Chapter 12 explains the
-AccessExclusiveLock and wait queue that make the rebuild block readers. This lesson holds an
-AccessShareLock first, observes VACUUM FULL waiting, and then compares relfilenodes before and after
-the rewrite. Run it before reading the lock and rebuild sections so their operational cost is clear.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -323,13 +309,6 @@ So an index-only scan is only possible when something else can vouch that every 
 visible to everyone, and that something is the visibility map, one bit per page, set by VACUUM.
 Here you will get Heap Fetches: 0, then dirty a scattered 1% of the rows and watch the bit clear for
 those pages and the heap fetches come back - then vacuum again and watch it heal.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 6 "Vacuum and Autovacuum" (section "Vacuum"); Chapter 20 "Index Scans" (section "Index-Only Scans")`,
-      readingNotes: code`
-Chapter 6 explains VACUUM's visibility work, and Chapter 20 explains how an index-only scan avoids
-heap visits when visibility is known. This lesson uses pg_visibility_map_summary and EXPLAIN to show
-Heap Fetches at zero, then dirties scattered pages and watches fetches return. Run it before the
-chapters, then read Chapter 20 to relate the all-visible map bits to the executor's plan.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -457,41 +436,12 @@ thousand. Locality of writes, not their volume, decides how much of the summary 
       estimatedMinutes: 15,
       prerequisites: ["vacuum-reclaims-in-place"],
       revision: 4,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 4 §4.5 "Transaction Horizon" (printed pp. 87–89)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 6 §§6.1–6.3 (printed pp. 102–109)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 6 §6.5, subheadings "About the Autovacuum Mechanism", "Which Tables Need to be Vacuumed?", and "Which Tables Need to Be Analyzed?" (printed pp. 110–113)`,
-          },
-        ],
-        rationale: code`
-You observed version cleanup, in-place reuse, visibility information, and an autovacuum threshold.
-Read these bounded sections to connect the safety horizon and the background control loop. Skip exact
-autovacuum defaults, threshold numbers, and monitoring output; continue when you have the mechanism.
-`,
-      },
       overview: code`
 Autovacuum schedules routine cleanup when a table's estimated dead tuples exceed
 threshold + scale_factor * reltuples; manual VACUUM also has operational uses. This lesson sets a small table-local
 threshold, then performs three modest independently committed write batches and measures the growing
 dead-version backlog. A bounded poll may observe an autovacuum completion, but timing is not a
 guarantee: if it does not appear, the diagnostics still prove eligibility and tell you what to inspect.`,
-      reading:
-        `PostgreSQL 14 Internals, Chapter 6 "Vacuum and Autovacuum" (sections "Automatic Vacuum and Analysis", "Monitoring")`,
-      readingNotes: code`
-Chapter 6 explains the dead-tuple threshold formula, the launcher and worker, and the monitoring views
-that show completed or active vacuum work. This lesson lowers one table's threshold, creates bounded
-write batches, and records the observed backlog and worker counters. Run it first, then read the
-chapter to place an observed completion or the bounded diagnostic outcome in the control loop.`,
       syntaxBreakdown: code`
 ### In plain terms
 

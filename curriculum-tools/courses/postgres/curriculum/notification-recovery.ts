@@ -216,8 +216,6 @@ export const NOTIFICATION_RECOVERY: Draft = {
   title: "LISTEN/NOTIFY: recover missed wake-ups from durable work",
   revision: 4,
   tags: ["listen-notify", "queues", "outbox", "durability", "distributed-patterns"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 "Introduction".`,
   difficulty: "advanced",
   safetyLevel: "privileged",
   runIn: "shell",

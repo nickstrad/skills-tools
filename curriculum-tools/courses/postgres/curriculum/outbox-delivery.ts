@@ -302,8 +302,6 @@ export const TRANSACTIONAL_OUTBOX: Draft = {
   revision: 4,
   tags: ["outbox", "queues", "skip-locked", "idempotency", "distributed-patterns"],
   title: "Deliver a transactional outbox through independent receiver commits",
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 13 "Row-Level Locks".',
   difficulty: "advanced",
   safetyLevel: "privileged",
   runIn: "shell",

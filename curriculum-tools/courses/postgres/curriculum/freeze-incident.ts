@@ -223,14 +223,6 @@ export const FREEZE_INCIDENT: Draft = {
     "read-the-server-log",
     "two-phase-commit",
   ],
-  reading:
-    code`PostgreSQL 14 Internals, Chapter 7 "Freezing" (sections "Transaction ID Wraparound", "Managing Freezing"); Chapter 6 "Vacuum and Autovacuum" (section "Monitoring")`,
-  readingNotes: code`
-Chapter 7 explains freezing and the relation/database horizons that bound transaction-ID age;
-Chapter 6 supplies vacuum monitoring context. Read after diagnosing why the completed passes do
-not finish freezing. This exercise applies that mechanism to a durable prepared-transaction
-obligation, whose decision protocol is outside the book and comes from the earlier2PC lesson.
-It does not lower wraparound thresholds, burn large numbers of XIDs or simulate a production deadline.`,
   overview: code`
 Several vacuum passes completed, yet part of a small ledger remains unfrozen and its frozen
 boundary does not move. Select tuple, horizon, process and durable outcome evidence to identify the

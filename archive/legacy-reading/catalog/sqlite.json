@@ -1,0 +1,123 @@
+{
+  "format": 1,
+  "sourceRevision": "df6211c2ccf07ee7b0890c9f8aaf4ebbca8b4539",
+  "course": "sqlite",
+  "lessons": {
+    "freelist-vacuum-and-reuse": {
+      "ordinal": 13,
+      "slug": "freelist-vacuum-and-reuse",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+            "locator": "§1.2 “Pages”; §1.3.2 “Page Size”; §§1.5–1.7 “The Freelist”, “B-tree Pages”, and “Cell Payload Overflow Pages”; §§2.3–2.5 on rowid tables, WITHOUT ROWID tables, and indexes"
+          }
+        ],
+        "optionalDepth": [
+          {
+            "source": "[Architecture of SQLite](https://sqlite.org/arch.html)",
+            "locator": "“Overview”, “B-Tree”, and “Page Cache”"
+          }
+        ],
+        "rationale": "You just observed page-aligned growth, B-tree shape, rowid and WITHOUT ROWID layout differences,\noverflow chains, and freelist reuse across lessons 8–13. Read these bounded file-format sections to\nconnect those observations into one physical model of pages, keys, payload, and free space before\nmoving on to journals; the optional architecture excerpts are enrichment, not a prerequisite."
+      }
+    },
+    "batching-changes-the-cost": {
+      "ordinal": 19,
+      "slug": "batching-changes-the-cost",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[Atomic Commit In SQLite](https://sqlite.org/atomiccommit.html)",
+            "locator": "§§3.4–3.5, 3.7–3.11, 4.2, and 4.6: rollback-journal updates, database writes, synchronization, journal invalidation, and hot-journal recovery"
+          }
+        ],
+        "optionalDepth": [
+          {
+            "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            "locator": "§§3.2 and 4.1 on disabling sync and non-powersafe flash controllers"
+          }
+        ],
+        "rationale": "You just saw rollback journals appear and disappear, hot-journal recovery restore committed state,\nsync-call differences under FULL/NORMAL/OFF, and batching amortize transaction-boundary work across\nlessons 14–19. Read these rollback-mode sections to explain the required write and sync ordering\nbehind that evidence before moving on; this document does not describe WAL, and the corruption\nmaterial is optional operational context."
+      }
+    },
+    "idempotent-retry-ledger": {
+      "ordinal": 25,
+      "slug": "idempotent-retry-ledger",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[Isolation In SQLite](https://sqlite.org/isolation.html)",
+            "locator": "“Isolation Between Database Connections” and “Isolation And Concurrency”"
+          },
+          {
+            "source": "[File Locking And Concurrency In SQLite Version 3](https://sqlite.org/lockingv3.html)",
+            "locator": "§§2–3, §4.1, and §5: the five locking states, obtaining locks, and rollback-mode lock transitions"
+          }
+        ],
+        "rationale": "You just observed deferred and immediate admission, reader/writer blocking, bounded busy waits,\ntransaction-error scopes, and idempotent retries across lessons 20–25. Read these short\nrollback-mode documents to turn the observed errors into a state-machine model of serialized writes,\nserializable isolation, rollback locking, and retry boundaries before moving on to WAL; ignore the locking document’s old\n1024-byte example and trust the runtime page size instead."
+      }
+    },
+    "checkpoint-starvation": {
+      "ordinal": 31,
+      "slug": "checkpoint-starvation",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[SQLite Write-Ahead Logging](https://sqlite.org/wal.html)",
+            "locator": "§1 “Overview”; §§2–2.3 “How WAL Works”; §§3–3.3 “Activating And Configuring WAL Mode”; §9 “Sometimes Queries Return SQLITE_BUSY In WAL Mode”; omit the struck-through pre-3.11 warning and §11 bug mechanics"
+          }
+        ],
+        "optionalDepth": [
+          {
+            "source": "[SQLite Database File Format](https://sqlite.org/fileformat.html)",
+            "locator": "Section 4, especially 4.3–4.6 (checkpointing, reset and reuse, the reader algorithm, and the WAL-index)"
+          }
+        ],
+        "rationale": "You just saw a live reader hold back checkpoint progress while committed writes enlarged the WAL sidecar. Read these bounded sections before continuing to connect that evidence to WAL append and commit records, reader end-marks, checkpointing, reuse, and the fact that WAL still has busy cases and one writer. The 3.53.4 course minimum includes the WAL-reset fix; older SQLite 3.7.0–3.51.2 installations should use 3.51.3+ or an official fixed backport for production."
+      }
+    },
+    "recover-damaged-copy": {
+      "ordinal": 37,
+      "slug": "recover-damaged-copy",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[SQLite Backup API](https://sqlite.org/backup.html)",
+            "locator": "Sections 1 (Using the SQLite Online Backup API), 1.1 (Other Backup Techniques), and 3.1 (File and Database Connection Locking)"
+          },
+          {
+            "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            "locator": "Sections 1.2 (Backup or restore while a transaction is active), 1.3 (Deleting a hot journal), and 1.4 (Mispairing database files and hot journals)"
+          }
+        ],
+        "optionalDepth": [
+          {
+            "source": "[How To Corrupt An SQLite Database File](https://sqlite.org/howtocorrupt.html)",
+            "locator": "Sections 2.1 (Filesystems with broken or missing lock implementations), 2.5 (Unlinking or renaming a database file while in use), and 3.2 (Disabling sync using PRAGMAs)"
+          }
+        ],
+        "rationale": "Across lessons 32–37 you saw a main-file copy miss live WAL state, created engine-coordinated snapshots, checked both structural and domain integrity, recovered from a bounded page quota, and measured salvage from a damaged copy. Read these excerpts before continuing to distinguish a consistent backup from byte copying or salvage, and to understand why live journals and their database file must remain paired."
+      }
+    },
+    "measure-the-writer-envelope": {
+      "ordinal": 41,
+      "slug": "measure-the-writer-envelope",
+      "studyCheckpoint": {
+        "core": [
+          {
+            "source": "[SQLite Query Planning](https://sqlite.org/queryplanner.html)",
+            "locator": "Sections 1.1–1.3 (Tables Without Indices, Lookup By Rowid, Lookup By Index), 1.6–1.7 (Multi-Column Indices, Covering Indexes), 2 (Sorting), 3 (Searching And Sorting At The Same Time), and 4 (WITHOUT ROWID tables)"
+          }
+        ],
+        "optionalDepth": [
+          {
+            "source": "[SQLite: Past, Present, and Future](https://www.vldb.org/pvldb/vol15/p3535-gaffney.pdf)",
+            "locator": "Section 2, “Architecture”"
+          }
+        ],
+        "rationale": "Across lessons 38–41 you observed scans become searches, measured index read/write costs, let ANALYZE change a plan, and measured a workload-specific writer envelope. Read these sections before continuing to connect that evidence to search cost, locality, sorting work, and the trade-offs behind WITHOUT ROWID; the paper is optional historical context, not a source of current benchmark promises."
+      }
+    }
+  }
+}

@@ -85,8 +85,6 @@ Create an owned primary and a real physical standby from a verified base backup.
 sender/receiver link, then follow a committed post-backup receipt through replay and an independent
 standby query. Actually reject a standby write. The variation replaces the receiver process and
 verifies reconnection plus a later receipt, without treating reconnection as leader election.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".`,
   caution: code`
 Use Python3 and matching PostgreSQL16 server tools, pg_basebackup and pg_verifybackup; PGBIN may
 select their folder. The script creates its own /tmp/pg-owned-* primary, standby and sockets with

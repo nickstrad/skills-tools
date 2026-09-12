@@ -39,13 +39,6 @@ A transaction is the unit of all-or-nothing. First you undo a two-row transfer d
 you make one statement fail and observe the connection's failed transaction state. The application
 rule here is concrete: with no earlier savepoint to recover to, roll back the failed transaction
 before issuing new business statements.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (sections "Operations on Tuples", "Subtransactions")`,
-      readingNotes: code`
-Chapter 3 explains how INSERT and UPDATE create row versions and how commit or abort marks those
-versions visible or invisible. This lesson focuses on rollback and the client-facing failed
-transaction state after the earlier MVCC experiment established the physical mechanism; read the chapter before or after the
-experiment to connect the error to tuple-level state.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -140,13 +133,6 @@ PostgreSQL's default isolation level is READ COMMITTED, and its rule is per stat
 transaction: each statement sees everything committed before that statement started. Two identical
 SELECTs in one transaction can therefore return different rows. The earlier
 two-sessions-see-different-versions experiment supplies the full Repeatable Read contrast.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Read Committed", "Repeatable Read")`,
-      readingNotes: code`
-Chapter 2 describes Read Committed snapshots per statement and Repeatable Read snapshots per
-transaction. The two-session race below is the live version of those rules; the experiment adds
-psql output and a direct comparison of values, so run it after reading the chapter or use it first
-as a concrete preview.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -225,13 +211,6 @@ The classic bug: two sessions read a balance, both subtract 10 in application co
 decrements disappears. You will cause it, then fix it twice -- with an atomic read-modify-write in
 SQL, and with SELECT ... FOR UPDATE -- and watch the second session block and recompute in both
 fixes.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (sections "Isolation Levels and Anomalies in SQL Standard", "Read Committed"); Chapter 13 "Row-Level Locks" (section "Row-Level Locking Modes")`,
-      readingNotes: code`
-Chapter 2 names lost updates as an isolation anomaly, while Chapter 13 explains the row-lock modes
-used by FOR UPDATE. This lesson puts both ideas in one sequence: first an application-level race,
-then server-side arithmetic and an explicit row lock. Read the chapters before the experiment if
-you want the lock terminology; otherwise use the output to make the anomaly concrete.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -406,12 +385,6 @@ retryable serialization failure.
   - What it does here: Clears A's aborted state so it can read again.
   - What it gives us: Balance 105, showing only B committed.
 `,
-      reading: code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Repeatable Read")`,
-      readingNotes: code`
-Chapter 2 explains that Repeatable Read protects a transaction's snapshot and raises a serialization
-failure when a concurrent committed update would invalidate it. This lesson stages the wait and
-shows SQLSTATE 40001 plus the failed-transaction state; run it after the chapter to connect the
-visible error to snapshot rules.`,
       setup: ACCOUNTS,
       code: code`
 -- Session A
@@ -502,12 +475,6 @@ have on_call = true.”
   - What it does here: Makes each final row easy to inspect.
   - What it gives us: Stable evidence of which rows changed.
 `,
-      reading: code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Repeatable Read")`,
-      readingNotes: code`
-Chapter 2 explains Repeatable Read's snapshot isolation and why it detects write/write conflicts but
-not every read/write dependency. This lesson turns that limitation into the on-call invariant and
-then points toward predicate locking; read it after the chapter so the broken invariant has a clear
-snapshot-isolation explanation.`,
       setup: ONCALL,
       code: code`
 -- Session A
@@ -629,13 +596,6 @@ lock, so the conflict appears as a commit-time error.
   - What it does here: Makes the commit-time failure explicit.
   - What it gives us: 40001, the signal to retry the whole transaction.
 `,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 2 "Isolation" (section "Serializable"); Chapter 14 "Miscellaneous Locks" (section "Predicate Locks")`,
-      readingNotes: code`
-Chapter 2 introduces Serializable Snapshot Isolation and its serialization failures; Chapter 14
-describes predicate locks as records of read ranges rather than ordinary blocking locks. This lesson
-shows SIReadLock rows while the on-call race is open and the failure at COMMIT. Read both chapters
-before running it, then use the output to distinguish a predicate lock from a waiting row lock.`,
       setup: ONCALL,
       code: code`
 -- Session A

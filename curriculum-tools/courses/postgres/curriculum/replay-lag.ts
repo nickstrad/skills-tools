@@ -88,8 +88,6 @@ Pause actual standby replay while leaving streaming active. Commit2,000 receipts
 has reached the standby's flush position and the primary has received that acknowledgement, then
 show a query still sees only the original row. Resume and require both a replay boundary and every
 expected receipt value before calling the copy caught up.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including
 pg_basebackup/pg_verifybackup; PGBIN may select the folder. It creates an owned source/standby,

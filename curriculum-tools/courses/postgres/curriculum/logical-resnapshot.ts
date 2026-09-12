@@ -311,8 +311,6 @@ changes. Then delete the slot with another backlog still pending: a new slot wit
 streams new work but leaves missing, extra and stale rows. Rebuild from a fresh subscription snapshot
 and verify complete current state, while preserving evidence of a historical event the snapshot
 cannot reconstruct. The variation first tries publication refresh on the existing subscription.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".',
   caution: code`
 Run the complete shell script with Python3, PostgreSQL16 server binaries and pg_walinspect available;
 PGBIN can select the binary folder. It initializes private source/subscriber directories and sockets,

@@ -18,22 +18,6 @@ Every later lesson crashes, promotes, corrupts, or reconfigures a PostgreSQL nod
 you need a cluster that is yours to break. Create one with initdb under $PGLAB on port 5440 with the
 settings the curriculum relies on (logical WAL, checksums, archiving, prepared transactions,
 commit timestamps, I/O timing, pg_stat_statements, verbose logging).`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 1 "Introduction" (sections "Data Organization" and "Processes and Memory")`,
-      readingNotes: code`
-Chapter 1 describes, on paper, exactly what initdb lays down here: a cluster as one directory
-holding several databases, each database as a set of files under base/, and the fixed set of
-server processes that pg_ctl starts (the postmaster and its background workers). The book names
-the directories and files; this lesson creates them, so after running it you can open
-$PGLAB/primary and match every name in the chapter's "Data Organization" section to a real
-folder.
-
-What the book adds that the lesson does not: the chapter also explains the client-server
-protocol and how shared memory is split between processes, which nothing in this lesson touches
-yet (the process-model lesson in this module and the buffer-cache lesson in module 02 pick those
-up). What the lesson adds: the configuration block and the archive directory are course
-conveniences the book does not discuss. Read the chapter after the lab is up, with a terminal
-open in $PGLAB/primary.`,
       syntaxBreakdown: code`
 ### In plain terms
 A PostgreSQL "cluster" is not a group of machines; it is one directory on disk plus one set of
@@ -224,8 +208,6 @@ Read $PGLAB/primary/postgresql.conf from the top and note which settings need a 
 Most experiments need two terminals (Session A and Session B) talking to the same lab, each
 showing its backend PID so you can find it in pg_stat_activity, plus \timing, \gset and \watch to
 turn queries into measurements.`,
-      reading: code`
-PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 1 "Introduction".`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -349,19 +331,6 @@ select pid, application_name, state from pg_stat_activity where backend_type = '
       overview: code`
 Contrib extensions expose internals that the core catalog hides: raw pages, the buffer cache,
 tuple-level bloat, the visibility map, WAL records, and query statistics.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 3 "Pages and Tuples" (section "Page Structure"); Chapter 6 "Vacuum and Autovacuum" (section "Vacuum"); Chapter 9 "Buffer Cache" (sections "Cache Hits", "Cache Warming")`,
-      readingNotes: code`
-The book uses the same families of internals that these extensions expose: page structure in
-Chapter 3, vacuum's cleanup and visibility information in Chapter 6, and cache contents in
-Chapter 9. This lesson only installs the inspection tools; the later storage lessons make the
-book's structures visible. Read the cited sections after installation, when you can immediately
-try their page, vacuum, and cache vocabulary against the lab.
-
-The book does not cover every extension here: **pg_freespacemap**, **pg_walinspect**, **pg_stat_statements**,
-**amcheck**, and the connection helpers are course tooling rather than book examples. PostgreSQL 16
-also has views and output details newer than the PostgreSQL 14 examples in the book, but the
-underlying page, vacuum, and cache mechanisms are the same.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -443,18 +412,6 @@ summaries are what you already get from monitoring.`,
       overview: code`
 See that every connection is an OS process forked by the postmaster, and that durability and
 cleanup are delegated to a fixed set of auxiliary processes.`,
-      reading: code`
-PostgreSQL 14 Internals, Chapter 1 "Introduction" (sections "Processes and Memory", "Clients and the Client-Server Protocol"); Chapter 15 "Locks on Memory Structures" (section "Monitoring Waits")`,
-      readingNotes: code`
-Chapter 1 supplies the process and client/server model behind this inventory: a postmaster accepts
-connections and PostgreSQL creates a backend process for each client, while auxiliary processes
-handle shared work. The lesson observes the live process list and settings; Chapter 15 adds the
-wait-event vocabulary used to interpret idle or blocked processes. Read Chapter 1 first for the
-model, run this survey, then use Chapter 15 when a later lesson needs wait details.
-
-The book explains the architecture rather than exhausting max_connections or measuring process
-cost. The exact background-process list and backend_type labels can vary with PostgreSQL version
-and enabled features, so treat names as a live inventory rather than a fixed count.`,
       syntaxBreakdown: code`
 ### In plain terms
 

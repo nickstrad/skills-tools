@@ -156,8 +156,6 @@ receipts while its physical slot keeps the needed WAL. Checkpoint and measure re
 small primary WAL target. Reconnect and prove complete replay plus reclamation; the variation
 instead limits the slot, observes an actual failed consumer restart and rebuilds the copy before
 proving that new post-backup work streams again.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Run the complete shell script with Python3 and matching PostgreSQL16 binaries, including
 pg_basebackup/pg_verifybackup; PGBIN may select the binary folder. It creates private source/standby

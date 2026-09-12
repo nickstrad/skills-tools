@@ -272,8 +272,6 @@ receiver effect; then apply a complete decoded transaction using durable receipt
 its source position. Kill actual consumer processes before receiver commit, after receiver commit
 and after source acknowledgement. The variation also crashes the source before its new slot
 position is checkpointed, producing a replay that must not credit the receiver twice.`,
-  reading:
-    'PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 11 "WAL Modes".',
   caution: code`
 Run the complete shell script with Python3, matching PostgreSQL16 binaries and test_decoding
 installed; PGBIN may select the binary folder. Two independently initialized PostgreSQL processes

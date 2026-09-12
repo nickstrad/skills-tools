@@ -213,8 +213,6 @@ Create and verify a real physical backup of jobs and their completion receipts. 
 source, restore independently and check every result plus actual constraint enforcement. Then remove
 required WAL from a second disposable copy and require a classified startup failure, preserving the
 intact backup as evidence. A backup command's success and recoverability are separate claims.`,
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   caution: code`
 Use Python3 and matching PostgreSQL16 pg_basebackup, pg_verifybackup and server binaries; PGBIN may
 select the directory. The script creates only owned /tmp/pg-owned-* source/backup/restore paths,

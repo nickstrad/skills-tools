@@ -282,8 +282,6 @@ export const CANCEL_INCIDENT: Draft = {
   runIn: "shell",
   estimatedMinutes: 35,
   prerequisites: ["lock-queue-and-blocking-pids", "idle-in-transaction-kills-you"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 15 "Locks on Memory Structures".`,
   overview: code`
 A request remains incomplete at its supplied response deadline. Choose evidence from a real activity,
 wait, CPU and data inventory, identify the relevant sessions, and select the least disruptive policy

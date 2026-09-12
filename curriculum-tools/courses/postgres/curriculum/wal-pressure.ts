@@ -134,29 +134,6 @@ Generate the same bounded receipt workload on fresh owned clusters with8MB and12
 Wait for the actual setting, then connect requested-checkpoint deltas to fresh WAL-reason log lines.
 Compare sampled retained segments and correct row outcomes while separating checkpoint pressure from
 archive/slot retention and from claims about foreground latency.`,
-  reading: code`PostgreSQL 14 Internals, Chapter 10 "Write-Ahead Log" (section "WAL Setup")`,
-  readingNotes: code`
-Chapter 10's WAL setup section connects WAL generation, checkpoint scheduling and configuration.
-Use the study checkpoint after the experiment to consolidate this module. The fixture measures
-PostgreSQL16 counters with1MB segments; book defaults and exact example counts do not apply.`,
-  studyCheckpoint: {
-    core: [
-      {
-        source: "PostgreSQL 14 Internals",
-        locator: `Chapter 10 §§10.1–10.4 (printed pp. 164–175)`,
-      },
-      {
-        source: "PostgreSQL 14 Internals",
-        locator: `Chapter 10 §10.6 "WAL Setup" (printed pp. 177–181)`,
-      },
-    ],
-    rationale: code`
-You observed WAL records, commit boundaries, crash replay and checkpoint work. Read these sections
-to consolidate WAL-before-data, LSNs, segment layout, redo bounds, recovery and configuration
-tradeoffs. Keep the experiments as your primary treatment of measured commit latency and page-image
-costs. Skip the PG14 checkpoint defaults, example segment names/LSNs and exact pg_waldump output.
-Resume with the actual base-backup experiment when you finish.`,
-  },
   caution: code`
 Run in a shell with Python3 and PostgreSQL16 server binaries; PGBIN may select their directory.
 The script creates two owned /tmp/pg-owned-* clusters serially and ignores your existing PG/PGLAB

@@ -60,8 +60,6 @@ export const IO_OBSERVATION: Draft = {
   slug: "pg-stat-io-by-backend-type",
   title: "Attribute I/O counters without inventing disk latency",
   tags: ["pg-stat-io", "buffer-cache", "observability", "checkpoints"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 9 "Buffer Cache".`,
   difficulty: "intermediate",
   safetyLevel: "ddl",
   runIn: "tool",

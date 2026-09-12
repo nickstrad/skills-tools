@@ -324,8 +324,6 @@ export const TWO_PHASE_COMMIT: Draft = {
   title: "Two-phase commit: recover prepared participants from a durable decision",
   revision: 4,
   tags: ["two-phase-commit", "transactions", "durability", "gc-horizon", "recovery"],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 3 "Pages and Tuples".`,
   difficulty: "advanced",
   safetyLevel: "dangerous",
   runIn: "shell",

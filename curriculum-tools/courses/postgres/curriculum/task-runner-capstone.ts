@@ -419,8 +419,6 @@ export const TASK_RUNNER_CAPSTONE: Draft = {
     "listen-notify-as-a-bus",
     "read-your-writes-on-a-replica",
   ],
-  reading:
-    code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 10 "Write-Ahead Log".`,
   overview: code`
 Run a supplied task runner through unknown admission outcome, worker loss, database crash, missed
 wake-ups and bounded overload. Reconstruct every accepted, rejected and retried request from its

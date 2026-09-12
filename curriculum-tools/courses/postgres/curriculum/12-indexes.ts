@@ -28,13 +28,6 @@ Inspect the root and leaves of two B-trees containing the same 100,000 unique lo
 indexes are bulk-built after loading the table, so the comparison avoids mixing insertion and build
 histories. Compare their integer and wide-text representations, then locate one leaf entry by its
 heap address; page layout and cache behavior are separate observations.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 25 "B-tree" (sections "Overview", "Page Layout")`,
-      readingNotes: code`
-Chapter 25 explains the B-tree levels, page layout, high keys, and leaf links that this lesson
-opens with pageinspect. The experiment adds a size comparison between integer and wide text keys,
-and uses amcheck to verify the structure. Read the chapter before or after; the block-by-block
-inspection is a useful concrete companion to its diagrams.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -206,8 +199,6 @@ A concurrent index build keeps ordinary writes possible while advancing through 
 Hold an old snapshot, observe the builder waiting, and distinguish an index maintained for writes
 from one valid for planning. Then cause a duplicate-key failure, inspect the invalid artifact and
 repair the data before a successful rebuild.`,
-      reading:
-        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 12 "Relation-Level Locks".`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -381,13 +372,6 @@ Compare a partial index for a small pending subset with a covering index that ca
 tenant reads. Keep the measured answer fixed while changing the access path, then request a column
 that the covering index lacks. Finally, compare identical updates on matched small tables to expose
 the HOT cost of indexing an updated payload.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 19 "Index Access Methods" (section "Indexing Engine Interface"); Chapter 20 "Index Scans" (section "Index-Only Scans")`,
-      readingNotes: code`
-Chapter 19 explains index access-method properties and Chapter 20 explains index-only scans. This
-lesson applies those ideas to partial predicates and INCLUDE payload columns, measuring both the
-smaller hot-set index and the wider covering index. Read the chapters before or after; the plan and
-size comparisons show the trade-off the book describes.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -563,13 +547,6 @@ Apply two bounded rounds of indexed-key updates, vacuum between them and measure
 index structure. Then compare the same range answer and plan before and after a concurrent rebuild.
 Two rounds can demonstrate reuse; they cannot establish an indefinitely stable size or justify a
 rebuild for every workload.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 5 "Page Pruning and HOT Updates" (section "Page Pruning for Indexes"); Chapter 8 "Rebuilding Tables and Indexes" (sections "Full Vacuuming", "Other Rebuilding Methods"); Chapter 25 "B-tree" (section "Page Layout")`,
-      readingNotes: code`
-Chapter 5 explains dead index entries and page pruning, Chapter 8 explains rebuilding, and Chapter
-25 supplies B-tree page-layout context. This experiment measures bloat after indexed-column churn,
-shows why VACUUM cannot shrink the file, and then uses REINDEX CONCURRENTLY to replace it. Read the
-chapters after the first measurements so density and fragmentation have visible examples.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -709,13 +686,6 @@ Two clients can both observe no active owner before either commits. A partial un
 arbitrates their inserts and enforces at most one active row for a nonnull resource, while allowing
 released history. Exercise that boundary and an atomic handover; it provides neither expiry nor
 protection against a stale writer at an external service.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 19 "Index Access Methods" (section "Indexing Engine Interface"); Chapter 12 "Relation-Level Locks" (section "Locks on Transaction IDs")`,
-      readingNotes: code`
-Chapter 19 explains the indexing-engine uniqueness property, and Chapter 12 explains waits on a
-transaction ID when a conflicting change is uncommitted. This experiment makes a partial unique
-index enforce one active owner row and observes the losing insert wait and error. Read both chapters
-before or after; use the live wait to connect the index invariant to transaction locking.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -866,8 +836,6 @@ Do not add expiry or external-fencing claims to this local invariant.`,
     },
     {
       slug: "keyset-pagination-and-concurrent-writes",
-      reading:
-        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 20 "Index Scans".`,
       tags: ["btree", "pagination", "concurrency", "index-scans"],
       title: "Continue from a key boundary while new rows arrive",
       difficulty: "advanced",

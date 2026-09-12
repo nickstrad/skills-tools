@@ -19,14 +19,6 @@ export const PLANNER: Module = {
 Compare the estimated and observed work of one bounded query, then add an index while keeping its
 answer fixed. Read rows, loops and buffer activity as separate measurements. Finally, execute an
 UPDATE through EXPLAIN ANALYZE and prove which effects a transaction rollback removes.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 16 "Query Execution Stages" (section "Simple Query Protocol"); Chapter 18 "Table Access Methods" (section "Sequential Scans"); Chapter 9 "Buffer Cache" (section "Cache Hits")`,
-      readingNotes: code`
-Chapter 16 supplies the parse, plan, and execution vocabulary that this lesson reads in EXPLAIN;
-Chapter 18 explains why the sequential scan visits every heap page, and Chapter 9 explains shared
-buffer hits. The experiment adds a hands-on comparison of estimates, actual rows, and buffer counts,
-plus a rollback proof that EXPLAIN ANALYZE executes writes. Read the chapters before or after; run
-the experiment first if you want the plan lines to provide the examples.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -214,35 +206,7 @@ The coaching hint supplies the commands and rolls back the local setting.`,
 Planner statistics summarize data that may be missing, stale or correlated. Cause each case and
 compare estimated rows with known answers before choosing a statistics fix. Then hold a skewed
 tenant workload fixed while comparing parameter-specific and generic prepared plans.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 17 "Statistics" (sections "Basic Statistics", "Most Common Values", "Multivariate Statistics")`,
-      readingNotes: code`
-Chapter 17 explains sampled column summaries, most-common-value lists, histograms, and multivariate
-statistics. This lesson makes those structures visible through pg_stats and pg_statistic_ext_data,
-then demonstrates missing, stale, and correlated statistics. Read the chapter after the first run
-so the estimates you see have a concrete explanation.`,
       revision: 4,
-      studyCheckpoint: {
-        core: [
-          {
-            source: "PostgreSQL 14 Internals",
-            locator:
-              `Chapter 16 §16.2, subheadings "Planning" and "Execution" (printed pp. 257–265)`,
-          },
-          {
-            source: "PostgreSQL 14 Internals",
-            locator: `Chapter 17 §§17.1–17.5 (printed pp. 271–282; stop before §17.6 on p. 283)`,
-          },
-        ],
-        rationale: code`
-You observed EXPLAIN estimates versus actuals, buffer evidence, and several ways statistics produce
-bad row estimates in these two experiments. Read these focused sections to consolidate the planner pipeline
-and the sampled evidence behind estimates before the next lessons turn to access paths, joins,
-memory, and parallelism. Skip from the PG14 text: exact estimates, sample contents, default
-statistics targets, and version-specific planner output/API names; continue to the access-path
-experiment when you finish.
-`,
-      },
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -490,13 +454,6 @@ above it, and the crossover point is a function of how many rows match, how well
 ordered, and what the planner believes about your disks. Here you sweep the selectivity of one
 predicate from 0.1% to 80%, watch the plan change shape, force the losing plan to see what it would
 have cost, and then move the crossover by changing a single hardware constant.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 20 "Index Scans" (sections "Regular Index Scans", "Comparison of Various Access Methods"); Chapter 18 "Table Access Methods" (section "Sequential Scans")`,
-      readingNotes: code`
-Chapter 20 compares regular, bitmap, and index-only access paths, while Chapter 18 explains the
-sequential scan and its cost. This experiment sweeps selectivity, disables paths for comparison,
-and changes random_page_cost to show how the hardware model moves the crossover. Read the chapters
-after running the sweep so the plan changes have concrete examples.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -670,13 +627,6 @@ in a selectivity sweep, whereas comparing two access paths at one bound must pre
 Compare PostgreSQL's nested-loop, hash and merge joins over the same tables. Read the inner node's
 loops to distinguish repeated probes from cached lookups, then lower the memory budget and inspect
 hash batches. Use the known join answer to keep the experiment about execution work.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 21 "Nested Loop" (section "Nested Loop Joins"); Chapter 22 "Hashing" (section "Hash Joins"); Chapter 23 "Sorting and Merging" (sections "Merge Joins", "Comparison of Join Methods")`,
-      readingNotes: code`
-Chapters 21–23 describe the three join algorithms that this lesson forces over the same tables.
-The experiment adds EXPLAIN buffer evidence, Memoize hit counts, and a deliberately undersized
-work_mem so a hash join spills into batches. Read the chapters before or after; the forced plans
-make the trade-offs especially easy to compare with the book's diagrams.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -856,13 +806,6 @@ cache useful and what an eviction would mean.`,
 Run the same bounded sort at three memory budgets and observe when it writes temporary files.
 Contrast a full sort with top-N sorting, then inspect a spilling hash aggregate. Relate the measured
 work to per-operation and per-worker budgets before making a concurrency decision.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 23 "Sorting and Merging" (section "Sorting"); Chapter 22 "Hashing" (section "Hash Joins"); Chapter 16 "Query Execution Stages" (section "Simple Query Protocol")`,
-      readingNotes: code`
-Chapter 23 describes in-memory and external sorting, and Chapter 22 describes hash operations that
-partition when memory is insufficient. Chapter 16 provides execution-stage context. This lesson
-adds work_mem threshold experiments and scoped temporary-file counter deltas. Read the
-chapters after the run to connect Sort Method and Batches lines to the algorithms.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -1037,13 +980,6 @@ A parallel plan requests workers and combines their results with a Gather or Gat
 Compare the requested worker count with the number actually launched, then measure the same answer
 with serial and parallel execution. Worker availability and coordination overhead are part of the
 experiment, so neither speedup nor slowdown is predetermined.`,
-      reading:
-        code`PostgreSQL 14 Internals, Chapter 18 "Table Access Methods" (sections "Parallel Plans", "Parallel Sequential Scans", "Parallel Execution Limitations")`,
-      readingNotes: code`
-Chapter 18 explains parallel plans, parallel sequential scans, worker limits, and restrictions.
-This lesson makes those limits visible through Workers Planned versus Workers Launched, Gather
-Merge, and an unsafe function, then measures the overhead on the local lab. Read the chapter before
-or afterward; the plan output is a useful live companion to its parallel diagrams.`,
       syntaxBreakdown: code`
 ### In plain terms
 
@@ -1237,8 +1173,6 @@ EXPLAIN tells you about one query you already suspect. pg_stat_statements tells 
 query shape accumulated work. It keeps counters per fingerprint, user, database and top-level status; this lesson
 captures scoped before/after counters around a bounded workload and compares them with client timing.
 It cannot reconstruct request order, a trace, or a p99 distribution.`,
-      reading:
-        code`PostgreSQL 14 Internals: not covered by the book. Closest background: Chapter 16 "Query Execution Stages".`,
       syntaxBreakdown: code`
 ### In plain terms
 
