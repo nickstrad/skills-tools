@@ -95,4 +95,6 @@ The duplicate under default ABORT prints a UNIQUE constraint error but the follo
 A transaction API is also an error-state machine. PostgreSQL generally leaves an explicit transaction failed after an error until recovery; SQLite's default constraint ABORT undoes the statement but leaves the transaction usable. Other errors can have wider scope, so an application must inspect its driver's transaction state and classify the failure before deciding what to repeat.
 
 ## Optional variation
-Replace the default duplicate with INSERT OR FAIL and predict whether the next insert and COMMIT survive. Then repeat the SAVEPOINT case with RELEASE omitted: what outer state remains and why?
+Repeat Setup and Run, changing only the first duplicate statement to `INSERT OR FAIL INTO ledger VALUES (1, 'abort duplicate');`. It still fails, while the following insert and COMMIT succeed with ids 1,2. This single-row statement does not expose FAIL's ability to preserve earlier changes within a multi-row statement.
+
+Repeat Setup and Run again with `RELEASE unit;` omitted. After ROLLBACK TO, the savepoint and outer transaction remain active; the existing outer COMMIT ends both and commits ids 1,2,3,4. Omitting RELEASE does not prevent that COMMIT.

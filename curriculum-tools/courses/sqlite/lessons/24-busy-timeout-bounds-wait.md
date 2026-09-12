@@ -92,4 +92,6 @@ Round one waits for A's explicit release, then prints within budget with changed
 A busy budget turns a serialization point into bounded backpressure, but longer waits do not increase SQLite's writer capacity. An application also needs an end-to-end deadline, bounded retry count and a clear failure response. Measure waits and rejected attempts separately from successful execution.
 
 ## Optional variation
-Raise the second-round budget to 500 ms but still release A only after B returns. Predict the outcome and elapsed time. Then repeat round one with a larger budget and a longer bounded A delay; identify the caller's total latency cost.
+Repeat Setup and Run with the second-round timeout raised from 150 to 500 ms, still releasing A only after B returns. B reports busy after roughly half a second and reads committed value 2; the existing release and retry still produce changed=1, done=4.
+
+For another fresh run, raise the first-round budget from 2000 to 5000 ms and A's sleep from 0.1 to 0.5 seconds. Switch to A promptly so it releases within the budget. B can succeed with the same changed=1, done=2, but its measured latency now includes the longer delay and terminal-switching time. If the budget expires, use the existing explicit retry procedure.

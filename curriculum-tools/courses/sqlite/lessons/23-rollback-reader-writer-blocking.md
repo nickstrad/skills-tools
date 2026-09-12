@@ -79,4 +79,4 @@ A initially sees 1. B inserts a pending row, then its first COMMIT reports datab
 Timeout describes an operation's outcome, not necessarily the surrounding transaction's outcome. Distinguish 'not admitted', 'prepared but not yet committed', and 'committed but acknowledgment lost'. Those states lead to different retry rules in SQLite and in distributed request protocols.
 
 ## Optional variation
-Switch both sessions to WAL and repeat. Which step stops blocking, and which single-writer constraint remains?
+Close both sessions, repeat Setup with `PRAGMA journal_mode=WAL;`, and reopen A and B on that database. Repeat Run through B's first COMMIT: it succeeds while A retains its read snapshot, and B's count is 2 in autocommit. Release A with its existing COMMIT and omit B's now-redundant second COMMIT; the final count remains 2. WAL removes this reader's obstruction to writer publication, while another writer would still contend for the single writer reservation.

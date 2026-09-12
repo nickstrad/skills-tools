@@ -36,7 +36,7 @@ A database can amortize work because an application asks for fewer transactions,
 - **Input redirection** feeds the prepared SQL to one sqlite3 process per case. There is no new SQLite process per row.
 - **grep -Ec** counts requested flushes; **cat** prints elapsed seconds; **count(*)** verifies both databases contain 200 rows.
 - The expected 804-versus-8 example includes table creation. Do not divide it into an exact per-row storage guarantee or call the elapsed ratio a universal SQLite limit.
-- **The 2,000-row challenge** asks which work grows with rows and which grows with transactions; predict those curves separately.
+- **The 2,000-row variation** compares work that grows with rows with work that grows with transaction boundaries.
 
 ## Run
 ```sh
@@ -75,4 +75,4 @@ Both databases contain 200 rows. The validated rollback/FULL fixture requested 8
 Application batching removes transaction boundaries: these 200 rows share one commit and one rollback fate. That is different from PostgreSQL group commit, where independent transactions can share a durability flush while retaining separate outcomes. In SQLite, choose batch size jointly with writer occupancy, latency, and the amount of work that must be repeated after failure.
 
 ## Optional variation
-Change 200 rows to 2000 and plot sync calls against row count; predict where measurement becomes dominated by other overhead.
+Repeat Run with both awk loop bounds changed from 200 to 2000. Both final counts should be 2000. Compare the two traces and elapsed times with the 200-row run: autocommit still creates one transaction per row, while the batch has one data transaction. Plot the measured sync counts against row count if useful; page growth and spill can add work, so use the observed counts rather than extrapolating an exact batch count or timing ratio.

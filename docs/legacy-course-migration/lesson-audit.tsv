@@ -207,18 +207,18 @@ sqlite	9	btree-splits	unchanged		primary	Complete bounded B-tree growth and rand
 sqlite	10	rowid-storage	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; layout/index-plan commands unchanged
 sqlite	11	without-rowid-layout	coaching-only prompt retired	Challenge	primary	Directly identifies already-supplied secondary-index phase and row locator/page comparisons
 sqlite	12	overflow-pages	unchanged		primary	Complete overflow-page and logical-length evidence retained; technical prediction language is explanatory
-sqlite	13	freelist-vacuum-and-reuse	pending			
-sqlite	14	rollback-journal-lifecycle	pending			
-sqlite	15	journal-modes	pending			
-sqlite	16	crash-leaves-hot-journal	pending			
-sqlite	17	hot-journal-recovery	pending			
-sqlite	18	synchronous-contracts	pending			
-sqlite	19	batching-changes-the-cost	pending			
-sqlite	20	transaction-errors-have-scope	pending			
-sqlite	21	deferred-write-race	pending			
-sqlite	22	immediate-reserves-writer	pending			
-sqlite	23	rollback-reader-writer-blocking	pending			
-sqlite	24	busy-timeout-bounds-wait	pending			
+sqlite	13	freelist-vacuum-and-reuse	unchanged		primary	Complete freelist reuse and quiescent-copy VACUUM comparison retained
+sqlite	14	rollback-journal-lifecycle	unchanged		primary	Complete two-session journal rollback and commit lifecycle retained
+sqlite	15	journal-modes	unchanged		primary	Complete DELETE TRUNCATE PERSIST lifecycle and cleanup retained
+sqlite	16	crash-leaves-hot-journal	unchanged		primary	Complete bounded crash journal capture and owned evidence preservation retained
+sqlite	17	hot-journal-recovery	unchanged		primary	Complete recovery of working copy with unchanged original pair hashes retained
+sqlite	18	synchronous-contracts	unchanged		primary	Complete synchronization trace and contract comparison retained
+sqlite	19	batching-changes-the-cost	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct2000-row rerun and measured transaction versus row-cost interpretation
+sqlite	20	transaction-errors-have-scope	coaching-only prompt retired	Challenge	primary	Direct OR FAIL and omitted RELEASE comparisons with committed row identities
+sqlite	21	deferred-write-race	coaching-only prompt retired	Challenge	primary	Direct busy COMMIT comparison releases B then retries only A COMMIT and restarts B
+sqlite	22	immediate-reserves-writer	coaching-only prompt retired	Challenge	primary	Direct zero and1000ms admission comparisons preserve controlled release order
+sqlite	23	rollback-reader-writer-blocking	coaching-only prompt retired	Challenge	primary	Direct WAL comparison distinguishes successful first commit and omits redundant retry
+sqlite	24	busy-timeout-bounds-wait	coaching-only prompt retired	Challenge	primary	Direct500ms expiry and bounded longer successful-wait comparisons
 sqlite	25	idempotent-retry-ledger	pending			
 sqlite	26	wal-sidecar-files	pending			
 sqlite	27	reader-and-writer-overlap	pending			

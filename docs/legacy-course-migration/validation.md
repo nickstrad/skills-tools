@@ -4,6 +4,16 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## SQLite13–24 content group
+
+Primary accepted all12 lessons:13–18 unchanged,19–24 direct optional comparisons with local results.
+The prose now specifies batch loop bounds, surviving rows under FAIL/outer COMMIT, reader release
+before retrying a busy COMMIT, bounded admission waits, successful WAL publication and longer wait
+costs. No Setup/Run, existing block, metadata or revision changed. All12 actual plain/ANSI/JSON
+views and the54-lesson source check pass. Existing runtime evidence applies; no new lab allocated.
+The temporary catalog is removed. Logs/manifests/views use `.cache/legacy-migration/sqlite-13-24*`
+until final acceptance. The ledger has222 accepted rows and28 pending.
+
 ## SQLite01–12 content group
 
 Primary accepted all12 complete early lessons: eight prose edits and four unchanged (04/05/09/12).

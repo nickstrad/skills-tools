@@ -82,4 +82,4 @@ B's timed first BEGIN IMMEDIATE returns database is locked after roughly the con
 This is the main contrast with PostgreSQL row-level writer concurrency: independent logical records in one SQLite file still share a writer-admission point. BEGIN IMMEDIATE makes that boundary explicit, which is useful for short read/decide/write transactions but costly if remote calls or lengthy work happen while it is held.
 
 ## Optional variation
-Set B's timeout to 0 and then to 1000. What latency budget and user-visible failure does each policy create?
+Repeat Setup and Run with B's timeout set to 0, then repeat with 1000. Keep A open until B's first BEGIN returns in each run. The first policy refuses admission promptly; the second spends roughly one second waiting and then reports the same busy outcome. Both permit the later retry after A commits, with the same final rows. A longer budget adds caller latency without increasing writer capacity.

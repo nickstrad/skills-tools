@@ -86,4 +86,6 @@ Both readers initially see 0 and A changes one row. B's UPDATE reports database 
 There are two valid lessons here, not one universal retry recipe. In this controlled schedule A abandons its write, so B's retained read transaction can upgrade afterward. In a general read/decide/write retry, ending the losing transaction and rereading is often the appropriate policy; endlessly retrying while retaining the read lock can prevent the other writer from making progress.
 
 ## Optional variation
-Repeat with A running COMMIT instead of ROLLBACK while B still holds its read transaction. A's commit needs an EXCLUSIVE lock that B's SHARED lock blocks. Predict which side waits for its full timeout, which side fails instantly, and which one must give up for either to finish.
+Repeat Setup and Run through B's failed UPDATE and snapshot query. Replace A's ROLLBACK with COMMIT while B still holds its read transaction. A now waits roughly its two-second budget and reports busy: its commit needs an EXCLUSIVE lock that B's SHARED lock blocks. B's earlier upgrade failed promptly instead of consuming its budget.
+
+End B's read transaction with `ROLLBACK;`, then retry only `COMMIT;` in A to publish value 1. In B, start a fresh transaction with `BEGIN DEFERRED;`, read the counter again, and run the existing UPDATE, COMMIT and final SELECT. The reread sees 1 and B commits value 2. Releasing the retained read lock allows A to finish; retrying A's UPDATE would incorrectly repeat prepared work.
