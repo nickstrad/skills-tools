@@ -83,8 +83,7 @@ a separate handoff document.
 | WP8.3 Machine install and sweep | S | todo | | |
 | WP9.1 Consolidated progress schema and migration command | F | todo | | |
 | WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | todo | | |
-| WP9.3 Documentation for the single database | S | todo | | |
-| WP8.4 Final acceptance | F | todo | | runs after Phase 9 |
+| WP8.4 Final acceptance | F | todo | | |
 
 **Decision and finding log.** Append dated entries when Nick answers a question, a decision in §2
 changes, or a WP discovers something later WPs must know (driver quirks, parity exceptions,
@@ -114,9 +113,11 @@ learner progress rows that changed during the work).
 - 2026-09-12 — Nick: "add task to consolidate to one database since I believe we just have one
   approach now so a per course db doesn't seem necessary … handle that at the end." Decision 2
   (per-course `progress.sqlite`) is superseded by Phase 9 below: one `curriculum-tools/tutor.sqlite`
-  holds every course's lessons/progress/attempts plus the roadmap tables. Phase 9 runs after
-  Phase 7 and before WP8.1, so the golden corpus is still present to re-run parity, and the
-  original per-course files are kept as read-only backups until Nick removes them.
+  holds every course's lessons/progress/attempts plus the roadmap tables. Nick left the timing
+  to the agent ("at end or when you think is best"): Phase 9 runs right after WP3.6 (parity
+  gate C), so WP5.2, the skill and every documentation package are written once against the
+  final design; the original per-course files are kept as read-only backups until Nick removes
+  them.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 
@@ -910,7 +911,7 @@ CLI) — run after WP3.1
   `tests/validation_test.ts` cases using a Bash fixture.
 - Commit: "Port the validation harness to Go".
 
-**WP5.2 — `validate` and `progress verify` commands** · tier S · depends: WP5.1, WP3.1
+**WP5.2 — `validate` and `progress verify` commands** · tier S · depends: WP5.1, WP3.1, WP9.2
 
 - Owns: `internal/cli/validate.go`, `internal/cli/progress_verify.go`, tests.
 - `validate`: flags `--from` (default 1), `--to` (default 999999), `--timeout` (ms, default
@@ -1072,7 +1073,7 @@ CLI) — run after WP3.1
   Review focus: `grep -rn "pgcoach\|systemscoach\|deno \|deno task\|lessons.json\|school-links" --exclude-dir=archive --exclude-dir=.git .`
   returns only validation logs under `courses/*/validation/`.
 
-### Phase 9 — One database for progress and roadmap (requested 2026-09-12; runs after Phase 7, before WP8.1)
+### Phase 9 — One database for progress and roadmap (requested 2026-09-12; runs after WP3.6, before WP5.2 and Phase 7)
 
 Goal: retire the five `courses/<id>/progress.sqlite` files. One `curriculum-tools/tutor.sqlite`
 (gitignored, the file WP4.2 already uses for the roadmap) holds every course's lesson rows,
@@ -1107,7 +1108,7 @@ Fixed design (WP9.1 may refine wording, not semantics):
   Plan-only courses are unaffected. The roadmap counter reads the same file read-only.
 - `progress verify` copies the one file and seeds only the named course on the copy.
 
-**WP9.1 — Schema, queries, seed and the consolidate command** · tier F · depends: WP7.4
+**WP9.1 — Schema, queries, seed and the consolidate command** · tier F · depends: WP3.6
 
 - Owns: `internal/progress/*`, `internal/cli/progress_consolidate.go` (+ tests), `.gitignore`
   (`curriculum-tools/tutor.sqlite*` already covered by `*.sqlite*` rules — verify).
@@ -1129,17 +1130,13 @@ Fixed design (WP9.1 may refine wording, not semantics):
   `tutor postgres-essentials route` equals golden `route.txt`, record the backup paths and
   the row counts in §A. Commit: "Serve every course from tutor.sqlite".
 
-**WP9.3 — Documentation** · tier S · depends: WP9.2
-
-- Owns: `AGENTS.md` (progress sentences), `README.md`, `docs/README.md`,
-  `curriculum-tools/docs/{AUTHORING,VALIDATION}.md`, `docs/knowledge/lesson-identity-refresh.md`,
-  `docs/knowledge/go-tutor-migration.md` (section "One database"), `curriculum-tools/skills/tutor/SKILL.md`.
-- Replace every "per-course `progress.sqlite`" statement with the single-file description and the
-  backup location; `tutor <course> init` wording unchanged. Commit: "Document the single progress database".
+Documentation: no separate package. WP5.4, WP7.1–7.4 and WP8.2 describe the single
+`tutor.sqlite` and the backup location from the start; `docs/knowledge/go-tutor-migration.md`
+(WP8.4) gets a section "One database".
 
 ### Phase 8 — Remove the old toolchain, clean knowledge, accept
 
-**WP8.1 — Archive-then-delete the Deno engine** · tier S · depends: all Phase 1–7 and Phase 9 packages
+**WP8.1 — Archive-then-delete the Deno engine** · tier S · depends: all Phase 1–7 and Phase 9 packages (Phase 9 precedes Phase 5–7 in execution order)
 
 - Commit A ("Archive the Deno engine before removal"): `git mv` `curriculum-tools/src`,
   `curriculum-tools/tests`, `curriculum-tools/deno.json`, `curriculum-tools/courses/*/curriculum`,
