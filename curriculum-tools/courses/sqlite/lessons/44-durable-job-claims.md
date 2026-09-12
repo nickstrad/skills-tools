@@ -93,4 +93,6 @@ A claims 1|a|1. B's first BEGIN reports database is locked after its bounded wai
 The throughput cost of a single writer depends on the duration of serialized state transitions, not the duration of the jobs they describe. Lease expiry restores liveness; a predicate checked by the protected resource preserves safety after takeover.
 
 ## Optional variation
-Hold A's claim transaction open while it does its work. Predict what happens to B even though B wants a different job. Then omit the token predicate from completion and demonstrate the stale-write failure on a disposable row.
+Repeat Setup and Run while keeping A's first claim transaction open through its simulated work. B's first BEGIN still exhausts its 100 ms budget even though it wants a different job. Commit A before retrying B's admission, then finish the existing takeover and completion sequence. The work's duration has become part of the file-wide writer occupancy.
+
+On another fresh run, omit only `AND token=1` from A's stale completion. It still changes zero rows in this schedule because `owner='a'` also rejects the takeover by b. Removing the token alone does not demonstrate a stale write here. Its separate role is to distinguish ownership generations when the same owner identity is reused; a lease deadline or owner name alone cannot distinguish those generations. Keep the full owner/token/state predicate in the working protocol.

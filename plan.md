@@ -41,10 +41,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - All72 Linux lessons are accepted:13–24 in `953dcc0`,25–36 in `a05be21`,37–48 in `0e94bc0`,
   49–60 in `ca8d457`, and the final61–72 group as recorded below. Setup/Run behavior and revisions
   remain unchanged;72 has exactly two comment replacements. Linux completion is committed in `b0a3abb`.
-- SQLite01–36 are accepted. The latest group has ten prose edits and two unchanged lessons.
-  The ledger has234 accepted rows and16 pending.
+- SQLite01–44 are accepted. The latest eight lessons have direct comparisons and local outcomes.
+  The ledger has242 accepted rows and8 pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes SQLite37–51/53 (16 rows). No new worker has been dispatched. Primary
+- Next: primary completes SQLite45–51/53 (8 rows). No new worker has been dispatched. Primary
   still owns final integration and serial hazardous validation if a remaining semantic change needs it.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -61,6 +61,20 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — SQLite37–44
+
+All eight accepted with direct optional comparisons and local outcomes; no Setup/Run, existing
+block, metadata or revision changed. Planner comparisons distinguish query shape and measured work;
+writer-envelope prose removes ADR submission wording. Sequence/receipt failure interpretations are
+explicit. Lesson44 corrects a false optional claim: removing only token=1 still leaves owner='a',
+so b's takeover remains protected. A real in-memory SQLite reproduction returned stale0/current1
+and the original final two job rows. This is a prose correction to the existing variation, not a
+new unsafe takeover. No file or process remains from that check.
+
+All eight actual plain/ANSI/JSON views and the54-lesson check pass; temporary catalog removed.
+Scratch uses `sqlite-37-44*`. Primary read45–48 but has not edited/accepted them. Remaining45–51/53;
+integration, installer sync, copied/live history rollout and final cleanup/readiness remain required.
 
 ### Resumed acceptance checkpoint — SQLite25–36
 

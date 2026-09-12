@@ -34,7 +34,7 @@ The planner must choose a route before it knows which rows actually match. Witho
 - **ANALYZE skewed_events** explicitly collects this table's index statistics. The experiment uses deterministic full analysis rather than relying on opportunistic maintenance.
 - **sqlite_stat1(tbl, idx, stat)** stores one row per analyzed index here. The first integer in stat is the approximate total index rows; the next is the average rows sharing the first key column. A smaller second number means greater average selectivity.
 - **PRAGMA optimize** is the application-oriented maintenance interface to consider after this experiment. It may run bounded ANALYZE work when useful; do not insert it before the baseline comparison.
-- **The challenge's extra common-region rows** change the model's input. Record both the distribution and refreshed stat text; a stable plan can still be a correct response.
+- **The variation's extra common-region rows** change the model's input. Record both the distribution and refreshed stat text; a stable plan can still be a correct response.
 
 ## Caution
 Do not edit sqlite_stat1 as a tuning shortcut in a lesson run. Statistics formats and planner decisions are implementation details; validate the chosen plan after each meaningful data-shape change.
@@ -67,4 +67,4 @@ The count is 50. After ANALYZE, sqlite_stat1 contains one row for each named ind
 Statistics are cached knowledge, and stale knowledge can produce poor decisions even when execution is correct. PostgreSQL can delegate statistics collection to server maintenance; with SQLite, connection lifecycle and application scheduling determine when that maintenance gets requested. Keep that ownership in your operational design.
 
 ## Optional variation
-Insert 100,000 common-region rows, rerun ANALYZE, and compare the stats and plan. Predict the change before measuring it.
+After Run, append the bounded comparison data with `WITH RECURSIVE n(x) AS (VALUES(10001) UNION ALL SELECT x+1 FROM n WHERE x<110000) INSERT INTO skewed_events SELECT x,'common-region','common-kind','body-'||x FROM n;`. Repeat Run, including its pre-refresh plan, match count, ANALYZE, statistics query and final plan. The table now has 110000 rows while the rare-region/common-kind answer remains 50. Refreshed statistics describe the new average key populations; compare them with the old text even if the chosen index stays the same. Average statistics do not encode every skew or correlation.

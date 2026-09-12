@@ -231,14 +231,14 @@ sqlite	33	online-cli-backup	unchanged		primary	Complete online backup schedule a
 sqlite	34	vacuum-into-snapshot	coaching-only prompt retired	Challenge	primary	Direct doubled-payload snapshot comparison retains counts and integrity checks
 sqlite	35	integrity-and-domain-checks	coaching-only prompt retired	Challenge	primary	Direct declared CHECK comparison distinguishes state rejection from orphan detection
 sqlite	36	bounded-storage-failure	unchanged		primary	Complete bounded quota failure/recovery and native variations retained
-sqlite	37	recover-damaged-copy	pending			
-sqlite	38	query-plan-as-evidence	pending			
-sqlite	39	index-read-write-tradeoff	pending			
-sqlite	40	analyze-changes-plans	pending			
-sqlite	41	measure-the-writer-envelope	pending			
-sqlite	42	local-oplog	pending			
-sqlite	43	outbox-replay-after-crash	pending			
-sqlite	44	durable-job-claims	pending			
+sqlite	37	recover-damaged-copy	coaching-only prompt retired	Challenge	primary	Direct copied-root damage comparison preserves bounded byte edit and source check
+sqlite	38	query-plan-as-evidence	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct10000-row range comparison distinguishes chosen path and sort from count timing
+sqlite	39	index-read-write-tradeoff	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct equal-range rerun after amount-index removal explains work and freed pages
+sqlite	40	analyze-changes-plans	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct bounded100000-row extension supplies unchanged50-match and refreshed-stat comparison
+sqlite	41	measure-the-writer-envelope	coaching-only prompt retired	Challenge	primary	Direct existing batch evidence and100ms racer comparison; ADR submission wording retired
+sqlite	42	local-oplog	coaching-only prompt retired	Challenge	primary	Direct post-rollback counter move reveals missing sequence2 with unchanged committed body
+sqlite	43	outbox-replay-after-crash	coaching-only prompt retired	Challenge	primary	Split receipt failure interpretation gives double debit80 and expected core assertion rejection
+sqlite	44	durable-job-claims	coaching-only prompt retired	Challenge	primary	Correct token-only omission interpretation: retained owner predicate still rejects stale completion
 sqlite	45	duplicate-and-lost-ack	pending			
 sqlite	46	ordering-conflicts-and-tombstones	pending			
 sqlite	47	restore-and-rejoin-history	pending			

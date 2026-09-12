@@ -4,6 +4,19 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## SQLite37–44 content group
+
+All eight accepted with direct optional comparisons, explicit expected outcomes and retired ADR
+submission wording. Setup/Run, existing blocks, metadata and revisions match baseline. All eight
+actual plain/ANSI/JSON views and the54-lesson source check pass. Core runtime behavior is unchanged.
+Lesson44's token-only omission previously promised a stale write, but its owner predicate still
+rejects b's takeover. A focused real SQLite :memory: fixture using the source schema and claim,
+takeover and completion statements verified token_only_omission=0, current_completion=1, final
+job1=done|b|2|current-b and job2=claimed|b|1. The prose now reports that actual result and explains
+the distinct generation role. No file/process was allocated for this SQL-only check.
+Temporary review catalog removed. Evidence uses `.cache/legacy-migration/sqlite-37-44*` until final
+acceptance. The ledger has242 accepted and8 pending.
+
 ## SQLite25–36 content group
 
 All12 accepted: ten prose edits,33/36 unchanged. Direct WAL comparisons specify local outcomes,

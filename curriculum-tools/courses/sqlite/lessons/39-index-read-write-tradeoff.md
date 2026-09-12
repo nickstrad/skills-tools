@@ -36,7 +36,7 @@ An index is a stored copy of a particular ordering of your data. Read savings ar
 - **BEGIN/COMMIT** make each 4,000-row update one transaction. Only amount changes, so trade_amount_idx needs key maintenance while account and state keys remain unchanged.
 - **.stats on/off** scopes the statement work reports to each UPDATE. Compare Virtual Machine Steps, not all prior statements' cumulative work. **.timer on/off** supplies supporting elapsed times, which need not separate reliably on a cached fixture.
 - **pragma_page_count and pragma_page_size** expose PRAGMA results as tables. Their product is main-database logical size; it is not a per-table cost or live WAL-size measurement.
-- **DROP INDEX trade_amount_idx** in the challenge removes the index whose key changes. Repeat equivalent update ranges and explain which work disappears before interpreting timing.
+- **DROP INDEX trade_amount_idx** in the variation removes the index whose key changes. Repeat equivalent update ranges and compare which work disappears before interpreting timing.
 
 ## Caution
 The two tables share one database, so page_count is a database-wide measure rather than an exact per-table size. Use dbstat when that optional virtual table is available and label the limitation.
@@ -86,4 +86,4 @@ The tables begin with equivalent contents and their account-0042 sums agree. Aft
 PostgreSQL also pays for index maintenance, but SQLite funnels writes to all these objects through one file-wide writer. An index can improve read latency while reducing the write workload your embedded application can admit. Measure the affected columns and transaction duration before calling a larger index set an optimization.
 
 ## Optional variation
-Drop trade_amount_idx, repeat the update, and compare the page growth and timer output. Which changed columns actually require index maintenance?
+After Run, execute `DROP INDEX trade_amount_idx;` and repeat both BEGIN-through-COMMIT update blocks on the same id range. Both tables receive one more increment, preserving their logical equivalence. Compare Virtual Machine Steps before interpreting timing: amount no longer has an index key to maintain, while account and state keys are unchanged by these updates. Repeat the dbstat and database-page queries; the dropped index object disappears, but its freed pages need not shrink the database file.

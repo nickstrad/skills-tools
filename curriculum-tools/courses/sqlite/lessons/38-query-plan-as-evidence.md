@@ -34,7 +34,7 @@ A plan is a proposed route through data, not a record of everything execution di
 - **CREATE INDEX ... (tenant, event_id, payload)** places the equality key first, then the requested ordering and projected value. That ordering lets one index satisfy both filtering and ordered payload retrieval.
 - **.stats on/off** brackets each count statement. Compare **Fullscan Steps** and **Virtual Machine Steps** in the two reports; page-cache hits/misses describe SQLite's cache, not necessarily physical storage reads. Statistics are off during index construction so construction is not confused with query execution.
 - **.timer on/off** adds real, user, and system time. The same answer can have different work yet similar elapsed time when the small fixture is cached.
-- **tenant >= 'tenant-50'** in the challenge widens the predicate to 10,000 rows. Tenant-first index ordering does not automatically provide global event_id order across many tenants; look for a temporary sort.
+- **tenant >= 'tenant-50'** in the variation widens the predicate to 10,000 rows. Tenant-first index ordering does not automatically provide global event_id order across many tenants; look for a temporary sort.
 
 ## Caution
 Do not infer a universal speedup from one warm-cache run. Keep the data size, SQLite build, cache state, and predicate visible when recording a result.
@@ -72,4 +72,4 @@ Both count queries return 200. The first plan scans plan_events; the second sear
 Use PostgreSQL's indexing intuition, but learn SQLite's observability boundary. A covering SQLite index avoids a table-B-tree lookup without PostgreSQL's heap visibility-map condition for index-only scans. That is a concrete storage-engine difference, not permission to infer physical reads or universal speedups from the word covering.
 
 ## Optional variation
-Run the indexed query with the SQLite range predicate `WHERE tenant >= 'tenant-50'` so roughly half the table qualifies. Predict whether EXPLAIN QUERY PLAN still reports SEARCH, whether it adds a temporary sort for ORDER BY event_id, and what the result count should be; then compare the plan text first and the timer only as supporting evidence. This tests where SQLite's access-path description changes as selectivity and ordering pressure change, rather than asking for a universal index-speed threshold.
+After index creation, repeat the indexed EXPLAIN and count queries with `WHERE tenant >= 'tenant-50'` replacing the equality predicate in both. The count is 10000. An index SEARCH can still restrict tenant keys, but tenant-first order does not supply global event_id order across those keys; an indexed plan needs a temporary sort for the ordered payload query. Record the actual chosen path if the planner prefers a table scan instead. Compare plan text first and timer output only as supporting evidence; the separately measured count does not profile the ordered payload query.
