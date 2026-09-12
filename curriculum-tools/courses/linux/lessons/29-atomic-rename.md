@@ -75,18 +75,13 @@ invalid_observation=none and atomicity=preserved; the reader sees only complete 
 Rename changes a directory's pointer in one namespace operation, allowing readers to choose an old complete object or a new complete object. Release artifacts and configuration rollouts use this commit-like boundary.
 
 ## Optional variation
-**Predict:** If a writer overwrites one pathname directly with two writes, what new observation becomes possible?
-
-**Inspect and explain:** Run this complete bounded example:
+Compare rename publication with ten direct publications that deliberately read between two writes:
 
 ```bash
 lab=$LINUX_LAB; if [ -z "$lab" ]; then lab=$HOME/linux-systems-lab; fi; mkdir -p "$lab"; f="$lab/direct-vary-$UID"; for n in $(seq 1 10); do printf left > "$f"; printf 'during='; cat "$f"; printf '\n'; printf right >> "$f"; done; printf 'final='; cat "$f"; rm -f "$f"
 ```
 
-Compare each during value with the final value. Explain which incomplete content direct publication exposed.
-
-**Vary:** The loop makes exactly ten direct publications.
-
-**Hint:** Keep TEMP and TARGET on the same mount for the main rename experiment.
-
-**Apply:** State the extra fsync and directory-durability evidence a deployment tool would need before claiming a published file survives power loss.
+Each during value is left; the final value is leftright. Reading the public path between the
+writes exposes incomplete content. The example removes that file. Keep TEMP and TARGET on the
+same mount in the main rename experiment. Complete reader-visible bytes still do not establish
+power-loss survival: a deployment tool needs separate file and directory durability evidence.

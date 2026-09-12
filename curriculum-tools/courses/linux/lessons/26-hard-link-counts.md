@@ -63,18 +63,13 @@ inode and secondary_inode match; link_counts=1->2->1; primary_exists=no; seconda
 An inode remains reachable while at least one directory entry or open reference points to it. Garbage collection of files therefore resembles reference counting: unlink removes one name, not necessarily the object.
 
 ## Optional variation
-**Predict:** After creating a second hard link, what count should every name report?
-
-**Inspect and explain:** Run this complete bounded example:
+Create and remove exactly one extra hard link in this bounded example:
 
 ```bash
 lab=$LINUX_LAB; if [ -z "$lab" ]; then lab=$HOME/linux-systems-lab; fi; mkdir -p "$lab"; a="$lab/hard-vary-$UID"; b="$a.third"; printf x > "$a"; ln "$a" "$b"; stat -c '%i %h %n' "$a" "$b"; rm -f "$a" "$b"
 ```
 
-Compare inode numbers and link counts for the two names. Explain why removing either name alone would not remove the other.
-
-**Vary:** This creates and removes exactly one extra hard link.
-
-**Hint:** Do not use **cp**; it makes a distinct inode and answers a different question.
-
-**Apply:** Choose whether a service should use a hard link or rename for publishing a replacement file, and defend the reader-visible behavior.
+Both names report the same inode and link count2. Removing either name alone leaves the other
+reference intact; the example removes both. Keep ln in the comparison: cp would create a distinct
+inode. Adding another name and replacing an existing publication name are different namespace
+operations, so a service must match its operation to the intended reader-visible transition.

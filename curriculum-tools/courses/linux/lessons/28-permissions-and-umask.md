@@ -63,18 +63,13 @@ private_mode=600 and shared_mode=644 from requested 0666 masked by 077 and 022; 
 The umask is a process-local default applied at creation, while permissions live on the inode and can be changed afterward. This two-stage policy is a simple form of least privilege and inherited configuration.
 
 ## Optional variation
-**Predict:** What mode will a new regular file have under **umask 027**?
-
-**Inspect and explain:** Run this complete bounded example:
+Create one regular file under umask027 inside a subshell, keeping the caller's mask unchanged:
 
 ```bash
 LAB=$LINUX_LAB; if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p "$LAB"; ( umask 027; : > "$LAB/umask-vary-$UID"; stat -c '%a %n' "$LAB/umask-vary-$UID"; rm -f "$LAB/umask-vary-$UID" )
 ```
 
-Explain the resulting mode using the creation mask, and why the file has no execute bit.
-
-**Vary:** Use that one subshell so the learner’s shell mask cannot change.
-
-**Hint:** Regular-file creation starts from 666, so no execute bits appear before chmod.
-
-**Apply:** Choose a creation mask for a service writing secrets and explain when explicit chmod remains appropriate.
+The resulting mode is640: the mask removes group write and all other-user permissions from the
+requested666. No execute bits were requested. The example removes the file before subshell exit.
+A service's creation mask applies to new files; an existing file's mode requires an explicit
+permission change when its access policy changes.

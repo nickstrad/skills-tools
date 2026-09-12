@@ -29,18 +29,18 @@ linux	21	inherited-open-files	coaching-only prompt retired	Challenge	primary	Dir
 linux	22	pipe-buffer-backpressure	coaching-only prompt retired	Challenge	primary	Direct half-size stream comparison retains shared count, fullblock, completion assertion and cleanup
 linux	23	fifo-process-coordination	coaching-only prompt retired	Challenge	primary	Direct changed-message two-session comparison retains both writers, readiness marker and EOF ordering
 linux	24	exhaust-file-descriptors	coaching-only prompt retired	Challenge	primary	Direct lower descriptor-limit comparison retains subshell scope, inherited-count caveat and parent check
-linux	25	paths-and-inodes	pending			
-linux	26	hard-link-counts	pending			
-linux	27	symlink-resolution	pending			
-linux	28	permissions-and-umask	pending			
-linux	29	atomic-rename	pending			
-linux	30	deleted-open-file	pending			
-linux	31	map-mounts-and-devices	pending			
-linux	32	compare-df-and-du	pending			
-linux	33	sparse-file-allocation	pending			
-linux	34	tmpfs-uses-memory	pending			
-linux	35	bounded-filesystem-full	pending			
-linux	36	recover-filesystem-space	pending			
+linux	25	paths-and-inodes	coaching-only prompt retired	Challenge	primary	Preserves exact second-hard-link rename script and same-mount scope; gives inode/link-count outcome
+linux	26	hard-link-counts	coaching-only prompt retired	Challenge	primary	Preserves exact extra-hard-link creation/removal script; gives shared inode/count interpretation
+linux	27	symlink-resolution	coaching-only prompt retired	Challenge	primary	Preserves exact relative-link target-move script; explains canonical path versus existence evidence
+linux	28	permissions-and-umask	coaching-only prompt retired	Challenge	primary	Preserves exact umask027 subshell script and cleanup; supplies mode640 outcome
+linux	29	atomic-rename	coaching-only prompt retired	Challenge	primary	Preserves exact ten direct-publication script; supplies incomplete-versus-final bytes and durability boundary
+linux	30	deleted-open-file	coaching-only prompt retired	Challenge	primary	Preserves exact held-FD/replacement script; supplies old/replacement outcome and BASHPID meaning
+linux	31	map-mounts-and-devices	coaching-only prompt retired	Challenge	primary	Preserves exact second-path mount lookup/cleanup; interprets virtual-source limits
+linux	32	compare-df-and-du	coaching-only prompt retired	Challenge	primary	Preserves exact one-MiB close-before-unlink script; explains holder/name evidence and host-wide df limits
+linux	33	sparse-file-allocation	coaching-only prompt retired	Challenge	primary	Preserves exact final-byte sparse-file script and cleanup; explains 512-byte allocation units
+linux	34	tmpfs-uses-memory	coaching-only prompt retired	Challenge	primary	Preserves complete four-MiB tmpfs variation and assertion substitution; retires unrelated prediction numbers
+linux	35	bounded-filesystem-full	coaching-only prompt retired	Challenge	primary	Preserves complete48MiB overfill variation,32MiB boundary, ENOSPC evidence and exact cleanup
+linux	36	recover-filesystem-space	coaching-only prompt retired	Challenge	primary	Preserves complete8MiB retained-file variation, final-close observation and exact-PID/mount cleanup
 linux	37	map-process-address-space	pending			
 linux	38	compare-rss-and-vsz	pending			
 linux	39	observe-page-faults	pending			

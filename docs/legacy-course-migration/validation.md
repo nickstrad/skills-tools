@@ -4,6 +4,21 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Linux25–36 content group
+
+Primary accepted all12 complete filesystem/storage walkthroughs after replacing staged prompts
+with direct optional instructions and outcomes. Every existing optional script is byte-identical,
+including hard-link/rename, moved symlink, subshell umask, direct publication, replacement pathname,
+mount lookup, close-before-unlink and sparse-byte comparisons. The three full reruns preserve
+their existing tmpfs4MiB payload/assertion,48MiB overfill and8MiB retained-file substitutions.
+Lesson34's unrelated16MiB/1MiB prediction is retired; its actual32MiB mount remains unchanged.
+
+Exact parsed comparison confirms Setup/Run, all fenced/indented blocks, metadata and revisions
+match baseline. All12 actual CLI plain/ANSI/JSON views pass from a temporary catalog, which is
+removed. Linux check passes with72 lessons. Existing real evidence applies; no mount/image or
+lab was allocated. Logs/manifests/views use `.cache/legacy-migration/linux-25-36*` until final
+acceptance. The ledger now has162 accepted and88 pending.
+
 ## Linux13–24 content group
 
 Primary read all12 complete lessons and replaced staged Predict/Inspect/Hint/Vary/Apply prompts

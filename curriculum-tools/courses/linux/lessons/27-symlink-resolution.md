@@ -65,18 +65,14 @@ link_type=symbolic link, link_text is the target basename, resolved_target is th
 Unlike a hard link, a symlink is a path-bearing inode interpreted during lookup. Relative links are relocatable within a tree, while broken links demonstrate that the target name is not embedded data.
 
 ## Optional variation
-**Predict:** If a target is renamed after a relative link is created, does the link still resolve?
-
-**Inspect and explain:** Run this complete bounded example:
+Rename one target after creating its relative symbolic link:
 
 ```bash
 lab=$LINUX_LAB; if [ -z "$lab" ]; then lab=$HOME/linux-systems-lab; fi; mkdir -p "$lab"; a="$lab/symlink-vary-$UID"; l="$a.link"; printf x > "$a"; ln -s "$(basename "$a")" "$l"; mv "$a" "$a.moved"; printf 'stored=%s resolved=' "$(readlink "$l")"; readlink -f "$l"; if stat -L "$l" >/dev/null 2>&1; then printf 'target_exists=yes\n'; else printf 'target_exists=no\n'; fi; rm -f "$l" "$a.moved"
 ```
 
-Explain why readlink -f can print an absolute path while stat -L reports that the target is absent.
-
-**Vary:** This moves one target once within the lab.
-
-**Hint:** readlink -f may print a path whose final component is absent; stat -L supplies the actual existence check.
-
-**Apply:** For a symlink naming the current release, explain how you would publish a replacement pointer atomically and verify that its target exists.
+The link still stores the original basename. readlink -f can print the corresponding absolute
+path even though its final component is absent; stat -L supplies the actual existence check and
+target_exists=no. The example removes the link and moved target. A current-release pointer needs
+both a complete target and an appropriate publication operation; canonical path text alone does
+not verify a usable release.

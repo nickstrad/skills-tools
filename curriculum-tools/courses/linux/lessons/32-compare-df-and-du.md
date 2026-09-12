@@ -82,9 +82,7 @@ named_after_unlink_bytes is lower than named_before_bytes, open_fd_deleted=yes a
 du answers how much data is reachable through names; df answers how many blocks the filesystem has free. An unlinked open file sits in the gap, a common cause of disk-full incidents.
 
 ## Optional variation
-**Predict:** If the final descriptor closes before unlink, can this lab file still account for deleted-but-open storage?
-
-**Inspect and explain:** Run this complete bounded example:
+Close the final held descriptor before unlinking this one-MiB file:
 
 ```bash
 ( LAB=$LINUX_LAB
@@ -105,10 +103,9 @@ df -B1 -P "$LAB"
 )
 ```
 
-Explain which two observations rule out this file as a deleted-but-open owner. The final df sample includes other files and host activity; it cannot prove an exact one-MiB reclamation.
-
-**Vary:** Keep the substitute at one MiB.
-
-**Hint:** A deleted pathname is not enough; inspect a live fd before calling space hidden.
-
-**Apply:** Give the two commands and one process identifier you would collect before deciding to restart a log-writing service.
+holder_closed_before_unlink=yes and named_file_after_unlink=absent verify that this fixture has
+neither its held descriptor nor its pathname left. It cannot account for deleted-but-open storage.
+The final df sample includes other files and host activity and cannot prove exact one-MiB recovery.
+Keep the substitute at one MiB. In a service investigation, correlate filesystem accounting with
+the actual holder PID and its procfs descriptor; a missing pathname alone does not identify hidden
+allocation or justify restarting a process.

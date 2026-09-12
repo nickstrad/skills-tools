@@ -63,18 +63,14 @@ logical_sizes=33554432,33554432 and apparent_sizes=33554432,33554432, while allo
 A file's logical address space can contain holes that have no physical blocks. VM images, database files, and checkpoint formats exploit this distinction to reserve offsets without immediately consuming storage.
 
 ## Optional variation
-**Predict:** What happens to allocated blocks if one byte is written at the end of a sparse 4 MiB file?
-
-**Inspect and explain:** Run this complete bounded example:
+Write exactly one byte at the final offset of a sparse4MiB file:
 
 ```bash
 LAB=$LINUX_LAB; if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p "$LAB"; f="$LAB/sparse-vary-$UID"; truncate -s 4194304 "$f"; printf x | dd of="$f" bs=1 seek=4194303 conv=notrunc status=none; stat -c '%s %b' "$f"; rm -f "$f"
 ```
 
-Convert the allocated-block count to bytes and compare it with logical size. Explain the hole between the beginning and the final written byte.
-
-**Vary:** Write exactly one byte at one chosen offset.
-
-**Hint:** **conv=notrunc** prevents dd from shortening the logical file.
-
-**Apply:** State why a deployment’s apparent-size report cannot alone predict its actual disk consumption.
+Logical size remains4,194,304 bytes. Multiply the reported block count by512 to compare allocated
+bytes with that length: the final write allocates storage while the preceding hole needs much
+less than a full4MiB allocation on this filesystem. conv=notrunc keeps dd from shortening the
+file, and the example removes it afterward. Apparent size alone therefore does not measure a
+deployment's disk consumption.

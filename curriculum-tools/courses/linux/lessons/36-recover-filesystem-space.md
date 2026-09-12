@@ -93,12 +93,10 @@ On the disposable VM, mount_status=mounted, name_exists_after_unlink=no, free_af
 Reclamation follows references, not names: deleting the last directory entry is insufficient while an open description remains. The same delayed recovery appears in rotated logs, temporary files, and storage snapshots.
 
 ## Optional variation
-**Predict:** With an eight-MiB held file, at which point can its blocks become reclaimable?
+Rerun the complete lesson, changing only count=12 to count=8. Keep the exact-PID wait and
+exact-mount cleanup. Compare free_after_unlink with free_after_close inside the same bounded image.
 
-**Inspect and explain:** Compare free_after_unlink with free_after_close and explain why the live descriptor delays recovery.
-
-**Vary:** Rerun the complete lesson, changing only count=12 to count=8. Compare the free-space recovery after the final close within the same bounded image.
-
-**Hint:** Use the same exact-PID wait and exact-mount cleanup as the main experiment.
-
-**Apply:** State the evidence threshold for declaring hidden-space recovery complete after a service restart.
+The held payload is now8MiB, but the release boundary is unchanged: removing the name leaves
+the open reference, and final close permits recovery. free_after_close should exceed
+free_after_unlink and space_recovery remains after-final-close. Confirming both the owner's exit
+and recovered capacity provides stronger recovery evidence than a restart request alone.

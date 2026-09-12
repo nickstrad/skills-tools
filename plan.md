@@ -38,9 +38,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
 - All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
   PostgreSQL completion is committed in `1e64d13`.
-- Linux13–24 are accepted with direct optional comparisons and unchanged commands/metadata.
-  The ledger has150 accepted rows and100 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes Linux25–72 (48 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+- Linux13–24 are accepted in `953dcc0`; Linux25–36 are also accepted with direct optional comparisons
+  and unchanged commands/metadata. The ledger has162 accepted rows and88 pending.
+  Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes Linux37–72 (36 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -57,6 +58,21 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Linux25–36
+
+Primary accepted all12 filesystem/storage lessons with direct comparisons and local interpretation.
+Every supplied script and inline parameter/assertion variation is retained. Lesson34 retires an
+unrelated16MiB/1MiB prediction while keeping its actual32MiB-mount/4MiB-write comparison. Mount/image
+scope, exact-child waits, unmounts, traps and cleanup are unchanged. Complete parsed-field checks
+confirm exact Setup/Run, fenced/indented optional programs, metadata and revision parity. All12
+actual plain/ANSI/JSON CLI views and the72-lesson source check pass. No real experiment changed;
+existing evidence applies and no mount, image or lab was allocated. Logs/manifests/views use
+`linux-25-36*`; temporary review catalog removed.
+
+The ledger has162 accepted and88 pending: Linux37–72 and SQLite01–51/53. Primary has read37–39,
+without edits yet. Scratch remains about20MB until final acceptance. Final integration, installation,
+live rollout and resource/readiness checks remain required.
 
 ### Resumed acceptance checkpoint — Linux13–24
 

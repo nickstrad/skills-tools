@@ -78,12 +78,11 @@ On a VM with passwordless sudo, mount_status=mounted, findmnt_record names tmpfs
 tmpfs presents filesystem semantics while storing pages in memory and enforcing a filesystem quota. It is useful for scratch state, but its bytes compete with memory rather than a disk volume.
 
 ## Optional variation
-**Predict:** If the mount limit is 16 MiB and the write is 1 MiB, which df field changes while the mount is live?
+Rerun the complete lesson, replacing dd count=8 with count=4 and the used-byte lower bound
+-ge 8388608 with -ge 4194304. Keep the32MiB mount, as_root helper and EXIT trap established
+before mounting, along with the exact unmount and cleanup.
 
-**Inspect and explain:** Compare tmpfs_size_bytes and tmpfs_used_bytes. Explain why the host memory_available_bytes sample is not an exact attribution measurement.
-
-**Vary:** Rerun the complete lesson, replacing dd count=8 with count=4 and the used-byte lower bound -ge 8388608 with -ge 4194304. Keep the 32 MiB mount and its cleanup.
-
-**Hint:** Reuse the as_root helper and an EXIT trap before mounting.
-
-**Apply:** Decide whether tmpfs is suitable for a service’s scratch output and name the memory budget evidence you would require.
+Compare tmpfs_size_bytes and tmpfs_used_bytes: capacity remains32MiB while the bounded payload
+is now4MiB. The host memory_available_bytes sample includes unrelated activity and cannot attribute
+an exact change to this file. A service using tmpfs for scratch output must budget both its mount
+capacity and the memory needed by the rest of the workload.

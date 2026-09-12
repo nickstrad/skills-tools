@@ -60,18 +60,14 @@ before_device_inode_size and after_device_inode_size contain identical device, i
 Directories map names to inode records. Rename on one filesystem changes those namespace references atomically while the inode and file data remain in place, the basis for safe deployment swaps.
 
 ## Optional variation
-**Predict:** If a second hard link exists before a rename, will its device-and-inode pair change?
-
-**Inspect and explain:** Run this complete bounded example:
+Create a second hard link, then rename the original path within the same lab directory:
 
 ```bash
 lab=$LINUX_LAB; if [ -z "$lab" ]; then lab=$HOME/linux-systems-lab; fi; mkdir -p "$lab"; a="$lab/rename-vary-$UID"; b="$a.peer"; c="$a.new"; printf x > "$a"; ln "$a" "$b"; mv "$a" "$c"; stat -c '%d:%i %h %n' "$b" "$c"; rm -f "$b" "$c"
 ```
 
-Compare both device-and-inode pairs and link counts after the rename. Which name changed, and which object remained?
-
-**Vary:** This one rename is the bounded variation.
-
-**Hint:** Keep all three paths below one lab directory; a cross-filesystem **mv** can copy instead of using one rename.
-
-**Apply:** For a service publishing a completed configuration file, state which evidence proves visibility and which evidence would still be needed for crash durability.
+Both surviving names report the same device-and-inode pair and link count2. The original name
+moved to its .new path; the peer still names the same object. The example removes both names.
+Keep all three paths below one lab directory: a cross-filesystem mv can copy instead of using
+one rename. This verifies namespace visibility; publishing a configuration file durably requires
+separate evidence of file and directory persistence across a crash.

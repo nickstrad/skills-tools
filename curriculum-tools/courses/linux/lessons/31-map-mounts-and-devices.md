@@ -64,18 +64,13 @@ findmnt_target, findmnt_source, findmnt_fstype, df_device, and df_mountpoint are
 Path lookup crosses a mount graph before reaching an inode, while df reports the capacity boundary selected by that graph. lsblk adds physical topology when the source is a block device; containers may expose a virtual source instead.
 
 ## Optional variation
-**Predict:** Will a second file under the same lab directory resolve to the same findmnt target?
-
-**Inspect and explain:** Run this complete bounded example:
+Resolve exactly one second pathname below the same lab directory:
 
 ```bash
 LAB=$LINUX_LAB; if [ -z "$LAB" ]; then LAB=$HOME/linux-systems-lab; fi; mkdir -p "$LAB"; f="$LAB/mount-vary-$UID"; : > "$f"; findmnt -T "$f" -o TARGET,SOURCE,FSTYPE -n; rm -f "$f"
 ```
 
-Compare this mount target with the original lesson’s target. Explain what mapping the pathname supplies and what remains unknown about physical storage.
-
-**Vary:** Inspect exactly one second pathname below the lab.
-
-**Hint:** Use **findmnt -T** on the pathname, not a guessed device.
-
-**Apply:** When df names an overlay source, state what additional service deployment information you need before attributing a full filesystem to a physical disk.
+Compare its mount target with the original: both files in the same directory resolve to the same
+mount while the mount layout stays unchanged. findmnt -T starts from the actual pathname; the
+example then removes its file. A virtual or overlay source still needs deployment and backing-store
+information before that mount can be attributed to a particular physical disk.

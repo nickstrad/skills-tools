@@ -79,12 +79,10 @@ On the disposable VM, mount_status=mounted, fill_status is nonzero, enospc_text=
 ENOSPC is a failure at a particular filesystem boundary, not necessarily a host-wide disk failure. Volume quotas and container layers use the same containment idea to localize capacity incidents.
 
 ## Optional variation
-**Predict:** If a bounded write attempt still exceeds the image capacity, should reducing that attempt from 64 to 48 MiB remove ENOSPC?
+Rerun the complete lesson, changing only the bounded dd attempt from count=64 to count=48.
+Keep the image and mount paths under $LAB and retain the same cleanup trap and exact unmount.
 
-**Inspect and explain:** Use fill_status, enospc_text and inner_free_bytes to identify the bounded failure domain.
-
-**Vary:** Rerun the complete lesson, changing only the bounded dd attempt from count=64 to count=48. It still exceeds the 32 MiB image; inspect the actual ENOSPC result and exact unmount.
-
-**Hint:** Keep the image and mount path under **$LAB** and retain the same cleanup trap.
-
-**Apply:** Explain how you would distinguish an application ENOSPC from an exhausted host volume.
+The48MiB request still exceeds the32MiB image. Inspect the nonzero fill_status, enospc_text=present
+and inner_free_bytes below one MiB before cleanup. These observations locate the failure inside
+the mounted image. An application ENOSPC likewise needs its pathname-to-filesystem mapping and
+that filesystem's capacity evidence before it can be attributed to a host volume.

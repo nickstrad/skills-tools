@@ -70,18 +70,14 @@ path_exists_after_unlink=no, fd_link contains (deleted), fd_contents=still-reada
 unlink removes a directory reference; an open-file description remains valid independently. This explains deleted log files consuming space, graceful rotation, and why closing the final descriptor is part of reclamation.
 
 ## Optional variation
-**Predict:** Does creating a replacement at an unlinked pathname change an already-open descriptor’s bytes?
-
-**Inspect and explain:** Run this complete bounded example:
+Hold one descriptor open while replacing its unlinked pathname with a new file:
 
 ```bash
 ( lab=$LINUX_LAB; if [ -z "$lab" ]; then lab=$HOME/linux-systems-lab; fi; mkdir -p "$lab"; f="$lab/deleted-vary-$UID"; printf old > "$f"; exec 9< "$f"; rm "$f"; printf replacement > "$f"; printf 'fd='; cat /proc/$BASHPID/fd/9; printf ' path='; cat "$f"; exec 9<&-; rm -f "$f" )
 ```
 
-Explain why the held descriptor and the replacement pathname return different bytes.
-
-**Vary:** This has one held descriptor and one replacement file.
-
-**Hint:** BASHPID identifies the actual subshell holding descriptor 9; $$ would retain the outer shell PID.
-
-**Apply:** Name the process and filesystem evidence you would use before restarting a service to reclaim a deleted log’s blocks.
+The output is fd=old followed by path=replacement. Descriptor9 still reaches the old object,
+while a new pathname lookup reaches the replacement. BASHPID identifies the actual subshell
+holding9; $$ would retain the outer shell PID. The example closes9 and removes the replacement.
+For a deleted log, identifying the holder PID and its deleted descriptor ties filesystem use to
+the process that can release the reference.
