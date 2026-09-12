@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — next WP1.1. Baseline commit `368734b`.**
+**Status: in progress — next WP1.2/1.3/1.5/3.2/6.1 (parallel), WP2.1. Baseline commit `368734b`.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -50,7 +50,7 @@ a separate handoff document.
 | WP0.1 Resource preflight and progress baseline | S | done | (no repo change) | `$WORK/baseline/README.txt`: 15 GB free, 6.8 GB RAM available; 5×3 hashes; rows grpc 6/6/6, linux 72/0/0, postgres 99 (95 active)/8/8, essentials 26/22/23, sqlite 48/0/0 (lessons/progress/attempts); cluster `lab|/labs/pglab/primary|f` |
 | WP0.2 Golden corpus from the Deno engine | S | done | (no repo change) | corpus SHA256: `8b1b256f2db9fec5a4edd8e7f242c242cf3f4c4bfcbe331e025c9a22a04033dc` (`$WORK/golden.tar.gz`); two variants per course, see finding 2026-09-12 (b) |
 | WP0.3 Module bootstrap | F | done | see log | cobra v1.10.2 / modernc.org/sqlite v1.58.0; Go caches at `/root/go`, `/root/.cache/go-build` |
-| WP1.1 course package (grammar) | F | todo | | |
+| WP1.1 course package (grammar) | F | done | see log | `internal/course` + `internal/testutil`; 8 tests |
 | WP1.2 Converter and conversion | S | todo | | |
 | WP1.3 render package | S | todo | | |
 | WP1.4 Parity gate A | S | todo | | |
@@ -64,7 +64,7 @@ a separate handoff document.
 | WP3.4 links and install | S | todo | | |
 | WP3.5 Launcher | S | todo | | |
 | WP3.6 Parity gate C and smoke | S | todo | | |
-| WP4.1 roadmap.json extraction | S | todo | | |
+| WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
 | WP4.2 roadmap package and command | O | todo | | |
 | WP4.3 Archive Markdown roadmap | S | todo | | |
 | WP5.1 harness package | F | todo | | |
