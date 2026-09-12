@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — nothing delegated. Phase 9 in progress (primary): WP9.1 consolidated schema + `tutor progress consolidate`, then WP9.2 switch and parity-d, then WP4.3.**
+**Status: in progress — primary validating WP9.2 shared-database parity; Luna/high implementing WP5.2; Sol drafting WP7.1.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -66,23 +66,23 @@ a separate handoff document.
 | WP3.6 Parity gate C and smoke | S | done | plan-only commit | rerun through `bin/tutor` from /tmp: 1145 files, 0 differences (`$WORK/parity-c/report.txt`); write smoke on a copy passed (`$WORK/parity-c/smoke.sh`: init, done, undone, skip, note, `## Your note`, status --json, `3 lesson` == `lesson 3`); no `render-check` command ever existed, so nothing to remove; real database hashes unchanged |
 | WP4.1 roadmap.json extraction | S | done | see log | 19 topics, 49 follow-ups, 6 diagrams verbatim; preamble kept all 4 paragraphs; the obsolete "pgcoach lesson-script convention" sentence is reworded in WP7.4 |
 | WP4.2 roadmap package and command | O | done | 07d2ede + wiring commit | package by an opus subagent, `internal/cli/roadmap.go` by the primary; uses `<root>/tutor.sqlite` already (the Phase 9 file); real machine import happens in WP4.3 |
-| WP4.3 Archive Markdown roadmap | S | todo | | |
+| WP4.3 Archive Markdown roadmap | S | done | a959159 | Archive and relinks committed; status reconciled on resume. |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
-| WP5.2 validate and progress verify | S | todo | | |
+| WP5.2 validate and progress verify | S | in progress | | Luna/high owns new CLI command files/tests; primary wiring/review. |
 | WP5.3 Real-tool smoke, old tools removed | S | todo | | |
 | WP5.4 VALIDATION.md | S | todo | | |
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | S | todo | | |
-| WP7.1 tutor skill | O | todo | | |
+| WP7.1 tutor skill | O | in progress | | Sol drafting new skill; primary owns review and retirement of old skill directories. |
 | WP7.2 AGENTS.md | O | todo | | |
 | WP7.3 Author skill and AUTHORING.md | S | todo | | |
 | WP7.4 Remaining documentation | S | todo | | |
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |
 | WP8.2 Knowledge cleanup | S | todo | | |
 | WP8.3 Machine install and sweep | S | todo | | |
-| WP9.1 Consolidated progress schema and migration command | F | todo | | |
-| WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | todo | | |
+| WP9.1 Consolidated progress schema and migration command | F | done | ff2b69c | Schema, queries and consolidation committed together with CLI switch; final primary checks continue under WP9.2. |
+| WP9.2 Switch CLI, route and roadmap to the one database; re-run parity | F | in progress | ff2b69c (code) | Existing parity-d: 1145 outputs equal, but separate database per course; primary closing shared-file coverage. Real migration already ran; do not repeat. |
 | WP8.4 Final acceptance | F | todo | | |
 
 **Decision and finding log.** Append dated entries when Nick answers a question, a decision in §2
@@ -141,6 +141,19 @@ learner progress rows that changed during the work).
   final design; the original per-course files are kept as read-only backups until Nick removes
   them.
 
+- 2026-09-12 — Resumed with Nick's current model mapping: S → Luna/high, O → Sol, F →
+  current primary. The primary owns validation, plan updates and the hardest work. Commits
+  ff2b69c and a959159 were missing from the status log; reconciled above. The existing
+  uncommitted `progress.Holders` export in `consolidate.go` is preserved and not included in
+  the mapping-only commit. Prior Claude attribution lines are historical, not new commit
+  requirements. No separate lesson-batch handoff applies to this CLI migration.
+- 2026-09-12 — Resume preflight: about 15 GB disk and 6.9 GiB RAM available, inodes 8% used;
+  learner cluster read-only answer `lab|/labs/pglab/primary|f` after socket access outside the
+  sandbox. Sandbox process listings do not expose the host's learner processes. Existing
+  `$WORK` artifacts retained for outstanding acceptance; new resume evidence lives under
+  `curriculum-tools/.cache/migration-resume/` and is removed at final acceptance. Go scratch
+  build cache is `/tmp/tutor-go-build`; account for it at cleanup.
+
 ## B. Verified current state (2026-09-12, commit 368734b)
 
 A fresh agent should trust this table and re-verify only what a WP touches.
@@ -164,13 +177,19 @@ A fresh agent should trust this table and re-verify only what a WP touches.
 
 **Delegation tiers.** Every work package (WP) carries a tier:
 
-- **S (Sonnet)** — fully specified. Inputs, outputs, exact formats, tests and acceptance
-  commands are written down; the agent should not need to invent behavior. If a Sonnet agent hits
+- **S (Luna/high; `gpt-5.6-luna`, reasoning `high`)** — fully specified. Inputs, outputs, exact formats, tests and acceptance
+  commands are written down; the agent should not need to invent behavior. If a Luna agent hits
   an unspecified case it must stop and report, not improvise.
-- **O (Opus)** — directed. The goal, constraints, interfaces and acceptance are fixed; internal
+- **O (Sol; `gpt-5.6-sol`)** — directed. The goal, constraints, interfaces and acceptance are fixed; internal
   structure or wording is left to the agent because over-specifying it before doing it is wasteful.
-- **F (Fable, the primary agent)** — high-leverage or subtle work the primary does itself: the
+- **F (the current primary agent)** — difficult or subtle work the primary does itself: the
   lesson file grammar, the progress seed/identity logic, the validation harness, final acceptance.
+
+**Current assignment policy (Nick, 2026-09-12).** Sonnet assignments map to Luna subagents at
+high reasoning; Opus assignments map to Sol. The current primary owns validation, integration,
+this plan and the most difficult implementation. S/O/F are stable work-tier labels, not a
+requirement to use Claude. Completed historical assignments remain provenance. Subagents have
+exclusive file ownership and report back without committing; the primary reviews and commits.
 
 **Final pass on every WP.** The primary agent reviews each completed WP before commit using the
 generic checklist below plus the WP's *Review focus* line. Nothing is committed unreviewed.
@@ -218,8 +237,9 @@ findings into `docs/knowledge/`.
    `lessons.json`, so no TypeScript ever runs again. Verified facts that make this safe: no
    `setup`/`code` field in any of the 250 lessons contains a fence line; no prose field contains
    a line starting with `## `; 52 prose fields contain fenced blocks (parser must track fences).
-2. **Per-course `progress.sqlite` stays**, identical schema, opened with `modernc.org/sqlite`.
-   No progress migration.
+2. **One `curriculum-tools/tutor.sqlite` for all course progress and roadmap**, opened with
+   `modernc.org/sqlite`. Phase 9 supersedes the original per-course design; the original files
+   are retained under `.cache/legacy-progress/<id>/` as backups.
 3. **Roadmap in `curriculum-tools/tutor.sqlite`** (gitignored) with a committed
    `curriculum-tools/roadmap/roadmap.json` snapshot for bootstrap/backup (`import`/`export`).
 4. **Cobra tree with one command per discovered course**; `[N] verb` is normalized to
