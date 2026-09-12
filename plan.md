@@ -69,8 +69,8 @@ a separate handoff document.
 | WP4.3 Archive Markdown roadmap | S | done | a959159 | Archive and relinks committed; status reconciled on resume. |
 | WP5.1 harness package | F | done | d205e3a | adds `ShellFallback`, `PerLesson`, `Dir` hooks for isolated validation; env precedence: process < repl.env < options |
 | WP5.2 validate and progress verify | O | done | resume validation commit | Sol completed/reviewed Luna draft; primary wired and verified all five real progress copies. Full Go vet/race suite passes, including shared-file parity (404 s under race). |
-| WP5.3 Real-tool smoke, old tools removed | O | todo | | |
-| WP5.4 VALIDATION.md | S | in progress | | Luna/high authoring_docs; primary review. |
+| WP5.3 Real-tool smoke, old tools removed | O | done | resume harness retirement commit | Primary inspected SQLite 1–3 and Linux 2 outputs; temporary labs removed; obsolete validation/coach tools retired. |
+| WP5.4 VALIDATION.md | S | done | resume harness retirement commit | Luna/high rewrite reviewed/refined by primary; private PG endpoints, environment precedence, SQLite isolation and copy-only verify documented. |
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | O | done | resume retirement commit | Primary verified exact archived completion receipt and remaining file inventory, retired 100 KB tool tree, applied reviewed link install (15 actions). |
@@ -184,6 +184,15 @@ learner progress rows that changed during the work).
 - 2026-09-12 — WP7.4 primary review kept the historical validation README body verbatim under
   its dated note and extended the Essentials PLAN edit to its stale implementation paragraph
   only (no route/content edits). Markdown is parsed directly; there is no generated catalog.
+
+- 2026-09-12 — WP5.3 smoke: SQLite 1 created an owned 8192-byte lab.db with `events`
+  and `baseline_rows=1`; SQLite 2 reported 3.53.4, DBPAGE/DBSTAT/FTS5 capabilities, 4096-byte
+  page, `dbstat_probe_rows=2`, `fts_matches=1`; SQLite 3 showed B reading A's committed row,
+  A count 2 versus B count 1 during the transaction and B count 1 after rollback. Linux 2
+  fallback (gRPC tools remain pruned) showed kernel 6.8.0-138-generic, Ubuntu userspace,
+  `/usr/bin/bash` and `kernel_release_consistent=yes`. All outputs inspected against lessons,
+  retained temporarily under `.cache/migration-resume/`; owned evidence directories removed.
+  No PostgreSQL experiment ran. Nine obsolete TypeScript validation/coach files retired.
 
 ## B. Verified current state (2026-09-12, commit 368734b)
 
