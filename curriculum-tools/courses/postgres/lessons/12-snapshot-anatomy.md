@@ -77,12 +77,12 @@ reader's timestamp-like view of which transactions are finished, active, or from
   - What it does here: B's commit removes its xid from future snapshots and makes Carol's new version
     visible.
   - What it gives us: The before/after comparison for the snapshot experiment.
-- **REPEATABLE READ** (transaction isolation level, in the challenge)
+- **REPEATABLE READ** (transaction isolation level, in the variation)
   - What it is: An isolation mode that keeps one snapshot for the entire transaction.
   - What it does here: Repeated **pg_current_snapshot()** calls retain the same text despite another
     transaction committing.
   - What it gives us: Evidence of a stable view.
-- **READ COMMITTED** (transaction isolation level, in the challenge)
+- **READ COMMITTED** (transaction isolation level, in the variation)
   - What it is: PostgreSQL's default mode, which takes a snapshot for each statement.
   - What it does here: Repeating the same query allows xmax to advance after another commit.
   - What it gives us: A direct contrast with REPEATABLE READ.
@@ -152,6 +152,7 @@ model: the list is O(concurrent write transactions), which is why thousands of l
 make snapshot taking itself expensive.
 
 ## Optional variation
-Run "begin isolation level repeatable read; select pg_current_snapshot();" twice in the same
-transaction with a write committing in between: the snapshot text does not change. Then do the same
-under read committed and watch xmax advance on every statement.
+Run "begin isolation level repeatable read; select pg_current_snapshot();" once, then repeat only
+the SELECT in that transaction after another session commits a write: the snapshot text does not
+change. Commit the reader, then repeat with READ COMMITTED and compare the fresh statement snapshot
+after the other session's write commits. Finish by committing the reader transaction.

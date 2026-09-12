@@ -68,7 +68,7 @@ satisfied by the operating-system cache, so the counters do not directly time ph
   - What they do here: ensure cache rows belong to this table and database.
   - What they give us: safe filtering when other databases share the cache.
 
-- **CREATE TABLE AS and pg_prewarm(..., 'buffer')** (challenge tools)
+- **CREATE TABLE AS and pg_prewarm(..., 'buffer')** (variation tools)
   - What they are: a query-built lab table and an extension function that loads a relation into
     shared buffers.
   - What they do here: create one controlled working-set variation and then warm it deliberately.

@@ -32,9 +32,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
 - PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
 - PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
-- PostgreSQL01–08 are also accepted: five prose edits, three unchanged. With88–92, the ledger now
-  has96 accepted rows and154 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes PostgreSQL10–37/39–45/47–53 (42 rows), Linux13–72 (60 rows)
+- PostgreSQL01–08 are also accepted: five prose edits, three unchanged, committed as `dafcf23`.
+- PostgreSQL10–20 are accepted: eight prose edits, three unchanged. The ledger now has107 accepted
+  rows and143 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes PostgreSQL21–37/39–45/47–53 (31 rows), Linux13–72 (60 rows)
   and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -52,6 +53,23 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL10–20
+
+All11 lessons pass exact main-command/metadata/revision comparison and complete plain/ANSI/JSON
+rendering. Eight prose edits clarify variation terminology,12's repeated SELECT/reader cleanup and
+16's current lesson15 reference;15/17/18 are unchanged. Lesson11's unchanged optional READ COMMITTED
+commands now correctly explain an idle reader with no retained backend_xmin, and explicitly close
+the third session with ROLLBACK. One small owned PostgreSQL16 cluster verified actual two-connection
+READ COMMITTED/REPEATABLE READ/rollback horizon states, then was stopped and removed with its clients.
+The verifier explicitly accounts for11's exact nested explanatory prose replacement; executable
+blocks remain unchanged. PostgreSQL source check passes. Logs/manifest use `postgres-10-20*`, with
+`pg11-horizon.log` and its small Go driver. Learner progress remains at the recorded baseline.
+
+The ledger has107 accepted rows and143 pending. Primary has begun reviewing21–29;28 still has a
+mandatory prediction in its variation. Further broad review also found references to unavailable
+“runnable hint”/“exact hint” material in47/49, missed by the preliminary inventory; do not accept
+those rows without inspecting and flattening their useful comparison. No new worker is running.
 
 ### Resumed acceptance checkpoint — PostgreSQL01–08
 

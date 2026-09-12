@@ -40,6 +40,29 @@ The PostgreSQL92-lesson check passes. Existing experiment validation remains app
 allocated. Log/manifest: `.cache/legacy-migration/postgres-01-08-parity.log` and `postgres-01-08.json`.
 The ledger now has96 accepted rows and154 pending.
 
+## PostgreSQL10–20 review
+
+Primary accepted all11 lessons: eight prose changes, three unchanged (15/17/18). Variation labels
+replace “challenge”;12 clarifies that only SELECT repeats inside the open reader transaction and
+explicitly closes the readers;16 points to current lesson15's horizon experiment. Setup/Run,
+identities, revisions, safety and session ordering are unchanged, as are all existing comparison SQL
+blocks. Complete parsed-field and plain/ANSI/JSON checks pass, with one exact nested explanatory
+prose exception in11. Logs/manifests use `.cache/legacy-migration/postgres-10-20*`.
+
+Lesson11's prior optional explanation incorrectly said an idle `BEGIN; SELECT 1;` reader retains
+backend_xmin under default READ COMMITTED. A Go driver created one private PostgreSQL16 cluster and
+held a real reader idle while a separate observer checked it: READ COMMITTED returned
+`idle in transaction|t|t` for state/xid-is-null/xmin-is-null; REPEATABLE READ returned
+`idle in transaction|t|f`; rollback returned `idle|t|t`. The corrected prose retains the original
+READ COMMITTED commands and supplies explicit rollback. The contrasting retained snapshot is
+already taught in15. These observations agree with PostgreSQL16's
+[transaction isolation](https://www.postgresql.org/docs/16/transaction-iso.html) and
+[activity fields](https://www.postgresql.org/docs/16/monitoring-stats.html#MONITORING-PG-STAT-ACTIVITY-VIEW).
+The driver stopped and removed its own cluster and clients; no learner connection was used.
+Retained concise evidence: `verify-readonly-horizon.go` and `pg11-horizon.log` in migration scratch.
+
+PostgreSQL's92-lesson source check passes. The ledger has107 accepted rows and143 pending.
+
 ## Public names and skipping
 
 Commits `d0c5511` and `8ee20a9` separate public names from stored identities and add number-first

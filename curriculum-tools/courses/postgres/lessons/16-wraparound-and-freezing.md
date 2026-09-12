@@ -89,9 +89,9 @@ age, runs VACUUM FREEZE, and observes the age and tuple flags reset without rewr
   - What they are: ORDER BY makes page slots stable; LIMIT restricts output to three examples.
   - What they do here: They keep the final tuple-header evidence short and comparable.
   - What they give us: Representative t_xmin and t_infomask values after freezing.
-- **VACUUM with vacuum_freeze_min_age = 0** (challenge variation)
+- **VACUUM with vacuum_freeze_min_age = 0** (optional variation)
   - What it is: A session-level setting of zero makes an ordinary vacuum consider tuples immediately.
-  - What it does here: The challenge compares plain VACUUM under that setting with explicit FREEZE.
+  - What it does here: The variation compares plain VACUUM under that setting with explicit FREEZE.
   - What it gives us: A test of whether the setting produces the same amount of freezing.
 
 ## Caution
@@ -170,7 +170,7 @@ retire old references (freeze) to keep that invariant -- exactly like sequence n
 numbers in Raft, or hazard-pointer/epoch GC in lock-free data structures. The failure mode is what
 makes it famous: if freezing cannot keep up, PostgreSQL first screams in the log, then refuses new
 transactions to avoid ambiguity, and the only cure is a single-user vacuum. Anything that blocks
-vacuum -- lesson 5's horizon holders, an abandoned replication slot, a prepared transaction nobody
+vacuum -- lesson15's horizon holders, an abandoned replication slot, a prepared transaction nobody
 committed -- is therefore also a wraparound risk, and that is why age(datfrozenxid) belongs on your
 dashboard next to disk space.
 

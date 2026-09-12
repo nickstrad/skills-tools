@@ -83,7 +83,7 @@ is guaranteed to appear in the first sample.
   - What it is: RESET removes table-specific options and returns to inherited defaults.
   - What it does here: It cleans up the lab after the experiment.
   - What it gives us: Future runs are not permanently affected by this lesson's low threshold.
-- **autovacuum_vacuum_cost_delay = 20** (challenge throttle)
+- **autovacuum_vacuum_cost_delay = 20** (variation throttle)
   - What it is: A per-table delay limiting how aggressively vacuum consumes I/O resources.
   - What it does here: It adds a table-local 20-millisecond cost delay during the variation.
   - What it gives us: a controlled throttle, though a short worker can still finish between samples.

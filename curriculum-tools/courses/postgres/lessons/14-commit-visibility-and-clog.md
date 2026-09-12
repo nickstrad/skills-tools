@@ -97,7 +97,7 @@ path marks its version visible.
     ownership.
   - What it does here: It lists **$PGLAB/primary/pg_xact** using the shell environment established in the toolkit lesson.
   - What it gives us: The small **0000** segment that stores status for this short-lived lab.
-- **t_infomask and HEAP_XMIN_COMMITTED (challenge)** (tuple hint metadata)
+- **t_infomask and HEAP_XMIN_COMMITTED (variation)** (tuple hint metadata)
   - What they are: **t_infomask** contains tuple flags; bit 256 is the committed-creator hint.
   - What they do here: Comparing page dumps around an ordinary SELECT can show a visibility check setting the hint bit.
   - What they give us: Evidence that a SELECT can cache commit status and dirty a page.

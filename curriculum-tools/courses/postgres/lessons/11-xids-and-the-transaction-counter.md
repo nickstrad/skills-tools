@@ -93,16 +93,16 @@ metadata and eventually have to be frozen before the finite counter becomes unsa
   - What it is: It returns the current xid8 and allocates one if needed.
   - What it does here: The final call follows a read-only transaction and deliberately forces an xid.
   - What it gives us: A number despite the preceding read, proving that this function changes state.
-- **pg_stat_activity** (backend activity view, in the challenge)
+- **pg_stat_activity** (backend activity view, in the variation)
   - What it is: It lists sessions and their current transaction metadata.
   - What it does here: **backend_xid** shows a real xid, while **backend_xmin** shows the oldest xid the
     session's snapshot may still need; **pid <> pg_backend_pid()** excludes this session.
-  - What it gives us: An idle read-only transaction with an empty **backend_xid** but a populated
-    **backend_xmin**, which becomes important for vacuum horizons.
-- **SELECT 1** (constant read, in the challenge)
+  - What it gives us: The idle reader's actual xid and horizon. Under the default READ COMMITTED,
+    both are empty after this statement; an open transaction alone does not retain its snapshot.
+- **SELECT 1** (constant read, in the variation)
   - What it is: A query that returns one constant and touches no user table.
-  - What it does here: It creates a snapshot in the idle third session without writing.
-  - What it gives us: Evidence that a snapshot can publish a cleanup horizon without a real xid.
+  - What it does here: It runs a read without allocating a real xid.
+  - What it gives us: A contrast between transaction lifetime and statement-snapshot lifetime.
 
 ## Setup
 ```sql
@@ -172,7 +172,8 @@ scale writes move to per-node ids plus a partial order (Lamport clocks, HLCs) in
 totally ordered counter.
 
 ## Optional variation
-Open a third session, run "begin; select 1;" and leave it idle. Then check
-select backend_xid, backend_xmin from pg_stat_activity where pid <> pg_backend_pid(): an idle
-read-only transaction has no backend_xid but still publishes a backend_xmin. That column is the
-subject of lesson 5.
+Open a third session, run "begin; select 1;" and leave it idle briefly. From another session, check
+select backend_xid, backend_xmin from pg_stat_activity where pid <> pg_backend_pid(). Under the
+default READ COMMITTED, this reader has no backend_xid and its statement snapshot has been released,
+so backend_xmin is empty too. An open transaction and a retained snapshot are different states;
+lesson15 demonstrates a retained repeatable-read horizon. Finish with ROLLBACK in the third session.

@@ -73,7 +73,7 @@ run together, and why later vacuum work is required to remove obsolete versions.
   - What it is: It publishes B's update and ends A's old snapshot when A commits.
   - What it does here: A's final SELECT runs outside the repeatable-read transaction.
   - What it gives us: The normal current view, ctid **(0,4)** and balance 150.
-- **t_xmin, t_xmax, and t_ctid** (tuple-header fields, in the challenge)
+- **t_xmin, t_xmax, and t_ctid** (tuple-header fields, in the variation)
   - What they are: They record the creating xid, deleting/updating xid, and tuple-chain target.
   - What they do here: Repeated updates expose a chain from the first line pointer; a non-indexed
     update can be a HOT (heap-only tuple) update when it fits on the same page.

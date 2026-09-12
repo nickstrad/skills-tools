@@ -86,17 +86,17 @@ postgres	6	page-header-and-line-pointers	prose/diagram only	Challenge	primary	Re
 postgres	7	update-writes-a-new-tuple	prose/diagram only	Challenge	primary	Retain uncommitted-v4 observation; explicitly ROLLBACK in writer after comparison; no changes to main transaction/page evidence or revision
 postgres	8	hot-updates-and-fillfactor	prose/diagram only	SyntaxBreakdown	primary	Rename challenge labels to variation; complete fillfactor/transaction comparison SQL preserved
 postgres	9	toast-and-large-values	navigation comment/output cleanup	SyntaxBreakdown,Code,Challenge	primary	Four exact navigation-comment replacements; executable SQL/Setup/metadata unchanged; TOAST map and direct comparison interpretation
-postgres	10	buffer-cache-and-io	pending			
-postgres	11	xids-and-the-transaction-counter	pending			
-postgres	12	snapshot-anatomy	pending			
-postgres	13	two-sessions-see-different-versions	pending			
-postgres	14	commit-visibility-and-clog	pending			
-postgres	15	xmin-horizon-blocks-cleanup	pending			
-postgres	16	wraparound-and-freezing	pending			
-postgres	17	vacuum-reclaims-in-place	pending			
-postgres	18	vacuum-full-rewrites-and-locks	pending			
-postgres	19	visibility-map-and-index-only-scans	pending			
-postgres	20	autovacuum-triggers	pending			
+postgres	10	buffer-cache-and-io	prose/diagram only	SyntaxBreakdown	primary	Variation terminology; complete controlled cache/prewarm comparison and checkpoint evidence preserved
+postgres	11	xids-and-the-transaction-counter	prose/diagram only	SyntaxBreakdown,Challenge	primary	Correct READ COMMITTED idle-reader horizon explanation; private real two-connection test confirms xid/xmin absence and RR contrast; explicit third-session rollback
+postgres	12	snapshot-anatomy	prose/diagram only	SyntaxBreakdown,Challenge	primary	Direct snapshot comparison repeats SELECT within one transaction and explicitly closes readers; main two-session schedule preserved
+postgres	13	two-sessions-see-different-versions	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; complete MVCC page/session experiment preserved
+postgres	14	commit-visibility-and-clog	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; physical hint-bit comparison and all SQL preserved
+postgres	15	xmin-horizon-blocks-cleanup	unchanged		primary	Unchanged matched churn, exact pinned backend horizon, release and BEGIN-only comparison
+postgres	16	wraparound-and-freezing	prose/diagram only	SyntaxBreakdown,SystemsLens	primary	Variation terminology and current lesson15 horizon reference; exact bounded XID/freezing experiment preserved
+postgres	17	vacuum-reclaims-in-place	unchanged		primary	Unchanged space-reuse experiment and direct second-VACUUM comparison
+postgres	18	vacuum-full-rewrites-and-locks	unchanged		primary	Unchanged rewrite/lock schedule and optional reader-blocking comparison
+postgres	19	visibility-map-and-index-only-scans	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; complete locality/visibility-map comparison preserved
+postgres	20	autovacuum-triggers	prose/diagram only	SyntaxBreakdown	primary	Variation terminology only; bounded autovacuum poll and explicit table-option reset preserved
 postgres	21	atomic-abort	pending			
 postgres	22	read-committed-sees-each-statement	pending			
 postgres	23	lost-update-under-read-committed	pending			

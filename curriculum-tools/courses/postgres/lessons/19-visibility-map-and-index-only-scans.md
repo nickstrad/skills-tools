@@ -79,7 +79,7 @@ clear many bits, and vacuums again to restore the fast path.
   - What it is: It revisits changed pages and can set their all-visible bits once safe.
   - What it does here: It runs after the updates.
   - What it gives us: all_visible returns to 345 and Heap Fetches returns to zero.
-- **WHERE id <= 200** (challenge locality predicate)
+- **WHERE id <= 200** (variation locality predicate)
   - What it is: It concentrates the same number of changed rows at the beginning of the table.
   - What it does here: It dirties fewer pages than the modulo pattern.
   - What it gives us: Fewer heap fetches, demonstrating that page locality matters more than row count.
