@@ -74,12 +74,10 @@ fd0_target, fd1_target, and fd2_target point to the three uniquely named lab fil
 A process starts with a descriptor table whose first three entries conventionally carry input, output, and diagnostics. The same indirection underlies logging redirection, service supervisors, and container stdio plumbing.
 
 ## Optional variation
-**Predict.** Before running, which lab-file targets do you predict for descriptors 0, 1, and 2?
+Change only the input text from input to variation and rerun. Keep the READY marker before reading
+procfs, then compare fd0_target, fd1_target and fd2_target. They still name the same three lab
+paths: changing a file's content does not rewire the child's descriptor table.
 
-**Inspect and explain.** Explain why the readlink targets are stronger evidence than assuming a child inherited the terminal.
-
-**Vary.** Change only the input text from input to variation and verify that the descriptor targets do not change.
-
-**Hint.** Keep the READY marker before reading procfs.
-
-**Apply.** Choose where a service should send diagnostics if its normal output is consumed by another process.
+The readlink targets show the actual wiring while the child is alive. Separate stdout and stderr
+targets let a service deliver normal output to a consumer while keeping diagnostics separate.
+Retain the wait and named-file cleanup.

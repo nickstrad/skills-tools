@@ -67,12 +67,11 @@ left_pid and right_pid are distinct positive PIDs; pipeline_output=left-output; 
 Pipelines form a process graph joined by kernel pipes. A supervisor that reports only the final reader's status can hide an upstream failure, just as a distributed pipeline can hide a failed producer behind a healthy sink.
 
 ## Optional variation
-**Predict.** Before running, how do you predict the ordinary pipeline status and pipefail status will differ?
+Rerun the full block with both exit 7 commands changed to exit 3 and both -eq 7 comparisons
+changed to -eq 3. Keep the combined status assignment immediately after the pipeline, before
+any other command can overwrite `$?` or PIPESTATUS.
 
-**Inspect and explain.** Explain why the output file can contain left-output despite the left member's failure.
-
-**Vary.** Rerun the full block with both exit 7 commands changed to exit 3 and both -eq 7 comparisons changed to -eq 3. Keep the immediate combined status assignment.
-
-**Hint.** Do not insert a command between the pipeline and its combined status assignment.
-
-**Apply.** State which per-stage status a multi-step ingestion service should retain for diagnosis.
+The ordinary pipeline status remains0; with pipefail it becomes3, matching the failed left member.
+The right member still succeeds and left-output remains in the file because the producer wrote
+before exiting. Retaining each stage's status distinguishes that partial production from successful
+completion of an ingestion pipeline.

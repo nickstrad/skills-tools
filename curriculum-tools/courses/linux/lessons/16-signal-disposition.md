@@ -70,12 +70,11 @@ ready=yes, alive_before_term=yes, term_receipt=term_received, term_exit_status=0
 Signals are asynchronous requests interpreted by a process's disposition. Graceful shutdown is therefore a protocol—readiness, signal, drain, exit—not merely a numeric kill command.
 
 ## Optional variation
-**Predict.** Before running, what ordering should the readiness marker, TERM request, receipt, and wait result have?
+Rerun with only the readiness poll delay changed to0.02 seconds, retaining its finite attempt
+count. Check ready=yes before sending TERM; if readiness is absent, stop the trial and let its
+exact-child cleanup run. The shorter polling window can expire under load.
 
-**Inspect and explain.** Explain why the child uses `sleep 30 & ... wait` instead of foreground sleep.
-
-**Vary.** Change only the readiness poll delay to 0.02 seconds and retain its finite attempt count.
-
-**Hint.** Do not send TERM until READY_FILE exists.
-
-**Apply.** Define the readiness, drain, and exit evidence required for a graceful worker shutdown.
+Readiness precedes TERM, the handler writes term_received, and wait returns0 after the child exits.
+The background sleep plus wait lets Bash handle TERM without waiting for a foreground sleep to
+finish. These markers verify this child's shutdown policy; a worker that drains requests would
+also need evidence that its outstanding work completed.

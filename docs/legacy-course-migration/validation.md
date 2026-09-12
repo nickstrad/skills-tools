@@ -4,6 +4,22 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Linux13–24 content group
+
+Primary read all12 complete lessons and replaced staged Predict/Inspect/Hint/Vary/Apply prompts
+with direct optional comparisons and local interpretation. Every supplied variation remains:
+shorter sleeps/polling, changed exit statuses and pipeline payloads, wider zombie observation,
+changed input/stdio/inherited-file text, half-size pipe stream, changed FIFO message and lower
+subshell descriptor limit. Their assertion substitutions, immediate status capture, readiness,
+exact-PID cleanup, descriptor lifetime and session order are preserved. Lesson13 also changes one
+syntax reference from challenge to variation.
+
+All Setup/Run bytes, existing prose code/diagram blocks, identities, safety, sessions and revisions
+match baseline. All12 pass complete actual CLI plain/ANSI/JSON rendering from a temporary catalog,
+which was removed; `linux-legacy check` passes with72 lessons. No experiment changed, so no runtime
+repeat was needed. Logs/manifests/views use `.cache/legacy-migration/linux-13-24*` and remain only
+until final acceptance. The ledger has150 accepted rows and100 pending.
+
 ## Final PostgreSQL content group
 
 All92 PostgreSQL lessons are primary accepted. The last12 are39–45/48/50–53: nine unchanged and

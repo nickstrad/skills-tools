@@ -73,12 +73,11 @@ subshell_limit=32, opened_before_failure is positive, last_descriptor_opened=31 
 Descriptor limits cap kernel references held by one process, preventing an FD leak from consuming the whole host. The same per-process boundary protects web servers, proxies, and file watchers.
 
 ## Optional variation
-**Predict.** Before running, what evidence would distinguish subshell descriptor exhaustion from a changed parent limit?
+Change only `ulimit -n 32` to24 and rerun, leaving the limit change inside `( ... )`.
+Compare opened_before_failure and last_descriptor_opened with the original run: the lower limit
+allows fewer allocations with the same inherited descriptors, and the last descriptor must be
+below24. Exact counts still depend on inherited descriptors.
 
-**Inspect and explain.** Explain why last_descriptor_opened must be below the subshell limit and why open count can vary.
-
-**Vary.** Change only `ulimit -n 32` to 24 in the subshell and predict an earlier failure.
-
-**Hint.** Leave the limit change inside `( ... )`.
-
-**Apply.** Choose the metric and safe restart boundary you would use for a service suspected of leaking descriptors.
+The expected failure remains EMFILE and parent_limit_unchanged=yes. Subshell exit closes its
+allocated references. For a suspected service leak, descriptor growth and the affected process's
+limit identify the resource boundary to investigate before choosing a restart policy.

@@ -60,12 +60,11 @@ separate_stdout=stdout-line and separate_stderr=stderr-line, while duplicated_by
 Redirection mutates entries in a process-local table. Descriptor duplication is therefore a wiring operation, much like attaching a service's output to two collectors or joining an adapter to an existing stream.
 
 ## Optional variation
-**Predict.** Before running, how should the separate captures differ from the duplicated capture?
+Rerun the full block, replacing every stdout-line with normal-line and every stderr-line with
+diagnostic-line, including the combined-byte expectation. Keep the redirection order unchanged.
+The separate files now contain the new individual records, and duplicated_bytes becomes
+normal-linediagnostic-line; both comparison labels retain their successful results.
 
-**Inspect and explain.** Explain why placing 2>&1 before the stdout-to-BOTH redirection would route stderr differently.
-
-**Vary.** Rerun the full block, replacing every stdout-line with normal-line and every stderr-line with diagnostic-line, including the combined-byte expectation.
-
-**Hint.** Keep the redirection order adjacent to the command.
-
-**Apply.** State how you would preserve diagnostics separately while collecting normal service output.
+The second command redirects stdout to BOTH before duplicating it into stderr. Reversing that
+order would copy the earlier stdout target into stderr. The first command's separate targets
+demonstrate how a service can preserve diagnostics independently of its normal output.

@@ -53,12 +53,10 @@ success_status=0 and failure_status=7, with exit_channel=preserved. Child PIDs v
 A wait status is an intentionally lossy result channel: it records success, application failure, or signal termination for the parent. Supervisors use this channel to choose retry, alert, or shutdown policy.
 
 ## Optional variation
-**Predict.** Before running, what status should the parent retain from the intentionally nonzero child?
+Rerun the full block with exit 7 changed to exit 9 and the failure_status comparison changed
+from -eq 7 to -eq 9. Capture `$?` on the next line after each wait; inserting printf there would
+replace the child's status with printf's status.
 
-**Inspect and explain.** Point out why inserting printf between wait and the status assignment would destroy the evidence.
-
-**Vary.** Rerun the full block with exit 7 changed to exit 9 and the failure_status comparison changed from -eq 7 to -eq 9.
-
-**Hint.** Capture `$?` on the next line after the wait.
-
-**Apply.** Map status 0, a known application failure, and signal termination to three supervisor actions.
+The success child still reports0, the other reports9, and exit_channel=preserved. A supervisor
+can use a known application status to select a recovery policy, while retaining signal termination
+as a distinct cause instead of treating every nonzero result as the same failure.

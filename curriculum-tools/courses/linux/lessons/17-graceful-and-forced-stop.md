@@ -64,12 +64,10 @@ graceful_status=0 and forced_status=137 (128+SIGKILL), producing stop_modes=coop
 TERM leaves policy to the application; KILL removes that policy and ends the task in the kernel. Operators need both paths: graceful draining for correctness and forced bounds for stuck processes.
 
 ## Optional variation
-**Predict.** Before running, what completion statuses do you predict for the TERM-handling child and the KILLed child?
+Change only the graceful child's sleep to5 seconds and rerun the same signal sequence. Keep both
+recorded PIDs and the exact cleanup trap. The TERM handler still chooses exit0, while the KILLed
+child retains its signal-termination status,137 in Bash on this lab.
 
-**Inspect and explain.** Explain why a short elapsed sample does not prove that arbitrary TERM handlers are fast.
-
-**Vary.** Change only the graceful child sleep to 5 seconds and repeat the same signal sequence.
-
-**Hint.** Keep both recorded PIDs and the exact cleanup trap.
-
-**Apply.** Specify the escalation deadline and evidence you would require before replacing TERM with KILL in production.
+Compare the labelled outcomes and elapsed sample. A shorter requested sleep does not change the
+handler policy, and one prompt handler does not establish a deadline for arbitrary applications.
+Escalation in a service needs its own drain-progress evidence and deadline.

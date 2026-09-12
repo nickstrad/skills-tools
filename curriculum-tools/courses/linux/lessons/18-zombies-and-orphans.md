@@ -77,12 +77,10 @@ zombie_state=Z while the Python parent delays wait; orphan_before_ppid equals py
 Exit and reaping are separate lifecycle events: a zombie retains a small status record until its parent waits, while an orphan is reparented so it can eventually be reaped. Both are failure modes for supervisors that neglect lifecycle ownership.
 
 ## Optional variation
-**Predict.** Before running, which state and parentage changes would distinguish zombie retention from orphan reparenting?
+Change only the Python zombie delay from .25 to .35 seconds and repeat the same bounded checks.
+Leave the PID-file polling and exact-PID trap intact. The longer delay widens the opportunity to
+sample Z before the parent calls waitpid; the orphan's before/after PPIDs should still differ.
 
-**Inspect and explain.** Identify which labels are timing-sensitive snapshots and which record the causal wait/reparent sequence.
-
-**Vary.** Change only the Python zombie delay from .25 to .35 seconds and repeat the same bounded checks.
-
-**Hint.** Leave the PID-file polling and exact-PID trap intact.
-
-**Apply.** Describe how a supervisor should distinguish unreaped children from workers merely reparented during a restart.
+The Z label is a timing-sensitive state sample, while the two recorded PPIDs expose the change in
+parentage. A new parent PID alone does not mean a worker is a zombie: unreaped exit state and
+reparenting describe different parts of its lifecycle.

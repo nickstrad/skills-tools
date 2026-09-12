@@ -99,12 +99,10 @@ Session A prints fifo_type=fifo and waits for a writer. Session B reports sessio
 A FIFO combines a filesystem name with a kernel pipe, so opening and reading it creates a rendezvous between unrelated processes. Reader EOF is an endpoint-lifetime fact: it occurs after the final writer reference closes, which queue consumers and handoff scripts must distinguish from an idle producer.
 
 ## Optional variation
-**Predict.** Before running, how should the message, first-writer close, final-writer close, and reader EOF be ordered?
+Rerun both sessions with the message changed to fifo-variation-from-B, keeping both writer
+descriptors. Do not close descriptor10 before session_b_first_read_seen=yes. Session A receives
+the new message, then its second read still waits for the final writer to close.
 
-**Inspect and explain.** Use the A and B labels to explain the causal order from first writer close through final writer close and EOF.
-
-**Vary.** Keep both writers but change the message to fifo-variation-from-B; predict that EOF evidence remains unchanged.
-
-**Hint.** Do not close descriptor 10 before session_b_first_read_seen=yes.
-
-**Apply.** For a queue consumer, state which endpoint-ownership evidence you need before interpreting a blocked read as no more producers.
+Compare the A/B labels: first-writer closure leaves another writer reference, while final-writer
+closure allows EOF and eof_after_final_writer=yes. Message content does not change that ownership
+relationship. A blocked queue read alone cannot establish that no producer endpoint remains.

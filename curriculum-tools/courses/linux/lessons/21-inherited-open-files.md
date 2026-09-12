@@ -71,12 +71,10 @@ parent_fd9 and child_fd9 resolve to the same inherited log path, file_contents=c
 Fork copies descriptor references, while the kernel open-file description carries the underlying file and offset. This is why workers can share a log, pipe, or socket without reopening it by pathname.
 
 ## Optional variation
-**Predict.** Before running, what relationship should the parent and child FD 9 links have, and what content should the file show?
+Change only `child-line` to `child-variation` and rerun. Keep descriptor9 open until the child
+reaches READY and both procfs links have been read. file_contents becomes child-variation, while
+both descriptor targets remain the same log path and open_file_reference remains shared.
 
-**Inspect and explain.** Explain why the child can write through 9 without opening FILE itself.
-
-**Vary.** Change only `child-line` to `child-variation` and inspect the resulting content.
-
-**Hint.** Do not close descriptor 9 before the child reaches READY.
-
-**Apply.** Describe how inherited logging descriptors can accidentally keep a rotated file or socket alive.
+The child writes through its inherited reference without opening FILE itself. Such references can
+also keep a rotated file or socket open after another process closes its own descriptor. Retain
+the exact-child wait, parent descriptor close and named-file cleanup.

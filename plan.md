@@ -37,8 +37,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL21–37 are accepted in `1780e76`: four prose edits,13 unchanged.
 - PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
 - All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
-  The ledger has138 accepted rows and112 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes Linux13–72 (60 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+  PostgreSQL completion is committed in `1e64d13`.
+- Linux13–24 are accepted with direct optional comparisons and unchanged commands/metadata.
+  The ledger has150 accepted rows and100 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes Linux25–72 (48 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -55,6 +57,20 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Linux13–24
+
+All12 optional comparisons now use direct instructions and local outcomes instead of staged
+Predict/Inspect/Hint/Vary/Apply prompts. Timing/assertion substitutions, immediate status capture,
+readiness ordering, exact-child cleanup, descriptor ownership, two-session FIFO ordering and
+subshell limit scope are preserved. Lesson13 also renames its syntax variation reference.
+Setup/Run, all existing code/diagram blocks, identities, sessions, safety and revisions exactly
+match baseline. Complete actual CLI plain/ANSI/JSON checks and the72-lesson source check pass.
+Existing runtime evidence applies; no lab was allocated. Logs/manifests/views use `linux-13-24*`.
+
+The ledger has150 accepted and100 pending: Linux25–72 and SQLite01–51/53. Primary has read Linux25–27
+but has not edited them yet. Scratch remains about20MB until final acceptance. Final installation,
+integration checks and live rollout are still pending; no learner progress operation was run.
 
 ### Resumed acceptance checkpoint — final twelve PostgreSQL lessons
 

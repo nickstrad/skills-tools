@@ -17,18 +17,18 @@ linux	9	proc-process-identity	prose/diagram only	Challenge	primary	Direct option
 linux	10	command-line-and-environment	prose/diagram only	Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
 linux	11	process-states	prose/diagram only	Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
 linux	12	threads-under-task	prose/diagram only	Challenge	primary	Direct optional comparison; original supplied behavior retained; exact main-command and metadata parity
-linux	13	foreground-and-background	pending			
-linux	14	wait-and-exit-status	pending			
-linux	15	pipelines-are-processes	pending			
-linux	16	signal-disposition	pending			
-linux	17	graceful-and-forced-stop	pending			
-linux	18	zombies-and-orphans	pending			
-linux	19	standard-stream-fds	pending			
-linux	20	redirect-and-duplicate-fds	pending			
-linux	21	inherited-open-files	pending			
-linux	22	pipe-buffer-backpressure	pending			
-linux	23	fifo-process-coordination	pending			
-linux	24	exhaust-file-descriptors	pending			
+linux	13	foreground-and-background	coaching-only prompt retired	SyntaxBreakdown,Challenge	primary	Direct shorter-sleep comparison preserves both duration and assertion substitutions, wait and measured ordering
+linux	14	wait-and-exit-status	coaching-only prompt retired	Challenge	primary	Direct exit9 comparison preserves immediate status capture and matching assertion substitution
+linux	15	pipelines-are-processes	coaching-only prompt retired	Challenge	primary	Direct exit3 pipeline comparison preserves both exit/assertion replacements and combined status capture
+linux	16	signal-disposition	coaching-only prompt retired	Challenge	primary	Direct bounded readiness-poll comparison preserves marker-before-TERM requirement and child cleanup
+linux	17	graceful-and-forced-stop	coaching-only prompt retired	Challenge	primary	Direct shorter graceful-sleep comparison preserves exact PID signal sequence and cleanup
+linux	18	zombies-and-orphans	coaching-only prompt retired	Challenge	primary	Direct longer zombie-window comparison preserves Python fixture, finite polling and exact-PID cleanup
+linux	19	standard-stream-fds	coaching-only prompt retired	Challenge	primary	Direct input-content comparison retains descriptor-target observation, readiness and cleanup
+linux	20	redirect-and-duplicate-fds	coaching-only prompt retired	Challenge	primary	Direct payload comparison retains all literal/assertion substitutions and redirection ordering
+linux	21	inherited-open-files	coaching-only prompt retired	Challenge	primary	Direct inherited-write comparison retains FD9 readiness/lifetime, child wait and cleanup
+linux	22	pipe-buffer-backpressure	coaching-only prompt retired	Challenge	primary	Direct half-size stream comparison retains shared count, fullblock, completion assertion and cleanup
+linux	23	fifo-process-coordination	coaching-only prompt retired	Challenge	primary	Direct changed-message two-session comparison retains both writers, readiness marker and EOF ordering
+linux	24	exhaust-file-descriptors	coaching-only prompt retired	Challenge	primary	Direct lower descriptor-limit comparison retains subshell scope, inherited-count caveat and parent check
 linux	25	paths-and-inodes	pending			
 linux	26	hard-link-counts	pending			
 linux	27	symlink-resolution	pending			

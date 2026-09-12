@@ -81,12 +81,11 @@ producer_blocked=yes while the FIFO has no draining consumer, then both statuses
 A pipe is a bounded kernel buffer, not an infinite queue. When producer throughput exceeds consumer throughput, blocking is the built-in feedback signal used by shells, RPC streams, and worker pipelines.
 
 ## Optional variation
-**Predict.** Before running, what state, completion statuses, and byte relationship would demonstrate backpressure and later release?
+In a full rerun, change only `BLOCK_COUNT=128` to `BLOCK_COUNT=64`. Keep the shared BLOCK_COUNT
+and iflag=fullblock: EXPECTED_BYTES and both dd count arguments follow that one value, updating
+the assertion before cleanup.
 
-**Inspect and explain.** Explain why descriptor 7 means the observation is buffer pressure, not absence of a reader endpoint.
-
-**Vary.** In a full rerun, change only `BLOCK_COUNT=128` to `BLOCK_COUNT=64`; EXPECTED_BYTES and both dd count arguments then follow that one value.
-
-**Hint.** Keep the shared BLOCK_COUNT and iflag=fullblock; the arithmetic assignment updates the assertion before cleanup.
-
-**Apply.** For a streaming service, name the queue-size and consumer-progress evidence needed before blaming a blocked producer.
+The completed stream is now4,194,304 bytes. Both statuses should remain0 and
+backpressure_released=yes. Descriptor7 still holds the FIFO endpoints open before the consumer
+starts; completion after draining ties the earlier blocking to buffer pressure. A blocked producer
+in a service likewise needs queue occupancy and consumer-progress evidence to identify the cause.

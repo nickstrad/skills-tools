@@ -27,7 +27,7 @@ Equal sleeps show two shell supervision choices. The elapsed numbers are samples
 
 ### Piece by piece
 
-- **date +%s%N** prints a nanosecond-resolution epoch sample; subtracting two values with **$((...))** yields integer milliseconds. The **-lt** and **-ge** numeric tests compare those integer values; the challenge changes the supplied total-time lower bound with its shorter sleep.
+- **date +%s%N** prints a nanosecond-resolution epoch sample; subtracting two values with **$((...))** yields integer milliseconds. The **-lt** and **-ge** numeric tests compare those integer values; the variation changes the supplied total-time lower bound with its shorter sleep.
 - A foreground **sleep 0.25** holds the shell. **sleep 0.25 &** backgrounds a child and **$!** records it.
 - **jobs -l** is a Bash job-table view; it is supporting observation, not the PID authority.
 - **wait PID** joins the child before measuring total duration. `foreground_ms`, `background_return_ms`, and `background_total_ms` vary with scheduling; the final relation is the check.
@@ -60,12 +60,11 @@ foreground_ms is about 250 or more, background_return_ms is much smaller than fo
 Foreground execution couples the shell's next command to child completion; background execution separates submission from join. This is the basic supervision choice behind worker pools and asynchronous service startup.
 
 ## Optional variation
-**Predict.** Before running, how should foreground duration, background return time, and background total time relate?
+In a full rerun, change both sleeps to 0.10 seconds and change the
+`background_total_ms -ge 200` assertion to `-ge 80`. Keep wait after the job listing so the
+background child is reaped, and update the lower bound before the assertion executes.
 
-**Inspect and explain.** Explain which timestamp brackets submission and which brackets completion.
-
-**Vary.** In a full rerun, change both sleeps to 0.10 seconds and change the `background_total_ms -ge 200` assertion to `-ge 80` before comparing the same relationship.
-
-**Hint.** Keep wait after the job listing so the background child is reaped; update the lower bound before the assertion executes.
-
-**Apply.** Choose whether a service launcher should wait for readiness, completion, or neither, and name the evidence.
+Compare the same relationship at the shorter duration: background return measures submission,
+while background total includes waiting for completion. Foreground duration also includes
+completion. Scheduling affects the samples. A service launcher needs a separate readiness signal
+if it must know when work can be accepted; a returned prompt alone provides no such evidence.
