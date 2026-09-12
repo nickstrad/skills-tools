@@ -84,12 +84,11 @@ unix_file_type=socket, unix_socket_entry=yes, received=unix-ping, unix_exchange=
 UNIX sockets use descriptor and queue machinery without IP routing. A local agent or supervisor can communicate through a filesystem rendezvous while remaining inside one host boundary.
 
 ## Optional variation
-**Predict:** Which is a filesystem object: the UNIX socket pathname, the bytes in its queue, or both?
+Copy the full lesson into a private rerun, change the client payload from **unix-ping** to
+**unix-pong**, and change the one received comparison to the same token. Keep the generated
+pathname and cleanup trap, using one bounded local message.
 
-**Inspect and explain:** Explain why unix_socket_entry=yes does not prove received=unix-ping.
-
-**Vary:** Copy the full lesson into a private rerun, change the client payload from **unix-ping** to **unix-pong**, and change the one received comparison to the same token. It remains a single bounded local message with the existing cleanup.
-
-**Hint:** Keep the generated pathname and cleanup trap; do not reuse a global /tmp socket.
-
-**Apply:** Choose a UNIX or loopback TCP endpoint for a local supervisor and service. Defend the choice using rendezvous visibility and endpoint scope.
+received becomes unix-pong and unix_exchange remains complete. The socket entry identifies the
+filesystem rendezvous, while the received token proves bytes crossed the socket queue; existence
+alone cannot establish delivery. Both this pathname socket and loopback TCP support local peers,
+with different address and rendezvous identities.

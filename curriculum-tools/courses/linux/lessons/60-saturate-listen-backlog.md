@@ -103,12 +103,11 @@ clients_total=8 and clients_admitted plus clients_timeout_or_refused equals 8. l
 A listen backlog is an admission queue with finite capacity. Under a burst, the queue turns excess demand into waiting, timeout, or refusal—the same backpressure shape seen at service boundaries.
 
 ## Optional variation
-**Predict:** Must a backlog-1 listener show Recv-Q=1 when eight clients arrive? Explain the policy and timing uncertainty.
+Rerun the complete lesson with the shell client loop reduced from1 2 3 4 5 6 7 8 to1 2 3 4,
+clients_total=8 changed to clients_total=4, and the admitted-plus-rejected comparison changed
+from -eq 8 to -eq 4. Keep the server loop, all timeouts, loopback endpoint and cleanup unchanged.
 
-**Inspect and explain:** Use the two result totals to show completeness without claiming a fixed admitted/refused split.
-
-**Vary:** Rerun the complete lesson with the shell client loop reduced from 1 2 3 4 5 6 7 8 to 1 2 3 4, clients_total=8 changed to clients_total=4, and the admitted-plus-rejected comparison changed from -eq 8 to -eq 4. Keep all timeouts and cleanup.
-
-**Hint:** Do not change sysctls or add external endpoints.
-
-**Apply:** A service sees connection timeouts under a burst. Which listener, queue, accepted-request, and worker evidence would you gather before choosing a backlog change?
+The admitted and timeout-or-refused results must now sum to4. The split and Recv-Q sample remain
+dependent on timing and kernel policy; backlog1 does not require a sampled queue of exactly1.
+Diagnosing burst timeouts needs listener and queue state together with accepted-request progress
+and worker evidence before choosing an admission change.

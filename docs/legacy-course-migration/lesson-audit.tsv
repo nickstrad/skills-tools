@@ -53,18 +53,18 @@ linux	45	observe-context-switches	coaching-only prompt retired	Challenge	primary
 linux	46	change-scheduling-priority	coaching-only prompt retired	Challenge	primary	Direct increment-one nice comparison retains exact command and parent-baseline interpretation
 linux	47	pin-cpu-affinity	coaching-only prompt retired	Challenge	primary	Direct live taskset query retains placement scope and distinguishes sampled CPU from allowed set
 linux	48	set-io-priority	coaching-only prompt retired	Challenge	primary	Direct live CPU-nice query retains supplied command and I/O class comparison; clarifies read precedes class change
-linux	49	limit-open-files	pending			
-linux	50	limit-process-count	pending			
-linux	51	limit-file-size	pending			
-linux	52	limit-cpu-time	pending			
-linux	53	inspect-cgroup-v2	pending			
-linux	54	enforce-cgroup-budget	pending			
-linux	55	create-listening-socket	pending			
-linux	56	map-port-to-process	pending			
-linux	57	tcp-connection-lifecycle	pending			
-linux	58	unix-domain-socket	pending			
-linux	59	socket-is-a-file-descriptor	pending			
-linux	60	saturate-listen-backlog	pending			
+linux	49	limit-open-files	coaching-only prompt retired	Challenge	primary	Direct soft-limit32 comparison preserves parentheses, inheritance and parent-limit checks
+linux	50	limit-process-count	coaching-only prompt retired	Challenge	primary	Direct smaller real-UID headroom comparison preserves16fork bound, reaping and exemption interpretation
+linux	51	limit-file-size	coaching-only prompt retired	Challenge	primary	Direct smaller file-size limit preserves subshell scope, status/length evidence and exact-file cleanup
+linux	52	limit-cpu-time	coaching-only prompt retired	Challenge	primary	Direct2CPU-second comparison preserves60tick watchdog substitution, outside observer and exact wait
+linux	53	inspect-cgroup-v2	coaching-only prompt retired	Challenge	primary	Direct read-only membership query preserves readable branch and distinguishes process records from task accounting
+linux	54	enforce-cgroup-budget	coaching-only prompt retired	Challenge	primary	Direct pids.max4 comparison preserves16attempt helper, fresh group, event read and exact cleanup
+linux	55	create-listening-socket	coaching-only prompt retired	Challenge	primary	Direct listen1 comparison preserves loopback/port0 bind and exact listener cleanup
+linux	56	map-port-to-process	coaching-only prompt retired	Challenge	primary	Direct live descriptor listing preserves saved server identity and permission limitations
+linux	57	tcp-connection-lifecycle	coaching-only prompt retired	Challenge	primary	Direct second-sleep shortening preserves first sleep, shared paths, two-session order and cleanup
+linux	58	unix-domain-socket	coaching-only prompt retired	Challenge	primary	Direct unix-pong comparison preserves matching received assertion, generated path and exact cleanup
+linux	59	socket-is-a-file-descriptor	coaching-only prompt retired	Challenge	primary	Direct hexadecimal-port observation names existing printf and prints saved TCP row for comparison
+linux	60	saturate-listen-backlog	coaching-only prompt retired	Challenge	primary	Direct four-client burst preserves all three loop/label/assertion substitutions, timeouts and cleanup
 linux	61	inspect-namespace-membership	pending			
 linux	62	isolate-pid-namespace	pending			
 linux	63	isolate-mount-namespace	pending			

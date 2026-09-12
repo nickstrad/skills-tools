@@ -74,12 +74,11 @@ cgroup2_mount, self_cgroup, and filesystem_type are printed; on the baseline VM 
 Cgroups form a hierarchy of accounting and control domains. A process can be diagnosed by both its own procfs identity and the group whose controllers impose shared budgets.
 
 ## Optional variation
-**Predict:** Which value should change when another process in the same cgroup allocates memory: memory.current or memory.max?
+Rerun the complete lesson and insert `wc -l "$current/cgroup.procs"` immediately after the
+pids_max printf line, inside the readable-cgroup branch. Keep this variation read-only.
 
-**Inspect and explain:** Explain why self_cgroup is needed before treating a memory.current value as evidence about this shell's resource domain.
-
-**Vary:** Rerun the complete lesson and insert wc -l "$current/cgroup.procs" immediately after the pids_max printf line, inside the readable-cgroup branch. This counts process membership records, while pids.current accounts tasks including threads.
-
-**Hint:** Do not write controller files for this variation; visibility and delegation are separate questions.
-
-**Apply:** A service has a generous per-process RLIMIT_NOFILE but still cannot fork. Which cgroup pids values and UID-scoped values would you compare?
+The new count measures process membership records, while pids.current accounts tasks including
+threads; the values need not match. self_cgroup identifies the domain whose shared usage is being
+read. Usage can change while configured maxima remain fixed. For a service that cannot fork,
+compare cgroup pids usage/limits/events and real-UID process-limit evidence; a generous descriptor
+limit does not establish available task capacity.

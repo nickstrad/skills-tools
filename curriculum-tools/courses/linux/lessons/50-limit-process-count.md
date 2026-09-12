@@ -96,12 +96,12 @@ probe_user=nobody on a VM with passwordless sudo (or your own unprivileged user)
 RLIMIT_NPROC is identity-scoped rather than a universal process count: the kernel compares the whole user's process total against the limit at fork time and exempts privileged identities. The same configured value therefore behaves differently for root and for a service account, which is why diagnosis must record both the policy and the execution identity.
 
 ## Optional variation
-**Predict:** If another shell already owns processes for probe_user, will the probe start at zero usage? State why.
+Copy the full probe into a private run and change only **limit=$((existing + 6))** to
+**limit=$((existing + 4))**. Keep exactly16 fork attempts and the wait for every created child.
+Compare existing_processes, created and fork_failures under the smaller headroom, retaining
+the root-exemption interpretation when applicable.
 
-**Inspect and explain:** Use existing_processes and created to explain why the limit is tied to a real UID rather than a single parent PID.
-
-**Vary:** Copy the full probe into a private run and change only **limit=$((existing + 6))** to **limit=$((existing + 4))**. It still attempts exactly 16 forks and reaps every created child, so it exercises the same real-UID accounting under a smaller headroom.
-
-**Hint:** A process limit can be inherited by a process, while its accounting population can be wider than that process tree.
-
-**Apply:** A multi-worker service fails to fork only after another service account deployment. What UID-scoped evidence and cgroup evidence would you collect before changing either limit?
+Other processes for the same real UID contribute to the accounting population, even outside this
+parent's tree; exact counts can change during the probe. A fork failure in a service needs both
+its UID-scoped limit/usage evidence and its cgroup pids limits/events to identify which boundary
+refused the work.

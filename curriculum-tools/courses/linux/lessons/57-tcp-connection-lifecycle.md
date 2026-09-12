@@ -109,12 +109,11 @@ Session A prints server_ready=yes, server_status=0, and accepted_connection=yes.
 TCP maintains a state machine over a four-tuple of local and remote addresses and ports. A listener creates future connections; each accepted connection has its own state and descriptor lifecycle.
 
 ## Optional variation
-**Predict:** Which result can remain successful if established_seen=no because the sample happened after close?
+Copy both sessions into a private rerun. In Session B, change only the second **time.sleep(.35)**,
+immediately before sendall, to **time.sleep(.10)**. Keep the first sleep, start Session A first,
+and retain the shared LINUX_LAB paths and cleanup. All traffic stays on loopback.
 
-**Inspect and explain:** Explain why accepted_connection=yes is stronger than seeing a listener before Session B runs.
-
-**Vary:** Copy both sessions into a private rerun and change only Session B's **time.sleep(.35)** before sendall to **time.sleep(.10)**. This keeps all traffic on loopback and tests the timing sensitivity of the ESTAB sample.
-
-**Hint:** Start Session A first and keep the fixed LINUX_LAB paths unchanged.
-
-**Apply:** A service port is open but a client handshake times out. Which endpoint-state and request-completion evidence distinguishes admission from useful service?
+The shorter connection lifetime changes the opportunity to sample ESTAB. accepted_connection=yes
+and clean exits can remain successful even if the state sample misses that interval. Acceptance
+proves more than LISTEN, but an application recovery claim still needs its own completed
+request/response evidence.

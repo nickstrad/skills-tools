@@ -69,12 +69,12 @@ write_status is nonzero, final_bytes is at most 1048576, file_size_boundary=obse
 A resource limit can interrupt a write path at a byte boundary and deliver a signal. This is different from ENOSPC: the limit belongs to the writer, not the filesystem's free blocks.
 
 ## Optional variation
-**Predict:** Will a second shell that did not enter the parentheses inherit this one-MiB writer budget?
+Copy the full lesson into a private run and change only **ulimit -f 1024** to **ulimit -f 512**.
+Keep the limit inside parentheses and retain the status capture, stat query, trap and exact-file
+cleanup. The writer still requests2MiB, so a nonzero status and the smaller final_bytes show
+the new boundary. Normal Bash units make that ceiling512KiB; inspect the actual length if the
+shell uses POSIX-compatible units.
 
-**Inspect and explain:** Explain why final_bytes and write_status together distinguish an enforced writer limit from a successful short write.
-
-**Vary:** Copy the full lesson into a private run and change only **ulimit -f 1024** to **ulimit -f 512**. The existing status, stat, trap, and exact-file cleanup then measure the smaller writer boundary.
-
-**Hint:** Keep the variation in parentheses so its ulimit cannot affect later lessons.
-
-**Apply:** A log writer stops with SIGXFSZ while df shows free blocks. Which owner and limit would you inspect before attempting filesystem cleanup?
+The parent remains outside the changed limit. SIGXFSZ with free filesystem blocks points to the
+writer's RLIMIT_FSIZE policy; status plus final length distinguishes that failure from a successful
+short write.

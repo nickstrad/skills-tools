@@ -87,12 +87,13 @@ proc_fd_link matches socket:[inode], proc_tcp_row_seen=yes, and descriptor_inode
 Sockets enter the same per-process descriptor table as files and pipes. The inode-like handle in procfs is the join key between a task's open reference and the kernel's network table.
 
 ## Optional variation
-**Predict:** If the server closes its listening socket but stays alive, which value should disappear first: its socket descriptor link or its PID?
+Rerun the complete lesson and insert `printf 'port_hex=%s\n' "$port_hex"` immediately after
+the port_hex assignment. After the tcp_row assignment, print it with `printf '%s\n' "$tcp_row"`
+and compare its local endpoint with port_hex while the listener is alive. Retain exact-server
+cleanup. /proc/net/tcp uses hexadecimal ports,
+so convert before comparing with decimal endpoint output.
 
-**Inspect and explain:** Explain why socket_inode identifies a kernel object but does not identify a useful application protocol.
-
-**Vary:** Rerun the complete lesson and insert printf 'port_hex=%s\n' "$port_hex" immediately after the port_hex assignment. Compare that hexadecimal value with the selected TCP-table row.
-
-**Hint:** The port in /proc/net/tcp is hexadecimal; do not compare it directly to decimal output.
-
-**Apply:** An incident report has only a TCP-table inode. Describe the additional process and request evidence needed before deciding to restart an owner.
+The descriptor link identifies a kernel socket held by the recorded process. Closing that
+descriptor can end its ownership while the process remains alive. Neither the socket handle nor
+the port identifies a successful application exchange; an incident investigation also needs
+the owner and request outcome.

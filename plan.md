@@ -38,10 +38,11 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL47/49 are accepted after restoring/directly naming their comparisons.
 - All92 PostgreSQL lessons are now accepted, including the final39–45/48/50–53 group.
   PostgreSQL completion is committed in `1e64d13`.
-- Linux13–24 are accepted in `953dcc0`, Linux25–36 in `a05be21`, and Linux37–48 are also accepted
-  with direct optional comparisons and unchanged commands/metadata. The ledger has174 accepted rows and76 pending.
+- Linux13–24 are accepted in `953dcc0`, Linux25–36 in `a05be21`, Linux37–48 in `0e94bc0`,
+  and Linux49–60 are also accepted with direct optional comparisons and unchanged commands/metadata.
+  The ledger has186 accepted rows and64 pending.
   Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes Linux49–72 (24 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
+- Next: primary completes Linux61–72 (12 rows) and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
 - Final work still required: every authored lesson's recorded review, targeted continuation/capstone
@@ -58,6 +59,20 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — Linux49–60
+
+Primary accepted all12 resource-boundary/socket lessons with direct optional instructions and
+outcomes. Exact parameters, assertions, subshell/process/UID/cgroup boundaries, loopback ephemeral
+endpoints, session order, watchdogs and cleanup remain. Lesson57 names only the second sleep
+before sendall;59 prints the already-collected tcp_row for the existing hexadecimal comparison.
+No setup, main program or experiment policy changed. All metadata/revisions and existing blocks
+match baseline, all12 actual plain/ANSI/JSON views pass, and Linux check passes with72 lessons.
+Prior runtime evidence applies; no process workload, socket, cgroup or lab was allocated. Scratch
+uses `linux-49-60*`; the temporary review catalog is removed.
+
+The ledger has186 accepted and64 pending: Linux61–72 and SQLite01–51/53. Primary read61–63 with
+no edits yet. Final integration/installation/live rollout and cleanup/readiness are still pending.
 
 ### Resumed acceptance checkpoint — Linux37–48
 

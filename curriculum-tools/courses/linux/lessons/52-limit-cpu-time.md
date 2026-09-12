@@ -80,12 +80,11 @@ cpu_limit_triggered=yes and cleanup=done within the five-second wall bound. cpu_
 CPU-time limits use scheduler accounting rather than elapsed wall time. They provide a per-process failure boundary for runaway computation, with signal handling and supervisor policy determining the final status.
 
 ## Optional variation
-**Predict:** On a busy host, which can grow faster for this child: elapsed wall time or CPU time?
+Copy the full lesson into a private run, changing the child setting **ulimit -t 1** to
+**ulimit -t 2** and the watchdog bound from50 to60 ticks. Keep the exact-PID wait and cleanup.
+The CPU budget is now2 seconds and the watchdog's nominal elapsed bound is6 seconds.
 
-**Inspect and explain:** Explain why watchdog_timeout=no is necessary before interpreting cpu_limit_status as limit evidence.
-
-**Vary:** Copy the full lesson into a private run and change only the child setting **ulimit -t 1** to **ulimit -t 2**, while changing the watchdog bound from 50 to 60 ticks. It remains bounded at six seconds and uses the same exact-PID wait evidence.
-
-**Hint:** The child's CPU limit lives inside bash -c; timeout counts elapsed time outside it.
-
-**Apply:** A service has low CPU usage but long request latency. Would RLIMIT_CPU alone explain it? Name the scheduler or I/O evidence you would obtain.
+Check watchdog_timeout=no before treating the nonzero child status as CPU-limit evidence; a
+watchdog fallback cannot establish that mechanism. On a busy host elapsed time includes time
+the child was not scheduled. A low-CPU, high-latency request therefore also needs scheduler
+waiting and I/O evidence beyond RLIMIT_CPU.

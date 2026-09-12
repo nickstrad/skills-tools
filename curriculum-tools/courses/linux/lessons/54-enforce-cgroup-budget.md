@@ -128,12 +128,12 @@ On a writable cgroup v2 VM, created=7 fork_failures=9 (the helper itself holds o
 Cgroup controllers enforce budgets over a set of processes, not over a pathname. The hierarchy lets a supervisor cap fan-out and memory together, then attribute rejected work to the group event counters.
 
 ## Optional variation
-**Predict:** If a second helper joined the same generated cgroup, would pids.max be shared or duplicated?
+On the disposable VM, copy the full lesson into a private run and change only the **pids.max**
+write from8 to4. Keep the16-attempt helper, generated fresh group, pids.events read and exact
+cleanup. Verify the observed pids_max and event results; unavailable setup leaves enforcement
+untested.
 
-**Inspect and explain:** Explain why pids.events is stronger evidence than a printed fork failure alone, and why neither proves a memory budget was exercised.
-
-**Vary:** With the same disposable-VM permission, copy the full lesson into a private run and change only the **pids.max** write from 8 to 4. Keep the 16-attempt helper and its existing pids.events read before cleanup; the generated group and child bound stay unchanged.
-
-**Hint:** First establish cgroup_setup=available. A policy skip is not a reason to claim an event counter increment.
-
-**Apply:** Choose a limit for a service that must contain a fan-out bug shared by several workers. Explain why cgroup pids.max, RLIMIT_NPROC, or RLIMIT_NOFILE matches the ownership you need.
+The helper itself consumes one slot, leaving room for three children in the simple fixture;
+actual membership and timing determine the measured split. Positive fork failures plus controller
+events identify the shared cgroup task boundary. They do not show a memory event. A cgroup budget
+follows its members, RLIMIT_NPROC accounts a real UID, and RLIMIT_NOFILE limits descriptors.

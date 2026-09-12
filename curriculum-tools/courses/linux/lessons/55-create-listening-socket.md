@@ -82,12 +82,10 @@ listener_ready=yes, loopback_port is a nonzero ephemeral port, ss_listener_seen=
 bind and listen give a process a kernel endpoint plus an admission queue. The same ownership relationship appears in local services, sidecars, and a node's per-namespace port table.
 
 ## Optional variation
-**Predict:** Does ss_listener_seen=yes show that the server accepts a client or only that it owns a listening endpoint?
+Copy the full lesson into a private run and change only **s.listen(4)** to **s.listen(1)**.
+Keep the127.0.0.1 address, port-0 bind and exact-PID cleanup. Inspect the new loopback_port
+and server_pid together; listening_socket should still be observed.
 
-**Inspect and explain:** Use loopback_port and server_pid to explain which two identities make this listener actionable.
-
-**Vary:** Copy the full lesson into a private run and change only **s.listen(4)** to **s.listen(1)**. Keep the same 127.0.0.1 and port-0 bind plus exact-PID cleanup; it is a bounded local variation, not a claim about a final queue size.
-
-**Hint:** A backlog parameter controls admission policy; it does not add request handling code.
-
-**Apply:** A health check sees LISTEN but requests fail. What request/response evidence would you collect before declaring the service recovered?
+The backlog request changes admission configuration without adding accept or request-handling
+code. It does not establish a fixed final queue size. LISTEN identifies an owned endpoint;
+declaring a service recovered also requires successful request/response evidence.

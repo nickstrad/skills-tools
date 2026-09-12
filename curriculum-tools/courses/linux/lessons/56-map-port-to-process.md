@@ -82,12 +82,11 @@ ss_owner_seen=yes, proc_socket_fd_seen=yes, and port_owner_correlation=observed 
 A socket is owned through a process descriptor, while ss indexes the network endpoint. Incident diagnosis joins these two namespaces of identity instead of treating a port as an anonymous number.
 
 ## Optional variation
-**Predict:** Which observation survives if lsof is blocked by host policy: ss ownership, procfs descriptor links, or neither?
+Rerun the complete lesson and insert `ls -l "/proc/$server_pid/fd"` immediately after fd_line
+is collected. Inspect socket links while the recorded server is alive, retaining exact-PID cleanup.
+Use that saved PID instead of searching for a broad interpreter name.
 
-**Inspect and explain:** Explain why map_port alone cannot identify a process unless it is joined to map_pid or a descriptor.
-
-**Vary:** Rerun the complete lesson and insert ls -l "/proc/$server_pid/fd" immediately after fd_line is collected. Inspect the socket links while the recorded server is still alive.
-
-**Hint:** Use the saved server_pid, never pgrep a broad interpreter name.
-
-**Apply:** A loopback bind reports EADDRINUSE. State the endpoint, process, and descriptor evidence you would collect before stopping any process.
+The listing exposes the descriptor behind proc_socket_fd_seen. Join endpoint, saved PID and
+descriptor evidence to identify the owner. If host policy restricts lsof or another view, retain
+the observation's limitation rather than inferring missing ownership. The same identity join
+makes an EADDRINUSE investigation specific enough to avoid stopping an unrelated process.

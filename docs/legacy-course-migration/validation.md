@@ -4,6 +4,20 @@ Implementation is in progress. This report records accepted checks; `plan.md` ow
 Baseline source: `2776655274115a95ebabf7dd1b62fd9e9d0ff818` (2026-09-12).
 The [250-row ledger](lesson-audit.tsv) distinguishes reviewed lessons from pending ones.
 
+## Linux49–60 content group
+
+Primary accepted all12 resource-limit/socket walkthroughs with direct optional comparisons and
+local outcomes. All supplied numeric/assertion substitutions, identity boundaries, bounded forks,
+watchdog settings, fresh cgroups, loopback/port0 binds and exact-process cleanup remain available.
+Lesson57 identifies the second client sleep immediately before sendall;59 adds only an inline
+print of its already-collected tcp_row so the hexadecimal endpoint can actually be inspected.
+
+Exact parsed checks preserve Setup/Run, existing blocks, identities, sessions, safety and revisions.
+All12 actual CLI plain/ANSI/JSON views pass and Linux check reports72 lessons. The temporary catalog
+is removed. Existing runtime evidence applies; no workload, listener, cgroup or lab was allocated.
+Logs/manifests/views use `.cache/legacy-migration/linux-49-60*` until final acceptance. The ledger
+now has186 accepted and64 pending.
+
 ## Linux37–48 content group
 
 Primary accepted all12 memory/scheduling lessons with direct optional comparisons. Every supplied

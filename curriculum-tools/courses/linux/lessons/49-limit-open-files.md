@@ -76,12 +76,11 @@ subshell_soft=40 next to the unchanged hard value, proc_limits_row=soft=40 hard=
 A resource limit is a pair: a soft value the process lives under and a hard ceiling it may not exceed. Unprivileged code can tune the soft value freely below the ceiling and can only ever lower the ceiling, which is why supervisors set hard limits before dropping privileges and why a service cannot fix its own RLIMIT_NOFILE at runtime.
 
 ## Optional variation
-**Predict:** Before running it, decide whether a child shell will print 40 or the original soft limit.
+Copy the complete code into a private Bash run and change only **ulimit -Sn 40** to
+**ulimit -Sn 32**. Keep the parentheses, later limit changes and parent comparisons unchanged.
+The subshell and its child now report32 initially; parent_limits_unchanged remains yes.
 
-**Inspect and explain:** Explain why parent_limits_unchanged=yes proves process scope, while child_inherited_soft proves inheritance.
-
-**Vary:** Copy this lesson's code into a private Bash run and change only **ulimit -Sn 40** to **ulimit -Sn 32**. The same child-inheritance and parent-unchanged checks then exercise the smaller soft limit and the subshell still exits without changing the parent.
-
-**Hint:** The parentheses, not the numeric value, provide the cleanup boundary.
-
-**Apply:** A service repeatedly reaches EMFILE after its supervisor starts it. Which evidence would you collect first: the service's /proc/PID/limits row, the supervisor's limit, or a filesystem free-space value? Defend the choice from the ownership boundary.
+The child inherits the smaller soft limit, while the enclosing parentheses keep that mutation
+away from the persistent parent. For a service reaching EMFILE, its own /proc/PID/limits row
+identifies the enforced boundary; the supervisor's limits help explain inheritance. Filesystem
+free space measures a different resource.
