@@ -139,6 +139,10 @@ harms the workload from spare capacity the workload will reuse; a density metric
 make that decision.
 
 ## Optional variation
-Use the same current data and compare a wider range before and after a concurrent rebuild. Keep
-its count and sum fixed, capture buffers and bytes, and decide whether your evidence supports paying
-for the rebuild. The exact hint includes both measurements and restores planner controls.
+Using the current post-churn data, repeat only the Run block from `set enable_seqscan=off;` through
+`reset enable_seqscan;`, changing all four `between 1000 and 2000` predicates to
+`between 1000 and 20000`. This captures the wider range's count and sum before rebuilding, measures
+both plans and checks `unchanged_range` afterward. It also measures the new file identity, index
+bytes and validity, then restores ordinary planning. The aggregates must stay equal; buffer use,
+density and bytes are observations, and another rebuild of an already dense index may yield little
+benefit. Compare those measurements with the rebuild's time, storage and lock costs.

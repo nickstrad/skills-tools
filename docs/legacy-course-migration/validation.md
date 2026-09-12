@@ -80,6 +80,16 @@ disposable catalogs pass exact allowed-field comparison and complete plain/ANSI/
 every lesson. Existing experiment evidence applies; no new lab was allocated. Logs/manifests use
 `.cache/legacy-migration/postgres-{21-29,30-37}*`. The ledger has124 accepted rows and126 pending.
 
+## PostgreSQL47/49 restored comparisons
+
+Lesson47 now includes the exact archived retention SQL and advances revision1→2. Lesson49 directly
+names its existing wider-range comparison and stays revision4. The primary ran47 core, two retention
+trials,49 core and its wider-range trial in one serial owned fixture, independently checked complete
+domain contents and cleanup, and verified exact source/render/revision/history boundaries.
+[The course-local report](../../curriculum-tools/courses/postgres/validation/12-restored-comparisons.md)
+records actual results and retained small evidence. All owned resources are removed; live learner
+state is unchanged. The ledger now has126 accepted rows and124 pending.
+
 ## Public names and skipping
 
 Commits `d0c5511` and `8ee20a9` separate public names from stored identities and add number-first

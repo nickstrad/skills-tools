@@ -34,9 +34,10 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
 - PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
 - PostgreSQL01–08 are also accepted: five prose edits, three unchanged, committed as `dafcf23`.
 - PostgreSQL10–20 are accepted in `abf7a63`: eight prose edits, three unchanged.
-- PostgreSQL21–37 are accepted: four prose edits,13 unchanged. The ledger now has124 accepted
-  rows and126 pending. Exact exceptions and evidence are below and in the validation report.
-- Next: primary completes PostgreSQL39–45/47–53 (14 rows), Linux13–72 (60 rows)
+- PostgreSQL21–37 are accepted in `1780e76`: four prose edits,13 unchanged.
+- PostgreSQL47/49 are accepted after restoring/directly naming their comparisons. The ledger now
+  has126 accepted rows and124 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes PostgreSQL39–45/48/50–53 (12 rows), Linux13–72 (60 rows)
   and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -54,6 +55,27 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL47/49
+
+Primary recovered47's complete RETENTION_VARIATION from the archived source, supplied it locally
+and verified byte agreement. Its revision advances1→2 because the optional experiment is materially
+restored. Lesson49 stays revision4 and names only the existing Run range-comparison section with
+all four bounds changed to1000–20000. Setup/Run/other metadata are unchanged in both lessons.
+
+Five real CLI harness executions pass on one owned private PostgreSQL16 cluster:47 core, retention
+after core/reset, repeated fresh retention,49 core and wider-range rebuild. Independent audits
+verify all retained IDs/priorities, the complete100,000-row churn formula, unchanged full-data
+fingerprint and a new valid index file. Expected47 errors and all cleanup are classified in
+`courses/postgres/validation/12-restored-comparisons.md`. The cluster, clients and harness directories
+are removed; no raw image is retained. Complete plain/ANSI/JSON and exact allowed-difference checks
+pass. Synthetic completion refresh verifies47 becomes stale without changing history; live-baseline
+copied progress verification still preserves251 identities/36 progress rows/37 attempts.
+
+The ledger has126 accepted rows and124 pending:12 PostgreSQL,60 Linux,52 SQLite. Remaining PostgreSQL
+rows are39–45,48 and50–53. Migration scratch remains20MB only until final acceptance. No author server
+remains; learner database hash is unchanged and14GB free space remains. Final tests, installation
+and live rollout are still pending after the remaining content audits.
 
 ### Resumed acceptance checkpoint — PostgreSQL21–37
 

@@ -123,9 +123,9 @@ postgres	43	parallel-query	pending
 postgres	44	pg-stat-statements-as-tracing	pending			
 postgres	45	btree-page-anatomy	pending			
 postgres	46	create-index-concurrently-and-invalid-indexes	coaching-only prompt retired	Challenge	primary	Retired missing-hint replay of failure/repair already supplied completely in core; three-session ordering preserved
-postgres	47	bounded-online-migration	pending			
+postgres	47	bounded-online-migration	material experiment change	Challenge,Revision	primary	Restore exact archived retention SQL; revision 1 to 2; core and repeated independent/sequential variation runtime pass with full retained identities/priorities and cleanup
 postgres	48	partial-and-covering-indexes	pending			
-postgres	49	index-bloat-from-churn	pending			
+postgres	49	index-bloat-from-churn	prose/diagram only	Challenge	primary	Direct existing wider-range block and all four bound substitutions; unchanged core/revision; real core/variation preserve full payloads and replace a valid index
 postgres	50	unique-index-enforcement-under-concurrency	pending			
 postgres	51	keyset-pagination-and-concurrent-writes	pending			
 postgres	52	every-change-is-a-wal-record	pending			

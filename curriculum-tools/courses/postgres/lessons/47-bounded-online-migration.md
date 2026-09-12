@@ -10,7 +10,7 @@ run-in: tool
 sessions: 2
 min-version: 16
 minutes: 35
-revision: 1
+revision: 2
 
 ## Overview
 Add a typed priority beside a legacy text field while writers continue using the old format. Bound
@@ -236,6 +236,42 @@ what an empty poll means. Migration cutover and retiring a compatibility path ar
 because database state alone cannot prove every external caller has adopted a new contract.
 
 ## Optional variation
-Apply the same batching discipline to a retention cutoff: remove only ids <= 200 while B holds id1.
-Explain why an empty deletion batch cannot finish the job, then reconcile after B releases the row.
-The runnable hint supplies the complete two-session schedule and final range assertions.
+Rerun Setup alone, then use this complete two-session comparison. It removes only ids <= 200 while
+B holds id1. Each deletion batch commits independently. The empty batches leave one eligible row;
+after B releases it, reconciliation removes that final row and verifies the retained range.
+
+```sql
+-- Session B: hold one eligible row while the retention worker proceeds.
+begin;
+select id from mig_jobs where id=1 for update;
+-- Session A: autocommit; every generated DELETE is a separate transaction.
+set statement_timeout='10s';
+select pg_relation_size('mig_jobs') as bytes_before;
+select $batch$
+with candidate as (
+  select id from mig_jobs where id<=200 order by id limit 25 for update skip locked
+), removed as (
+  delete from mig_jobs j using candidate c where j.id=c.id returning j.id
+)
+select count(*) as removed_this_batch from removed;
+$batch$ from generate_series(1,11) \gexec
+select count(*) as still_eligible from mig_jobs where id<=200;
+-- Session B
+commit;
+-- Session A: reconcile the fixed cutoff after the lock holder leaves.
+with candidate as (
+  select id from mig_jobs where id<=200 order by id limit 25 for update skip locked
+), removed as (
+  delete from mig_jobs j using candidate c where j.id=c.id returning j.id
+)
+select count(*) as final_removed from removed;
+select count(*) as remaining_rows,min(id) as first_id,
+  count(*)=800 and count(*) filter(where id<=200)=0 as retained_expected_range
+from mig_jobs;
+select pg_relation_size('mig_jobs') as bytes_after;
+reset statement_timeout;
+```
+
+The remaining800 rows have IDs201–1000. Compare file bytes separately: logical deletion does not
+promise immediate filesystem reclamation. Both sessions finish outside a transaction, and A's
+statement timeout is reset. Setup can recreate the table for the migration experiment afterward.
