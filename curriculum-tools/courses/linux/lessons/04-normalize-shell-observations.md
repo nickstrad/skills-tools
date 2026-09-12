@@ -63,12 +63,12 @@ active_locale is C when LC_ALL was exported as lesson 1 asks (unset otherwise), 
 Measurements are part of the experiment's control plane. LC_ALL=C fixes collation and diagnostics so diffs represent kernel behavior rather than a machine's language configuration.
 
 ## Optional variation
-**Predict.** Whether `raw_order` equals `stable_order` when the inherited locale is already C.
+When the inherited locale is already C, `raw_order` and `stable_order` should both be `A,B,a,b,`. The epoch value is deliberately excluded from that stable assertion because it is sampled time, not a control value.
 
-**Inspect and explain.** Compare the two labeled orders and explain why the epoch number is deliberately excluded from a stable assertion.
+During a repeat of the Run block, add this command immediately before its `rm -f "$ORDER_FILE"` cleanup:
 
-**Vary.** Run LC_ALL=C sort on ORDER_FILE only while the file exists, then rerun the supplied cleanup.
+```sh
+LC_ALL=C sort "$ORDER_FILE"
+```
 
-**Hint.** The code removes ORDER_FILE at the end; add the one command immediately before that rm if exploring manually.
-
-**Apply.** Choose one locale-sensitive field in a production diagnostic and state the fixed representation you would log.
+It prints the byte-order control as four lines, then the supplied cleanup removes the file. For a production diagnostic, record locale-sensitive fields in a fixed representation such as `LC_ALL=C` byte ordering or an ISO 8601 UTC timestamp.

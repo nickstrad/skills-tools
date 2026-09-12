@@ -75,12 +75,10 @@ Every command= line prints status=present, no builtin= line appears, required_co
 Capability discovery is an observability prerequisite: the same symptom can mean a missing binary, a permission boundary, or a kernel feature. Operators first establish which measurement tools are actually available.
 
 ## Optional variation
-**Predict.** Whether removing a directory from PATH changes `command -v` results but not the two absolute-path probes.
+Run this in a subshell, then rerun the full inventory unchanged:
 
-**Inspect and explain.** Find any `status=missing` or `shadowed-by-` line and explain whether it is installation, PATH, or shell-state evidence.
+```sh
+( PATH=/bin command -v mkfifo || true )
+```
 
-**Vary.** In a subshell, run `PATH=/bin command -v mkfifo || true`; then rerun the full inventory unchanged.
-
-**Hint.** Use a subshell so the course shell retains its PATH.
-
-**Apply.** Before diagnosing a failed service command, list the binary, permission, and kernel-feature checks you would make first.
+The restricted PATH can change a `command -v` result without changing either absolute-path probe. The subshell leaves the course shell's PATH intact. In the full inventory, a `status=missing` line is installation or PATH evidence, while a `shadowed-by-` line is shell-state evidence. Before diagnosing a failed service command, establish binary availability, the relevant permission boundary, and the required kernel feature.

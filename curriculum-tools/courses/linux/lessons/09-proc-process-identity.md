@@ -59,12 +59,8 @@ proc_pid and ps_pid match; pgrep_pid is the same child PID; proc_exe resolves to
 procfs is a live projection of kernel task state, while ps and pgrep are different readers and filters over that state. Incident tools should correlate stable identifiers and timestamps before trusting names.
 
 ## Optional variation
-**Predict.** Before running, which PID relationships should identify one live child across the three views?
+One live child is identified when `proc_pid`, `ps_pid`, and `pgrep_pid` match. `proc_name` can remain `sleep` because it describes the executable's comm value, while `cmdline` retains the chosen argv label.
 
-**Inspect and explain.** Explain why proc_name can be sleep while cmdline contains the chosen argv label.
+For a fresh copy of the complete Run block, replace both occurrences of `linux-tutor-proc-identity` with `linux-tutor-proc-variation`: the `exec -a` label and the `pgrep` pattern. Keep `proc_identity_pid=$!`, its exact-PID trap, the 0.1-second delay, and the existing `printf` that encloses the parent-filtered `pgrep` command.
 
-**Vary.** In a full rerun, change both the `exec -a` label and the matching pgrep pattern to linux-tutor-proc-variation, then inspect cmdline.
-
-**Hint.** Keep the pgrep parent filter so an unrelated process cannot win; its pattern must match the changed argv label.
-
-**Apply.** Describe the identity tuple you would record before escalating a process incident.
+Keep the parent filter so an unrelated process cannot win, and confirm that `cmdline` contains the new label. Before escalating a process incident, record the PID, start-time ticks, executable, argv, state, and parent relation.

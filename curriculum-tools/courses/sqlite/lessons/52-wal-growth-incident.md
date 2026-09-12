@@ -13,15 +13,16 @@ minutes: 30
 revision: 3
 
 ## Overview
-A local service still accepts writes, but its WAL keeps growing and a checkpoint does not reclaim it. Collect a timeline that distinguishes writer admission, committed visibility and checkpoint progress. At the marked pause, predict which transaction must end and what evidence would falsify your diagnosis before running the recovery steps.
+A local service still accepts writes, but its WAL keeps growing and a checkpoint does not reclaim it. Compare writer admission, committed visibility and checkpoint progress, then end the old read transaction and observe whether reclamation resumes without losing committed rows.
 
 ## Syntax breakdown
 ### In plain terms
 
 An incident diagnosis should explain all the observations, not just name a familiar setting.
 If writes commit while an old reader sees the same count, a blocked writer is not a sufficient
-explanation for disk growth. Run the evidence phase first and stop at the printed pause. Write down
-your hypothesis, the next measurement, and the smallest corrective action. The continuation tests it.
+explanation for disk growth. The first observations show this distinction while A retains its old
+snapshot. Ending A's read transaction then permits the checkpoint to finish. Follow the session
+labels in order and compare both the WAL size and committed row count before and after that action.
 
 ### What you are learning
 
@@ -82,7 +83,7 @@ SELECT 'B_committed',count(*) FROM incident_events;
 PRAGMA wal_checkpoint(PASSIVE);
 -- Session A
 SELECT 'A_now',count(*) FROM incident_events;
-.print PAUSE: record your diagnosis, predicted checkpoint result, and smallest remedy before continuing
+.print Observation boundary: compare the old reader, committed rows, and checkpoint progress
 -- Session A
 COMMIT;
 -- Session B
@@ -93,10 +94,16 @@ PRAGMA integrity_check;
 ```
 
 ## Expected result
-Before the pause, A_start and A_now are 0 while B_committed is 600; WAL bytes are positive and PASSIVE cannot copy all log frames. This rules out writer admission failure as the immediate cause. Ending A's read transaction allows TRUNCATE to report 0|0|0, wal_after_remedy=0, verified_rows=600 and integrity_check=ok. Frame counts depend on page size and earlier lab state.
+Before the reader ends, A_start and A_now are 0 while B_committed is 600; WAL bytes are positive and PASSIVE cannot copy all log frames. This rules out writer admission failure as the immediate cause. Ending A's read transaction allows TRUNCATE to report 0|0|0, wal_after_remedy=0, verified_rows=600 and integrity_check=ok. Frame counts depend on page size and earlier lab state. Both transactions are finished; the table remains available for comparison and Setup recreates it on a rerun.
 
 ## Systems lens
 Resource growth becomes an incident when production outruns reclamation. Diagnose the consumer or snapshot retaining the history before increasing a limit. The proof of recovery includes restored progress and intact committed state, not merely a smaller file.
 
 ## Optional variation
-Repeat with A ending its read transaction before the burst, then with a different connection holding the writer. Build a three-row diagnostic table: symptoms, distinguishing observation, and corrective action. Keep every burst bounded at 600 rows.
+For a fresh repeat, move A's COMMIT immediately after A_start, before B's burst, and omit the later
+A COMMIT. A_now can then see 600 committed rows and PASSIVE can copy the completed backlog. Keep the
+burst bounded at 600 rows. In a separate repeat, hold the writer from another connection before
+the burst and compare admission: B's writes fail or wait before the new rows can commit, whereas
+the original experiment admits all 600 writes and delays reclamation. Release the held writer
+and end any experimental transaction before leaving; never delete the WAL to reclaim committed
+history. These comparisons distinguish the resource being retained without a written diagnosis.

@@ -67,12 +67,18 @@ inside_child_alive=yes and inside_pid_file=present identify one live sleep child
 Resource ownership is a control-flow property: the process that acquires a child and a file should register their release immediately. This is the shell analogue of finally blocks, lease expiry, and service shutdown hooks.
 
 ## Optional variation
-**Predict.** Before running, which post-subshell labels should demonstrate cleanup while retaining evidence of the former child?
+The post-subshell evidence is `child_after_subshell=gone` and `pid_file_after_subshell=absent`, while `recorded_pid` preserves the former child's identity. `kill -0` is evidence about that recorded PID at the sampled instant; it is not a guarantee against later PID reuse.
 
-**Inspect and explain.** Explain why `kill -0` is evidence about the recorded PID at this instant, not a guarantee against later PID reuse.
+For a fresh repeat, replace the child-start line with:
 
-**Vary.** In a full rerun, change the child to `sleep 1` and insert `sleep 1.2` after the inside-file observation but before the subshell closes; then inspect the same cleanup labels.
+```sh
+sleep 1 & trap_child_pid=$!
+```
 
-**Hint.** The inserted delay lets the child end naturally before the EXIT trap reaps it. Keep the exact-PID trap; do not replace it with pkill or killall.
+Then insert this delay after the inside-file observation but before the subshell closes:
 
-**Apply.** For a worker that owns a temporary file and a child process, state the acquisition order and the matching cleanup actions you would register.
+```sh
+sleep 1.2
+```
+
+The child then ends naturally before the EXIT trap runs. The exact-PID trap still reaps it and removes the PID file; do not replace it with `pkill` or `killall`. A worker that acquires a temporary file and child should register the matching file removal, signal, and wait actions immediately after each acquisition.

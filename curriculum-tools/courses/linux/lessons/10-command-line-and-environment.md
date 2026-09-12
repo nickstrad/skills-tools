@@ -59,12 +59,12 @@ cmdline contains sleep, environment_token=LINUX_TUTOR_TOKEN=linux-tutor-token-<U
 argv selects how a program interprets its arguments; environ carries inherited configuration and secrets. Treating either as process identity causes misleading diagnoses and accidental credential exposure.
 
 ## Optional variation
-**Predict.** Before running, where do you predict the lab token and executable name will appear?
+The executable name appears in the NUL-delimited `cmdline` view, while the lab token appears in the separately NUL-delimited `environ` view. The `tr '\0'` conversions make those records readable; printing a production environment is risky because it can expose credentials.
 
-**Inspect and explain.** Identify the NUL conversion and explain why printing production environ is risky.
+For a repeat, change only the lab token assignment to:
 
-**Vary.** Replace only the lab token suffix with `variation-$UID` and re-run.
+```sh
+TOKEN=linux-tutor-token-variation-$UID
+```
 
-**Hint.** Use the existing LINUX_TUTOR_TOKEN name, never a credential.
-
-**Apply.** Decide which safe process attributes belong in an incident ticket and which should be redacted.
+Keep the existing `LINUX_TUTOR_TOKEN` name and never use a credential. The resulting `environment_token` line should contain the new lab-only value. An incident ticket can retain a PID, executable, state, and redacted argument shape; it should omit environment values and secrets.

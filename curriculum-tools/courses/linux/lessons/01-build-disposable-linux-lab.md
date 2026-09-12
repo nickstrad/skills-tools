@@ -28,8 +28,8 @@ This is preparation, not a kernel-behavior claim. It creates one directory that 
 
 - **LINUX_LAB** is an environment variable. It selects the lab; the empty-value test falls back to the learner-owned default.
 - **mkdir -p** is a shell program. The **-p** flag creates missing parents and does not fail when the directory already exists; `lab_writable=yes` means this process can create later artifacts.
-- **export NAME=VALUE** places a value in this shell's child environment. **export LC_ALL=C** sets the byte-oriented locale for child commands; the challenge uses the same form for LINUX_LAB before a full rerun. The printed `locale=C` is the control value to compare across terminals.
-- **readlink -f** resolves the lab to an absolute path; `lab_path` identifies the exact failure domain. **rmdir PATH** removes one empty directory only, so the challenge uses it only after the variation lab has no contents.
+- **export NAME=VALUE** places a value in this shell's child environment. **export LC_ALL=C** sets the byte-oriented locale for child commands; the optional comparison uses the same form for LINUX_LAB before a full rerun. The printed `locale=C` is the control value to compare across terminals.
+- **readlink -f** resolves the lab to an absolute path; `lab_path` identifies the exact failure domain. **rmdir PATH** removes one empty directory only, so the optional comparison uses it only after the variation lab has no contents.
 - **bash --version**, **uname -r**, and **awk** over **/etc/os-release** report shell, running-kernel, and userspace labels. Their text is inventory evidence and can vary between hosts.
 
 ## Caution
@@ -56,12 +56,16 @@ The output contains an absolute lab_path ending in linux-systems-lab (unless LIN
 A reproducible experiment starts by naming its failure domain and recording the independent kernel and userspace versions. This is the same discipline used for a service's scratch volume, deployment image, and incident timeline.
 
 ## Optional variation
-**Predict.** Which output should change if you set LINUX_LAB to a new absolute path, and which version labels should stay the same?
+In the same shell, select a separate empty lab, then rerun the complete Run block above:
 
-**Inspect and explain.** Compare the original run with the variation and confirm that both lab paths are absolute and explain why version strings do not prove behavior is identical.
+```sh
+export LINUX_LAB="$HOME/linux-systems-lab-variation"
+```
 
-**Vary.** In the same shell, run export LINUX_LAB=$HOME/linux-systems-lab-variation, then rerun the complete lesson block; after it reports its labels, use rmdir on LINUX_LAB only if the new directory is empty.
+The second run should report the new absolute `lab_path`; its Bash, kernel, OS, and locale labels should stay the same. The matching labels record the environment for the comparison, but they do not prove that all behavior is identical. When the variation directory is empty, remove only that directory:
 
-**Hint.** The export must precede the multiline lesson block so every command inherits it. Do not reuse a directory holding another experiment.
+```sh
+rmdir "$LINUX_LAB"
+```
 
-**Apply.** When filing a service incident, record the kernel release, image identity, and writable scratch path you would preserve.
+The export must precede the Run block so every command inherits it. Do not reuse a directory holding another experiment. For an incident record, retain the kernel release, image identity, and writable scratch path together.

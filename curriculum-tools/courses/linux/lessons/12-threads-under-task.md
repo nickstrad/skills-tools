@@ -58,12 +58,14 @@ tgid equals process_pid, thread_entry_count is at least 4 (the leader plus three
 Linux's schedulable unit is a task, while a thread group supplies shared address space and signal semantics. This distinction matters when CPU, memory, or fault evidence attributes load to one process but many runnable tasks.
 
 ## Optional variation
-**Predict.** Before running, what relationship and minimum task count do you predict for the thread group?
+`tgid` should equal `process_pid`, and each `ps -L` LWP value corresponds to a task-directory name under `/proc/PID/task`. The original lower bound of four counts the leader plus three workers.
 
-**Inspect and explain.** Compare a ps LWP value with a task-directory name and explain the shared TGID.
+For a fresh repeat with two workers, make these three matching substitutions in a copy of the Run block before executing it:
 
-**Vary.** In a full rerun, change `range(3)` to `range(2)`, change the assertion's `-ge 4` to `-ge 3`, and change the printed label one_process_four_tasks_or_more to one_process_three_tasks_or_more before running it.
+```text
+range(3)                              -> range(2)
+-ge 4                                 -> -ge 3
+one_process_four_tasks_or_more        -> one_process_three_tasks_or_more
+```
 
-**Hint.** The thread count is the `range(3)` expression in the compact Python program; update the matching lower bound before the cleanup runs.
-
-**Apply.** When a service reports one PID but high CPU, state how you would find the responsible task IDs.
+The adjusted result establishes one leader plus at least two workers, then the supplied exact-PID cleanup stops the Python process. When one service PID reports high CPU, use `ps -L` and `/proc/PID/task` to identify the responsible task IDs.

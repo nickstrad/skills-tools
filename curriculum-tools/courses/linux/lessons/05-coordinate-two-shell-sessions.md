@@ -77,12 +77,12 @@ Session A prints fifo_ready=yes and then waits. Session B observes session_b_fif
 A FIFO is a kernel pipe with a pathname. Opening and reading it establishes a happens-before edge between processes, the same kind of explicit rendezvous used by workers, queues, and readiness protocols.
 
 ## Optional variation
-**Predict.** Before running, what ordering should the waiting label, B's write, and A's received-token label have?
+The ordered evidence is Session A's `session_a=waiting`, Session B's newline-terminated write, then A's `session_a_received` label. FIFO creation precedes the writer record, and the writer record precedes the blocked reader returning.
 
-**Inspect and explain.** Use the two labels to describe the happens-before edge: FIFO creation, writer record, reader return.
+For a fresh two-session repeat, start Session A first and replace Session B's writer with:
 
-**Vary.** Change only B's payload to `linux-tutor-<UID>-again`, keeping its newline and the same fixed FIFO path.
+```sh
+printf 'linux-tutor-%s-again\n' "$UID" > "$FIFO"
+```
 
-**Hint.** Start Session A first and replace `<UID>` with `$UID` in the supplied printf.
-
-**Apply.** Name the readiness signal and the timeout you would add if these shells were a service producer and consumer.
+Keep the same UID-qualified FIFO path. A should receive the `-again` token; B's unblocked label and A's received-token label both follow the writer record, but their relative order is scheduler-dependent. A service producer and consumer would expose the equivalent readiness signal and bound the wait with a timeout.

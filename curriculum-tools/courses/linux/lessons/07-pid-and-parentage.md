@@ -55,12 +55,12 @@ child_pid is a live positive PID; child_ppid equals shell_bashpid; ps shows the 
 A PID names a task in a process namespace and PPID records its parent relationship. Supervisors, reapers, and request-to-process correlation all depend on this kernel-maintained identity graph.
 
 ## Optional variation
-**Predict.** Before running, which two printed identity values should you compare to test direct parentage?
+Direct parentage is established when `child_ppid` equals `shell_bashpid` and the `ps` row reports the same PPID. A command name is weaker evidence because several processes can share it.
 
-**Inspect and explain.** Compare the PPID in procfs with the ps row and explain why a command name alone is weaker evidence.
+For a repeat that finishes sooner, change only the child command to:
 
-**Vary.** Change only the child delay from 4 to 1 second and repeat before it exits.
+```sh
+bash -c 'sleep 1' &
+```
 
-**Hint.** Keep `$!` immediately after the background command.
-
-**Apply.** State which PID and parent relation you would capture before terminating an unexpected service worker.
+Keep `$!` immediately after that background command and take the procfs and `ps` observations before the child exits. Before terminating an unexpected service worker, retain its PID and the parent relationship that links it to its supervisor.

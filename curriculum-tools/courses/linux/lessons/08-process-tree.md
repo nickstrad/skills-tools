@@ -57,12 +57,12 @@ pstree_evidence contains tree_root_pid and at least one descendant, and ps_fores
 Fork ancestry propagates environment, credentials, and open descriptors while retaining a parent-child lifecycle edge. A service tree is therefore useful evidence when an unexpected worker survives or inherits state.
 
 ## Optional variation
-**Predict.** Before running, what hierarchy should each process view reveal before cleanup?
+Before cleanup, both views should show the controlled root and at least one descendant; a short-lived grandchild may also appear. Match a PID in `pstree` to the PID/PPID columns in `ps --forest`; the indentation represents that parentage.
 
-**Inspect and explain.** Match a PID in pstree to its PID/PPID ps row and explain the indentation.
+For a shorter fresh snapshot, replace the root command with:
 
-**Vary.** Change the inner sleep from 5 to 2 seconds and repeat the bounded snapshot.
+```sh
+bash -c 'bash -c "sleep 2" & wait' &
+```
 
-**Hint.** Do not add broad process searches; use tree_root_pid.
-
-**Apply.** Choose whether an orphaned-looking worker needs its parent tree, command line, or descriptor evidence next.
+Keep the bounded `sleep 0.2` observation and use the printed `tree_root_pid` value, held in the `tree_parent` variable, for exact cleanup rather than a broad process search. An orphaned-looking worker first needs its parent tree; command-line or descriptor evidence can then explain how it was started or what it retains.

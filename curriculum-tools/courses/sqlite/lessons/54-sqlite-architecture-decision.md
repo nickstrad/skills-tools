@@ -13,17 +13,28 @@ minutes: 40
 revision: 3
 
 ## Overview
-Your task is to choose storage for a one-host agent with two producers, a growing event history and a recoverable local queue. First define its latency, loss and recovery budgets; then use a controlled contention experiment, the writer-envelope measurements and a restore rehearsal to assess those budgets. The script collects evidence and creates an incomplete decision record; completing the lesson requires your reasoning, not just running it.
+Assess SQLite for a one-host agent with two producers, a growing event history and a recoverable local queue. A controlled contention experiment and restore rehearsal show which latency and recovery costs can be measured locally, and which requirements need sustained-load evidence or a separate failure domain.
 
 ## Syntax breakdown
 ### In plain terms
 
 Use this workload brief: two producers append events, a worker claims jobs, and readers inspect
 recent state. The local device can be offline; loss of its host is a separate failure to plan for.
-Before running, write your required append rate, p95 latency budget, tolerated loss of acknowledged
-local operations, backup loss window and recovery deadline. You choose the numerical requirements.
-The small test below measures one controlled lock hold and restore path. It does not certify sustained
-capacity; bring the persistent-worker samples from the capacity lesson into the decision too.
+Append rate, p95 latency, tolerated loss of acknowledged operations, backup age and recovery deadline
+are distinct requirements. The small test below measures one controlled lock hold with a 100 ms busy
+timeout and one restore path. It does not establish a p95 latency distribution or sustained capacity;
+the writer-envelope lesson supplies the separate persistent-worker measurement method.
+
+```text
+producer A -- holds writer --+--> local SQLite file --> local backup --> restored file
+producer B -- waits/fails ---+          |
+                                     host loss affects all three local files
+```
+
+The writer experiment measures admission under contention. The local restore checks copying and
+validation; keeping another file on the same host does not make acknowledged writes survive loss
+of that host. An independent copy or replicated receiver introduces its own publication delay and
+recovery procedure, which this local experiment does not measure.
 
 ### What you are learning
 
@@ -38,24 +49,11 @@ capacity; bring the persistent-worker samples from the capacity lesson into the 
 - **set -eu**, **printenv**, **case**, **dirname**, **test**, and **mktemp -d** (shell controls):
   Stop on unexpected failures/unset variables, require an absolute lab path, and allocate a unique
   evidence directory under its parent. The learner's main database is not reset. The printed path
-  is where batch files and independent databases can be inspected after the run.
-- **sqlite3 -bail**, **<<'SQL'**, **echo**, **cat**, and **|** (CLI and shell input):
-  A quoted heredoc sends literal SQL. The brace group writes schema, batch, and transaction SQL into
-  one connection through a pipe; -bail stops at an unexpected SQL error. Closing that connection
-  rolls back an unfinished transaction. Each invocation owns its own connection and commit boundary.
-- **Shell functions and $1/$2** (reusable commands):
-  The first argument is the destination database and the second is a batch file. They make retries
-  use exactly the same application procedure. The SQL batches contain fixed, trusted lab data;
-  production transport needs validated data and bound parameters, not execution of received SQL.
-- **BEGIN IMMEDIATE / COMMIT** (transaction boundaries):
-  Reserve only the receiving file's writer, then commit its related facts together. Sender progress
-  is a different commit. A shell command finishing is not an acknowledgement transaction.
-- **TEMP tables and identity_guard CHECK(ok=1)** (connection-local staging and assertion):
-  Load an incoming batch, compare immutable payloads, and reject identity reuse with a constraint
-  error. The conflict is observable as a nonzero process status; do not acknowledge rejected data.
-- **ON CONFLICT ... DO NOTHING**, **WHERE true**, and **changes()** (targeted replay handling):
-  An existing identity skips insertion only after payload validation. WHERE true disambiguates
-  INSERT SELECT's UPSERT syntax. changes() counts the immediately preceding modifying statement.
+  contains only this experiment's databases and evidence files.
+- **sqlite3 -bail / <<'SQL'** (CLI and shell input): A quoted heredoc sends literal SQL; -bail
+  stops at an unexpected SQL error. Each invocation owns its connection and transaction boundary.
+- **BEGIN IMMEDIATE / ROLLBACK** (writer ownership): The holder reserves the file's writer until
+  the shell sends ROLLBACK. The contender's standalone INSERT either commits or fails at admission.
 
 - **PRAGMA synchronous=FULL** (connection policy): Explicitly initialize the measured writer.
   This is the experiment's setting, not a preselected final architecture; measure other accepted
@@ -72,12 +70,11 @@ capacity; bring the persistent-worker samples from the capacity lesson into the 
 - **.backup / integrity_check / count(*)** (restore rehearsal): Take the backup before starting
   the restore timer, then time restoration and structural/domain verification. The source-selection
   and off-host retrieval delays are explicitly unmeasured here.
-- **ADR template** (learner artifact): Fill every requirement and cite an evidence file or source
-  for each claim. The script cannot verify your reasoning; it prints the document's location, never
-  a claim that an architecture has been approved.
+- **rm -r -- "$lab"** (cleanup): Remove the unique directory created by this Run block after
+  inspecting its evidence. Keep this shell's lab variable; never substitute an unrelated path.
 
 ## Caution
-All generated files remain in the unique evidence directory. Keep your completed ADR separately before rerunning experiments. Host-specific timings are observations; a small restore cannot establish a large deployment's RTO.
+All generated files remain in the unique evidence directory until the cleanup below. Host-specific timings are observations; a small restore cannot establish a large deployment's RTO.
 
 ## Run
 ```sh
@@ -140,27 +137,27 @@ restore_ms=$(( (end-start)/1000000 ))
   echo 'unmeasured=off-host retrieval, backup age/publication lag, sustained load, full job workload'
 } >"$lab/operational-evidence.txt"
 cat "$lab/operational-evidence.txt"
-printf '%s\n' '# SQLite architecture decision' '' \
- '## Workload and requirements' \
- 'TODO: append rate, producers, reader lifetime, payload size, p95 latency budget.' \
- 'TODO: tolerated acknowledged-write loss, backup RPO, complete recovery RTO, host-loss scope.' \
- '## Evidence and limits' \
- 'TODO: cite query-evidence.txt, operational-evidence.txt, and writer-envelope transaction samples.' \
- 'TODO: distinguish measured results, documented contracts and untested assumptions.' \
- '## Decision' \
- 'TODO: choose ownership model, connection policy, transaction size and checkpoint placement.' \
- 'TODO: specify independent backup destination, cadence, restore procedure and rejoin policy.' \
- '## Acceptance and exit criteria' \
- 'TODO: name measurable pass/fail conditions and a justified alternative if requirements fail.' \
- >"$lab/architecture-adr.md"
-echo "complete_your_decision=$lab/architecture-adr.md"
 ```
 
 ## Expected result
-query-evidence.txt contains the by_tenant plan and 50 initial matches. The second writer encounters a verified busy error near its 100 ms configured budget; after release, the append succeeds. Restore and domain checks recover 5001 rows. operational-evidence.txt records actual wait/restore times and explicitly unmeasured work. architecture-adr.md remains incomplete until you fill it with requirements, measurements, justified policies and exit criteria; script success is not lesson completion.
+query-evidence.txt contains the by_tenant plan and 50 initial matches. The second writer encounters a verified busy error near its 100 ms configured budget; after release, the append succeeds. Restore and domain checks recover 5001 rows. operational-evidence.txt records actual wait/restore times and explicitly unmeasured work. The holder has exited and its descriptor is closed. A longer busy timeout could turn a brief contention error into a longer wait, but it would not increase writer capacity.
+
+### Cleanup
+
+After inspecting the evidence and the optional comparison below, remove only this run's directory
+from the same shell that ran the experiment:
+
+```sh
+rm -r -- "$lab"
+```
 
 ## Systems lens
 Architecture is the match between a workload's requirements and a component's measured and documented guarantees. SQLite can own local durable state while other components own transport or host-loss resilience. The decision should make those responsibilities explicit and identify the evidence that would change it.
 
 ## Optional variation
-Evaluate two requirement sets against the same evidence: a single-device offline tool and a service requiring writes to survive immediate host loss. Explain which parts of your design can stay, which need another component, and what you must measure before making a production commitment.
+Compare two requirement sets against the same evidence. A single-device offline tool can use the
+local file for durable state and a backup for recovery within the backup's loss window. A service
+requiring acknowledged writes to survive immediate host loss also needs the acknowledgement to
+depend on persistence in an independent failure domain. The local file and indexing can remain
+useful, but a same-host backup does not satisfy that requirement. Measure publication delay,
+sustained contention, retrieval and complete recovery separately before relying on either design.

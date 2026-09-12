@@ -62,12 +62,12 @@ state_before=S, state_after_stop=T, state_after_continue=S, and state_transition
 Task state records whether a process is sleeping, stopped, runnable, or exiting. A scheduler view without state transitions cannot distinguish a slow computation from a deliberately paused or blocked task.
 
 ## Optional variation
-**Predict.** Before running, which first state letters do you predict before STOP, after STOP, and after CONT?
+For this sleeping child, the expected first state letters are `S` before STOP, `T` after STOP, and `S` after CONT. `kill -STOP` causes the guaranteed transition; the `ps` results are snapshots, so the experiment inspects only their first character.
 
-**Inspect and explain.** Explain which command caused the only guaranteed transition and which lines are snapshots.
+For a shorter repeat, replace the child command with:
 
-**Vary.** Use `sleep 2` instead of `sleep 5` while retaining the two 0.1-second observation delays.
+```sh
+sleep 2 &
+```
 
-**Hint.** Inspect only the first stat character as the code does.
-
-**Apply.** State what additional evidence would distinguish an I/O-blocked task from a deliberately stopped one.
+Retain both 0.1-second observation delays and the exact-PID cleanup. To distinguish an I/O-blocked task from a deliberately stopped one, inspect the process state together with its wait channel or I/O evidence and the signal history.

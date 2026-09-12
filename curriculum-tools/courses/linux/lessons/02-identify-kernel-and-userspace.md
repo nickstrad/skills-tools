@@ -50,12 +50,10 @@ kernel_uname is the current Linux release and kernel_release_consistent=yes. pro
 The kernel is the syscall provider and procfs publisher, while /etc/os-release belongs to the filesystem image. Containers commonly change userspace while sharing the host kernel, so these identities must be recorded separately.
 
 ## Optional variation
-**Predict.** Whether changing a userspace package could change userspace_id while leaving kernel_uname unchanged.
+Open a second Bash and run this command there:
 
-**Inspect and explain.** Point to the two lines that come from procfs or uname and the one that comes from /etc; explain which is an image fact.
+```sh
+readlink -f /proc/$$/exe
+```
 
-**Vary.** Run `readlink -f /proc/$$/exe` in a second Bash and compare the path only, not an assumed distribution.
-
-**Hint.** The current shell PID is `$$`; do not inspect another user's process.
-
-**Apply.** Choose which identity you would use to decide whether a production symptom belongs to a kernel rollout or an application-image rollout.
+Compare that path with `shell_exe` from the Run block. `$$` is the current shell's PID, so this reads only the second shell's executable. A matching path identifies the executable, not an assumed distribution. `kernel_uname` and `proc_version_prefix` are kernel facts, while `userspace_id` is an image fact; replacing the image or distribution metadata can change the latter while leaving the kernel release unchanged. Use those separate identities to distinguish a kernel rollout from an application-image rollout.

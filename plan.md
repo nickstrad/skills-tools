@@ -1,7 +1,47 @@
 # Legacy courses in the simple tutor CLI
 
-Updated: 2026-09-12. Status: implementation in progress (P0/P1).
+Updated: 2026-09-12. Status: paused at the user's requested context-clear checkpoint.
 This file is the primary-owned plan and continuing handoff.
+
+## Resume here — current authoritative checkpoint
+
+The overall objective remains **implement this entire plan**; it is not complete. The user asked
+to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
+
+- P1 public names and P2/P3 aliases/history/skip behavior are committed in `d0c5511` and `8ee20a9`.
+  Primary-focused suites pass. No live learner catalog refresh has occurred.
+- Primary accepted15 lesson edits: Linux01–12, PostgreSQL09, SQLite52/54. Exact allowed differences
+  and pending rows are in `docs/legacy-course-migration/lesson-audit.tsv` (250 rows total).
+  `docs/legacy-course-migration/validation.md` records command parity, rendering and real SQLite
+  results. SQLite52/54 main SQL/database behavior is preserved; their revisions remain3.
+- P7 active guidance changes are reviewed, including primary corrections to completion wording,
+  the `undone N` example and the SQLite54 outline. No installer command has been run yet.
+- Sol's P5 first-six PostgreSQL edits (38/46/54/55/56/57) are **pending primary acceptance**.
+  Preserve these worktree changes; do not treat their ledger rows as accepted. The full92-row
+  preliminary audit is `curriculum-tools/.cache/legacy-migration/postgres-audit.tsv`.
+- Critical new P5 finding: PostgreSQL89 and90 also omit their controller inspection/recovery/
+  cleanup calls. Include them with primary-owned88/91 in the core-continuation repair and real-tool
+  validation schedule. PG92's core is complete but its existing optional branch needs local wording.
+- Next: finish primary acceptance of the six P5 prose edits; then continue Linux13–71 in bounded
+  Terra chunks, PostgreSQL prose/continuations, SQLite01–51/53 and Essentials/gRPC audits. Primary
+  still owns Linux72, PG88/89/90/91/92 and final serial hazardous validation. No next chunk has been
+  dispatched after this stop request. Use the plan's current model/ownership assignments if resumed.
+- Final work still required: every authored lesson's recorded review, targeted continuation/capstone
+  runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
+  quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
+  roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~14MB), including raw/refreshed
+  baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
+  helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
+  redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
+  Do not regenerate `lesson-audit.tsv` over its manual acceptance notes.
+- Runtime checkpoint: SQLite validation root and review databases removed; no PostgreSQL author
+  lab allocated. Learner hash remains `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
+  legacy backup hashes match the retained manifest. Learner query returns
+  `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+Sections below preserve the full requirements and dated implementation checkpoints; this resume
+summary supersedes their earlier “pending/start P0” scheduling statements.
 
 ## 1. Outcome and authority
 
@@ -478,6 +518,28 @@ route types/loading/rendering and lesson footer. Number-first skip, explicit ski
 access, next/undone, separate done counts and read-only plain/ANSI/JSON display are tested.
 Only reviewed golden footer/route-legend differences changed. Full final race/build and all
 post-content checks remain pending; do not treat this checkpoint as rollout acceptance.
+
+P2/P3 commit: `8ee20a9`; primary focused suites passed after reviewing the final test file.
+Sol is released from test ownership and assigned P5: read-only audit all92 PostgreSQL lessons,
+record findings in `curriculum-tools/.cache/legacy-migration/postgres-audit.tsv` (one row per lesson),
+then exclusively edit the first six ordinary prose files:
+`38-explain-analyze-buffers.md`, `46-create-index-concurrently-and-invalid-indexes.md`,
+`54-commit-means-fsync.md`, `55-wal-files-and-recycling.md`, `56-crash-and-redo.md`,
+`57-wal-size-of-operations.md` under `curriculum-tools/courses/postgres/lessons/`.
+Preserve exact Setup/Run, identities/metadata/revisions; retire unavailable coaching-only hint
+prompts and retain supplied runnable comparisons. Flag core omissions to primary rather than
+changing controllers. Primary retains09/88/91/92 and all validation scheduling. No other edits,
+commits, live history or labs; return the six and full inventory before further assignments.
+
+Primary SQLite52/54 exception specification (uncommitted, real validation pending): SQLite52
+changes only the printed pause in Run to a neutral observation label, preserving all SQL and
+session ordering. Its prose gives the reader-release evidence directly and removes the diagnostic
+table requirement. SQLite54 removes only the final generated TODO ADR/complete_your_decision
+artifact from Run; contention, backup, restore and assertions remain byte-identical. Its copied
+offline-receipt syntax explanations are replaced with this actual experiment's explanation,
+architecture tradeoffs and a same-shell owned-directory cleanup command. Revisions remain3:
+these remove presentation/submission obligations while preserving the database experiments.
+Use real SQLite52/54 validation and inspect restored/domain state before accepting the exceptions.
 
 Source anchors: `docs/README.md`; `docs/knowledge/{concise-course-cli,go-tutor-migration,
 lesson-identity-refresh,vm-resource-cleanup}.md`; `curriculum-tools/docs/AUTHORING.md`;

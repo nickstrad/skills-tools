@@ -21,7 +21,22 @@ compare changing that row's label with replacing its body to explore when extern
 ## Syntax breakdown
 ### In plain terms
 
-A row cannot contain an arbitrarily large value because it must fit on an 8 KB page. PostgreSQL tries compression first; if the value still does not fit, it stores chunks in a hidden TOAST table and leaves a pointer in the row. The table has id, label, and body columns: id = 1 holds repeated x and id = 2 holds varied text, both 100,000 characters long. First inspect their storage, then compare two reads of id = 2, and finally compare label and body updates. Keep the output for pgcoach 9 inspect.
+A heap tuple must fit on a page (8 KB in this lab). With the default storage policy, PostgreSQL can compress large values and move them into a hidden TOAST table to keep the tuple small. External storage leaves a pointer in the heap tuple. A compressible value can remain inline; a large logical length alone does not imply external storage.
+
+```text
+100,000-character body
+          |
+   compression / external storage
+          |
+   +------+-------------------+
+   |                          |
+heap tuple                 TOAST table
+[id | label | pointer] --> [chunk 0][chunk 1] ...
+   |                          |
+read label              read external body
+```
+
+The map shows the external-storage branch. The table has id, label, and body columns: id = 1 holds repeated x and id = 2 holds varied text, both 100,000 characters long. Compare logical length with stored size, heap-tuple length, and TOAST chunks to distinguish the storage branches. Then compare buffer accesses for two reads of id = 2, followed by label-only and body-replacement updates. The expected evidence below explains each comparison.
 
 ### What you are learning
 
@@ -94,7 +109,7 @@ A row cannot contain an arbitrarily large value because it must fit on an 8 KB p
     preserved, while a replacement creates a new external value. The second update generates
     another 100,000-character body, using 'new-' || g to change the input to md5. The size
     query uses :'toast_name' to quote the saved relation name as a SQL string argument.
-- **ALTER TABLE ... ALTER COLUMN body SET STORAGE external** (challenge DDL)
+- **ALTER TABLE ... ALTER COLUMN body SET STORAGE external** (optional comparison DDL)
   - What it is: changes the TOAST policy to avoid compression while allowing external storage.
   - What it does here: changes the policy, then assigns a fresh copy of the same text to id = 1.
     The policy change alone does not rewrite the existing value.
@@ -112,7 +127,7 @@ create table st_toast(id int primary key, label text, body text);
 \x auto
 select reltoastrelid::regclass as toast_table from pg_class where relname = 'st_toast';
 
--- 1. Create the two rows introduced in start: equal character counts, different text.
+-- 1. Create the two rows introduced above: equal character counts, different text.
 insert into st_toast values (1, 'compressible', repeat('x', 100000));
 insert into st_toast values (2, 'incompressible',
   (select string_agg(md5(g::text), '') from generate_series(1, 3125) g));
@@ -136,7 +151,7 @@ select count(*) as chunks, min(chunk_seq) as first_seq, max(chunk_seq) as last_s
        max(length(chunk_data)) as chunk_bytes
 from :toast_name;
 
--- 3. Test your prediction: same id = 2, fetching label versus counting body characters.
+-- 3. Compare the same id = 2, fetching label versus counting body characters.
 -- Compare the execution Buffers lines; each query returns one result.
 explain (analyze, buffers, costs off, timing off, summary off)
   select label from st_toast where id = 2;
@@ -144,7 +159,7 @@ explain (analyze, buffers, costs off, timing off, summary off)
   select length(body) from st_toast where id = 2;
 
 -- 4. Record a baseline, change only id = 2's label, then replace its body.
--- Save all three values/chunks/size outputs to compare in inspect.
+-- Compare all three values/chunks/size outputs.
 select count(distinct chunk_id) as values, count(*) as chunks,
        pg_relation_size(:'toast_name') as toast_bytes_before
 from :toast_name;
@@ -160,7 +175,7 @@ select count(distinct chunk_id) as values, count(*) as chunks,
 from :toast_name;
 select lp, lp_len, t_ctid from heap_page_items(get_raw_page('st_toast', 0)) order by lp;
 
--- Keep this psql session open for the variation. Next: pgcoach 9 inspect.
+-- Keep this psql session open for the optional storage-policy comparison below.
 ```
 
 ## Expected result
@@ -189,11 +204,20 @@ service; a split adds its own joins, integrity rules, and failure modes.
 ## Optional variation
 Force a controlled replacement of row 1's value without compression:
 
+```sql
 alter table st_toast alter column body set storage external;
 update st_toast set body = repeat('x', 100000) where id = 1;
 select id, pg_column_size(body) as stored_bytes from st_toast where id = 1;
 select count(*) as chunks, max(length(chunk_data)) as chunk_bytes from :toast_name;
+```
 
-Compare the new stored size and chunks with the lesson's initial values. For a value an application
-always reads in full, versus one it only sometimes fetches, what would you measure before changing
-storage policy?
+Compare the new stored size and chunks with the lesson's initial values. Disabling compression for
+the freshly assigned repeated value increases its stored size and adds external chunks. The chunk
+count covers both rows. Before changing an application's storage policy, compare payload-fetch
+frequency, stored bytes, and buffer work for its actual queries.
+
+### Cleanup
+
+After finishing either comparison, repeat Setup's first statement, `drop table if exists st_toast;`,
+to remove this experiment's table and its TOAST storage. Keep the pageinspect extension for later
+storage lessons.
