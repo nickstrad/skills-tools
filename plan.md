@@ -1,7 +1,7 @@
 # Plan: one Go `tutor` CLI for every course
 
 Drafted 2026-09-12, revised the same day into delegable work packages.
-**Status: in progress — WP9.2 verified; Sol taking over WP5.2; primary reviewing WP7.1 and Sol updating WP7.2.**
+**Status: in progress — WP9.2 verified; Sol taking over WP5.2; WP7.1–7.2 reviewed; Luna/high updating authoring and repository documentation.**
 (Update this line as work proceeds: `in progress — next WPx.y` / `complete`.)
 
 This file is the single source of truth for the migration. It is written so that a fresh agent
@@ -74,8 +74,8 @@ a separate handoff document.
 | WP6.1 fsutil scavenge | S | done | 67b4e95 | also `PublishOnceStrict` |
 | WP6.2 Archive systemscoach writing | S | done | ed33e59 | 83 relative links checked, 0 broken; `docs/README.md` links fixed in WP7.4 |
 | WP6.3 Delete systemscoach | O | todo | | |
-| WP7.1 tutor skill | O | in progress | | Sol drafting new skill; primary owns review and retirement of old skill directories. |
-| WP7.2 AGENTS.md | O | in progress | | Sol owns repository guidance; primary review. |
+| WP7.1 tutor skill | O | done | resume skill commit | Sol drafted, primary reviewed; skill validator and isolated command smoke pass; old source skill files retired. Machine links updated in WP6.3/WP8.3. |
+| WP7.2 AGENTS.md | O | done | resume skill commit | Sol rewrite reviewed by primary; protections retained, Markdown/Go/unified progress documented, links checked, CLAUDE.md symlink preserved. |
 | WP7.3 Author skill and AUTHORING.md | S | in progress | | Luna/high authoring_docs; primary review. |
 | WP7.4 Remaining documentation | S | in progress | | Luna/high remaining_docs; primary review. |
 | WP8.1 Archive-then-delete Deno engine | S | todo | | archive commit hash: |

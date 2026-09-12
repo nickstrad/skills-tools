@@ -2,22 +2,24 @@
 
 Read [`docs/README.md`](docs/README.md) before working in this repository. It indexes the durable
 research and operational notes that already exist; use those documents instead of repeating
-expensive discovery work.
+expensive discovery work. While the Go tutor migration is active, [`plan.md`](plan.md) is its source
+of truth for package ownership, sequencing, model choices, validation, and acceptance.
 
 ## VM resources and cleanup — first operational task
 
 Read `/root/disk-usage-report.md` when present and
 [`docs/knowledge/vm-resource-cleanup.md`](docs/knowledge/vm-resource-cleanup.md). Verify reports
-against current disk, memory, process and cluster state before acting. Account for peak space
-(including backups, replicas, archives and evidence copies) before allocating a lab. Clean up owned
+against current disk, memory, process, and cluster state before acting. Account for peak space
+(including backups, replicas, archives, and evidence copies) before allocating a lab. Clean up owned
 work after validation and at each checkpoint; do not let stopped clusters accumulate. Final resource
 cleanup and a learner-lab readiness check are required before marking an overall goal finished, not
 an optional follow-up.
 
-Preserve the learner's live `/labs/pglab` cluster, progress databases, unrelated work and active
-agent sessions. Similar path names and absence from `pgrep` do not establish disposability. Retain
-only evidence required by an outstanding acceptance check, compact it with verified manifests,
-record its location/expiry, and remove bulky retained evidence after that check.
+Preserve the learner's live `/labs/pglab` cluster, the course-scoped progress in
+`curriculum-tools/tutor.sqlite`, legacy progress backups, unrelated work, and active agent sessions.
+Similar path names and absence from `pgrep` do not establish disposability. Retain only evidence
+required by an outstanding acceptance check, compact it with verified manifests, record its
+location and expiry, and remove bulky retained evidence after that check.
 
 ## Learner context
 
@@ -36,46 +38,63 @@ Nick studies around parenting and a full-time job and currently completes a Post
 lesson in roughly ten minutes. Prefer fixed, bounded routes of short mechanism-driven lessons. Put
 all context needed for the experiment in the lesson before its commands, use terminal-readable
 diagrams whenever they clarify a mechanism, and keep external reading optional. The learner uses
-`<course CLI> route` to see completed, available, and planned entries and
-`<course CLI> <number> lesson|done` to display or complete an authored lesson. There is no separate
-review, homework,
-checkpoint, or answer-submission stage, and only an explicit `done` records completion. A valid
-`future-courses/<folder>/course.md` route may be displayed before implementation, but its planned
-entries have status only and never create progress.
+`tutor <course> route` to see completed, available, and planned entries and
+`tutor <course> <number> lesson|done` to display or complete an authored lesson. There is no
+separate review, homework, checkpoint, or answer-submission stage, and only an explicit `done`
+records completion. A valid `future-courses/<folder>/course.md` route may be displayed before
+implementation, but its planned entries have status only and never create progress.
 
-## PostgreSQL course
+## Learning routes and progress
 
-The PostgreSQL course lives at `curriculum-tools/courses/postgres/`. Read its `PLAN.md` for the
-current outline and its validation records for measured behavior. Edit curriculum TypeScript, keep
-stable lesson identities and preserve learner progress. Technical source research may inform a
-plan, but no external reading is a learner prerequisite or progression gate.
+The current PostgreSQL path is `postgres-essentials`; `postgres` remains a separate reference
+course with separate course-scoped progress. The shared learner database is
+`curriculum-tools/tutor.sqlite`; do not edit it directly or transfer completion between courses.
+Legacy per-course databases are retained under
+`curriculum-tools/.cache/legacy-progress/<course-id>/progress.sqlite*` as migration backups.
+
+Use `tutor roadmap` for the overall learning roadmap and “what should I learn next?” requests.
+Roadmap topics and course progress share `curriculum-tools/tutor.sqlite`, while
+`curriculum-tools/roadmap/roadmap.json` is the committed roadmap snapshot. Planned roadmap topics
+and future-course routes do not authorize new lessons.
+
+## Language policy
+
+Go is the default language for CLI logic, labs, fixtures, harnesses, and any other course tooling.
+Bash is acceptable for launchers, machine bootstrap, REPL guards, and glue that would be longer or
+less clear in Go. Lesson experiments keep using each tool's native commands, including `psql`,
+`sqlite3`, and shell. Do not use Python or TypeScript for new tooling.
 
 ## Course editing rules
 
 - Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
-  using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion and
-  final-outline sign-off; a route does not authorize scaffolding, progress changes or validation
+  using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion, and
+  final-outline sign-off; a route does not authorize scaffolding, progress changes, or validation
   infrastructure. Implement only an agreed route in small batches.
 - For implementation batches, follow
   [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary design and review,
-  current-user model/delegation choices, real validation, chunked commits and a temporary handoff
-  committed throughout and removed at completion. Historical plans may name earlier models or
-  assignments; they are provenance, not current delegation policy.
-- Keep `CLAUDE.md` symlinked to this file so both agents share this guidance.
-- Read `curriculum-tools/docs/AUTHORING.md` and the `curriculum-author` skill before changing lesson
-  content.
-- Edit `curriculum/*.ts`; never hand-edit generated `lessons.json` or learner `progress.sqlite`.
+  current-user model and delegation choices, real validation, chunked commits, and a temporary
+  handoff committed throughout and removed at completion. Historical plans may name earlier models
+  or assignments; they are provenance, not current delegation policy.
+- Keep `CLAUDE.md` symlinked to this file so agents share this guidance.
+- Read [`curriculum-tools/docs/AUTHORING.md`](curriculum-tools/docs/AUTHORING.md) and the
+  `curriculum-author` skill before changing lesson content. Apply the meaningful learner-work norm
+  in [`docs/knowledge/learner-work.md`](docs/knowledge/learner-work.md) to every new lesson.
+- Lesson source is `curriculum-tools/courses/<id>/lessons/NN-<slug>.md`. Keep stable lesson
+  identities and preserve learner progress.
 - Preserve experiment behavior unless the task explicitly asks for a semantic change. Metadata-only
   rewrites must not change setup, commands, expected results, safety levels, sessions, or slugs.
 - Author one complete `lesson` output as specified in
   [`curriculum-tools/docs/AUTHORING.md`](curriculum-tools/docs/AUTHORING.md): context, setup and
-  commands, expected evidence, interpretation and cleanup. Use a plain-text-readable diagram when
+  commands, expected evidence, interpretation, and cleanup. Use a plain-text-readable diagram when
   it clarifies the mechanism; the shared tutor renders every course.
-- Run Deno from `curriculum-tools/` with `/root/.deno/bin/deno` when it is not on `PATH`.
-- Keep unrelated working-tree changes intact. Multiple agents may own separate module files at the
-  same time; never edit a file assigned to another agent.
+- Run `bin/tutor <course> check` before committing lesson or route changes. Use
+  `bin/tutor <course> validate` for real-tool evidence, always with isolated validation state
+  rather than learner progress or the live PostgreSQL lab.
+- Keep unrelated working-tree changes intact. Respect the ownership recorded in the active plan or
+  handoff, and never edit a file assigned to another agent.
 
 ## Durable findings
 
-General repository, course and validation findings belong in `docs/knowledge/` and its index. Keep
-course-local validation facts beside the relevant course; do not duplicate external source material.
+General repository, course, and validation findings belong in `docs/knowledge/` and its index.
+Keep course-local validation facts beside the relevant course; do not duplicate external source
+material.

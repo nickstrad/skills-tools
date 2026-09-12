@@ -1,0 +1,74 @@
+---
+name: tutor
+description: "Guide the PostgreSQL Essentials course; the PostgreSQL Systems, SQLite Systems, Linux Systems, and gRPC and Protocol Buffers reference courses; the planned SQLite Essentials and Linux Systems v2 routes; and the overall learning roadmap through the tutor CLI. Use for course routes, lessons, search, modules, notes, progress, and what to learn next; not for unrelated systems troubleshooting."
+---
+
+# Systems Tutor
+
+Use `/root/Software/skills-tools/bin/tutor` (TUTOR below) for curriculum, progress, and roadmap
+requests. The CLI prints lesson content; the learner runs the supplied experiment. Do not read or
+edit lesson files or `curriculum-tools/tutor.sqlite` directly when serving lessons. The single
+database keeps progress course-scoped, so a lesson in one course never completes a lesson in
+another. Migrated per-course databases are backups under
+`curriculum-tools/.cache/legacy-progress/<course-id>/progress.sqlite*`.
+
+## Course requests
+
+- List courses: `TUTOR courses`.
+- Show the full route, including completed, available, and planned entries:
+  `TUTOR COURSE route`.
+- Show the next unfinished lesson: `TUTOR COURSE lesson`.
+- Show a numbered lesson: `TUTOR COURSE NUMBER lesson`.
+- Record completion, only when explicitly requested: `TUTOR COURSE NUMBER done [--note TEXT]`.
+- Find content: `TUTOR COURSE search TEXT`, `TUTOR COURSE topics`, or
+  `TUTOR COURSE modules`.
+- Inspect progress: `TUTOR COURSE status --json`.
+- Apply an explicit correction: `TUTOR COURSE undone NUMBER`,
+  `TUTOR COURSE skip NUMBER [--note TEXT]`, or `TUTOR COURSE note NUMBER TEXT`.
+
+TUTOR and COURSE are abbreviations in this file, not literal arguments. Let the CLI choose the next
+lesson rather than deriving it from status output. A planned course supports `route` only; its plan
+does not authorize implementation or create progress. If an implemented course is uninitialized,
+run `TUTOR COURSE init` and retry. Use `--db PATH` only for isolated author or validation checks.
+
+Show a complete lesson in one view: context, any terminal diagram, setup and commands, expected
+evidence, interpretation, and cleanup. Explain unfamiliar concepts and command purpose before the
+experiment. Preserve supplied commands and cautions. Give focused help when requested; there is no
+separate review, required prediction, written response, or reading checkpoint.
+
+## Courses and routes
+
+- `postgres-essentials` is the current PostgreSQL learning path. Its fixed 40-lesson route may
+  include planned entries that are not yet authored.
+- `postgres` is the PostgreSQL Systems reference. It has its own course-scoped progress; reference
+  lesson numbers and completions do not transfer to PostgreSQL Essentials.
+- `sqlite` is the SQLite Systems reference. `TUTOR_SQLITE_DB` is needed only for real-tool
+  validation; ordinary route, lesson, and progress requests do not need it.
+- `linux` is the Linux Systems reference.
+- `grpc` is the short gRPC and Protocol Buffers reference. Its local tools and compiled artifacts
+  were pruned; before running its experiments, reinstall them as directed by
+  `curriculum-tools/courses/grpc/README.md`.
+- `sqlite-essentials` and `linux-v2` are planned routes. Show their route and planned status without
+  inventing lessons or transferring progress from the reference courses.
+
+For “what should I learn next?” and broader sequencing requests, use `TUTOR roadmap`. Use
+`TUTOR roadmap show SLUG` for the selected topic's goals, diagram, and optional Go follow-ups.
+Viewing the roadmap is read-only; change it only when the user explicitly asks to update the
+roadmap.
+
+## Progress invariants
+
+- Showing, explaining, or author-validating a lesson never marks it done.
+- Complete only on an explicit request such as “done” or “mark 12 complete”; resolve the course and
+  lesson from recent context only when unambiguous. Do not infer completion from pasted output.
+- Let the CLI select the next unfinished lesson; it handles skipped and stale entries.
+- Pass note text as one argument, preserve unrelated progress, and report command errors.
+
+## New lessons
+
+Apply `docs/knowledge/learner-work.md` whenever a new lesson is planned or authored. Reserve a useful
+task whose result depends on the learner's work, while supplying setup, fixtures, process control,
+success evidence, interpretation, cleanup, optional hints, and a clearly marked worked answer.
+Running a finished script, copying a complete solution, or answering a forced quiz does not satisfy
+the norm. Fit the explanation, attempt, debugging allowance, evidence, interpretation, and cleanup
+into a 10–15 minute lesson.
