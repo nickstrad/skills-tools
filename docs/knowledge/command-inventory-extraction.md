@@ -1,45 +1,38 @@
 # Deriving a course's command inventory
 
-How lesson 3 of the Linux course (`inventory-required-commands`) got its list. Last updated
-2026-09-03.
+Updated 2026-09-12 for the Go CLI.
+
+The Linux inventory should be derived from the runnable Markdown lesson blocks, not from prose or
+an assumed tool list. `tutor <course> list --json` exposes the parsed lesson records, while the
+source of truth remains `curriculum-tools/courses/<id>/lessons/*.md` and its `Setup` and `Run`
+fences.
 
 ## What happened
 
-The original list was written by hand. It named four commands the course never runs (`cp`,
-`hostname`, `iostat`, `sync`) and missed about two dozen it does (`nproc`, `truncate`, `ln`,
-`seq`, `sudo`, `tee`, `id`, `basename`, `rmdir`, `touch`, `lsof`, `ss`, ...). The corrected list
-came from parsing every `code` and `setup` field in the built `lessons.json` and collecting the
-word at command position.
+The original hand-written Linux list named four commands the course never ran (`cp`, `hostname`,
+`iostat`, `sync`) and missed about two dozen it did (`nproc`, `truncate`, `ln`, `seq`, `sudo`,
+`tee`, `id`, `basename`, `rmdir`, `touch`, `lsof`, `ss`, and others). The corrected list came from
+parsing every setup and run block and collecting the word in command position.
 
-A plain word grep is not enough. Commands hide in:
-
-- `bash -c '...'` bodies and `trap '...' EXIT` bodies (parse the quoted text as shell);
-- `$(...)` and `<(...)` substitutions, including ones nested inside double quotes;
-- wrapper prefixes: `sudo -n [-u USER]`, `as_root`, `timeout [-k N] DURATION`, `nice -n N`,
-  `taskset -c LIST` (but `taskset -pc` takes a PID, not a command), `ionice -c N` (but
-  `ionice -p PID` does not), `unshare ... [--]`, `nsenter ... [--]`, `/usr/bin/time -f FMT -o FILE`,
-  `env VAR=x`, `exec [-a NAME]`;
-- `$runner python3 ...` where `$runner` expands to a wrapper.
-
-Things that look like commands and are not: `$((a - b))` arithmetic (looks like `$(` plus `(`),
-`# Session A (blocks ...)` comments, redirection targets (`1>&2`, `9>>"$FILE"`), `for x in ...`
-lists, and user functions defined in the same snippet (`as_root`, `cg_write`, `cleanup_*`).
+A plain word grep is not enough. Commands hide in `bash -c` and `trap` bodies, `$(...)` and
+`<(...)` substitutions, and wrapper prefixes such as `sudo`, `timeout`, `nice`, `taskset`, `ionice`,
+`unshare`, `nsenter`, `/usr/bin/time`, `env`, and `exec`. A parser must recurse into quoted shell
+bodies and apply each wrapper's argument rules. Arithmetic expansions, comments, redirection
+targets, loop lists, variables, and functions defined in the same block are not external commands.
 
 ## Why it matters
 
-Lesson 3 exists so a missing tool is reported as a missing tool, not mistaken for a kernel
-behaviour in lesson 40. Its value depends on the list being complete.
+Lesson 3 exists so a missing executable is reported as a missing tool rather than mistaken for a
+kernel behavior in a later lesson. Its expected count must move with the actual Markdown route.
 
 ## How to apply
 
-- Write a small tokenizer rather than a regex: track command position (start of line, after `;`,
-  `|`, `&&`, `||`, `&`, `(`, `then`, `do`, `else`, `!`), skip `VAR=` prefixes and `$var` tokens,
-  recurse into quoted shell bodies and `$(...)`, and apply the wrapper rules above.
-- Cross-check the result two ways: (1) any word in the code that resolves with `command -v` on the
-  host but is not in your set is a candidate you missed; (2) any entry in your set that appears
-  only in lesson 3 itself is stale.
-- Externals go through `command -v`; tools that need an absolute path (`/usr/bin/time`,
-  `/usr/sbin/mkfs.ext4`) get `test -x`; builtins the course relies on can be checked with
-  `type -t NAME = builtin` to catch shadowing.
-- Repeat the extraction whenever lessons are added; the expected count in `expectedResult`
-  (62 for the Linux course) must move with it.
+1. Read lesson records with `tutor linux list --json`, or parse the fenced `Setup` and `Run` blocks
+   directly when source text and quoting are required.
+2. Tokenize shell command position after `;`, pipes, `&&`, `||`, `&`, parentheses, `then`, `do`,
+   `else`, and `!`; skip assignments and recurse into substitutions and shell strings.
+3. Cross-check candidates with `command -v`, `test -x` for required absolute paths, and
+   `type -t NAME` for builtins. A command appearing only in the inventory lesson is suspect.
+4. Re-run the extraction after lesson edits, then run `tutor linux check` and compare the expected
+   inventory count with the generated evidence. Do not edit lesson content as a side effect of the
+   inventory check.

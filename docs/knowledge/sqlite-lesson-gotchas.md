@@ -1,5 +1,7 @@
 # SQLite lesson gotchas
 
+Updated 2026-09-12 for the Go CLI. The dated tool findings below remain historical evidence.
+
 `sqlite3` REPL behaviour that broke lessons during the 2026-09-03 SQLite course review (16 findings
 fixed, commit cd06ded).
 
@@ -20,8 +22,9 @@ Updated 2026-09-04 with the second-course integration findings below.
   SQL strings. Keep the strict build so future lessons reveal this portability bug.
 - Install `libreadline-dev` and `zlib1g-dev` before configuring the upstream source. Without them
   the CLI silently builds without line editing/history and compression support.
-- Scoped checks were necessary because `deno task check` failed on another course's unformatted
-  files at the time (see `repo-tooling.md`).
+- Scoped checks were necessary because the historical Deno formatter check failed on another
+  course's unformatted files at the time (see `repo-tooling.md`). Current structural validation is
+  `tutor sqlite check`, against the Markdown lesson files.
 - FTS5 was absent from an otherwise correct SQLite 3.53.4 build. Enable it explicitly with
   `--enable-fts5` in bootstrap and verify CREATE/MATCH; do not infer configure defaults from the
   version number. Ordinary EXPLAIN does not prove the optional `bytecode()` virtual table exists.
@@ -52,9 +55,9 @@ order, which is how a learner experiences it.
 
 ## How to apply
 
-Validate with both isolated lessons and a sequential fresh-lab run. Use the course-local
-`courses/sqlite/tools/validate-course.ts`, which runs shell lessons as well as real Session A/B
-REPLs and retains logs. Review every result: native completion still only detects timeouts. The
-2026-09-03 material revisions used 2; the 2026-09-04 rework uses 3 where behavior changed and
-preserves earlier effective revisions for editorial-only improvements. Never bump every lesson
+Validate with both isolated lessons and a sequential fresh-lab run. Use
+`tutor sqlite validate --isolated`, which runs shell lessons as well as real Session A/B REPLs and
+can retain logs with `--keep`. Review every result: native completion still only detects timeouts.
+The 2026-09-03 and 2026-09-04 revision counts and capability findings above are historical evidence;
+preserve earlier effective revisions for editorial-only improvements and never bump every lesson
 merely because its explanation was expanded.

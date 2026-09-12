@@ -1,57 +1,64 @@
 # Validation harness
 
-How `tools/validate.ts` behaves and how to read what it prints. Last updated 2026-09-03.
+Updated 2026-09-12 for the Go CLI.
 
-SQLite integration notes added 2026-09-04.
+Use `tutor <course> validate` to drive the course's configured REPL (psql, duckdb, sqlite3, or a
+shell) with one persistent process per lesson session. It feeds each lesson's Setup and Run blocks
+in order, so multi-session experiments such as lock waits, serialization failures, and deadlocks
+keep their terminal boundaries.
 
 ## What happened
 
-- `deno run -A tools/validate.ts <course> [--from N] [--to N] [--timeout MS] [slug|ordinal ...]`
-  drives one persistent REPL (or Bash session) per lesson session and prints every labeled line.
-- The final line, `N/N lessons completed without timeout`, counts only lessons whose commands
-  returned before the timeout. A lesson that prints `priority_difference=unexpected` or
-  `inventory_ok=no` still counts as completed. Lesson 46 of the Linux course was "passing" in two
-  full runs while printing `unexpected` every time.
-- The harness passes its whole environment into the sessions (`env: Deno.env.toObject()`), so
-  course-specific variables such as `LINUX_LAB` can be set per run.
-- Shell-mode sessions run `bash --noprofile --norc` with `LC_ALL=C`; they inherit the niceness,
-  ulimits and cgroup of the process that launched the harness.
+- A completed harness step means commands returned before the timeout. It does not prove that an
+  SQL value, filesystem state, or diagnostic line matches the lesson's Expected result.
+- The harness merges the process environment, course `repl.env`, and command options in that order;
+  course configuration therefore wins over an unqualified `PGPORT` or similar variable.
+- `--isolated` gives each lesson a private evidence directory, exports `SQLITE_LAB` and
+  `TUTOR_SQLITE_DB` for SQLite, and supplies a shell fallback for shell lessons. It removes the
+  directory after validation unless `--keep` is supplied. It does not create a private PostgreSQL
+  server.
+- Two-session lessons use labelled `-- Session A` / `-- Session B` blocks. A header containing
+  `(blocks until A commits)` is sent without waiting; the next session can release it.
+- The configured `echo` marker is appended after each step and filtered from captured output. A
+  shell course can opt into persistent Bash sessions; shell validation also records the preceding
+  command's exit status, so a failed assertion is not hidden by a successful marker.
+- Keep bounded commands such as `\watch i=1 c=3`; an unbounded watch never reaches its marker. The
+  default step timeout is 30 seconds and can be changed with `--timeout MS`.
 
 ## Why it matters
 
-A green count is not a passed course. Every fix in the SQLite and Linux reviews was found by reading
-evidence lines against `expectedResult`, not by the count.
+A green count is not a semantic pass. Linux lesson 46 once completed while printing
+`priority_difference=unexpected`; SQLite checks also exposed false results when two sessions were
+flattened into one sqlite3 stream. Read every session's evidence and classify intentional errors.
 
 ## How to apply
 
-- After a full run, save the log and grep it for negative evidence before declaring success:
+Run a range or selected lessons against an owned private endpoint:
 
-  ```sh
-  LINUX_LAB=$CLAUDE_JOB_DIR/tmp/lab-full deno run -A tools/validate.ts linux > run.log 2>&1
-  grep -n -iE 'unexpected|=missing|partial|not-observed|=no( |$)|unavailable|skipped|Traceback|error' run.log
-  ```
+```sh
+tutor --root /path/to/private-checkout postgres validate --from 5 --to 13
+tutor --root /path/to/private-checkout postgres validate write-skew serializable-ssi
+tutor --root /path/to/private-checkout sqlite validate --isolated --keep 34
+```
 
-  Then check every hit against the lesson's `expectedResult`; deliberate failures (an exit 7, an
-  EMFILE message, a refused bind) are evidence, not bugs.
-- For the lessons you touched, run them individually and read every line.
-- Parallel runs (several agents, or root plus non-root) must not share a lab directory. For the
-  Linux course set `LINUX_LAB` to a private path per run; for database courses use a private
-  database or cluster. Lessons that must touch a global kernel object (cgroups, mounts) use
-  `linux-tutor-$UID-...` names and their own cleanup trap for the same reason.
-- After a run, distinguish leaked live processes from intentionally retained evidence. Linux cleanup
-  exercises may require an empty lab; SQLite crash, backup and benchmark exercises retain named
-  databases/logs for inspection. Do not delete those artifacts to make a generic cleanup rule appear
-  satisfied.
-- Two-session lessons are driven by the harness automatically (`sessions: 2`, `# Session A` /
-  `# Session B` blocks).
-- Never validate a two-session SQL lesson by flattening it into one sqlite3 stream. This produced
-  false snapshot results, self-locking checkpoint errors and misleading shell-command errors in the
-  SQLite rework. Use the real session splitter and inspect each connection's output.
-- SQLite's course-local `tools/validate-course.ts` runs shell experiments in bounded child Bash
-  processes and tool experiments through the native session-aware validator. `--isolated` gives each
-  lesson a private lab; the explicit hot-journal prerequisite runs in a subshell so its variable
-  assignments and EXIT trap cannot leak into recovery. The runner's results.json records completion
-  status, not an automatic semantic verdict.
-- Keep structural engine tests independent of curriculum display numbers. A regression test that
-  assumed PostgreSQL lesson 11 always had a reading checkpoint failed when that course moved the
-  checkpoint. Locate a checkpoint by metadata, then test its preservation; test identity by slug.
+Use the course's `repl.env` for a private PostgreSQL socket, port, role, and database. Never use
+port 5440 or `/labs/pglab` for validation. Search the saved output for `unexpected`, `missing`,
+`partial`, `not-observed`, `unavailable`, `skipped`, `Traceback`, and `error`, then compare each hit
+with the lesson's expected intentional failures. Keep only named evidence and remove owned labs,
+copied progress databases, and temporary processes after the acceptance check.
+
+Parallel validation runs need separate lab directories and database files. SQLite crash, backup,
+and benchmark lessons may intentionally retain named evidence; remove it only after its acceptance
+check. A Linux course's global kernel-object lessons need unique names and cleanup traps.
+
+`tutor <course> progress verify --db /path/to/tutor.sqlite` treats the source database as
+read-only, then makes its own temporary byte copy for the refresh check. It refuses a positive-size WAL or
+journal beside the source, snapshots all-course progress and attempts, snapshots the named course's
+stable lesson identities, seeds only that course in the copy, and confirms the source bytes remain
+unchanged. Refresh is allowed to update the named course's lesson content and prerequisites; other
+courses' lesson content and prerequisites are compared unchanged by their stored IDs. A JSON report
+gives the source hash and preservation booleans; it never writes the real database.
+
+The structural boundary is `tutor <course> check`; it validates Markdown lessons against the
+canonical plan. Real-tool validation is separate and must report observed evidence, not only an
+exit status.

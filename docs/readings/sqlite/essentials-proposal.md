@@ -44,9 +44,9 @@ while dropping a second distributed application curriculum.
 These are author estimates, not measured learning times. The SQLite experiment estimates total about 18 hours. Simply changing the advertised times would not narrow the
 work.
 
-Local evidence: [PostgreSQL reference catalog](../../../curriculum-tools/courses/postgres/lessons.json),
+Local evidence: [PostgreSQL Markdown lessons](../../../curriculum-tools/courses/postgres/lessons/01-build-lab-cluster.md),
 [Essentials route](../../../curriculum-tools/courses/postgres-essentials/PLAN.md),
-[actual Essentials renderer](../../../curriculum-tools/courses/postgres-essentials/tools/coach.ts),
+[Essentials tutor guide](../../../curriculum-tools/courses/postgres-essentials/README.md),
 [SQLite plan](../../../curriculum-tools/courses/sqlite/PLAN.md),
 [SQLite validation record](../../../curriculum-tools/courses/sqlite/VALIDATION.md), and
 [SQLite author source map](source-map.md). The audit reviewed the catalogs, source

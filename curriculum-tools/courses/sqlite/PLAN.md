@@ -80,7 +80,8 @@ Additional vocabulary: `connection-policy`, `strict-tables`, `migrations`, `erro
 ## Lesson-level specification
 
 Each entry records the stable slug, action, observation, key tools and engineering purpose. The
-TypeScript curriculum is the runnable source; generated lessons.json is its committed build.
+Markdown files under `lessons/` are the runnable lesson source; the tutor CLI validates their
+grammar and canonical route.
 
 ### 01 — Connection ownership and application file contracts (7)
 
@@ -248,21 +249,20 @@ TypeScript curriculum is the runnable source; generated lessons.json is its comm
 | transactional-outbox     | local-oplog; outbox-replay-after-crash      |
 | lease-expiry-and-fencing | durable-job-claims                          |
 
-Retired completions are not reassigned. The engine refresh matches stable slugs to preserved IDs,
+Retired completions are not reassigned. The tutor refresh matches stable slugs to preserved IDs,
 rather than using ordinal as identity. See [the old/new position map](LESSON-MAP.md). After updating
 course content, the learner can run `bin/tutor sqlite init` to refresh metadata without marking
 lessons done; authoring validation uses only an explicit copied progress path.
 
 ## Authoring and validation
 
-Edit curriculum/*.ts, build with `deno task build sqlite`, and run:
+Edit the Markdown files under `lessons/`, then run:
 
 ```sh
-deno run -A courses/sqlite/tools/validate-course.ts
-deno run -A courses/sqlite/tools/validate-course.ts --isolated
-deno run --allow-read --allow-write courses/sqlite/tools/verify-progress.ts
-deno task check
-deno task test
+tutor sqlite check
+tutor sqlite validate --isolated
+tutor sqlite init --db /tmp/sqlite-authoring.sqlite
+tutor sqlite 1 lesson --plain --db /tmp/sqlite-authoring.sqlite
 ```
 
 The course-local runner executes shell and multi-session native lessons serially, saves expected

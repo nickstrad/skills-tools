@@ -1,34 +1,41 @@
 # Stable lesson identity during course reordering
 
-Course ordinals are presentation order, not learner-history identity; verified on 2026-09-04.
+Updated 2026-09-12 for the Go CLI.
+
+Course ordinals are presentation order; the stable lesson slug is the learner-history identity.
+The shared `tutor.sqlite` schema stores course identity, lesson rows, prerequisites, progress, and
+attempts together.
 
 ## What happened
 
-The SQLite expansion exposed an engine seed bug: `src/main.ts` used ordinal as the lesson ID.
-Reordering a course could therefore attach an existing completion, note or attempt to a different
-slug. Preserving slugs in curriculum sources alone did not prevent the misattribution.
-
-The refresh implementation now matches existing rows by slug, preserves their IDs, and allocates
-new IDs above the previous maximum. It temporarily parks ordinals to avoid uniqueness collisions,
-maps prerequisite ordinals to stable IDs, and retains retired lesson rows as inactive history.
+The SQLite expansion exposed an engine seed bug: using ordinal as the lesson ID could attach an old
+completion, note, or attempt to a different lesson after reordering. The Go refresh matches existing
+rows by `(course_id, slug)`, preserves their IDs, allocates new IDs above the previous maximum, and
+temporarily parks ordinals to avoid uniqueness collisions. Prerequisites follow the stable IDs, and
+retired lessons remain inactive history.
 
 ## Why it matters
 
-Adding or consolidating lessons must not rewrite what a learner actually completed. Moving lesson
-20 to position 21 is not the same operation as replacing the lesson's identity. A removed slug
-should not donate its history to the replacement at its old ordinal.
+Adding a lesson, moving lesson 20 to position 21, and replacing a lesson at position 20 are three
+different operations. Slug preservation keeps the first two safe; a retired slug must not donate its
+completion to a replacement.
 
 ## How to apply
 
-- Preserve slugs for surviving lessons. Retirement is intentional and should name the surviving
-  coverage in the course plan; do not transfer retired completion credit automatically.
-- Use explicit lesson revisions: preserve the prior effective revision for editorial-only work;
-  bump materially changed experiments. New slugs begin at their declared initial revision.
-- The regression test in `curriculum-tools/tests/main_test.ts` exercises reorder, removal,
-  reintroduction, notes, attempts, skip/done state, prerequisites and repeated refresh. Keep those
-  cases when changing seeding again.
-- Run migration checks on a COPY of `progress.sqlite`, passing its explicit `--db` path to tutor.
-  Compare rows by slug, not ordinal. Hash the real learner file before and after; do not refresh or
-  mark progress in the real file as a convenient authoring test.
-- Rebuild generated `lessons.json` from the TypeScript curriculum before testing. It remains a
-  committed build artifact, not a place to edit lessons or repair progress.
+- Preserve slugs for surviving lessons. Name intentional retirement and surviving coverage in the
+  course plan; do not transfer retired completion credit.
+- Keep the prior revision for editorial-only work. Bump `revision` when an available experiment
+  materially changes; a new slug starts at its declared revision.
+- Keep regression coverage for reorder, removal, reintroduction, notes, attempts, skip/done state,
+  prerequisites, and repeated refresh. Tests should locate mechanism metadata rather than assume a
+  particular display number.
+- Run `tutor <course> progress verify --db /path/to/tutor.sqlite` before refreshing. The command
+  treats the source as read-only, makes its own temporary copy, and compares named-course lesson
+  identities by slug while preserving all-course progress and attempts. It also confirms that other
+  courses' lesson content and prerequisites remain unchanged by stored ID. The named course's
+  content and prerequisites are expected to refresh from current Markdown, so they are not asserted
+  unchanged. A positive-size WAL or journal beside the source is refused.
+- Use `tutor <course> init --db /path/to/copy/tutor.sqlite` only on an isolated copy. Never refresh,
+  mark completion, or use a real learner database as an authoring test.
+- Validate the Markdown source with `tutor <course> check`; do not edit a generated catalog or
+  database row by hand to repair a route.

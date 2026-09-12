@@ -52,12 +52,12 @@ a whole task complete. A stopped server alone has not released its files.
 The tables below give current numbers and stable identities. Existing source metadata may remain in
 older lesson records for catalog compatibility, but the learner path assigns no reading stop and no
 external source is a prerequisite. Use the course's validation records for measured behavior and
-preserve stable slugs when editing curriculum TypeScript.
+preserve stable slugs when editing Markdown lessons under `lessons/`.
 
 The tables below give current numbers, stable identities, key commands, the phenomenon/evidence and
 the engineering decision. Each lesson's full syntax breakdown explains its complete command
-inventory and measurement limits. Source order is curriculum/mod.ts; edit curriculum TypeScript,
-then build lessons.json. Keep unrelated work and learner progress intact.
+inventory and measurement limits. Lesson order is the consecutive filename ordinal under `lessons/`;
+edit the Markdown lesson while preserving its stable slug and learner progress.
 
 ## 1–4: Own a whole node: build a disposable lab cluster
 

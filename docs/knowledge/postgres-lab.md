@@ -1,5 +1,7 @@
 # PostgreSQL lab cluster
 
+Updated 2026-09-12 for the Go CLI.
+
 Keep the learner lab distinct from disposable validation infrastructure. Updated 2026-09-05.
 
 ## What happened

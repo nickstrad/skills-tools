@@ -1,64 +1,65 @@
 # Shared concise course CLI
 
-Updated: 2026-09-12. The learner uses `tutor <course> route`, `[NUMBER] lesson`, and `NUMBER done`.
-`pgcoach` wraps the same engine for PostgreSQL Essentials. Display never records completion.
+Updated 2026-09-12 for the Go CLI.
 
-## Plan, then implement a bounded batch
+The learner uses one `tutor` command for installed and planned courses. The normal flow is
+`tutor <course> route`, `tutor <course> [NUMBER] lesson`, then
+`tutor <course> NUMBER done`; only explicit completion records progress.
 
-The [planning guide](../../future-courses/README.md) owns the persistent Markdown draft, research,
-discussion and outline sign-off. The [batch workflow](../lesson-batch-workflow.md) owns execution,
-primary review, validation, commits and cleanup. The [authoring guide](../../curriculum-tools/docs/AUTHORING.md)
-owns complete lesson content. Do not reconstruct current policy from historical course redesigns.
+## What happened
 
-Future routes live in `future-courses/<folder>/course.md`; existing Essentials keeps `PLAN.md`.
-A canonical numbered table fixes titles and stable slugs. Future plans take precedence over their
-implementation's plan link. Invalid identities and route/catalog mismatches must fail before a
-build replaces the generated catalog. Old reference plans use their catalogs for route display.
+- Planning and implementation are separate. A future route under `future-courses/<folder>/course.md`
+  owns discussion and sign-off; the batch workflow and authoring guide own implementation. A
+  canonical numbered table fixes titles and stable slugs. Route/catalog mismatches and duplicate
+  identities fail before `init` replaces lesson rows. A new-course scaffold is empty and neutral:
+  it creates no invented lesson, REPL, catalog, or progress.
+- Course content is Markdown at `curriculum-tools/courses/<id>/lessons/NN-slug.md`, with one
+  canonical route in `PLAN.md` or a future-course plan. `tutor <course> check` validates lesson
+  files and their route before `init` refreshes the shared database.
+- `tutor courses` discovers installed and planned courses. `route` reads progress and distinguishes
+  done, stale, available, and planned rows. Planned routes can be browsed without creating a
+  database; planned lessons cannot be served or completed.
+- `tutor lesson` renders the complete unit: context, a useful mechanism diagram, setup and run
+  commands, expected evidence, interpretation, optional variation, and cleanup. Presentation is
+  read-only. `review`, `full`, and `start` are compatibility aliases where retained by the CLI.
+- Every course uses `curriculum-tools/tutor.sqlite`, with `course_id` separating histories. Legacy
+  per-course files are preserved as read-only backups under
+  `.cache/legacy-progress/<course-id>/`; stable slugs preserve learner identity when ordinals move.
+- The roadmap is served by `tutor roadmap` from the roadmap tables in `tutor.sqlite`; the committed
+  `curriculum-tools/roadmap/roadmap.json` is its export snapshot. `tutor roadmap import` and
+  `export` are explicit maintenance operations.
+- Reading checkpoints and retired reading columns are absent from active lesson rendering. Their
+  source values remain in [`archive/legacy-reading/`](../../archive/legacy-reading/README.md), and
+  technical source research remains author input rather than a progression stage.
+- The retired systemscoach project and its writing remain archive references. Their useful learner
+  work policy is generalized in [learner-work.md](learner-work.md); the active engine is the shared
+  Go CLI.
 
-The scaffold is an empty runtime-neutral course shell, with a relative link to its planning source
-when present. It supplies no invented first lesson, REPL defaults, catalog or progress. Author the
-requested batch before building; empty builds fail explicitly. Do not scaffold during discussion.
+## Why it matters
 
-## Discovery, content and progress
+Presentation, course identity, and learner history must stay separate. A planned row is navigation,
+not progress; an ordinal is display order, not identity; and a rendered command is not evidence that
+the learner completed a lesson. The single database makes those rules consistent across courses.
 
-`tutor courses` combines current/reference course metadata with proposed routes and derives
-available/total counts. `route` reads existing progress read-only, showing current `[done]`, stale
-`[revisit]`, available and planned rows. Planned routes are browsable without initializing progress;
-planned lessons cannot be served or completed. New IDs never inherit old reference completion.
+## How to apply
 
-Essentials now uses the shared route and lesson renderer. The first 26 lessons' former
-wrapper-only diagrams, session setup and safe-stop guidance are now inlined in each lesson’s syntax
-context. All batches author complete context directly; no diagram helper or second route list remains.
-Saved presentation aliases open the same complete lesson. The reference pilot no longer inserts a
-stop gate; original course experiments, data and historical guide notes remain for reuse.
+```sh
+bin/tutor courses
+bin/tutor postgres-essentials route
+bin/tutor postgres-essentials lesson 3 --plain
+bin/tutor postgres-essentials 3 done
+bin/tutor roadmap
+```
 
-Reading is separate from these courses. The bundled PostgreSQL book and its authoring/mapping
-workflow are removed. Lesson output omits citations, reading notes and reading checkpoints.
-The retired fields have been removed from active curricula, generated catalogs, JSON output and
-the lesson schema. Their original values are preserved by stable identity in
-[`archive/legacy-reading/`](../../archive/legacy-reading/README.md). The schema-only `migrate` command
-exports existing values before dropping their columns and preserves all lesson/history rows. Technical primary-source research still informs experiment design.
+Use `--root` for a copied curriculum and `--db` for an explicitly isolated database. Run
+`tutor <course> progress verify --db /path/to/tutor.sqlite` before refreshing a learner catalog;
+the command checks a copy and leaves the source unchanged. Run `tutor <course> validate` only with
+an owned real-tool endpoint. Keep the learner lab and shared progress file out of validation.
 
-The Go systemscoach engine remains separate, with JSON routes and atomic completion receipts.
-It shares the learner commands and one complete lesson. New projects use only `lesson.md`;
-the retired review template and file reader are removed. Existing interpretation was merged into
-each lesson file, with source-transformation evidence preserving the relationship to prior validation.
-The saved `review` command remains an alias for the same complete lesson.
+The installer is now `tutor install [--check]`. It installs the `tutor` launcher and the
+`curriculum-author` and `tutor` skills, removes only recognized retired links, and preserves
+unrelated paths. The old course-specific launchers and the systemscoach tool are historical
+archive material.
 
-## Local installation
-
-[`scripts/school-links.py`](../../scripts/school-links.py) audits or installs canonical links for
-`tutor`, `pgcoach`, `systemscoach` and six skills in both agent directories. Its preflight preserves
-conflicting paths and compares every entry before converting an identical skill copy. The user
-retired `pgtutor`; installation removes only its known obsolete symlink, never original course data.
-Use `--check` to find later installation drift. Do not keep independently edited installed copies.
-
-## Validation boundary
-
-CLI tests use disposable progress and verify rendering, planned boundaries, completion/revisions,
-source preservation and scaffold/build failures. They do not validate database experiments.
-For a presentation-only change, compare experiment fields with the accepted baseline; run real
-experiments if their behavior changes. Refresh learner catalog metadata only after testing a SQLite
-backup copy and comparing logical progress/attempt history. File hashes alone can omit WAL changes.
-
-The cleanup verification record is [course-workflow-cleanup.md](course-workflow-cleanup.md).
+The historical cleanup acceptance is preserved in
+[`archive/course-history/school/knowledge/`](../../archive/course-history/school/knowledge/).

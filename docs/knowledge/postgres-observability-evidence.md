@@ -1,5 +1,7 @@
 # PostgreSQL observability evidence
 
+Updated 2026-09-12 for the Go CLI.
+
 Use these findings when designing monitoring experiments or interpreting their results. Verified
 2026-09-05 against PostgreSQL16.15 during the course's observability refactor.
 
@@ -54,8 +56,9 @@ from committed application state, integrity responsibility and end-to-end latenc
   be rolled back; server logging does not prove an external effect or that a caller received an
   acknowledgement. File-reading functions are documented in
   [administration functions](https://www.postgresql.org/docs/16/functions-admin.html).
-- Execute the exact coaching hint rendered from a refreshed copied lesson catalog. pgcoach reads
-  lesson text through the tutor database: changing generated lessons.json alone does not refresh an
-  existing catalog. An explicit `tutor postgres init` refreshes reference lesson metadata while retaining
-  recorded progress; author validation must use --db with a scratch copy. Do not mistake new guide
-  prompts paired with stale database lesson text for a tested learner experience.
+- Execute the exact lesson rendered by `tutor postgres <number> lesson --plain` from a refreshed
+  copied catalog. Markdown is the source and `tutor.sqlite` stores the seeded lesson rows; editing a
+  stale generated artifact alone does not refresh an existing catalog. Run
+  `tutor postgres init --db /tmp/owned-copy/tutor.sqlite` on a scratch copy before testing, and use
+  that same `--db` for author validation. Do not mistake new prompts paired with stale database
+  lesson text for a tested learner experience.

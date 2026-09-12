@@ -1,9 +1,11 @@
 # Finishing a course refactor without retaining a second VM's worth of labs
 
+Updated 2026-09-12 for the Go CLI.
+
 ## What happened
 
-The September 2026 PostgreSQL systems engineering refactor finished with 92 active lessons, seven
-reading stops and unchanged original completed lessons 1–7. The complete acceptance is in
+The September 2026 PostgreSQL systems engineering refactor finished with 92 active lessons and
+unchanged original completed lessons 1–7. The complete acceptance is in
 [the final integration report](../../curriculum-tools/courses/postgres/validation/09-final-integration.md).
 The lesson map translates historical ordinals to stable identities. A separate user-requested
 resource cleanup became the first operational item when disposable databases and WAL almost filled
@@ -49,13 +51,13 @@ distinctions alone.
    archive. Nested archive bytes can be checked through their original hashes in a verified outer
    manifest. This proves preserved evidence, not successful database recovery. Avoid reopening old
    clusters with stale absolute sockets, recovery inputs or paths merely to find a small result.
-5. Test catalog refresh through SQLite's backup API and the supported tutor init command on that
+5. Test catalog refresh through SQLite's backup API and the supported `init` command on that
    copy. Compare every old slug ID, progress row and attempt, all retirements, completed revisions
    and the real database hash. Rendering a lesson does not authorize marking it done. Dispose of
    copied progress after the audit; leave the real learner state intact.
-6. Finish the current PLAN, identity map, reading citations, reading stops, wrapper guidance,
-   acceptance report and knowledge index. Label older counts and source research as historical
-   rather than erasing useful provenance. Keep research canonical and preserve its symlink.
+6. Finish the current PLAN, identity map, acceptance report and knowledge index. Label older counts
+   and source research as historical rather than erasing useful provenance. Keep research canonical
+   and preserve its symlink.
 7. Remove the audited bulky images and obsolete copies; retain compact inventories and genuinely
    useful diagnostics with a stated purpose. Recheck learner connectivity, progress, processes and
    disk headroom. Final cleanup is part of completion, not a promise of work after completion.

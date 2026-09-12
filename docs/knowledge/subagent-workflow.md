@@ -1,5 +1,7 @@
 # Delegating lesson work to subagents
 
+Updated 2026-09-12 for the Go CLI.
+
 The pattern that worked for the PostgreSQL, SQLite and Linux courses. Last updated 2026-09-04,
 including acceptance boundaries from the user-directed Luna/high SQLite pass.
 
@@ -10,10 +12,10 @@ primary model's tokens go to specification and verification. The pattern that he
 
 1. The primary agent writes a precise spec file (what to change, what must not change, the exact
    verification commands, what to report) and spawns one subagent per module or file.
-2. Each subagent works in a private copy of `curriculum-tools/` under `$CLAUDE_JOB_DIR/tmp/`, with
-   its own lab (`LINUX_LAB=...` or its own database), builds and validates there, and copies the
-   single finished file back into the repo with one `cp`. Nothing else in the repo is touched, and
-   the subagent never commits.
+2. Each subagent works in a private copy of the repository under a bounded temporary directory,
+   with its own lab and database, runs `tutor <course> check` and the relevant
+   `tutor <course> validate` commands there, and copies the single finished file back into the
+   repo. Nothing else in the repo is touched, and the subagent never commits.
 3. The subagent reports per-lesson labeled evidence from two harness runs plus the outputs of the
    equivalence checks.
 4. The primary agent re-runs the equivalence checks itself, reads the diff of anything semantic, and
@@ -32,17 +34,17 @@ collisions, and the equivalence checks make the primary agent's verification che
 
 - Put the spec in a file and reference it from the prompt; put per-agent specifics (file, ordinals,
   extra semantic fixes) in the prompt itself.
-- Equivalence checks for a reformat of `<FILE>`:
+- Equivalence checks for a Markdown lesson edit:
 
   ```sh
-  diff <(git show HEAD:curriculum-tools/courses/linux/curriculum/<FILE> | grep -o "printf '[a-z_]*=" | sort) \
-       <(grep -o "printf '[a-z_]*=" courses/linux/curriculum/<FILE> | sort)   # must be empty
-  grep -n '\${' courses/linux/curriculum/<FILE>                                # must be empty
+  tutor linux check
+  tutor linux list --json > /tmp/linux-lessons.json
+  diff --check curriculum-tools/courses/linux/lessons/<FILE>
   ```
 
-  Subagents also found it useful to extract each `python3 -c '...'` body from old and new and
-  compare them byte for byte, and to compare each code field with whitespace and semicolons
-  stripped.
+  Compare Setup and Run blocks, expected evidence, safety, sessions, slugs and revisions directly;
+  do not normalize away a semantic command change. Run `GOPATH=/root/go GOCACHE=/tmp/tutor-go-build
+  go test ./...` and `go vet ./...` in `curriculum-tools/` for engine changes.
 - Ask subagents to report what they were unsure about. Both real bugs found during the Linux
   reformat (relative `nice`, a stale-file race in a two-session lesson) came from that section.
 - Tell subagents which host conditions are expected noise (other agents' CPU workers raising load

@@ -8,7 +8,7 @@ superseded material. This completes the follow-up to [the first cleanup](course-
 
 - Active curricula, types, generated catalogs and lesson database schemas have no `reading`,
   `readingNotes` or `studyCheckpoint` fields. Their original catalog values are preserved by
-  course/slug in [the legacy archive](../../archive/legacy-reading/README.md). Database-specific
+  course/slug in [the legacy archive](../../../../archive/legacy-reading/README.md). Database-specific
   exports preserve raw values, including inactive lessons, in ignored local archive files.
 - `tutor <course> migrate` exports those values and drops only their columns in a transaction.
   It does not seed a catalog. Restoration on copies is explicit and rolls back on an identity
@@ -18,9 +18,9 @@ superseded material. This completes the follow-up to [the first cleanup](course-
 - Seven systemscoach interpretation files are merged into `lesson.md`; the old file reader is
   removed. The saved `review` command remains an alias. Project availability, lesson revisions,
   experiments and receipts remain unchanged. See the
-  [source transformation record](../../systems-projects/projects/cursor-git/validation/source-layout-migration-20260912.md).
+  [source transformation record](../../../../archive/systemscoach/projects/cursor-git/validation/source-layout-migration-20260912.md).
 - Thirty-six superseded plans, design documents and prototype guides moved under
-  [archive/course-history](../../archive/README.md). Their content is unchanged except rebased
+  [archive/course-history](../../../../archive/README.md). Their content is unchanged except rebased
   Markdown links and source imports. Current plans, runnable reference curricula, progress,
   validation records and the active systemscoach handoff remain in place.
 

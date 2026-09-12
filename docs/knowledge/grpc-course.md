@@ -1,5 +1,7 @@
 # Short gRPC and Protocol Buffers course
 
+Updated 2026-09-12 for the Go CLI.
+
 ## What happened
 
 The learner requested work-relevant CLI practice, then explicitly capped the whole course at
@@ -33,19 +35,19 @@ silently change PostgreSQL coaching or other curricula.
 
 ## How to apply
 
-Edit only curriculum TypeScript, then build `grpc` and run the normal Deno check. The service,
-schemas, pinned module checksums and installation script live in `courses/grpc/lab/`. Tools and
-compiled output are ignored. At Nick’s request, the local toolchain, caches, binary and generated
-stubs were pruned on 2026-09-12 (796,069,888 allocated bytes); use the pinned installer before
-running experiments again. Source, validation evidence and progress remain intact. All lessons run without network
-downloads after installation; they listen only on loopback and use OS-assigned ports.
+Edit Markdown under `courses/grpc/lessons/`, run `tutor grpc check`, and validate with
+`tutor grpc validate` in an owned environment. The service, schemas, pinned module checksums and
+installation script live in `courses/grpc/lab/`. Tools and compiled output are ignored. At Nick’s
+request, the local toolchain, caches, binary and generated stubs were pruned on 2026-09-12
+(796,069,888 allocated bytes); use the pinned installer before running experiments again. Source,
+validation evidence and progress remain intact. All lessons run without network downloads after
+installation; they listen only on loopback and use OS-assigned ports.
 
-`python3 courses/grpc/lab/validate.py` from curriculum-tools drives the standard tutor harness,
-checks each actual learning outcome, repeats every lesson independently, smoke-tests isolated
-progress, checks original progress hashes and rejects leaked owned servers or temporary labs.
-It retains one small full output log and a source-hash acceptance manifest. It deletes its copied
-progress and scratch directories. Run it outside socket-restricted sandboxes. Final evidence is
-in [validation.md](../../curriculum-tools/courses/grpc/validation.md).
+The Go harness drives one persistent session per lesson session, checks actual learning outcomes,
+and supports isolated progress and evidence. Read every session's output, preserve only the small
+log or manifest needed by an acceptance check, and remove copied progress and scratch directories.
+Run socket experiments outside restricted sandboxes. Final evidence is in
+[validation.md](../../curriculum-tools/courses/grpc/validation.md).
 
 The wrapper skill supplies exact commands and expected output together without prediction gating.
 Do not replace that with the generic wrapper coaching template; the user's instruction is the
@@ -53,9 +55,7 @@ reason for the difference. Preserve explicit-only progress recording.
 
 ## Shared Go dependency after pruning
 
-The original systemscoach launcher and shell profile had borrowed Go from the gRPC `.tools/`
-directory. Pruning exposed that dependency. Go 1.26.8 was installed separately at `/usr/local/go`
-from the same digest-verified release, with `/usr/local/bin/go` and `gofmt` links. Systemscoach now
-uses the shared installation and discards only inherited cache paths belonging to the retired
-gRPC tools. The shell profile was updated likewise. The 759 MiB course-local reclamation is gross:
-the shared Go runtime remains needed by systemscoach. No gRPC experiment tools were reinstalled.
+The old course-local toolchain was pruned after the refactor. Go 1.26.8 now lives independently at
+`/usr/local/go`, with `/usr/local/bin/go` and `gofmt` links. The 759 MiB course-local reclamation is
+gross; the shared Go runtime remains available for repository checks. No gRPC experiment tools were
+reinstalled, so install the pinned tools before running those experiments again.

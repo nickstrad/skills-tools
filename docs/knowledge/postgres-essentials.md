@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-12. The active route is 40 small lessons, with its first 26 implemented. The
+Updated 2026-09-12 for the Go CLI. The active route is 40 small lessons, with its first 26 implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -12,17 +12,16 @@ lessons of a specified shorter course, then chose 40 meaningful chunks over 24 d
 current lesson while studying around parenting and a full-time job. No TOAST/cache/numeric-XID
 detour is required.
 
-`pgcoach` now launches `postgres-essentials/tools/coach.ts` by default. `--reference` opens the old
-renderer, whose printed coaching links retain that flag. The new course ID gives separate numbering
-and progress without rewriting the original eight completions or migrating the 92-lesson catalog.
-Twenty-six real lessons are built; future entries are held in `PLAN.md` and PLAN.md. Rendering or
-finishing the available batch must not report all 40 complete. Explicit `pgcoach NUMBER done`
-addresses Essentials. The obsolete pgtutor launcher is retired; original course data is preserved.
+The Go CLI serves the Essentials route as `tutor postgres-essentials`. Its course ID gives separate
+numbering and progress without rewriting the original eight completions or migrating the 92-lesson
+reference catalog. Twenty-six real lessons are available; future entries are held in `PLAN.md`.
+Rendering or finishing the available batch must not report all 40 complete. The old course-specific
+launchers are retired; original course data is preserved.
 
 On 2026-09-12 the learner flow became one complete `lesson` output: mechanism context, a useful
 terminal diagram, setup and commands, expected evidence, interpretation, optional references or
 variations, and cleanup. Older `review`, `full`, and `start` spellings remain hidden aliases to this
-output. The generic tutor now supports the same `tutor <course> <number> lesson|done` contract for
+output. The generic Go CLI supports the same `tutor <course> <number> lesson|done` contract for
 every course, so future courses need no custom renderer.
 
 ## Why it matters
@@ -35,8 +34,8 @@ the diagram's meaning; ANSI colour is optional. Lessons are self-contained, with
 review stage, checkpoint, homework, or written response.
 
 Two-course identity also prevents accidental completion of a different lesson with the same number.
-The installed postgres-tutor skill is a symlink to the updated repository source and routes both
-navigation and progress to essentials by default. `pgcoach --reference` retains original material.
+The installed `tutor` skill points to the repository source. Use `tutor postgres route` for the
+92-lesson reference course and `tutor postgres-essentials route` for Essentials.
 
 ## How to apply
 
@@ -45,7 +44,7 @@ navigation and progress to essentials by default. `pgcoach --reference` retains 
 - Keep commands printed by `lesson` identical to the built setup/code. Route tests cover this,
   available-lesson identity matching, diagrams before setup, explicit completion, progress-byte
   preservation, pending lessons, and the installed launcher.
-- Keep `pgcoach route` and `tutor postgres-essentials route` aligned: completed lessons, authored
+- Keep `tutor postgres-essentials route` aligned with the plan: completed lessons, authored
   available lessons, and planned lessons are different statuses. Planned rows are navigation, not
   progress records.
 - Validate each new experiment on a private PostgreSQL cluster. The first batch ran in two real
@@ -70,14 +69,13 @@ stage.
 Nick enjoyed the two-view flow in lessons 1–3 and requested the next three of this same route.
 Lessons 4–6 add heap-space reuse, lost-update versus atomic arithmetic, and a row-locked stock
 reservation decision. See the [second-batch acceptance](../../curriculum-tools/courses/postgres-essentials/validation/batch-two.md)
-and [root handoff](../../handoff.md). At that checkpoint the feedback point was lesson 6; the third batch below supersedes availability.
+and the historical root handoff. That checkpoint's feedback point was lesson 6; the third batch below supersedes availability.
 
 A shared validator's asynchronous `(blocks ...)` send does not itself prove the second backend
-actually waited before the first committed. The course-local `validation/run.ts` reuses the shared
-Session and splitSteps implementation, then waits for an observed Lock event and the expected
-blocker before releasing A. It adds this synchronization only to validation; the learner still
-follows the supplied terminal-switch instructions. Scalar outcome checks alone could accept a
-serial execution of the atomic-write experiment.
+actually waited before the first committed. The Go harness now waits for an observed lock event and
+the expected blocker before releasing A. It adds this synchronization only to validation; the
+learner still follows the supplied terminal-switch instructions. Scalar outcome checks alone could
+accept a serial execution of the atomic-write experiment.
 
 Keep observations separate: lesson 4 fixes heap truncation off and measures the main fork; it does
 not claim every vacuum preserves file size. Lesson 6 deliberately permits negative stock in the
@@ -110,8 +108,8 @@ Added during the 2026-09-07 batch and verified by its final acceptance.
   prevents teaching serialization failures; globally allowing 40001 could hide a failure in
   another lesson. Check the expected session/phase, count, immediate SQLSTATE and final
   committed state together, and reject all other errors.
-- `code` is a raw template tag: write one literal backslash for psql commands in both SQL and
-  prose. Optional runnable variations need Markdown code blocks too; unformatted SQL may
+- `Run` is a verbatim Markdown code block: preserve one literal backslash for psql commands in
+  both SQL and prose. Optional runnable variations need Markdown code blocks too; unformatted SQL may
   collapse into prose even when it looks readable in the source file.
 
 The supplied retry client passed its first real acceptance checkpoint on 2026-09-07. A useful

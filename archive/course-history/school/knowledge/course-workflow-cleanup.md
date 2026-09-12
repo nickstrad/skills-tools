@@ -2,11 +2,11 @@
 
 Verified 2026-09-12. The school now follows Markdown route discussion and sign-off, an explicitly
 requested implementation batch, and shared `route`, `[NUMBER] lesson`, `NUMBER done` commands.
-See [the current architecture](concise-course-cli.md) for the ongoing contract.
+See [the current architecture](../../../../docs/knowledge/concise-course-cli.md) for the ongoing contract.
 
 This records the first cleanup checkpoint. A subsequent authorized refactor removes the retained
 reading fields and systemscoach review-file reader, inlines Essentials context, archives superseded
-material, and prunes gRPC tools. See [the current architecture](concise-course-cli.md) and
+material, and prunes gRPC tools. See [the current architecture](../../../../docs/knowledge/concise-course-cli.md) and
 [the follow-up acceptance](school-final-refactor.md) for current state.
 
 ## Accepted changes
@@ -65,10 +65,10 @@ their unchanged experiment fields retain their prior validation records.
 
 ## Progress and resource acceptance
 
-The reviewed [refresh script](../../curriculum-tools/courses/postgres-essentials/validation/refresh.py)
+The reviewed [refresh script](../../../../archive/deno-engine/curriculum-tools/courses/postgres-essentials/validation/refresh.py)
 first refreshed a SQLite backup and checked all 26 lessons through six presentation aliases. Only
 then did it refresh live Essentials metadata and repeat those checks. The
-[machine-readable report](../../curriculum-tools/courses/postgres-essentials/validation/workflow-cleanup-progress.json)
+[machine-readable report](../../../../curriculum-tools/courses/postgres-essentials/validation/workflow-cleanup-progress.json)
 records unchanged logical history: **22 progress rows, 23 attempts**, and lesson 23 remains next.
 This refreshed lesson metadata, not completion. The temporary backup was removed.
 

@@ -1,5 +1,7 @@
 # PostgreSQL experiment evidence
 
+Updated 2026-09-12 for the Go CLI.
+
 Use these causal and validation checks when revising database experiments; verified2026-09-04.
 
 ## What happened
@@ -42,15 +44,19 @@ Matching expected-looking numbers or reproducing a different script does not est
 
 ## Guided TOAST lesson flow, 2026-09-05
 
-A prediction that referred to "row 2" lacked context because pgcoach start hides the setup. Introduce
-the table, columns, row identifiers, and controlled comparison in the guide brief itself. Check the
-whole rendered sequence: guides are loaded from TypeScript, while lesson SQL comes from the tutor's
-stored lesson catalog. Building lessons.json alone does not refresh that catalog; validate with
-`tutor postgres init --db /tmp/...` on a copy before refreshing the learner-facing catalog.
+Historical record (2026-09-05): a prediction that referred to "row 2" lacked context because the
+old `pgcoach start` view hid the setup. At that checkpoint guides were loaded from TypeScript while
+lesson SQL came from the tutor's stored catalog, so changing `lessons.json` alone did not refresh
+that catalog. The durable lesson is to introduce the table, columns, row identifiers, and controlled
+comparison in the lesson itself.
 
-The vary stage does not render the curriculum challenge. It must provide commands or explicitly
-route to a runnable hint. Keep that hint in the current session when it depends on a psql variable
-such as toast_name, and explain how to recover if the session was lost.
+At that historical checkpoint, the vary stage did not render the curriculum challenge. It had to
+provide commands or explicitly route to a runnable hint. Keep that hint in the current session when
+it depends on a psql variable such as toast_name, and explain how to recover if the session was lost.
+
+For current work, inspect the exact Markdown lesson with `tutor postgres 9 lesson --plain`, and
+refresh a copied database with `tutor postgres init --db /tmp/owned-copy/tutor.sqlite` before
+testing. A source edit is not validated until the copied tutor database has been refreshed.
 
 The rendered lesson 9 run and variation were checked on PostgreSQL 16.15: label and length(body)
 used 2 and 16 shared hits respectively; replacing the body left 51 visible chunks but doubled TOAST

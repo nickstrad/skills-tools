@@ -1,5 +1,8 @@
 # SQLite course validation — 2026-09-04
 
+Historical validation record from before the Go tutor CLI migration; the commands and measured
+findings below are retained verbatim.
+
 All 54 lesson experiments reproduced their stated invariants in both a fresh sequential course run
 and an isolated-per-lesson run. This is an authoring validation result, not learner completion or
 production certification. The final architecture decision deliberately remains a learner-authored
@@ -170,6 +173,6 @@ threshold.
   marked done on the learner's behalf.
 
 Reusable design and validation findings are indexed in
-[the repository knowledge bank](../../../../docs/knowledge/README.md), particularly SQLite
+[the repository knowledge bank](../../../docs/knowledge/README.md), particularly SQLite
 curriculum design, lesson identity refresh, SQLite gotchas, validation harness and subagent
 workflow.

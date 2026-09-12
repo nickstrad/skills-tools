@@ -1,12 +1,15 @@
-# Meaningful learner work in every systemscoach lesson
+# Meaningful learner work in every lesson
+
+Updated 2026-09-12 for the Go CLI.
 
 ## Preference and scope
 
 On 2026-09-09 Nick rejected lessons that were fully completed for him: merely running prepared code
 was not the learning experience he wanted. He explicitly asked to make meaningful learner work a
-norm for systemscoach courses as a whole. This supersedes the earlier Cursor Git interpretation that
-only lessons 6 and 7 needed learner ownership while 4, 5 and 8 could be fully supplied experiments.
-This is a user preference and authoring requirement, not a claim derived from a company article.
+course-wide authoring norm. The dated decision came from the systemscoach/Cursor Git review, where
+it superseded the earlier interpretation that only lessons 6 and 7 needed learner ownership while
+4, 5 and 8 could be fully supplied experiments. This is a user preference and authoring
+requirement, not a claim derived from a company article.
 
 ## Authoring and coaching contract
 
@@ -39,29 +42,28 @@ the current concise policy generalizes that preference without changing existing
 
 ## Applying and checking the norm
 
-The installed [skill](../../archive/systemscoach/SKILL.md), local AGENTS guidance,
-[design workflow](../../archive/systemscoach/docs/design-workflow.md), [authoring contract](../../archive/systemscoach/docs/authoring.md) and templates carry
-this rule. At design time, name each lesson's task, supplied boundary, evidence and attempt budget.
+The installed [tutor skill](../../curriculum-tools/skills/tutor/SKILL.md), local AGENTS guidance,
+[authoring contract](../../curriculum-tools/docs/AUTHORING.md) and templates carry this rule. At
+design time, name each lesson's task, supplied boundary, evidence and attempt budget.
 Before publication, validate the starter and worked completion with external evidence and an
 appropriate wrong choice/failure. Manually review whether the task teaches the intended mechanism;
-`systemscoach check` validates structure and cannot establish this pedagogical property.
+`tutor <course> check` validates structure and cannot establish this pedagogical property.
 
 Apply this to new courses and existing-course revisions. Preserve learner work and progress; follow
 the normal revision and real-validation rules when changing an available lesson. Existing validation
 records remain historical evidence, not proof of a redesigned task's acceptance.
 
-The [Cursor Git revision plan](../../archive/systemscoach/projects/cursor-git/docs/learner-work-plan.md) applies this to the
-ten-lesson target route (splitting original lessons 5 and 8). The temporary project handoff tracks pending implementation while the batch is open.
-At this policy checkpoint, existing lesson pages have not yet been retrofitted; lessons 1–3 remain
-available in their earlier form and 4–8 remain unpublished drafts.
+The dated [Cursor Git revision plan](../../archive/systemscoach/projects/cursor-git/docs/learner-work-plan.md)
+applied this to a ten-lesson target route (splitting original lessons 5 and 8). That historical
+project was the source of the policy; current courses follow the Markdown lesson contract and the
+shared tutor workflow. At the 2026-09-09 checkpoint, existing lesson pages had not yet been
+retrofitted: lessons 1–3 remained available in their earlier form and 4–8 remained unpublished
+drafts.
 
 ## Historical policy checkpoint validation, 2026-09-09
 
-This task changes guidance and templates, not executable lessons or the CLI. Skill validation,
-local link checks and `systemscoach check cursor-git` passed, as did `git diff --check`. The installed
-skill resolves to the edited repository file, so no reinstall is needed. These checks validate the
-policy artifacts and structure, not completion of the lesson retrofit. No backend lab or additional
-dependency was allocated; no Cursor lab root or SeaweedFS process remained. About 16 GB disk and
-6.8 GiB RAM were available. The learner cluster answered `lab|/labs/pglab/primary|f|1` on port5440;
-all seven files in the saved batch-2 progress baseline matched SHA256 and systems state remained
-absent. No learner state or data was changed.
+This policy change modified guidance and templates, not executable lesson experiments. The recorded
+2026-09-09 validation used the then-current systemscoach checks and local link checks; those checks
+are historical evidence and were not Go tutor checks. Current structural validation is
+`tutor <course> check`, with real experiments run through `tutor <course> validate`. No learner
+state or data is changed by either read-only check.

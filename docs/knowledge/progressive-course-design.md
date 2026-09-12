@@ -1,5 +1,7 @@
 # Concise mechanism-driven course design
 
+Updated 2026-09-12 for the Go CLI.
+
 Updated 2026-09-12. Use this when defining or revising a course after the PostgreSQL
 systems-engineering pivot.
 
@@ -67,11 +69,10 @@ explicitly scoped guarantees.
   changed lessons and validate reseeding on a copy. Global revision bumps can unintentionally
   re-serve completed foundations that were not changed.
 
-The shared tutor engine owns presentation for every course. Future content renders through
-`tutor <course> route|<number> lesson|done`; do not build a new per-course renderer or a SQLite-specific
-adapter. `pgcoach` remains the friendly entry point for PostgreSQL Essentials. Its older
-`review`/`full`/`start` spellings are compatibility aliases for the complete lesson, not additional
-learner stages.
+The shared Go CLI owns presentation for every course. Future content renders through
+`tutor <course> route|<number> lesson|done`; do not build a new per-course renderer or a
+course-specific database adapter. Compatibility aliases, where retained, select the same complete
+lesson and do not add learner stages.
 
 ## Ownership during coupled refactors
 
