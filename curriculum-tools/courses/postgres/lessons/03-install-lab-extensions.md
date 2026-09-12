@@ -56,8 +56,9 @@ the functions automatically available in another database.
   - What it is: a view of extension control files available to the server installation.
   - What it does here: filters to four names and orders them alphabetically.
   - What it gives us: name identifies the package and installed is true when installed_version is
-    not null. test_decoding should be available but false because it is an output plugin for logical
-    decoding, not an extension installed with CREATE EXTENSION.
+    not null. The query returns the three installable extensions. test_decoding is an output plugin
+    for logical decoding and has no extension control file, so it has no row in this view. Its
+    absence here does not establish whether the output-plugin library is available.
 
 ## Run
 ```sql
@@ -81,8 +82,9 @@ order by name;
 ```
 
 ## Expected result
-\dx lists twelve extensions plus plpgsql. test_decoding shows installed = false: it is an output
-plugin used by replication slots, not something you CREATE EXTENSION.
+\dx lists twelve extensions plus plpgsql. The query returns pageinspect, pg_stat_statements and
+pg_walinspect with installed = true. test_decoding has no row: it is an output plugin used by
+replication slots, not something you CREATE EXTENSION.
 
 ## Systems lens
 These are the equivalent of debug endpoints and heap dumps for a storage engine. The course

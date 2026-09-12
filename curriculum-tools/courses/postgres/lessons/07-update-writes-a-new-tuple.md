@@ -132,4 +132,5 @@ compaction.
 ## Optional variation
 Run "update st_versions set v = 'v4'" inside an open transaction and, from a second psql, read
 heap_page_items. You can see the uncommitted version on the page before it is visible to anyone:
-visibility is decided at read time from the header, not by hiding the bytes.
+visibility is decided at read time from the header, not by hiding the bytes. Finish with ROLLBACK
+in the writing session to discard the tentative v4 and close the transaction.

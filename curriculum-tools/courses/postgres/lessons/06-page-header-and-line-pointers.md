@@ -116,5 +116,6 @@ trick shows up in log-structured file systems, object stores with content-addres
 system that wants to move data without invalidating references.
 
 ## Optional variation
-Predict lower and upper for the last page (block 5), then check: select * from
-page_header(get_raw_page('st_events', 5)). Why is upper - lower much larger there?
+Inspect the last page (block 5): select * from page_header(get_raw_page('st_events', 5)). Compare
+lower, upper and upper - lower with block 0. The last page holds fewer tuples, leaving a larger
+gap between its line-pointer array and tuple storage.

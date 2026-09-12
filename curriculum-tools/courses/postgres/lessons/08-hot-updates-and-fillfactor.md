@@ -82,12 +82,12 @@ change when an old version can become removable during later page access.
   - What it is: an update of the primary-key column, whose B-tree entry must change.
   - What it does here: provides a phase that cannot qualify as HOT.
   - What it gives us: total-update growth while the HOT counter remains unchanged.
-- **DROP TABLE IF EXISTS / CREATE TABLE / INSERT ... generate_series** (challenge reset)
+- **DROP TABLE IF EXISTS / CREATE TABLE / INSERT ... generate_series** (variation reset)
   - What they are: idempotent lab cleanup followed by the same primary-key schema and 100-row load
     used in the controlled cases.
   - What they do here: create fresh matched fillfactor-100 and fillfactor-80 histories.
   - What they give us: a comparison not distorted by the preceding twenty-round cases.
-- **pg_stat_force_next_flush() followed by pg_stat_clear_snapshot()** (challenge statistics read)
+- **pg_stat_force_next_flush() followed by pg_stat_clear_snapshot()** (variation statistics read)
   - What they are: a standalone request for the updater to publish counters, followed by discarding
     this session's cached statistics snapshot before reading it.
   - What they do here: occur after the ten separate update rounds and before the comparison query.

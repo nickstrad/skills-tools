@@ -77,14 +77,14 @@ linux	69	triage-fd-leak	pending
 linux	70	triage-deleted-file-space	pending			
 linux	71	triage-port-collision	pending			
 linux	72	capstone-service-outage	pending			
-postgres	1	build-lab-cluster	pending			
-postgres	2	shell-and-psql-toolkit	pending			
-postgres	3	install-lab-extensions	pending			
-postgres	4	process-model	pending			
-postgres	5	table-is-a-file	pending			
-postgres	6	page-header-and-line-pointers	pending			
-postgres	7	update-writes-a-new-tuple	pending			
-postgres	8	hot-updates-and-fillfactor	pending			
+postgres	1	build-lab-cluster	prose/diagram only	SyntaxBreakdown	primary	Optional-variation terminology; complete setup, configuration, archive caution and commands preserved
+postgres	2	shell-and-psql-toolkit	unchanged		primary	Unchanged direct psql setup, bounded watch and second-session identity comparison
+postgres	3	install-lab-extensions	prose/diagram only	SyntaxBreakdown,ExpectedResult	primary	Correct existing extension-inventory prose: test_decoding has no control-file/view row; read-only query confirms three rows; exact SQL and revision preserved
+postgres	4	process-model	unchanged		primary	Unchanged process/catalog mapping and direct second-connection comparison
+postgres	5	table-is-a-file	unchanged		primary	Unchanged file/fork experiment and bounded growth comparison; exact source and metadata parity
+postgres	6	page-header-and-line-pointers	prose/diagram only	Challenge	primary	Replace optional page-header prediction with direct lower/upper comparison and local interpretation
+postgres	7	update-writes-a-new-tuple	prose/diagram only	Challenge	primary	Retain uncommitted-v4 observation; explicitly ROLLBACK in writer after comparison; no changes to main transaction/page evidence or revision
+postgres	8	hot-updates-and-fillfactor	prose/diagram only	SyntaxBreakdown	primary	Rename challenge labels to variation; complete fillfactor/transaction comparison SQL preserved
 postgres	9	toast-and-large-values	navigation comment/output cleanup	SyntaxBreakdown,Code,Challenge	primary	Four exact navigation-comment replacements; executable SQL/Setup/metadata unchanged; TOAST map and direct comparison interpretation
 postgres	10	buffer-cache-and-io	pending			
 postgres	11	xids-and-the-transaction-counter	pending			

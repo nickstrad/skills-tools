@@ -37,7 +37,7 @@ is that you end up owning every file and every process, which is what makes the 
 - The server listens on a port and a socket file. Port 5440 keeps the lab away from a default
   install on 5432; the socket directory /tmp lets local clients connect without a password.
 - Some settings can only be set before the server first starts (checksums) or need a restart
-  (wal_level, shared_preload_libraries); the challenge shows you how to tell which is which.
+  (wal_level, shared_preload_libraries); the optional variation shows how to distinguish them.
 
 ### Piece by piece
 - **sudo -iu postgres** (shell command, mentioned in the comment)

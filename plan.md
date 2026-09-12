@@ -32,9 +32,9 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   7 Essentials and6 gRPC unchanged, committed as `3046d5f`.
 - PostgreSQL58–68 are accepted in `fcba24e`:10 editorial changes and65 unchanged.
 - PostgreSQL69–87 are also accepted:19 editorial changes with exact main-command/metadata parity.
-  With88–92, the ledger now has88 accepted rows,162 pending. Exact exceptions and evidence are below and
-  in the validation report.
-- Next: primary completes early PostgreSQL pending reviews (50 rows), Linux13–72 (60 rows)
+- PostgreSQL01–08 are also accepted: five prose edits, three unchanged. With88–92, the ledger now
+  has96 accepted rows and154 pending. Exact exceptions and evidence are below and in the validation report.
+- Next: primary completes PostgreSQL10–37/39–45/47–53 (42 rows), Linux13–72 (60 rows)
   and SQLite01–51/53 (52 rows). No new worker has been dispatched. Primary
   still owns Linux72 and final serial hazardous validation.
   Primary owns this resumed work; historical worker assignments remain provenance.
@@ -42,7 +42,7 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   runtime evidence, final tests/vet/full race/build, copied-history audit, installation check,
   quiescent verified rollback snapshot, sequential live catalog refresh and logical history/backup/
   roadmap preservation checks, final learner readiness and cleanup. Do not run learner done/skip.
-- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~19MB), including raw/refreshed
+- Retained scratch: `curriculum-tools/.cache/legacy-migration/` (~20MB), including raw/refreshed
   baseline SQLite backups, all250 parsed source lessons/plain/ANSI baselines, small comparison Go
   helpers, reviewed outputs and logs. These are required until final migration acceptance; remove
   redundant copies then. Their original source is commit `2776655274115a95ebabf7dd1b62fd9e9d0ff818`.
@@ -52,6 +52,24 @@ to stop at a resumable checkpoint, not to narrow scope or cancel implementation.
   `2dc0facf7d98431d09ecaba690cf44a717b5bef6f8af9c5b2ff18267653538a3`;
   legacy backup hashes match the retained manifest. Learner query returns
   `lab|/labs/pglab/primary|f|1`. About14GB disk and6.8GiB memory available.
+
+### Resumed acceptance checkpoint — PostgreSQL01–08
+
+Incident repairs88–92 are committed in `54bd3bb`. Primary then read all eight early lessons.
+Lessons01/08 use variation terminology,06 replaces prediction with direct page comparison, and07
+explicitly ends its unchanged uncommitted-update comparison with ROLLBACK. Lesson03 corrects a
+pre-existing evidence-description error: its unchanged extension SELECT returns three installed
+extensions; test_decoding is an output plugin without an extension-control/view row. Installed-file
+inspection, the actual read-only query and official PostgreSQL16 documentation support the correction.
+No extension, table, learner progress or server configuration was changed.
+
+All eight pass exact Setup/Run/metadata/revision parity plus complete plain/ANSI/JSON rendering;
+02/04/05 remain entirely unchanged. The conservative prose-block verifier has one explicit03 nested
+prose exception, since four-space explanatory text is not an executable code block. PostgreSQL's
+92-lesson source check passes. Temporary catalogs are gone; no new lab was allocated. Scratch is
+20MB until final acceptance. The ledger has96 accepted rows,154 pending:42 PostgreSQL,60 Linux,52 SQLite.
+Remaining PostgreSQL rows are10–37,39–45 and47–53. Full final tests, installation and live refresh
+remain pending; the learner lab and progress remain preserved.
 
 ### Resumed acceptance checkpoint — PostgreSQL88–92
 

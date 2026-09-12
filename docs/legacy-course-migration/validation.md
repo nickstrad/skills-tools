@@ -15,6 +15,31 @@ classification, copied-history/revision checks and cleanup are recorded in
 All five complete CLI views pass and PostgreSQL's92-lesson source check passes. The ledger now has
 88 accepted rows and162 pending. Live learner progress/backups remain unchanged; final rollout is pending.
 
+## PostgreSQL01–08 review
+
+Primary read all eight complete lessons. Lessons02/04/05 are unchanged. Lessons01/08 replace
+“challenge” labels with “optional variation”;06 directly inspects the last page instead of requesting
+a prediction. Lesson07 preserves its open-transaction page comparison and explicitly closes the
+writing transaction with ROLLBACK afterward. That inline cleanup is the only new command wording;
+Setup, Run, session ordering, identities, safety and revisions remain byte-for-byte unchanged.
+
+Lesson03 had a pre-existing expected-result error: the extension inventory cannot show
+`test_decoding` as installed=false because that output plugin has no extension control-file row.
+The installed filesystem contains its library and the other three extension control files; the
+exact existing SELECT, executed read-only, returns pageinspect/pg_stat_statements/pg_walinspect
+with installed=true. The corrected prose agrees with PostgreSQL16's
+[extension inventory](https://www.postgresql.org/docs/16/view-pg-available-extensions.html) and
+[output-plugin documentation](https://www.postgresql.org/docs/16/test-decoding.html).
+SQL and revision2 remain unchanged; no extension was installed or removed for this check.
+
+All eight pass exact parsed allowed-field/command/metadata comparison and complete CLI
+plain/ANSI/JSON rendering from a disposable catalog. The conservative command-block checker
+initially treated03's four-space nested explanatory prose as code; the accepted manifest explicitly
+names that exact prose replacement while retaining strict parity for actual commands/diagrams.
+The PostgreSQL92-lesson check passes. Existing experiment validation remains applicable; no lab was
+allocated. Log/manifest: `.cache/legacy-migration/postgres-01-08-parity.log` and `postgres-01-08.json`.
+The ledger now has96 accepted rows and154 pending.
+
 ## Public names and skipping
 
 Commits `d0c5511` and `8ee20a9` separate public names from stored identities and add number-first
