@@ -194,7 +194,6 @@ func newRootCmd(root string, discovered []route.CourseDiscovery, stdout, stderr 
 	cmd.AddCommand(newNewCourseCmd(root, stdout))
 	cmd.AddCommand(newInstallCmd(root, stdout))
 	cmd.AddCommand(newProgressCmd(root, stdout))
-	cmd.AddCommand(newConvertLegacyCmd(root, stdout))
 
 	// One command per discovered course, installed or plan-only.
 	for _, disc := range discovered {
