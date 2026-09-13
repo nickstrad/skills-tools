@@ -3,14 +3,19 @@
 Check resource budgets before allocating fixtures, clean owned resources after acceptance, and
 complete final cleanup before declaring the overall goal finished.
 
+Current capacity: by 2026-09-13 the VM's disk had been resized from 24 GB to 160 GiB (a 154 GiB root
+filesystem on `/dev/vda1`). Space is no longer scarce, but the budgets below still apply: the
+2026-09-05 incident was caused by unbounded accumulation, which a larger disk only delays. The
+knowledge store's `droplet` entry (`kb show droplet`) records the current disk size.
+
 ## What happened
 
-On 2026-09-05, `/root/disk-usage-report.md` reported only about 173 MB free on this 24 GB VM.
-Independent verification found about 6.8 GB in 151 `/tmp/pg-owned-*` experiment directories, 6.1 GB
-in the obsolete `/var/lib/postgresql/pglab` validation tree, and 2.6 GB in the private
-`/tmp/postgres-pivot-20260904` lab. Stopping a server had been treated as cleanup while its backups,
-WAL archives, data copies and evidence remained indefinitely. The learner requested immediate
-cleanup, a ready lesson-9 environment, and cleanup again at overall goal completion.
+On 2026-09-05, a disk usage report (since deleted) showed only about 173 MB free on the VM's
+then-24 GB disk. Independent verification found about 6.8 GB in 151 `/tmp/pg-owned-*` experiment
+directories, 6.1 GB in the obsolete `/var/lib/postgresql/pglab` validation tree, and 2.6 GB in the
+private `/tmp/postgres-pivot-20260904` lab. Stopping a server had been treated as cleanup while its
+backups, WAL archives, data copies and evidence remained indefinitely. The learner requested
+immediate cleanup, a ready lesson-9 environment, and cleanup again at overall goal completion.
 
 The active learner cluster is `/labs/pglab/primary`, PostgreSQL 16, port 5440, socket `/tmp`,
 database `lab`. It is distinct from the obsolete `/var/lib/postgresql/pglab` tree described by older
@@ -43,9 +48,9 @@ whole owned tree instead of inventing an untested archive retention rule.
 
 ## How to apply
 
-1. Read the latest resource report when present, then measure `df -h`, `df -i`, `free -h`, scoped
-   `du`, and live processes. Recheck long-lived jobs by their actual process/tool handles. Do not
-   run a second fixture merely because an observation timeout expired.
+1. Measure `df -h`, `df -i`, `free -h`, scoped `du`, and live processes. Recheck long-lived jobs by
+   their actual process/tool handles. Do not run a second fixture merely because an observation
+   timeout expired.
 2. Identify the learner lab, progress databases, active agents and unrelated work. Keep those
    protected. Use explicit private sockets/ports and inspect `data_directory` for any server you
    intend to stop. Check active clients before stopping a shared validation server.

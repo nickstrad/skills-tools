@@ -8,9 +8,8 @@ for new work.
 
 ## VM resources and cleanup — first operational task
 
-Read `/root/disk-usage-report.md` when present and
-[`docs/knowledge/vm-resource-cleanup.md`](docs/knowledge/vm-resource-cleanup.md). Verify reports
-against current disk, memory, process, and cluster state before acting. Account for peak space
+Read [`docs/knowledge/vm-resource-cleanup.md`](docs/knowledge/vm-resource-cleanup.md). Measure
+current disk, memory, process, and cluster state before acting. Account for peak space
 (including backups, replicas, archives, and evidence copies) before allocating a lab. Clean up owned
 work after validation and at each checkpoint; do not let stopped clusters accumulate. Final resource
 cleanup and a learner-lab readiness check are required before marking an overall goal finished, not

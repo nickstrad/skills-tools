@@ -17,11 +17,10 @@ classifications and measurement limits.
 
 ## First operational task: resources and cleanup
 
-Read `/root/disk-usage-report.md` when available, then verify disk, memory, inodes and live
-processes using [the resource policy](../../../docs/knowledge/vm-resource-cleanup.md). The report is
-historical, not a deletion allowlist. The learner's VM lab is `/labs/pglab/primary`, port 5440,
-socket `/tmp`, database lab; verify current paths before operating it. Preserve learner data and
-progress.
+Verify disk, memory, inodes and live processes using
+[the resource policy](../../../docs/knowledge/vm-resource-cleanup.md). The learner's VM lab is
+`/labs/pglab/primary`, port 5440, socket `/tmp`, database lab; verify current paths before operating
+it. Preserve learner data and progress.
 
 Destructive/restart author trials use unique private `/tmp/pg-owned-*` roots and sockets. Budget all
 primary/standby/backup/restore/archive copies, keep at least 2 GB free and twice the next peak

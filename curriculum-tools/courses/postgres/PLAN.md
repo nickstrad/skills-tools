@@ -34,9 +34,9 @@ do not establish network partitions, consensus or independent host availability.
 
 ## First operational task: resource ownership and cleanup
 
-Read `/root/disk-usage-report.md` when available and verify its claims against current resources.
-Follow [the cleanup policy](../../../docs/knowledge/vm-resource-cleanup.md). On this VM the learner
-lab is `/labs/pglab/primary`, port 5440, socket `/tmp`, database lab; discover current paths before
+Measure current resources and follow
+[the cleanup policy](../../../docs/knowledge/vm-resource-cleanup.md). On this VM the learner lab is
+`/labs/pglab/primary`, port 5440, socket `/tmp`, database lab; discover current paths before
 operating an environment. Do not recreate the retired `/var/lib/postgresql/pglab` validation tree
 because an original lesson or historical report names it. Preserve the learner's data and progress.
 

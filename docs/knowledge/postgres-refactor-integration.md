@@ -9,7 +9,7 @@ unchanged original completed lessons 1–7. The complete acceptance is in
 [the final integration report](../../curriculum-tools/courses/postgres/validation/09-final-integration.md).
 The lesson map translates historical ordinals to stable identities. A separate user-requested
 resource cleanup became the first operational item when disposable databases and WAL almost filled
-the 24 GB VM.
+the VM's then-24 GB disk (since resized to 160 GiB).
 
 The approach was to verify ownership and current resource use, preserve only evidence still needed
 for named unfinished checks, finish those checks, then retire the bulky inputs. The final audit
