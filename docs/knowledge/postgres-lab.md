@@ -1,8 +1,15 @@
 # PostgreSQL lab cluster
 
-Updated 2026-09-12 for the Go CLI.
+Updated 2026-09-13.
 
-Keep the learner lab distinct from disposable validation infrastructure. Updated 2026-09-05.
+Keep the learner lab distinct from disposable validation infrastructure.
+
+## The learner lab
+
+The learner's PostgreSQL 16 lab is `/labs/pglab/primary`, port 5440, Unix socket `/tmp`, role
+`postgres`, database `lab`. It runs as the enabled system unit `pglab.service`; start, stop and
+restart it with `systemctl`, never with `pg_ctl start` from a shell or tmux pane. Connection,
+unit and recovery details are in the knowledge store: `kb show data/postgres-learner-lab.md`.
 
 ## What happened
 
@@ -11,24 +18,17 @@ GB of primary/backup/archive files and was removed on 2026-09-05 after checking 
 distinguishing the live learner path, and recording a complete file inventory. Historical validation
 reports naming that path are not instructions to recreate or retain it.
 
-The learner's current PostgreSQL 16.15 lab is `/labs/pglab/primary`, port 5440, Unix socket `/tmp`,
-role `postgres`, database `lab`. At cleanup verification it was running and contained the learner's
-storage experiment tables and installed course extensions. Lesson 9 creates its own `st_toast`
-table; no old author-validation database or archive is needed to begin it.
-
-The agent's `/tmp/postgres-pivot-20260904` validation cluster on port 5540 had no client sessions
-and was stopped during cleanup. Its evidence and the per-experiment images were compacted only until
-the final whole-course audit. That audit is now complete and all bulky inputs are removed;
+The agent's `/tmp/postgres-pivot-20260904` validation cluster on port 5540 was stopped during the
+same cleanup, and the final whole-course audit later removed its remaining bulky evidence;
 [the final cleanup report](../../curriculum-tools/courses/postgres/validation/09-final-cleanup.md)
 records the disposition. `/root/pg-cleanup-20260905/` retains compact inventories and small
-diagnostics, not a running cluster or backup service. Historical scratch paths are not dependencies
-for lesson 9.
+diagnostics, not a running cluster or backup service. Historical scratch paths are not lesson
+dependencies.
 
 ## Why it matters
 
 A stopped cluster still consumes disk. Archives, replicas, base backups and restore destinations can
-exceed primary data size many times over. In this incident disk was effectively full despite healthy
-memory and inode availability. Similar `pglab` names concealed two different trees.
+exceed primary data size many times over. Similar `pglab` names concealed two different trees.
 
 ## How to apply
 
