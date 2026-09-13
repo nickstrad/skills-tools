@@ -105,6 +105,15 @@ client was connected. Read-only identity checks succeeded. Progress baseline SHA
     It now documents Go tutor, Markdown sources, shared course-scoped progress, isolated author
     validation and catalog adoption. No knowledge-repository commit was made or requested.
     Temporary drafts/editor in /tmp are owned by this task and can now be deleted.
+19. Implementation/evidence committed as **c7a985d** (`Author and validate PostgreSQL Essentials
+    lessons 27–31`). KB drafts/editor were removed after read verification. Remaining dirty
+    authored-availability/docs changes belong to this batch; original tutor.sqlite,
+    postgres-lab.md and analysis.md remain unrelated.
+20. User requested the state.md approach for every future batch and a final knowledge-store
+    reflection before deletion. Updated docs/lesson-batch-workflow.md and AGENTS.md to require
+    a root chronological event log, current remaining-work summary, continued state across context
+    resets, final reflection and warranted kb updates, then removal at completion. It replaces new
+    per-course handoff.md files. Overlapping batches must preserve each other's active state.
 
 ## Evidence and gotchas
 
@@ -123,29 +132,18 @@ client was connected. Read-only identity checks succeeded. Progress baseline SHA
 
 ## Remaining work
 
-1. Review/refine teaching and controller evidence. Add a concise explanation of harmless archive
-   probes if needed. Ensure source hashes match final accepted files. Important behavior already
-   passed; avoid repeating all fixtures for prose-only edits.
-2. Smoke-test and inspect all five complete rendered `lesson` outputs using explicit temporary
-   --db state. Exercise done/skip/undone only there. Check route availability 31/40 and next planned
-   boundary 32. Retire temporary progress copies afterward.
-3. Update availability and durable findings: course PLAN.md, README.md, docs/README.md,
-   docs/knowledge/postgres-essentials.md, docs/knowledge/README.md, docs/learner-profile.md.
-   Keep historic batch records historical, and preserve unrelated postgres-lab.md changes.
-4. Write durable **validation/batch-seven.md** with measured outcomes, wrong-choice/error inventory,
-   generic CLI validation method, source manifest, transaction-order finding, limits, resource and
-   progress closure. Add fixture usage/acceptance instructions if helpful.
-5. Commit coherent implementation/evidence chunks with corresponding handoff updates, staging only
-   owned files. Current design commit is ae0ef95; do not commit tutor.sqlite or unrelated files.
-6. Decide delivery/catalog behavior consistently with AUTHORING.md's instruction not to initialize
-   or refresh the learner database while authoring. New Markdown files are discoverable by route,
-   but `lesson` reads seeded content from SQLite; live catalog is still 26. Do not silently claim
-   the new live lesson command works without checking. At minimum document the required `tutor
-   postgres-essentials init` catalog refresh, which preserves progress. No refresh authorized or
-   performed separately yet; copied refresh is verified. Avoid asking unnecessary permission.
-7. Final resource check outside sandbox: pgrep actual servers, read-only learner identity/readiness,
-   df/memory, no owned pe-recovery/pe-batch-seven trees or active child processes; verify learner
-   progress preserved. Keep only small durable logs, no restorable database/WAL images.
-8. Remove course handoff.md and **this state.md** after completion, commit final chunk/removals.
-   Final response concise: five lessons delivered, validation/cleanup result, start command and
-   link to docs/lesson-batch-workflow.md as required by that workflow.
+1. Review and commit the new workflow/AGENTS instructions with this event update. No experiment
+   rerun is needed for these documentation-only edits; verify whitespace and CLAUDE.md symlink.
+2. Commit the authored availability and durable course docs already complete in the working tree.
+   Preserve unrelated tutor.sqlite, postgres-lab.md and analysis.md. All real tests and resource
+   cleanup have passed; retain only the small committed evidence. Refresh only the final read-only
+   progress/resource snapshot if needed after this interruption, not the experiments.
+3. Final knowledge-store reflection: the verified psql gotcha and outdated authoring entry were
+   already added/corrected and read-verified in event 18. The new batch policy belongs in the
+   repository workflow/AGENTS source; no duplicate knowledge-store policy entry is needed.
+4. Remove the old course handoff.md and **this state.md** once this checklist is complete; commit
+   final docs/removals. The user's requested deletion is conditional on finished work, not context
+   clearing. There are no other active batches recorded here.
+5. Final response: workflow updated; batch 27–31 authored/validated/cleaned; knowledge-store updates
+   recorded; use `tutor postgres-essentials init` then `tutor postgres-essentials 27 lesson` to adopt
+   the new catalog. AUTHORING.md's no-live-refresh authoring rule was followed.

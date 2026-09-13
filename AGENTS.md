@@ -78,9 +78,11 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
   infrastructure. Implement only an agreed route in small batches.
 - For implementation batches, follow
   [`docs/lesson-batch-workflow.md`](docs/lesson-batch-workflow.md): primary design and review,
-  current-user model and delegation choices, real validation, chunked commits, and a temporary
-  handoff committed throughout and removed at completion. Historical plans may name earlier models
-  or assignments; they are provenance, not current delegation policy.
+  current-user model and delegation choices, real validation, chunked commits, and a root `state.md`
+  event log kept current and committed throughout. Finish with an `update-knowledge-store`
+  reflection, make any warranted durable updates, then delete `state.md` when the batch is complete.
+  Historical plans may name earlier models or assignments; they are provenance, not current
+  delegation policy.
 - Keep `CLAUDE.md` symlinked to this file so agents share this guidance.
 - Read [`curriculum-tools/docs/AUTHORING.md`](curriculum-tools/docs/AUTHORING.md) and the
   `curriculum-author` skill before changing lesson content. Apply the meaningful learner-work norm
@@ -97,7 +99,7 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
   `bin/tutor <course> validate` for real-tool evidence, always with isolated validation state
   rather than learner progress or the live PostgreSQL lab.
 - Keep unrelated working-tree changes intact. Respect the ownership recorded in the active plan or
-  handoff, and never edit a file assigned to another agent.
+  `state.md`, and never edit a file assigned to another agent.
 
 ## Durable findings
 
