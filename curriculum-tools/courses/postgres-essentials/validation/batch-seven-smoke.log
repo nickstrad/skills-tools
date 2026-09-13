@@ -1,0 +1,8 @@
+lesson 27: complete plain/JSON render matches source; diagram before setup; 5945 bytes
+lesson 28: complete plain/JSON render matches source; diagram before setup; 7118 bytes
+lesson 29: complete plain/JSON render matches source; diagram before setup; 5656 bytes
+lesson 30: complete plain/JSON render matches source; diagram before setup; 6207 bytes
+lesson 31: complete plain/JSON render matches source; diagram before setup; 6364 bytes
+route: 31 available / 40 planned total; next unauthored boundary 32
+read-only render/route preserves isolated DB bytes; explicit skip/done/undone works only in temporary DB
+isolated progress and rendered scratch retired; learner database never opened by smoke checks

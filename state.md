@@ -83,6 +83,28 @@ client was connected. Read-only identity checks succeeded. Progress baseline SHA
     baseline hash unchanged. Real learner database has not been refreshed or written by this task.
 13. User requested this state.md event log for a possible context clear, explicitly to be deleted
     when the batch is done. Created now; continue the original batch rather than ending here.
+14. Committed state.md as **fbca066**. Added the `--smoke-only` mode to the validation driver;
+    complete plain/JSON rendering of 27–31 matched source, diagrams precede setup, route boundary
+    is 31 available/32 planned in isolated state, and skip/done/undone affected only temporary DB.
+    Read-only output preserved temporary DB bytes. Scratch was retired.
+15. Updated authored availability to 31 in PLAN/README/docs/profile; new fixture README and durable
+    findings added. Explained harmless archive probes in 28/29 (prose only; commands unchanged).
+    Keep original runtime acceptance source manifest and add final hashes after prose review.
+16. Final live checks so far: 9.9 GiB disk and 7 GiB memory available; only learner postmaster
+    1331865 remains, read-only identity is /labs/pglab/primary|f|1. All owned labs retired.
+    Remaining: acceptance report/final source manifest, final check/diff audit, scoped commits,
+    remove handoff.md and state.md. Live catalog adoption is documented as the learner's `init`
+    command; AUTHORING.md's no-live-refresh authoring rule has been followed.
+17. Final acceptance report, fixture README and final source manifest written. Final smoke rerun
+    after prose changes passed; new Go packages compile, whitespace check passes, learner hash
+    unchanged. No pe-recovery or pe-batch-seven roots remain. Runtime logs total about 48 KiB
+    allocated; retain them with force-add because global ignore rules exclude logs.
+18. User asked whether /update-knowledge-store has relevant findings. Searched with kb, added and
+    read-verified **data/psql-command-transactions.md** (5 chunks), and corrected the obsolete
+    **data/pgcoach-course-authoring.md** in place through kb edit (4 reindexed/embedded chunks).
+    It now documents Go tutor, Markdown sources, shared course-scoped progress, isolated author
+    validation and catalog adoption. No knowledge-repository commit was made or requested.
+    Temporary drafts/editor in /tmp are owned by this task and can now be deleted.
 
 ## Evidence and gotchas
 

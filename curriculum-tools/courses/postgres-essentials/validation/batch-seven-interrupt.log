@@ -1,0 +1,9 @@
+lesson=31 fixture=/tmp/pe-recovery-611625782 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+copy evidence=t
+post_commit_marker=0/800188 columns=pause_state,received_through_marker,replayed_through_marker,visible_marker_rows
+copy evidence=paused|t|f|0
+receive_lsn|replay_lsn|receiver_status=0/800188|0/800000|streaming
+learner_action_output:
+
+cleanup=owned_tree_removed removed=true bytes=58608067 fixture=/tmp/pe-recovery-611625782
+STOP: bash: signal: killed:

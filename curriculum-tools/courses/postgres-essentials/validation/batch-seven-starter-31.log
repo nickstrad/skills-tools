@@ -1,0 +1,22 @@
+Evidence: /tmp/tutor-validation-388794751
+
+=== #31 received-is-not-replayed [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=31 fixture=/tmp/pe-recovery-2507356951 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] copy evidence=t
+  [A] post_commit_marker=0/800188 columns=pause_state,received_through_marker,replayed_through_marker,visible_marker_rows
+  [A] copy evidence=paused|t|f|0
+  [A] receive_lsn|replay_lsn|receiver_status=0/800188|0/800000|streaming
+  [A] learner_action_output:
+  [A] pg_is_in_recovery
+  [A] -------------------
+  [A]  t
+  [A] (1 row)
+  [A] cleanup=owned_tree_removed removed=true bytes=58608076 fixture=/tmp/pe-recovery-2507356951
+  [A] STOP: deadline waiting for replay and visible marker
+  [A] exit status 1
+  !! step 2 in session A exited with status 1
+
+0/1 lessons completed without timeout
+Error: 1 lesson(s) failed validation

@@ -1,0 +1,19 @@
+lesson=27 fixture=/tmp/pe-recovery-3526568719 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+backup_manifest_verified=true
+baseline_inventory:
+1|bolts|10
+2|nuts|20
+3|washers|30
+restored_inventory:
+1|bolts|10
+2|nuts|20
+3|washers|30
+later_source_inventory:
+1|bolts|10
+2|nuts|99
+3|washers|30
+copy evidence=1|bolts|10
+2|nuts|20
+3|washers|30
+baseline_matches_restore=true distinguishes_later_source=true
+cleanup=owned_tree_removed removed=true bytes=83023413 fixture=/tmp/pe-recovery-3526568719

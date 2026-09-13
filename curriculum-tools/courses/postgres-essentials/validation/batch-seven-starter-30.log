@@ -1,0 +1,14 @@
+Evidence: /tmp/tutor-validation-3292672885
+
+=== #30 build-a-standby [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=30 fixture=/tmp/pe-recovery-3225280102 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] learner_action_output:
+  [A] cleanup=owned_tree_removed removed=true bytes=30838126 fixture=/tmp/pe-recovery-3225280102
+  [A] STOP: standby.signal absent; base backup alone has not configured a standby
+  [A] exit status 1
+  !! step 2 in session A exited with status 1
+
+0/1 lessons completed without timeout
+Error: 1 lesson(s) failed validation

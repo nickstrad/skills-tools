@@ -1,0 +1,22 @@
+Evidence: /tmp/tutor-validation-2271059656
+
+=== #28 recovery-needs-history [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=28 fixture=/tmp/pe-recovery-181504468 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] required_start_segment=000000010000000000000007 missing_only_from=archive-copy
+  [A] waiting for server to start.... stopped waiting
+  [A] pg_ctl: could not start server
+  [A] Examine the log output.
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-181504468/archive-copy/00000002.history': No such file or directory
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-181504468/archive-copy/000000010000000000000007': No such file or directory
+  [A] server_log: 2026-09-13 23:20:41.394 GMT [1441482] FATAL:  could not locate required checkpoint record
+  [A] missing_history_failure_verified=true
+  [A] learner_action_output:
+  [A] cleanup=owned_tree_removed removed=true bytes=83848451 fixture=/tmp/pe-recovery-181504468
+  [A] STOP: required archive segment is still missing; restore the withheld file
+  [A] exit status 1
+  !! step 2 in session A exited with status 1
+
+0/1 lessons completed without timeout
+Error: 1 lesson(s) failed validation

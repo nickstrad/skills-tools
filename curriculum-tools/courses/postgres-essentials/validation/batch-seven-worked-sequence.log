@@ -1,0 +1,94 @@
+Evidence: /tmp/tutor-validation-3783295008
+
+=== #27 restore-and-verify [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=27 fixture=/tmp/pe-recovery-2623399292 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] backup_manifest_verified=true
+  [A] baseline_inventory:
+  [A] 1|bolts|10
+  [A] 2|nuts|20
+  [A] 3|washers|30
+  [A] restored_inventory:
+  [A] 1|bolts|10
+  [A] 2|nuts|20
+  [A] 3|washers|30
+  [A] later_source_inventory:
+  [A] 1|bolts|10
+  [A] 2|nuts|99
+  [A] 3|washers|30
+  [A] copy evidence=1|bolts|10
+  [A] 2|nuts|20
+  [A] 3|washers|30
+  [A] baseline_matches_restore=true distinguishes_later_source=true
+  [A] cleanup=owned_tree_removed removed=true bytes=83023413 fixture=/tmp/pe-recovery-2623399292
+
+=== #28 recovery-needs-history [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=28 fixture=/tmp/pe-recovery-2733906657 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] required_start_segment=000000010000000000000007 missing_only_from=archive-copy
+  [A] waiting for server to start.... stopped waiting
+  [A] pg_ctl: could not start server
+  [A] Examine the log output.
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2733906657/archive-copy/00000002.history': No such file or directory
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2733906657/archive-copy/000000010000000000000007': No such file or directory
+  [A] server_log: 2026-09-13 23:21:09.932 GMT [1442312] FATAL:  could not locate required checkpoint record
+  [A] missing_history_failure_verified=true
+  [A] learner_action_output:
+  [A] copy evidence=1|baseline
+  [A] 2|accepted order
+  [A] repaired_recovery=true original_archive_unchanged=true
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2733906657/archive-copy/00000002.history': No such file or directory
+  [A] server_log: 2026-09-13 23:21:10.275 GMT [1442324] LOG:  redo starts at 0/700028
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2733906657/archive-copy/000000010000000000000009': No such file or directory
+  [A] server_log: 2026-09-13 23:21:10.301 GMT [1442324] LOG:  recovery stopping at restore point "before_bad", time 2026-09-13 23:21:09.28495+00
+  [A] server_log: 2026-09-13 23:21:10.301 GMT [1442324] LOG:  pausing at the end of recovery
+  [A] cleanup=owned_tree_removed removed=true bytes=87210570 fixture=/tmp/pe-recovery-2733906657
+
+=== #29 targeted-recovery [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=29 fixture=/tmp/pe-recovery-2993787670 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] primary evidence=1|baseline
+  [A] 2|accepted order
+  [A] 3|bad import
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2993787670/archive-copy/00000002.history': No such file or directory
+  [A] server_log: 2026-09-13 23:21:15.363 GMT [1442461] LOG:  redo starts at 0/700028
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-2993787670/archive-copy/000000010000000000000009': No such file or directory
+  [A] server_log: 2026-09-13 23:21:15.394 GMT [1442461] LOG:  recovery stopping at restore point "before_bad", time 2026-09-13 23:21:14.810972+00
+  [A] server_log: 2026-09-13 23:21:15.394 GMT [1442461] LOG:  pausing at the end of recovery
+  [A] target=before_bad recovered_history:
+  [A] 1|baseline
+  [A] 2|accepted order
+  [A] accepted_order_preserved=true bad_import_excluded=true recovery_paused=true
+  [A] cleanup=owned_tree_removed removed=true bytes=86160786 fixture=/tmp/pe-recovery-2993787670
+
+=== #30 build-a-standby [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=30 fixture=/tmp/pe-recovery-1464585697 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] learner_action_output:
+  [A] copy evidence=t
+  [A] standby_signal=true in_recovery=true receiver=streaming post_backup_marker_visible=true
+  [A] copy evidence=1|baseline
+  [A] 2|after backup
+  [A] cleanup=owned_tree_removed removed=true bytes=58608317 fixture=/tmp/pe-recovery-1464585697
+
+=== #31 received-is-not-replayed [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=31 fixture=/tmp/pe-recovery-631368092 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] copy evidence=t
+  [A] post_commit_marker=0/800188 columns=pause_state,received_through_marker,replayed_through_marker,visible_marker_rows
+  [A] copy evidence=paused|t|f|0
+  [A] receive_lsn|replay_lsn|receiver_status=0/800188|0/800000|streaming
+  [A] learner_action_output:
+  [A] pg_wal_replay_resume
+  [A] ----------------------
+  [A]
+  [A] (1 row)
+  [A] copy evidence=not paused|t|t|1
+  [A] cleanup=owned_tree_removed removed=true bytes=58608264 fixture=/tmp/pe-recovery-631368092
+
+5/5 lessons completed without timeout

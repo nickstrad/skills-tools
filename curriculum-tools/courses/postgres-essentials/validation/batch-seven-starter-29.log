@@ -1,0 +1,25 @@
+Evidence: /tmp/tutor-validation-793890417
+
+=== #29 targeted-recovery [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=29 fixture=/tmp/pe-recovery-641614800 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] primary evidence=1|baseline
+  [A] 2|accepted order
+  [A] 3|bad import
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-641614800/archive-copy/00000002.history': No such file or directory
+  [A] server_log: 2026-09-13 23:20:45.830 GMT [1441606] LOG:  redo starts at 0/700028
+  [A] server_log: cp: cannot stat '/tmp/pe-recovery-641614800/archive-copy/000000010000000000000009': No such file or directory
+  [A] server_log: 2026-09-13 23:20:45.861 GMT [1441606] LOG:  recovery stopping at restore point "after_bad", time 2026-09-13 23:20:45.31642+00
+  [A] server_log: 2026-09-13 23:20:45.861 GMT [1441606] LOG:  pausing at the end of recovery
+  [A] target=after_bad recovered_history:
+  [A] 1|baseline
+  [A] 2|accepted order
+  [A] 3|bad import
+  [A] cleanup=owned_tree_removed removed=true bytes=86160768 fixture=/tmp/pe-recovery-641614800
+  [A] STOP: chosen point includes bad import; choose the point after useful work and before bad work
+  [A] exit status 1
+  !! step 2 in session A exited with status 1
+
+0/1 lessons completed without timeout
+Error: 1 lesson(s) failed validation

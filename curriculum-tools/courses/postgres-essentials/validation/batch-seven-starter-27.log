@@ -1,0 +1,24 @@
+Evidence: /tmp/tutor-validation-2375696758
+
+=== #27 restore-and-verify [shell, 1 session(s)] ===
+  -- setup --
+  -- Session A --
+  [A] lesson=27 fixture=/tmp/pe-recovery-1959211459 server=postgres (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+  [A] backup_manifest_verified=true
+  [A] baseline_inventory:
+  [A] 3
+  [A] restored_inventory:
+  [A] 3
+  [A] later_source_inventory:
+  [A] 3
+  [A] copy evidence=1|bolts|10
+  [A] 2|nuts|20
+  [A] 3|washers|30
+  [A] baseline_matches_restore=true distinguishes_later_source=false
+  [A] cleanup=owned_tree_removed removed=true bytes=83024595 fixture=/tmp/pe-recovery-1959211459
+  [A] STOP: inventory query did not distinguish the changed quantity; include every business column in stable order
+  [A] exit status 1
+  !! step 2 in session A exited with status 1
+
+0/1 lessons completed without timeout
+Error: 1 lesson(s) failed validation
