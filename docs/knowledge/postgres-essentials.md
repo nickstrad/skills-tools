@@ -1,6 +1,6 @@
 # PostgreSQL essentials: publish the route, then author its real lessons
 
-Updated 2026-09-12 for the Go CLI. The active route is 40 small lessons, with its first 26 implemented. The
+Updated 2026-09-13. The active route is 40 small lessons, with its first 31 implemented. The
 [plan](../../curriculum-tools/courses/postgres-essentials/PLAN.md) fixes titles, stable slugs,
 intended outcomes and reference-source mappings for every entry.
 
@@ -14,7 +14,7 @@ detour is required.
 
 The Go CLI serves the Essentials route as `tutor postgres-essentials`. Its course ID gives separate
 numbering and progress without rewriting the original eight completions or migrating the 92-lesson
-reference catalog. Twenty-six real lessons are available; future entries are held in `PLAN.md`.
+reference catalog. Thirty-one real lessons are authored; future entries are held in `PLAN.md`.
 Rendering or finishing the available batch must not report all 40 complete. The old course-specific
 launchers are retired; original course data is preserved.
 
@@ -258,3 +258,41 @@ The mechanism claims were checked against PostgreSQL 16's [resource settings](ht
 [pg_buffercache](https://www.postgresql.org/docs/16/pgbuffercache.html), and
 [pg_ctl](https://www.postgresql.org/docs/16/app-pg-ctl.html). The experiments test a live or crashed
 PostgreSQL process on one running host, not failed storage or power loss.
+
+## Recovery and replication batch: native learner actions and exact boundaries
+
+Lessons 27–31 follow [the seventh-batch design](../../curriculum-tools/courses/postgres-essentials/designs/27-31.md).
+[Acceptance](../../curriculum-tools/courses/postgres-essentials/validation/batch-seven.md) records
+the Go fixture and generic-CLI checks. New lessons use a short native learner task with a safe
+incomplete starter and a labelled worked completion in the same output. An unchanged starter
+intentionally reports its unmet requirement; author validation must test that failure and execute
+the actual worked completion, not equate every nonzero starter exit with broken infrastructure.
+
+- **psql -c transaction boundaries matter around restore points.** Multiple SQL statements in one
+  `-c` string execute in one implicit transaction unless explicitly divided. A restore point placed
+  between two INSERTs in that string can precede both commits. Use separate completed calls when
+  the lesson claims a marker follows a committed operation; inspect recovered rows to verify it.
+  The initial validation caught this by recovering only the baseline. See
+  [psql command processing](https://www.postgresql.org/docs/16/app-psql.html).
+- **A backup inventory needs values, not just counts.** The three-row fixture changes one quantity
+  after the physical backup. Manifest verification and startup both pass; only a query including
+  the changed field distinguishes the later source from the intended restored state. Compare to
+  a known baseline, then separately assess source changes after the backup.
+- **Classify archive lookup failures by recovery obligation.** A missing timeline-history probe
+  or a lookahead segment can accompany successful target recovery. A missing start segment named
+  by backup_label causes a required-checkpoint failure here. Repair only the disposable archive copy
+  and preserve the original file hash. Never remove backup_label as an attempted fix for a real
+  backup restoration. Full logs, a paused named target, and visible operations establish the repair.
+- **Receipt and apply need separate observations.** Wait for confirmed pause before committing,
+  then require receive LSN at least the post-commit marker, replay LSN below it, and a fresh query
+  without the row. Resume and require both replay through the marker and visible data. The marker
+  is a conservative position measured after commit, not the exact commit-record location.
+- **Control process lifetime through failure as well as success.** The Go controller gives child
+  commands their own process groups, cancels the group on interruption, and uses an uncancelled
+  cleanup context. It verifies stopped servers before deleting files. Acceptance interrupts a
+  fixture after both primary and standby are live and checks the emitted tree no longer exists.
+
+Catalog adoption is separate from author validation. Follow AUTHORING.md: initialize only a
+temporary `--db` while authoring and use `progress verify` for a copied refresh with all course
+history checked. The shared learner catalog can later adopt these authored files through
+`tutor postgres-essentials init`; no new completion or attempt is implied by that command.

@@ -1,8 +1,9 @@
 # PostgreSQL Essentials
 
 The current path is **40 bounded lessons**, after the eight PostgreSQL reference lessons already
-completed. The [full sequence and intended outcomes](PLAN.md) fixes the scope. **The first 26 are
-available**; the remaining 14 are planned and will be authored in small batches. The plan's
+completed. The [full sequence and intended outcomes](PLAN.md) fixes the scope. **The first 31 are
+authored**; the remaining nine are planned and will be authored in small batches. Refresh an existing
+learner catalog with `tutor postgres-essentials init` to adopt newly authored lessons. The plan's
 20–30-minute figures are older author estimates; Nick currently reports about ten minutes per
 lesson.
 
@@ -32,6 +33,11 @@ lesson.
 24. Measure WAL per useful operation.
 25. A checkpoint writes pages without ending transactions.
 26. Reconcile committed and aborted work after a crash.
+27. Prove a backup can restore the intended data.
+28. Recovery can fail when one required segment is missing.
+29. Recover to a chosen point and account for excluded work.
+30. Build and verify a streaming standby.
+31. Received WAL is not yet visible data.
 
 These are the actual first lessons of the route. They use small account, history and stock tables to
 connect visibility, cleanup, concurrent arithmetic, protected decisions, conflict detection and
@@ -102,3 +108,12 @@ clusters, perform the checkpoint or crash experiment, stop the private servers a
 files. They ignore inherited PostgreSQL connection variables and accept no existing target path.
 Ctrl-C runs cleanup; check the owned-cluster removal record. The learner server is preserved. See
 [batch-six validation](validation/batch-six.md) for measured outcomes and limitations.
+
+Lessons 27–31 use the Go [recovery fixture](lab/recovery/README.md). Each lesson supplies a small
+native-command task, a runnable incomplete starter, and a worked completion in the same view.
+The controller owns private servers, backups and archives and removes them on success, task
+failure or Ctrl-C. Read the expected evidence before treating a starter's nonzero exit as an
+infrastructure problem. Core estimates are 12–15 minutes; no additional submission is required.
+[Batch-seven validation](validation/batch-seven.md) records the real starter, worked, failure and
+cleanup checks. During authoring, use an explicit temporary `--db` for rendering and progress tests;
+the shared learner catalog is left intact until adoption through `init`.

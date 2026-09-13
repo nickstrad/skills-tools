@@ -1,7 +1,7 @@
 # PostgreSQL essentials: the 40-lesson route
 
-Current learner direction, updated 2026-09-12. **Lessons 1–26 are authored and available.** The full
-sequence below fixes the intended scope; 27–40 are planned, not placeholder lessons. Nick explicitly
+Current learner direction, updated 2026-09-13. **Lessons 1–31 are authored.** The full
+sequence below fixes the intended scope; 32–40 are planned, not placeholder lessons. Nick explicitly
 prefers smaller meaningful chunks over 24 dense sessions and currently reports roughly ten minutes
 per lesson. The older **20–30 minute** figures were nominal author estimates, not measured pace.
 Changes to scope must be recorded here, not invented as we go. Implement the remaining route in
@@ -178,3 +178,18 @@ bounded PostgreSQL 16 server; they never target the learner cluster. Tags add ha
 commit, durability, lsn, batching, write-amplification, checkpoints, buffer-cache and recovery.
 Private validation runs are retired after evidence checks; budget below 700MB combined, keep at
 least 2GiB free, and preserve every existing lesson identity and learner completion.
+
+### Seventh batch: verify recovery and replica progress
+
+Lessons 27–31 follow [the batch design](designs/27-31.md). They test restored inventories,
+required archive history, a chosen recovery point, streaming standby setup, and the difference
+between received and replayed WAL. The next unauthored entry is 32, bounded-read-your-writes.
+
+Each uses one shell and a supplied Go controller for private PostgreSQL 16 servers and cleanup.
+The learner constructs a verification query or native command, or chooses the recovery target.
+Incomplete starters and worked completions are in the same lesson; the core estimate is 12–15
+minutes including the attempt and cleanup. Tags add backups, verification, pitr, operation-history,
+replication, standby, streaming, replay and freshness. No experiment uses the learner server.
+See [acceptance](validation/batch-seven.md) for exact starter failures, worked-command validation,
+copied progress verification and resource closure. Authoring does not refresh the learner database;
+`tutor postgres-essentials init` refreshes the catalog when adopting the authored batch.

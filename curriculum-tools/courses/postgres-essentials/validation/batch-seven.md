@@ -98,6 +98,13 @@ Learner database SHA256 remains
 `65809427c05348e0484e6a7b57d81607eab52ba360264d4e7330f961ee3ffd99`.
 Unrelated dirty progress, postgres-lab.md and analysis.md were neither staged nor overwritten.
 
+Final knowledge-store reflection added `data/psql-command-transactions.md` and corrected the
+obsolete `data/pgcoach-course-authoring.md` to the current Go/Markdown/shared-progress workflow.
+Both entries were saved through kb and read-verified. The user's permanent batch event-log and
+reflection policy is recorded in the repository workflow and AGENTS.md. With validation, cleanup
+and these knowledge updates complete, the temporary root state.md and old course handoff.md were
+retired; their checkpoint history remains in Git.
+
 ## Limits and reproduction
 
 These are same-host, tiny local fixtures: no independent-host availability, disk-loss recovery,

@@ -14,9 +14,10 @@ start. The September 2026 report is a historical inventory, not a deletion allow
 ## Learning roadmap
 
 The current [PostgreSQL Essentials route](../curriculum-tools/courses/postgres-essentials/PLAN.md)
-lists 40 bounded lessons with specific outcomes. Its first 26 are authored and available through
-`tutor postgres-essentials`. Nick currently reports about ten minutes per lesson; the plan's 20–30
-minute ranges are older nominal estimates, not measured pace. [Implementation findings](knowledge/postgres-essentials.md)
+lists 40 bounded lessons with specific outcomes. Its first 31 are authored; refresh an existing
+catalog with `tutor postgres-essentials init` to adopt a new batch. Nick currently reports about ten
+minutes per lesson; the plan's 20–30 minute ranges are older nominal estimates, not measured pace.
+[Implementation findings](knowledge/postgres-essentials.md)
 explain course-scoped progress, reference access and validation. The old 9–12 pilot is archived
 history, not the entry path.
 

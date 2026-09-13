@@ -99,7 +99,7 @@ this roadmap at the learner's request.
   over 24 longer lessons, requested the full sequence in advance, and rejected using old lessons
   solely to test UX. The fixed
   [route and outcomes](../curriculum-tools/courses/postgres-essentials/PLAN.md) governs subsequent
-  work. Lessons 1–26 are now authored; 27–40 remain planned. `tutor postgres-essentials` serves this course with
+  work. Lessons 1–31 are now authored; 32–40 remain planned. `tutor postgres-essentials` serves this course with
   course-scoped progress in the shared database. The original 92-lesson course remains reference material.
   This history explains the fixed route; it does not preserve the retired two-view presentation.
   The current `lesson` output now includes interpretation, with required explanation and any useful
