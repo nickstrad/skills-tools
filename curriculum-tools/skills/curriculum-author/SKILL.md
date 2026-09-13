@@ -5,7 +5,9 @@ description: Plan or incrementally author hands-on systems courses in the tutor 
 
 # Curriculum author
 
-The engine is `/root/Software/skills-tools/curriculum-tools` (TUTOR). Read the repository
+Resolve this skill directory through any installation symlink. The repository root is `../../..`
+from that resolved directory; resolve repository-relative paths below against that root.
+The engine is the repository's `curriculum-tools/` directory (TUTOR). Read the repository
 `docs/README.md`, relevant knowledge entries, learner profile, and `$TUTOR/docs/AUTHORING.md`. The
 learner studies around work and children: aim for about ten minutes per new lesson, with a
 fifteen-minute core ceiling including context, setup, experiment, interpretation, and cleanup. Keep

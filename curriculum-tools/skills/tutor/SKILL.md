@@ -5,8 +5,10 @@ description: "Guide the PostgreSQL Essentials course; the PostgreSQL Systems, SQ
 
 # Systems Tutor
 
-Use `/root/Software/skills-tools/bin/tutor` (TUTOR below) for curriculum, progress, and roadmap
-requests. The CLI prints lesson content; the learner runs the supplied experiment. Do not read or
+Resolve this skill directory through any installation symlink. The repository root is `../../..`
+from that resolved directory; resolve repository-relative paths below against that root.
+Use the repository's `bin/tutor` (TUTOR below) for curriculum, progress, and roadmap requests.
+The CLI prints lesson content; the learner runs the supplied experiment. Do not read or
 edit lesson files or `curriculum-tools/tutor.sqlite` directly when serving lessons. The single
 database keeps progress course-scoped, so a lesson in one course never completes a lesson in
 another. Migrated per-course databases are backups under

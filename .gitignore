@@ -12,13 +12,16 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Runtime state (curriculum content is stored in lessons.json)
+# Runtime databases and SQLite temporary files
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
 *.db
 *.db-shm
 *.db-wal
+
+# Shared lesson progress travels with the repository
+!/curriculum-tools/tutor.sqlite
 
 # Logs, coverage, and temporary output
 *.log

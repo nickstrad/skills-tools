@@ -1,7 +1,7 @@
 # skills-tools
 
 Durable home for local, Go-based systems curricula and their Codex skills. The
-tools keep Markdown lesson content in Git and learner progress in the ignored
+tools keep Markdown lesson content and learner progress in Git, using the
 `curriculum-tools/tutor.sqlite` database. A normal lesson view displays the
 commands and evidence for you to run. Authors may explicitly run
 `tutor <course> validate` against isolated state; viewing a lesson does not run
@@ -48,6 +48,8 @@ legacy metadata. Current curricula, progress and future course plans remain in t
 
 On a fresh droplet, `scripts/lab-setup.sh` installs the common database and shell tools.
 The gRPC course has its own [pinned installer](curriculum-tools/courses/grpc/README.md).
+
+TODO: Create and document a Lima VM or Docker setup for running the Linux experiments on a MacBook.
 
 The launcher builds the Go CLI from `curriculum-tools/` and can use `TUTOR_BIN`
 to run an already-built binary. `tutor install` creates the canonical launcher
@@ -128,7 +130,11 @@ tutor postgres-essentials check
 
 See `curriculum-tools/docs/AUTHORING.md` for the lesson contract and pedagogy,
 and `curriculum-tools/docs/VALIDATION.md` for real-tool validation. The tutor
-CLI reads Markdown lesson source directly; the shared progress database is ignored.
+CLI reads Markdown lesson source directly; the shared progress database is tracked.
+Finish tutor commands before committing `curriculum-tools/tutor.sqlite`, then push
+your progress and pull it on the other computer before studying there. SQLite WAL
+and shared-memory files remain ignored. Avoid updating progress independently on
+both computers: Git cannot merge conflicting SQLite database changes.
 
 ## Repository layout
 
