@@ -75,7 +75,8 @@ experience is not evidence of running etcd consensus, despite the dependency's o
 | Generic reconciliation, idempotency, and concurrency primers | Brief recap or contrast where needed. | Unknown outcomes, retries across independent commits, stale ownership, lost notifications, crash recovery. |
 | Linux foundations | Shorten familiar shell and process introductions through coaching; do not delete kernel depth by assumption. | Memory/cache distinctions, descriptor lifetime, scheduling, cgroups, namespaces, and packet evidence. |
 | PostgreSQL and SQLite internals | Retain depth; application use of a store does not cover its physical behavior. | Pages, journals/WAL, isolation, locking, reclamation, durability, and query execution. |
-| Object storage and DuckDB | Retain; reviewed implementations do not establish these mechanisms are already familiar. | Publication and reconstruction protocols; analytical execution, Parquet layout, memory and spill. |
+| Object storage | Retain; reviewed implementations do not establish these mechanisms are already familiar. | Publication and reconstruction protocols. |
+| DuckDB | Per Nick's 2026-09-14 correction, teach practical data flows and high-level use; see the [learner profile](../learner-profile.md) and [proposed route](../../future-courses/duckdb/course.md). | Reading files, SQLite/PostgreSQL integration, cleaning and joining data, exporting datasets, and repeatable pipelines; internals only as needed for practical decisions. |
 | etcd and NATS | Retain distinct coordination and delivery mechanisms; compress familiar vocabulary. | Quorum/partitions, revisions/watches, broker acknowledgment/replay, external effects and backpressure. |
 | Valkey, Kafka, Git internals | Keep their prior bounded or optional role; do not add more implementations just because Nick writes Go. | Tool-specific memory, replication, partitioned-log, or content-addressed storage contrasts. |
 

@@ -1,6 +1,6 @@
 # Learner context for course planning
 
-Updated through 2026-09-12 from the learner's own statements, personal site, and résumé. Use this
+Updated through 2026-09-14 from the learner's own statements, personal site, and résumé. Use this
 to select depth and avoid repeating familiar material; it does not mark any lesson complete.
 
 ## Experience
@@ -66,6 +66,22 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- DuckDB course scope (2026-09-14): Nick wants a very practical course for building data flows
+  and understanding how to use DuckDB at a high level. Focus on reading files, cleaning and
+  combining data, producing outputs, and repeatable pipelines. Explain internals only when they
+  help a practical choice or troubleshooting step. This supersedes the earlier roadmap and
+  prior-project notes' emphasis on analytical execution, parallelism, memory, and spill.
+  Include practical SQLite-file and PostgreSQL integration in the core: Nick uses PostgreSQL
+  frequently and has existing SQLite/DuckDB attempts he wants to improve. Teach connecting,
+  inspecting source data, handling type differences, extracting/joining data, and writing
+  checked results. Specific difficulties in his attempts are not yet known; familiarity is
+  not assumed mastery or permission to modify his existing databases.
+  Nick also explicitly connects this interest to distributed systems and AI systems that improve
+  over time. [DuckDB research](../duckdbresearch.md) explores evaluation, feedback analysis,
+  retrieval experiments, and shared datasets as possible applications; those specific designs
+  are proposals, not additional course requirements or claims about his current projects.
+  The [Practical DuckDB draft](../future-courses/duckdb/course.md) is proposed; the preference
+  correction does not approve its lesson count or authorize implementation.
 - Concise course flow (2026-09-12): Nick studies alongside parenting and a full-time job and
   reports that current PostgreSQL Essentials lessons take roughly ten minutes. Future courses
   should have a small, fixed, mechanism-driven route agreed in Markdown before implementation.

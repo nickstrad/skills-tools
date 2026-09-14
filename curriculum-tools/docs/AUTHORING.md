@@ -234,7 +234,7 @@ Do this only after its Markdown route under `future-courses/` is agreed. Plannin
 this command.
 
 ```sh
-tutor new-course duckdb "DuckDB Systems" duckdb "Columnar engine internals" 1.1
+tutor new-course duckdb "Practical DuckDB: Data Flows" duckdb "Read, transform, validate, and export data" 1.1
 ```
 
 This creates `courses/duckdb/` with `course.json`, an empty `lessons/` directory, and a link to its

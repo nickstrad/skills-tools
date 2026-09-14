@@ -88,6 +88,11 @@ verification. These are teaching inputs, not automatic course changes.
 
 ## Optional technical source research
 
+[`../duckdbresearch.md`](../duckdbresearch.md) groups practical DuckDB uses around SQLite and
+PostgreSQL integration, distributed-system analysis, AI evaluation/feedback, retrieval experiments,
+and shared datasets. It distinguishes documented capabilities from proposed applications; it does
+not expand the [proposed course](../future-courses/duckdb/course.md).
+
 Selective technical source research lives in [`readings/sqlite/`](readings/sqlite/). It supports
 planning and fact checking; it is not assigned learner work or a progression gate:
 

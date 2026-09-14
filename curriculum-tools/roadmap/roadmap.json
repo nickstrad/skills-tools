@@ -201,10 +201,10 @@
       "track": "main",
       "status": "planned",
       "tool": "An embedded analytical SQL engine that queries data including Parquet files.",
-      "goals": "Study columnar execution, scans, pushdown, aggregation, parallelism and spilling; explain analytical work and incomplete results.",
-      "diagram": "",
+      "goals": "Build practical data flows with DuckDB: query CSV, JSON, Parquet, SQLite files, and PostgreSQL; handle source types; extract, clean, join, and summarize data; validate and export datasets or write checked results back to PostgreSQL; run repeatable pipelines. Understand where DuckDB fits at a high level, with internals only as needed for practical decisions.",
+      "diagram": "Files + SQLite + PostgreSQL\n             |\n             v\n         DuckDB SQL -> clean and join -> validate\n                                           |\n                                           v\n                              Parquet / CSV / PostgreSQL report",
       "course": "",
-      "plan": "",
+      "plan": "future-courses/duckdb/course.md",
       "notes": "",
       "followups": [
         {
