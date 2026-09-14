@@ -7,6 +7,7 @@ without paying for a complete curriculum, lab, or validation suite up front.
 | --- | --- | --- | --- |
 | SQLite Essentials | [sqlite/course.md](sqlite/course.md) | Proposed; no essentials lessons implemented | 32 lessons; target ~10 min, core ceiling 15 min |
 | Linux Systems v2 | [linux-v2/course.md](linux-v2/course.md) | Proposed; no v2 lessons implemented | 44 lessons; target ~10 min, core ceiling 15 min |
+| Practical DuckDB: Data Flows and Improving AI Systems | [duckdb/course.md](duckdb/course.md) | Agreed; first 5 lessons authored | 32 core lessons + 5 optional projects; core target ~10 min, ceiling 15 min |
 
 ## Planning contract
 

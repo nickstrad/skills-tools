@@ -1,6 +1,6 @@
 ---
 name: tutor
-description: "Guide the PostgreSQL Essentials course; the PostgreSQL Systems, SQLite Systems, Linux Systems, and gRPC and Protocol Buffers reference courses; the planned SQLite Essentials and Linux Systems v2 routes; and the overall learning roadmap through the tutor CLI. Use for course routes, lessons, search, modules, notes, progress, and what to learn next; not for unrelated systems troubleshooting."
+description: "Guide the PostgreSQL Essentials and Practical DuckDB courses; the PostgreSQL Systems, SQLite Systems, Linux Systems, and gRPC and Protocol Buffers reference courses; the planned SQLite Essentials and Linux Systems v2 routes; and the overall learning roadmap through the tutor CLI. Use for course routes, lessons, search, modules, notes, progress, and what to learn next; not for unrelated systems troubleshooting."
 ---
 
 # Systems Tutor
@@ -41,6 +41,10 @@ separate review, required prediction or reveal, written response, or reading che
 
 ## Courses and routes
 
+- `duckdb` is Practical DuckDB: Data Flows and Improving AI Systems. Lessons 1–5 of its
+  32-lesson route are authored; remaining core lessons and optional projects are planned.
+  Its experiments use the pinned DuckDB 1.5.5 wrapper and fresh disposable fixtures documented
+  in `curriculum-tools/courses/duckdb/README.md`. No prior PostgreSQL course completion is needed.
 - `postgres-essentials` is the current PostgreSQL learning path. Its fixed 40-lesson route may
   include planned entries that are not yet authored.
 - `postgres-legacy` is the PostgreSQL Systems reference (`postgres` remains its compatibility alias).

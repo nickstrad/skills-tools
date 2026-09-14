@@ -5,6 +5,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,6 +33,12 @@ func replacement(sql string) string {
 	return "cat > \"$DUCK_LAB/query.sql\" <<'WORKED_SQL'\n" + sql + "\nWORKED_SQL\nsed -i \"s|LAB_PATH|$DUCK_LAB|g\" \"$DUCK_LAB/query.sql\"\n"
 }
 func main() {
+	from := flag.Int("from", 1, "resume independent trials at this lesson; retain earlier evidence")
+	to := flag.Int("to", 5, "last independent lesson to run; shared sequence always covers all five")
+	flag.Parse()
+	if *from < 1 || *to > 5 || *from > *to {
+		panic("invalid lesson range")
+	}
 	root, err := os.Getwd()
 	must(err)
 	dir := filepath.Join(root, "courses/duckdb")
@@ -50,6 +57,12 @@ func main() {
 		write(filepath.Join(clone, name), string(data))
 	}
 	var evidence strings.Builder
+	if *from > 1 || *to < 5 {
+		prior, e := os.ReadFile(filepath.Join(dir, "validation/results.txt"))
+		must(e)
+		evidence.Write(prior)
+		evidence.WriteString("\nResumed after correcting evidence comparisons.\n")
+	}
 	command := func(label, name string, args ...string) string {
 		cmd := exec.Command(name, args...)
 		cmd.Dir = root
@@ -57,7 +70,7 @@ func main() {
 		out = []byte(strings.ReplaceAll(string(out), "\r\n", "\n"))
 		evidence.WriteString("\n=== " + label + " ===\n" + string(out))
 		// Even an unexpected shell failure must not leave its private PostgreSQL server behind.
-		for _, match := range regexp.MustCompile(`fixture=(/tmp/duckdb-lesson\.[A-Za-z0-9]+)`).FindAllStringSubmatch(string(out), -1) {
+		for _, match := range regexp.MustCompile(`(/tmp/duckdb-lesson\.[A-Za-z0-9]+)`).FindAllStringSubmatch(string(out), -1) {
 			if _, statErr := os.Stat(match[1]); !os.IsNotExist(statErr) {
 				cleanup := exec.Command("bash", filepath.Join(dir, "lab/cleanup.sh"), match[1])
 				cleanupOut, cleanupErr := cleanup.CombinedOutput()
@@ -86,7 +99,7 @@ func main() {
 		1: {"102,2300\n104,1700", "2,4000"},
 		2: {"2,4000", "local_before_refresh,2,4000", "102,2300\n104,1700\n106,600", "3,4600"},
 		3: {"1,Ada\n3,Sam", "source.sqlite: OK"},
-		4: {"Mismatch Type Error", "3,oops,,rejected", "5,-50,-50,rejected", "accepted,2,3500", "rejected,3,-50", "5,5", "source.sqlite: OK"},
+		4: {"Mismatch Type Error", "3,oops,NULL,rejected", "4,NULL,NULL,rejected", "5,-50,-50,rejected", "accepted,2,3500", "rejected,3,-50", "5,5", "source.sqlite: OK"},
 		5: {"102,2300\n104,1700", "2,4000", "orders.csv: OK"},
 	}
 	starters := map[int][]string{1: {"999,99900", "1,99900"}, 2: {"5,6900", "local_before_refresh,5,6900", "6,7500"}, 3: {"customer_id,name\n1,Ada\n3,Sam"}, 4: {"rejected,5,", "5,5"}, 5: {"4,6100"}}
@@ -108,6 +121,9 @@ func main() {
 			wrong = strings.ReplaceAll(answer, " AND status='paid'", "")
 		}
 		for _, variant := range []string{"starter", "answer", "wrong"} {
+			if l.Ordinal < *from || l.Ordinal > *to {
+				continue
+			}
 			script := "set -euo pipefail\n" + l.Setup + "\nprintf 'fixture=%s\\n' \"$DUCK_LAB\"\n"
 			if variant == "answer" {
 				script += replacement(answer)
@@ -131,6 +147,9 @@ func main() {
 			if l.Ordinal != 4 && strings.Contains(out, "Error:") {
 				panic(label + " unexpected error")
 			}
+			if l.Ordinal == 4 && strings.Count(out, "Error:") != 1 {
+				panic(label + " unexpected error inventory")
+			}
 		}
 		l.Code = replacement(answer) + l.Code + "\n" + cleanup
 		var prereqs []string
@@ -145,6 +164,7 @@ func main() {
 	contains("shared-starters", out, "5/5 lessons completed")
 	out = command("shared-worked-sequence", tutor, "--root", work, "duckdb", "validate", "--isolated", "--timeout", "60000", "--db", filepath.Join(work, "worked.sqlite"))
 	contains("shared-worked-sequence", out, "5/5 lessons completed")
+	out = regexp.MustCompile(`(?m)^  \[A\] ?`).ReplaceAllString(out, "")
 	for n, checks := range answers {
 		contains(fmt.Sprint(n), out, checks...)
 	}

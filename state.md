@@ -38,6 +38,35 @@ worked answer and observed interpretation; core target 10–12 minutes.
 
 ## Events / remaining work
 
+- 2026-09-14: boundary trials rejected DuckDB writes to both attachments and native reader writes;
+  source row counts preserved and both final labs removed. Final learner endpoint responds with
+  the original /labs/pglab/primary; no batch process remains. Root 142 GiB free, 2% inodes,
+  6.8 GiB RAM available. Progress hash unchanged and WAL empty. All five CLI lesson renders,
+  copy-adoption/progress checks, shell syntax and Go vet passed.
+- 2026-09-14 required reflection completed: KB search 33 found no DuckDB entry; added and reread
+  `data/duckdb-course-tools.md`. Recorded useful feedback on search 32 rank 1. Course-specific
+  findings remain in repository knowledge; results compacted to latest accepted trial blocks.
+  Remaining: final documentation/acceptance commit, remove only owned scratch files, delete
+  this log and commit its removal. Retain installed 133 MiB tools for learner use.
+- 2026-09-14 acceptance: final validator exits successfully. All independent variants plus
+  shared starters and worked sequence accepted; every named fixture absent after cleanup.
+  Shared skill source updated through its existing symlinks. Durable connector/CSV/presentation
+  findings recorded in docs/knowledge/duckdb-course.md. Remaining: final boundary/readiness
+  checks, evidence report/commits, knowledge-store reflection and any warranted update,
+  remove scratch files, then delete this log.
+- 2026-09-14: all 15 independent starter/answer/wrong-choice experiments passed. Shared starter
+  and worked sequence each completed 5/5 with correct data; final comparison needed to strip
+  the shared renderer's `[A]` prefixes. Review also found lesson 1 catalog inspection too broad;
+  restricted it to public/sales. Revalidate lesson 1 plus shared sequence for this command change.
+  Progress-copy adoption adds 5 lessons while preserving all 39 progress and 40 attempt rows;
+  existing 261 lesson identities preserved. The real shared DB remains uninitialized for DuckDB
+  intentionally: authoring does not refresh it. Installed tutor/skills symlinks check cleanly.
+- 2026-09-14: committed authored course, pinned fixtures, route and in-progress validator as
+  cd18aac. Re-run passed lessons 1–3 in all variants. Lesson 4 SQL also produced the intended
+  2 accepted/3500 and 3 rejected, but validator expected blank CSV NULL rather than 1.5.5's
+  literal NULL. Corrected this comparison and resume at 4; accepted earlier trials need no rerun.
+  Isolated route/init/render/done/skip work. Smoke invocation corrected to `undone 2` (verb-first)
+  and absolute source DB path because the launcher changes cwd to curriculum-tools.
 - 2026-09-14 validation checkpoint: lessons 1–2 starter/answer/wrong-choice trials passed.
   Lesson 3's native sqlite3 CSV uses CRLF while DuckDB CSV uses LF; the first validator comparison
   rejected equivalent rows. Normalize line endings in captured evidence, then resume validation.

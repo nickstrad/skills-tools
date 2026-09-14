@@ -50,6 +50,7 @@ which paid orders belong to September 14, 2026, and what is their total?
   **ATTACH ... AS app (TYPE postgres, READ_ONLY)** connects under the catalog name app.
   The fixture uses a private socket directory, port 55439, database postgres and role reader.
 - **information_schema.tables** lists table_catalog, table_schema and table_name.
+  The inspection limits schemas to public and sales to omit PostgreSQL's system catalogs.
   A catalog is an attached database; a schema is a namespace inside it.
   For example, **SELECT * FROM app.public.orders** names a particular remote table.
 - **cat > ... <<'SQL'** writes a starter query file. Open that printed path in your usual editor
@@ -80,6 +81,7 @@ cat "$DUCK_LAB/attach.sql"
 { cat "$DUCK_LAB/attach.sql"; cat <<'SQL'
 SELECT table_catalog, table_schema, table_name
 FROM information_schema.tables WHERE table_catalog='app'
+  AND table_schema IN ('public','sales')
 ORDER BY table_schema, table_name;
 SQL
 } | duck :memory: -bail -csv
@@ -132,4 +134,3 @@ A qualified name is part of the data contract. Both clients read the same source
 through different SQL interfaces; neither comparison creates a stored DuckDB extract.
 The equality is measured on this quiet fixture, not a promise that two independent reads
 of a changing production database share one snapshot.
-
