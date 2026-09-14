@@ -96,6 +96,9 @@ backups or bulky evidence were retained. Final host checks found no batch-owned 
 validation process. The learner endpoint `/tmp:5440` still reported
 `/labs/pglab/primary`, recovery=false, and answered SELECT successfully. Root has about 142 GiB
 free, 2% inodes used, and 6.8 GiB available RAM. The 133 MiB tool cache remains for learner use.
+After removing author progress copies, rendered scratch output and download metadata, /tmp
+returned to its 9.1 MiB baseline. Zero DuckDB lesson/validation roots remain. All 14 entries in
+the accepted runtime source manifest were rechecked successfully before the final commit.
 
 The requested knowledge-store reflection searched for an existing DuckDB entry (no result),
 then added and reread **data/duckdb-course-tools.md** through `kb`. It records the verified pinned
