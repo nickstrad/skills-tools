@@ -36,10 +36,10 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 ## Syntax breakdown
 
 - In Bash, **source .../session.sh 2** prepares a fresh private PostgreSQL fixture, sets
-  **DUCK_COURSE** and **DUCK_LAB**, and defines **duck** and **duck_cleanup**. Use source so
+  **DUCK_COURSE** and **DUCK_LAB**, creates your starter, and defines the helpers. Use source so
   these stay available in your shell. No earlier lab is needed; the CLI must already be installed.
-  The remaining Setup runs only if the helper succeeds. **duck**, **-bail**, **-csv** and the
-  attachment pipeline behave as in lesson 1. Run **duck_cleanup** when finished; normal shell
+  **duck**, **-bail** and **-csv** behave as in lesson 1.
+  Run **duck_cleanup** when finished; normal shell
   exit also cleans up unless your shell already had an EXIT trap.
 - **postgres_query('app', $$ ... $$)** executes the enclosed SQL in PostgreSQL.
   The dollar-quoted SQL string avoids escaping its single-quoted date and status values.
@@ -53,6 +53,23 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 - **psql ... -U postgres** performs the supplied source insert only in this owned fixture.
   The attachment still uses the SELECT-only reader. Each CLI invocation closes before the next opens.
 - Rerunning query.sql performs an explicit replacement; it does not append another copy.
+
+The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
+in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+
+```sql
+CREATE OR REPLACE TABLE batch AS
+SELECT * FROM postgres_query('app', $$
+  SELECT * FROM sales.orders
+$$);
+DESCRIBE batch;
+SELECT * FROM batch ORDER BY order_id;
+SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
+```
+
+**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
+connection, stops on SQL errors, and prints CSV results. It reuses **local.duckdb** so
+the saved batch survives between runs.
 
 Spend 3–5 minutes editing query.sql before Run. Replace the all-columns, all-orders starter
 with the two-column source query for paid orders in the requested day. Preserve the local table
@@ -68,23 +85,12 @@ For a fresh attempt, clean up and repeat Setup.
 
 ## Setup
 ```bash
-source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 && {
-cat > "$DUCK_LAB/query.sql" <<'SQL'
-CREATE OR REPLACE TABLE batch AS
-SELECT * FROM postgres_query('app', $$
-  SELECT * FROM sales.orders
-$$);
-DESCRIBE batch;
-SELECT * FROM batch ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
-SQL
-printf 'Edit the SQL inside postgres_query in %s/query.sql before Run.\n' "$DUCK_LAB"
-}
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2
 ```
 
 ## Run
 ```bash
-{ cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/query.sql"; } | duck "$DUCK_LAB/local.duckdb" -bail -csv
+duck_run
 psql -X -h "$DUCK_LAB" -p 55439 -U postgres -d postgres -v ON_ERROR_STOP=1 -c "
 INSERT INTO sales.orders VALUES (106,'2026-09-14','paid',600,'new@example.invalid');"
 duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
@@ -92,7 +98,7 @@ SELECT 'local_before_refresh' AS stage, count(*) AS orders, sum(amount_cents) AS
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
 SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM sales.orders
 WHERE ordered_on >= DATE '2026-09-14' AND ordered_on < DATE '2026-09-15' AND status='paid';"
-{ cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/query.sql"; } | duck "$DUCK_LAB/local.duckdb" -bail -csv
+duck_run
 ```
 
 ## Expected result

@@ -40,23 +40,34 @@ which paid orders belong to September 14, 2026, and what is their total?
   **bash curriculum-tools/courses/duckdb/lab/install.sh** from the repository root.
   It installs the pinned 1.5.5 CLI and matching signed connectors into the course cache.
   Existing PostgreSQL 16 and sqlite3 clients supply the source tools.
-- **setup.sh 1** creates a fresh private PostgreSQL cluster and returns its directory.
-  It supplies the data, connection details and a SELECT-only reader role. Root switches to the
-  postgres OS user for server ownership. **DUCK_LAB** is your unique directory, never /labs/pglab.
-  **trap ... EXIT** is a fallback teardown when this shell exits.
+- **source .../session.sh 1** prepares the fixture, editable starter and helpers in your current
+  Bash shell. It supplies connection details and a SELECT-only reader role, then prints the
+  attachment and catalog inventory. **DUCK_LAB** is your unique directory, never /labs/pglab.
+  Finish with **duck_cleanup**; normal shell exit also cleans up unless an EXIT trap already exists.
 - **duck** calls the course's pinned CLI. **-bail** stops on SQL errors.
   **-csv** prints compact comma-separated results. **:memory:** keeps this DuckDB session temporary.
-- **cat "$DUCK_LAB/attach.sql"** shows the actual connection: **LOAD postgres** loads the connector;
+- Setup prints **attach.sql**, the actual connection: **LOAD postgres** loads the connector;
   **ATTACH ... AS app (TYPE postgres, READ_ONLY)** connects under the catalog name app.
   The fixture uses a private socket directory, port 55439, database postgres and role reader.
 - **information_schema.tables** lists table_catalog, table_schema and table_name.
   The inspection limits schemas to public and sales to omit PostgreSQL's system catalogs.
   A catalog is an attached database; a schema is a namespace inside it.
   For example, **SELECT * FROM app.public.orders** names a particular remote table.
-- **cat > ... <<'SQL'** writes a starter query file. Open that printed path in your usual editor
-  before Run. **{ cat ...; cat ...; } | duck** sends attachment and query to the same connection.
 - **psql -X -v ON_ERROR_STOP=1** ignores personal startup files and stops on source SQL errors.
   Its explicit host/port/database prevent accidental use of the learner lab.
+
+The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
+in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+
+```sql
+SELECT order_id, amount_cents FROM app.public.orders
+WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
+SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM app.public.orders
+WHERE ordered_on=DATE '2026-09-14' AND status='paid';
+```
+
+**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
+connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
 
 Spend 3–4 minutes on the task: inspect the listed names and change the starter's source
 qualification so it selects the sales table. Retain the date/status boundaries, show the order IDs,
@@ -71,32 +82,12 @@ the fixture's reader role also lacks source write privileges. Reads still consum
 
 ## Setup
 ```bash
-cd /root/Software/skills-tools
-export DUCK_COURSE="$PWD/curriculum-tools/courses/duckdb"
-export DUCK_LAB=$(bash "$DUCK_COURSE/lab/setup.sh" 1)
-test -n "$DUCK_LAB" || exit 1
-trap 'bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"' EXIT
-duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
-cat "$DUCK_LAB/attach.sql"
-{ cat "$DUCK_LAB/attach.sql"; cat <<'SQL'
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables WHERE table_catalog='app'
-  AND table_schema IN ('public','sales')
-ORDER BY table_schema, table_name;
-SQL
-} | duck :memory: -bail -csv
-cat > "$DUCK_LAB/query.sql" <<'SQL'
-SELECT order_id, amount_cents FROM app.public.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM app.public.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid';
-SQL
-printf 'Edit the source names in %s/query.sql before Run.\n' "$DUCK_LAB"
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 1
 ```
 
 ## Run
 ```bash
-{ cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/query.sql"; } | duck :memory: -bail -csv
+duck_run
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
 SELECT order_id, amount_cents FROM sales.orders
 WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
@@ -111,7 +102,7 @@ order 999 and total 99900. A successful query can therefore read the wrong sourc
 
 Your completed query and psql both return IDs 102/104 with amounts 2300/1700, count 2,
 total 4000 cents. A missing app catalog usually means the attachment and query ran in
-different CLI processes. Keep both in the supplied pipeline.
+different CLI processes. **duck_run** keeps both in the same connection.
 
 Worked answer — replace query.sql with:
 ```sql
@@ -123,9 +114,7 @@ WHERE ordered_on=DATE '2026-09-14' AND status='paid';
 
 Cleanup, after inspecting the results:
 ```bash
-bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"
-trap - EXIT
-unset DUCK_LAB
+duck_cleanup
 ```
 
 ## Systems lens

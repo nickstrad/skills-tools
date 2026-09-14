@@ -58,6 +58,14 @@ resources after validation. Historical scratch paths are not instructions to reb
 
 ## Shared lesson design
 
+For every course, follow `docs/knowledge/learner-work.md#simple-lab-lifecycle`: simple setup,
+focused learner work, simple cleanup. Put recurring environment/fixture setup, starter-file
+creation, connection plumbing and teardown in reusable helpers. Keep mechanism-relevant SQL,
+commands and evidence visible; helpers must not solve the learner's task. Apply this when
+authoring or revising lessons. Verify rendered content, not only Markdown. An explicitly
+authorized catalog rollout uses the tutor CLI after copy-based progress checks; authoring alone
+continues to use temporary databases.
+
 Every lesson causes a phenomenon and observes it. The generic CLI owns presentation:
 `tutor <course> route` lists status, `<n> lesson` prints one complete lesson, and explicit
 `<n> done` or `<n> skip` records the learner's decision. `undone` restores a skipped lesson to

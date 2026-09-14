@@ -30,5 +30,6 @@ LOAD sqlite;
 ATTACH '$lab/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 SQL
 fi
+bash "$course/lab/prepare.sh" "$lesson" "$lab"
 trap - EXIT
 printf '%s\n' "$lab"

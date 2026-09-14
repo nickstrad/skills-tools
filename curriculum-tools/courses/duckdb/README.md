@@ -35,27 +35,45 @@ when you choose to record completion. `skip` and `undone` are explicit progress 
 
 ## Lab lifecycle
 
-Lessons 2–5 replace repeated shell setup with one sourced helper. For example, from any directory:
+Lessons 1–5 use one sourced setup command. For example, from any directory in Bash:
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2
 ```
 
-Use the lesson number 2, 3, 4 or 5. This sets `DUCK_COURSE` and `DUCK_LAB`, defines `duck`,
-creates the fixture, and records the source fingerprint for file lessons. Continue with the
-lesson's SQL starter and experiment; sourcing alone does not create query.sql. The lesson Setup
-includes the source command, so paste that complete block instead when following a lesson.
-The `&& { ... }` group prevents starter files being overwritten if setup fails.
+Use the current lesson number 1–5. Setup creates the fixture and editable `query.sql`, supplies
+the connection/staging SQL, prints the lesson's initial source observations, and records file
+fingerprints where applicable. It prints the full work-file path and the run/cleanup commands.
+Edit `"$DUCK_LAB/query.sql"` in your editor, then follow the lesson's Run block:
+
+```bash
+duck_run
+# Inspect the results and any additional source comparison in the lesson.
+duck_cleanup
+```
+
+`duck_run` reads your edited query every time. It executes the supplied `session.sql` followed
+by `query.sql` in one connection with SQL-error checking and CSV output. Lesson 2 reuses
+`local.duckdb`; other lessons use fresh in-memory databases. It does not insert the new source
+order in lesson 2: that explicitly shown experiment step remains in the lesson's Run block.
+The starter SQL and mechanism-relevant connection/staging SQL remain visible in the lessons.
+Use `duck_check_source` for the unchanged-file check in lessons 3–5.
 
 After a lesson-source update, run `tutor duckdb init` once to refresh the catalog shown by
-`tutor duckdb N lesson`. Existing progress is retained; revisions 2–5 now use these helpers.
+`tutor duckdb N lesson`. Verify the displayed Setup calls `session.sh N`; modifying Markdown
+alone does not refresh the stored catalog. This mechanical refactor retains lesson revisions
+and recorded progress because the learning tasks and expected results have not changed.
 
-Finish with `duck_cleanup`; run `duck_check_source` where lessons 3–5 check an unchanged file.
 Repeat cleanup safely, then source again for a fresh attempt. Setup refuses to replace a selected
 lab, preserving unfinished query edits. Source in Bash rather than running `bash session.sh`,
 because variables and functions must remain in the current shell. The helper leaves cwd and shell
 options unchanged. It installs an EXIT cleanup trap when none exists; if your shell already has
 one, it retains that handler and asks you to run `duck_cleanup` explicitly.
+
+The shell helpers also expose `DUCK_COURSE`, `DUCK_LAB`, `DUCK_DB`, and the pinned `duck` CLI
+for the lesson's specific observation commands. `lab/prepare.sh` copies the numbered SQL
+templates; `lab/inspect.sh` prints source evidence and accepts only the intended lesson-4
+scanner failure. Neither helper fills in the learner's answer.
 
 Setup creates a uniquely named `/tmp/duckdb-lesson.XXXXXX` directory and prints it as DUCK_LAB.
 Lessons 1–2 create one small PostgreSQL cluster, listening only on that directory's Unix socket

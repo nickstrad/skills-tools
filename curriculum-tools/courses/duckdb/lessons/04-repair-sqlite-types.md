@@ -39,14 +39,26 @@ the ability to reconcile the report with its input.
 ## Syntax breakdown
 
 - In Bash, **source .../session.sh 4** supplies a fresh file, **DUCK_LAB**, **DUCK_COURSE**,
-  **duck**, and **duck_cleanup**; it needs the installed CLI but no earlier fixture.
-  The remaining Setup runs only on success. **duck_check_source** checks the source fingerprint
+  your starter and the helpers; it needs the installed CLI but no earlier fixture.
+  **duck_check_source** checks the source fingerprint
   saved by the helper. **duck :memory: -bail -csv** uses a temporary database and stops on SQL errors.
 - **sqlite3 typeof(amount_cents)** reports each stored SQLite value's type, independently of
   its column declaration. Numeric text '2300' was stored as integer by SQLite's column affinity;
   oops remained text. NULL means missing, not zero.
-- The first DuckDB query deliberately fails. **if ...; then ...; else ...; fi** captures its
-  failure without aborting the shell. Read the printed error: an unrelated error is not success.
+- Setup first tries **SELECT * FROM source.main.invoices** with the normal scanner and prints
+  its deliberate type error. The helper handles that expected failure; unrelated errors stop setup.
+- Setup then prints **text-attach.sql**, the supplied connection and raw-stage SQL that
+  **duck_run** executes before your query. Inspect the ordering of these statements:
+
+  ```sql
+  LOAD sqlite;
+  SET sqlite_all_varchar=true;
+  ATTACH 'LAB_PATH/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+  CREATE TABLE raw AS
+  SELECT invoice_id, amount_cents AS raw_amount FROM source.main.invoices;
+  ```
+
+  The helper fills in the actual file path.
 - **SET sqlite_all_varchar=true** must be applied after LOAD sqlite and before attachment.
   It makes the scanner expose all columns as text, including invoice_id. It preserves these
   fixture values as text; it is not a byte-preserving archive of arbitrary SQLite values.
@@ -58,30 +70,10 @@ the ability to reconcile the report with its input.
   **GROUP BY disposition** lets you account for both groups. SUM ignores NULLs,
   so only the accepted sum is the report's usable total.
 
-Spend 3–5 minutes completing query.sql before Run: replace the dummy NULL conversion with
-TRY_CAST(raw_amount AS BIGINT), then strengthen the acceptance condition to reject negative
-amounts as well as missing/invalid ones. Keep raw and every staged row; do not add a WHERE
-that discards rejects. The ID and original text must remain visible beside the disposition.
+The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
+in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
 
-## Setup
-```bash
-source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4 && {
-sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
-SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type FROM invoices ORDER BY invoice_id;"
-if { cat "$DUCK_LAB/attach.sql"; echo 'SELECT * FROM source.main.invoices;'; } | duck :memory: -bail -csv > "$DUCK_LAB/scan.txt" 2>&1; then
-  cat "$DUCK_LAB/scan.txt"
-  echo 'Unexpected successful scan: inspect the fixture before continuing.'
-else
-  cat "$DUCK_LAB/scan.txt"
-fi
-cat > "$DUCK_LAB/text-attach.sql" <<SQL
-LOAD sqlite;
-SET sqlite_all_varchar=true;
-ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
-CREATE TABLE raw AS
-SELECT invoice_id, amount_cents AS raw_amount FROM source.main.invoices;
-SQL
-cat > "$DUCK_LAB/query.sql" <<'SQL'
+```sql
 CREATE TABLE staged AS
 SELECT *, CAST(NULL AS BIGINT) AS amount_cents FROM raw;
 CREATE VIEW classified AS SELECT *,
@@ -93,14 +85,24 @@ SELECT disposition, count(*) AS records, sum(amount_cents) AS total_cents
 FROM classified GROUP BY disposition ORDER BY disposition;
 SELECT (SELECT count(*) FROM raw) AS source_rows,
        (SELECT count(*) FROM classified) AS classified_rows;
-SQL
-printf 'Complete conversion and acceptance in %s/query.sql before Run.\n' "$DUCK_LAB"
-}
+```
+
+**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
+connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
+
+Spend 3–5 minutes completing query.sql before Run: replace the dummy NULL conversion with
+TRY_CAST(raw_amount AS BIGINT), then strengthen the acceptance condition to reject negative
+amounts as well as missing/invalid ones. Keep raw and every staged row; do not add a WHERE
+that discards rejects. The ID and original text must remain visible beside the disposition.
+
+## Setup
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4
 ```
 
 ## Run
 ```bash
-{ cat "$DUCK_LAB/text-attach.sql"; cat "$DUCK_LAB/query.sql"; } | duck :memory: -bail -csv
+duck_run
 duck_check_source
 ```
 

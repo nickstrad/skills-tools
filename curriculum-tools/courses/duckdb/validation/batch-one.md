@@ -1,5 +1,8 @@
 # DuckDB first-batch acceptance — lessons 1–5
 
+Latest: [one-command setup and live catalog rollout](setup-refresh.md) covers the completed
+helper refactor for all five lessons. Earlier sections below remain historical evidence.
+
 ## Setup-helper revision — 2026-09-14
 
 Lessons 2–5 now use revision 2 and the sourced `lab/session.sh` lifecycle helper. SQL starters,

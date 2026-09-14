@@ -71,6 +71,13 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
 
 ## Course editing rules
 
+- Across all courses, use a simple setup command, focused learner work, and simple cleanup.
+  Put repeated environment setup, fixtures, starter-file creation, connection plumbing and
+  process teardown behind reusable helpers. Keep the mechanism and learner decisions visible;
+  do not make learners recreate shell scaffolding or copy completed solutions. Apply this when
+  authoring or revising lessons; see [the shared norm](docs/knowledge/learner-work.md#simple-lab-lifecycle).
+  Verify the rendered lesson uses the helpers. For an authorized catalog rollout, refresh through
+  the tutor CLI after testing on a copy, then verify displayed content and unchanged progress.
 - Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
   using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion, and
   final-outline sign-off; a route does not authorize scaffolding, progress changes, or validation

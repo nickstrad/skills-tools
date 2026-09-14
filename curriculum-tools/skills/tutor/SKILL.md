@@ -76,6 +76,13 @@ roadmap.
 
 ## New lessons
 
+Across all courses, use simple setup, focused learner work and simple cleanup as specified in
+`docs/knowledge/learner-work.md#simple-lab-lifecycle`. Recurring shell setup, fixtures,
+starter-file creation and teardown belong in reusable helpers. Keep the taught mechanism and
+learner decisions visible. Apply this to new or revised lessons; do not assume legacy lessons
+already follow it. Verify that the stored catalog displays the revised workflow during an
+authorized rollout, preserving recorded progress.
+
 Apply `docs/knowledge/learner-work.md` whenever a new lesson is planned or authored. Reserve a useful
 task whose result depends on the learner's work, while supplying setup, fixtures, process control,
 success evidence, interpretation, cleanup, optional hints, and a clearly marked worked answer.

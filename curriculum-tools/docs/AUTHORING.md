@@ -73,6 +73,15 @@ boundary, evidence to collect, and an attempt budget; see the repository's
 
 ## The lesson contract
 
+Across all courses, use the [simple lab lifecycle](../../docs/knowledge/learner-work.md#simple-lab-lifecycle):
+one setup command prepares fixtures and editable starter files, the learner works on the target
+mechanism, and one cleanup command retires owned resources. Put repeated exports, connection
+plumbing, file-writing scaffolding and teardown behind reusable helpers. Keep the relevant SQL,
+commands and evidence visible and the learner's meaningful decisions unfinished. Apply this to
+new lessons and revisions; do not require learners to rebuild the same shell setup each time.
+Verify both source and rendered lesson content. When catalog rollout is authorized, test on a copy,
+refresh through `tutor COURSE init`, and verify progress preservation and actual displayed text.
+
 Each lesson is a Markdown file at `courses/<id>/lessons/NN-<slug>.md`. The integer prefix supplies
 the ordinal, and the filename slug must match the `slug` header. The complete minimal file grammar is:
 

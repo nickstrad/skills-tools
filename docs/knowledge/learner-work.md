@@ -43,6 +43,34 @@ the current concise policy generalizes that preference without changing existing
 
 ## Applying and checking the norm
 
+### Simple lab lifecycle
+
+On 2026-09-14 Nick explicitly generalized the DuckDB setup simplification to every course:
+prepare with a simple setup script, do the work being taught, and clean up easily. Apply this
+to new lessons and revisions of existing lessons. This is shared authoring guidance, not a
+claim that every legacy lesson has already been converted.
+
+- Supply one setup command and one cleanup command wherever practical. Hide repeated exports,
+  shell functions, fixture provisioning, editable starter-file creation, connection plumbing,
+  fingerprints and process teardown in reusable course helpers. Use a sourced Bash helper when
+  variables/functions must remain in the learner's shell; explain that once. Keep one-time
+  installation separate from recurring lab preparation.
+- Print the work-file path and next commands. A learner should immediately know what to edit,
+  run, and inspect. Keep the target SQL, commands, configuration choices and evidence visible
+  in the lesson; helpers must not complete the learner's task. Setup observations may be printed
+  automatically if the lesson explains their commands, meaning and expected evidence.
+- Refuse to overwrite an active attempt. Handle partial setup failures, stop only owned
+  processes, and make explicit cleanup repeatable. Shell-exit cleanup is a fallback; preserve
+  existing traps/options and explain when explicit cleanup is required.
+- Validate the displayed workflow against the real tools, including starter, worked answer,
+  meaningful wrong choice, rerun behavior and cleanup. Shared lesson content comes from the
+  stored catalog: changing Markdown alone does not update `tutor COURSE N lesson`. During an
+  authorized rollout, verify refresh on a copy, run `tutor COURSE init`, and compare recorded
+  progress and displayed content. Author-only checks continue to use temporary databases.
+
+DuckDB lessons 1–5 implement this with `source .../lab/session.sh N`, an editable `query.sql`,
+`duck_run`, and `duck_cleanup`; their course README documents the details.
+
 The installed [tutor skill](../../curriculum-tools/skills/tutor/SKILL.md), local AGENTS guidance,
 [authoring contract](../../curriculum-tools/docs/AUTHORING.md) and templates carry this rule. At
 design time, name each lesson's task, supplied boundary, evidence and attempt budget.

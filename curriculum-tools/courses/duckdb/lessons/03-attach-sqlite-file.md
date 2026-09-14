@@ -35,21 +35,32 @@ synthetic file at setup, then uses a read-only attachment.
 ## Syntax breakdown
 
 - In Bash, **source .../session.sh 3** creates a fresh SQLite fixture without PostgreSQL,
-  sets **DUCK_LAB** and **DUCK_COURSE**, and supplies **duck** and **duck_cleanup**.
-  Use source with the course CLI already installed; the remaining Setup runs only on success.
+  sets **DUCK_LAB** and **DUCK_COURSE**, creates your starter, and supplies the helpers.
+  Use source with the course CLI already installed. Setup prints the catalog inventory.
   **-bail** stops on SQL errors, **-csv** prints CSV; **:memory:** creates a temporary database.
 - The helper saves the source file's byte fingerprint; **duck_check_source** verifies it.
   Our fixture is closed and has no active writer. Do not copy only the main file of a live
   SQLite database with pending WAL; use a SQLite-native backup for real data.
 - **LOAD sqlite; ATTACH ... AS source (TYPE sqlite, READ_ONLY)** exposes the file.
   **source.main.customers** names catalog, schema, table. SQLite's tables appear under main.
-- **information_schema.tables** lists names across the attached catalogs.
-  **.read** is unnecessary here: the shell concatenates the attachment, local decoy setup,
-  and query files into one CLI input.
+- **information_schema.tables** lists names across the attached catalogs. The helper supplies
+  a local customers decoy and prints both names; **duck_run** attaches the source and recreates
+  the local decoy before running your query in that same connection.
 - A related query, **SELECT customer_id FROM source.main.customers WHERE region='east'**,
   selects a different region. Adapt the source and predicate in your starter for west.
 - **sqlite3 -readonly -header -csv** opens the existing source in the native client and prints
   comparable columns. Within that client the same table is simply customers.
+
+The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
+in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+
+```sql
+SELECT customer_id, name FROM memory.main.customers
+WHERE region='east' ORDER BY customer_id;
+```
+
+**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
+connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
 
 Spend 3–4 minutes editing query.sql after Setup: select the west customers from the SQLite
 attachment, keeping customer_id/name output and ordering. Use the catalog listing to distinguish
@@ -57,26 +68,12 @@ the two customers tables. Success means matching native IDs/names and leaving th
 
 ## Setup
 ```bash
-source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3 && {
-cat > "$DUCK_LAB/local.sql" <<'SQL'
-CREATE TABLE customers AS SELECT 999 AS customer_id, 'west' AS region, 'Decoy' AS name;
-SQL
-{ cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/local.sql"; cat <<'SQL'
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables WHERE table_name='customers' ORDER BY table_catalog;
-SQL
-} | duck :memory: -bail -csv
-cat > "$DUCK_LAB/query.sql" <<'SQL'
-SELECT customer_id, name FROM memory.main.customers
-WHERE region='east' ORDER BY customer_id;
-SQL
-printf 'Edit the source and region in %s/query.sql before Run.\n' "$DUCK_LAB"
-}
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3
 ```
 
 ## Run
 ```bash
-{ cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/local.sql"; cat "$DUCK_LAB/query.sql"; } | duck :memory: -bail -csv
+duck_run
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
 SELECT customer_id, name FROM customers WHERE region='west' ORDER BY customer_id;"
 duck_check_source

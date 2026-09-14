@@ -24,7 +24,7 @@ archive index owns their historical catalog entry.
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [concise-course-cli.md](concise-course-cli.md) | Shared Go `tutor` route/lesson/done flow, Markdown plans, course discovery, the one progress database, and roadmap commands. |
 | [go-tutor-migration.md](go-tutor-migration.md) | Shared database preservation, raw/refreshed parity, source archives, validation limits and accepted Go migration evidence. |
-| [learner-work.md](learner-work.md) | Every lesson reserves meaningful learner work; the 2026-09-09 user norm generalized from the retired systemscoach review. |
+| [learner-work.md](learner-work.md) | Meaningful learner work and the all-course simple setup → focused work → easy cleanup contract. |
 | [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
 | [duckdb-course.md](duckdb-course.md) | Shared setup helpers, pinned 1.5.5 connectors, source qualification/type boundaries, and exact-query validation for practical DuckDB. |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |

@@ -35,9 +35,9 @@ the next planned lesson tackles messy input and explicit type contracts.
 ## Syntax breakdown
 
 - In Bash, **source .../session.sh 5** supplies a fresh orders.csv, **DUCK_LAB**,
-  **DUCK_COURSE**, **duck**, and **duck_cleanup**. No PostgreSQL or earlier lab is required.
-  The course CLI must be installed; the remaining Setup runs only if the helper succeeds.
-- **cat** prints the small raw CSV so you can independently check which rows belong.
+  **DUCK_COURSE**, your starter and the helpers. No PostgreSQL or earlier lab is required.
+  The course CLI must be installed.
+- Setup prints the small raw CSV so you can independently check which rows belong.
   The helper records a fingerprint; **duck_check_source** verifies that analysis left it unchanged.
 - **read_csv('path', header=true)** exposes the file as rows and uses the first line as names.
   **DESCRIBE SELECT ...** inspects inferred column types before your report runs.
@@ -47,9 +47,22 @@ the next planned lesson tackles messy input and explicit type contracts.
 - **count(*)** counts selected orders; **sum(amount_cents)** totals the same selection.
   Keep the row-inspection and aggregate predicates identical. Ordered IDs are stronger evidence
   than a total alone.
-- The unquoted shell **<<SQL** expands DUCK_LAB when writing your query file. The generated
-  path is supplied; only the WHERE clauses are your task. The earlier **duck** wrapper,
-  **-bail** and **-csv** behave as before. Finish with **duck_cleanup**.
+- The helper supplies the file path in your query; only the WHERE clauses are your task.
+  Finish with **duck_cleanup**.
+
+The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
+in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+
+```sql
+SELECT order_id, amount_cents FROM read_csv('LAB_PATH/orders.csv', header=true)
+WHERE status='paid' ORDER BY order_id;
+SELECT count(*) AS orders, sum(amount_cents) AS total_cents
+FROM read_csv('LAB_PATH/orders.csv', header=true) WHERE status='paid';
+```
+
+**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
+connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
+The helper fills in **LAB_PATH** with your actual fixture directory.
 
 Spend 3–4 minutes adapting both WHERE clauses in query.sql before Run. Select only paid
 orders in the requested day. Inspect the resulting IDs and reconcile their integer-cent sum
@@ -57,22 +70,12 @@ with the raw file. Hint: a date filter alone still includes a pending order.
 
 ## Setup
 ```bash
-source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5 && {
-cat "$DUCK_LAB/orders.csv"
-duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
-cat > "$DUCK_LAB/query.sql" <<SQL
-SELECT order_id, amount_cents FROM read_csv('$DUCK_LAB/orders.csv', header=true)
-WHERE status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents
-FROM read_csv('$DUCK_LAB/orders.csv', header=true) WHERE status='paid';
-SQL
-printf 'Edit both predicates in %s/query.sql before Run.\n' "$DUCK_LAB"
-}
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5
 ```
 
 ## Run
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duck_run
 duck_check_source
 ```
 

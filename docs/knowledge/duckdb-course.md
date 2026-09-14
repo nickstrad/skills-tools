@@ -34,14 +34,24 @@ count is not proof that a learner has solved the tasks.
 ## How to apply
 
 Repeated shell preparation belongs in reusable helpers, leaving DuckDB decisions and observations
-in the lesson. Lessons 2–5 source `lab/session.sh N` to select a fresh owned fixture, export
-DUCK_COURSE/DUCK_LAB, define `duck`, save file fingerprints where applicable, and arrange cleanup.
+in the lesson. Lessons 1–5 source `lab/session.sh N` to select a fresh owned fixture, create
+editable SQL starters, print initial source evidence, export the session variables, define
+`duck`/`duck_run`, save file fingerprints where applicable, and arrange cleanup.
+`duck_run` reads the learner's query and supplied connection/staging SQL in the same connection;
+only lesson 2 persists its local DuckDB database. Numbered SQL templates live in `lab/`.
 Use `duck_check_source` for the read-only file check and `duck_cleanup` to finish. Source the helper
 in Bash; executing it in a child process cannot configure the learner's shell. It resolves its
 own location, leaves cwd/options alone, refuses to replace a selected lab, and preserves existing
-EXIT handlers. With a pre-existing EXIT trap, explicit cleanup is required. Do not hide attachment,
-conversion, catalog inspection or learner-written query logic in setup helpers. The learner's
-standing preference is recorded in [the profile](../learner-profile.md).
+EXIT handlers. With a pre-existing EXIT trap, explicit cleanup is required. Keep attachment,
+conversion, catalog inspection and learner-written query logic visible in lesson explanations
+and SQL even when a helper performs the repetitive invocation. The all-course contract is in
+[the learner-work norm](learner-work.md#simple-lab-lifecycle).
+
+The tutor displays stored catalog content, not live Markdown. A helper refactor can be present
+in source while the learner still sees old exports and heredocs. For an authorized rollout,
+test `tutor duckdb init --db ABSOLUTE_COPY_PATH`, compare recorded progress/attempts, then refresh
+the live catalog and check all rendered Setup/Run blocks. Author validation alone stays isolated.
+Pure scaffolding refactors retain revisions when learner tasks and evidence are unchanged.
 
 Use [the course README](../../curriculum-tools/courses/duckdb/README.md) and
 [batch acceptance](../../curriculum-tools/courses/duckdb/validation/batch-one.md).

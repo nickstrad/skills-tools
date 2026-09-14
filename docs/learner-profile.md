@@ -72,6 +72,11 @@ this roadmap at the learner's request.
   restart if he returns to PostgreSQL. Check dependencies against DuckDB and keep recorded
   lesson progress. Current
   service/data disposition is in [the lab note](knowledge/postgres-lab.md).
+- All-course lab workflow (2026-09-14): Nick generalized the setup-helper preference to every
+  course: simple setup script, focused work on the lesson topic, easy cleanup. Helpers should
+  prepare editable starters too; learners should not recreate recurring shell scaffolding.
+  Keep the target mechanism and learner decisions visible. Apply this to new and revised lessons;
+  [the shared norm](knowledge/learner-work.md#simple-lab-lifecycle) owns the details.
 - DuckDB setup helpers (2026-09-14): move repeated setup that does not teach DuckDB into
   runnable helpers, including course/lab environment variables, fixture lifecycle and file
   fingerprints. Nick explicitly requested this for lessons 2–5 to spend lesson time on DuckDB.

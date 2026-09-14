@@ -8,8 +8,8 @@ fi
 
 _duck_session_start() {
   local lesson=${1:-} course lab source_file
-  if [[ $# != 1 || ! $lesson =~ ^[2-5]$ ]]; then
-    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (2–5)' >&2
+  if [[ $# != 1 || ! $lesson =~ ^[1-5]$ ]]; then
+    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (1–5)' >&2
     return 1
   fi
   if [[ -n ${DUCK_LAB:-} ]]; then
@@ -22,7 +22,7 @@ _duck_session_start() {
     echo 'Setup returned no lab directory.' >&2
     return 1
   fi
-  if [[ $lesson != 2 ]]; then
+  if (( lesson >= 3 )); then
     source_file=source.sqlite
     if [[ $lesson == 5 ]]; then source_file=orders.csv; fi
     if ! sha256sum "$lab/$source_file" > "$lab/source.sha256"; then
@@ -31,8 +31,23 @@ _duck_session_start() {
     fi
   fi
   export DUCK_COURSE="$course" DUCK_LAB="$lab"
+  export DUCK_DB=:memory:
+  if [[ $lesson == 2 ]]; then DUCK_DB="$lab/local.duckdb"; fi
 
   duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
+  duck_run() {
+    if [[ -z ${DUCK_LAB:-} || ! -f $DUCK_LAB/query.sql || ! -f $DUCK_LAB/session.sql ]]; then
+      echo 'No complete lab is selected. Source session.sh with the lesson number first.' >&2
+      return 1
+    fi
+    # Redirection reads both files before starting DuckDB, so a missing input cannot
+    # silently execute only the other half of a pipeline.
+    local connection query
+    connection=$(cat "$DUCK_LAB/session.sql") || return
+    query=$(cat "$DUCK_LAB/query.sql") || return
+    duck "$DUCK_DB" -bail -csv <<< "$connection
+$query"
+  }
   duck_check_source() {
     if [[ -z ${DUCK_LAB:-} || ! -f $DUCK_LAB/source.sha256 ]]; then
       echo 'No file fingerprint is active (available in lessons 3–5).' >&2
@@ -43,7 +58,7 @@ _duck_session_start() {
   duck_cleanup() {
     if [[ -z ${DUCK_LAB:-} ]]; then return 0; fi
     bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB" || return
-    unset DUCK_LAB
+    unset DUCK_LAB DUCK_DB
     if [[ ${_DUCK_SESSION_EXIT_TRAP:-} == "$(trap -p EXIT)" ]]; then
       trap - EXIT
     fi
@@ -57,7 +72,11 @@ _duck_session_start() {
   else
     echo 'Existing EXIT trap retained; run duck_cleanup when finished.' >&2
   fi
-  printf 'Lesson %s ready. DUCK_LAB=%s\nCleanup: duck_cleanup\n' "$lesson" "$DUCK_LAB"
+  if ! bash "$course/lab/inspect.sh" "$lesson" "$lab"; then
+    duck_cleanup
+    return 1
+  fi
+  printf 'Lesson %s ready. Edit: %s/query.sql\nRun: duck_run\nCleanup: duck_cleanup\n' "$lesson" "$DUCK_LAB"
 }
 
 _duck_session_start "$@"
