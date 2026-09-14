@@ -36,7 +36,8 @@ synthetic file at setup, then uses a read-only attachment.
 
 - In Bash, **source .../session.sh 3** creates a fresh SQLite fixture without PostgreSQL,
   sets **DUCK_LAB** and **DUCK_COURSE**, creates your starter, and supplies the helpers.
-  Use source with the course CLI already installed. Setup prints the catalog inventory.
+  Use source with the course CLI already installed. Script setup prints the catalog inventory;
+  **manual** leaves that DuckDB inspection to you while still preparing the lab and shell variables.
   **duck** forwards your arguments to the pinned DuckDB CLI with course settings.
   **-bail** stops on SQL errors, **-csv** prints CSV; **:memory:** creates a temporary database.
 - **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck :memory: -bail -csv**
@@ -72,9 +73,35 @@ attachment, keeping customer_id/name output and ordering. Use the catalog listin
 the two customers tables. Success means matching native IDs/names and leaving the file unchanged.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. This prepares the file, attaches it and inspects the catalogs for you.
+Both options supply the same query.sql starter; edit it before Run.
+
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3
 ```
+
+### Setup - manual
+
+The helper creates the lab folder, SQLite file, variables and starters. Run the DuckDB statements
+yourself. **-c** executes this SQL and exits. CREATE TABLE supplies the local decoy; the catalog
+query should show both memory.main.customers and source.main.customers.
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3 manual
+duck :memory: -bail -csv -c "
+LOAD sqlite;
+ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+CREATE TABLE customers AS
+SELECT 999 AS customer_id, 'west' AS region, 'Decoy' AS name;
+SELECT table_catalog, table_schema, table_name
+FROM information_schema.tables
+WHERE table_name='customers' ORDER BY table_catalog;"
+```
+
+The inspection connection closes, so its local decoy disappears. Run repeats LOAD/ATTACH and
+CREATE TABLE from session.sql in the same fresh connection as your edited query.
 
 ## Run
 ```bash

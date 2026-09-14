@@ -39,6 +39,11 @@ evidence, interpretation, and cleanup. Explain unfamiliar concepts and command p
 experiment. Preserve supplied commands and cautions. Give focused help when requested; there is no
 separate review, required prediction or reveal, written response, or reading checkpoint.
 
+When a lesson offers **Setup - script** and **Setup - manual**, explain that the learner chooses
+one. Manual practices the software's native commands and settings while helpers still prepare
+lab folders, fixtures and shell variables; script bypasses that preparation practice. Both feed
+the same visible Run/cleanup. Do not hide the tool commands behind an execution helper.
+
 ## Courses and routes
 
 - `duckdb` is Practical DuckDB: Data Flows and Improving AI Systems. Lessons 1–5 of its

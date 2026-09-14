@@ -78,6 +78,11 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
   authoring or revising lessons; see [the shared norm](docs/knowledge/learner-work.md#simple-lab-lifecycle).
   Verify the rendered lesson uses the helpers. For an authorized catalog rollout, refresh through
   the tutor CLI after testing on a copy, then verify displayed content and unchanged progress.
+- Offer **Setup - script** and **Setup - manual** when software-specific preparation is useful
+  practice. Both may use helpers for lab folders, fixtures and shell variables; manual exposes
+  the target tool's commands and SQL/settings. They must reach equivalent starting state and
+  feed the same visible Run/cleanup. Apply across courses when authoring or revising; validate
+  both choices. See the shared norm and authoring grammar for the section format.
 - Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
   using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion, and
   final-outline sign-off; a route does not authorize scaffolding, progress changes, or validation

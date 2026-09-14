@@ -7,9 +7,9 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
 fi
 
 _duck_session_start() {
-  local lesson=${1:-} course lab source_file
-  if [[ $# != 1 || ! $lesson =~ ^[1-5]$ ]]; then
-    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (1–5)' >&2
+  local lesson=${1:-} mode=${2:-script} course lab source_file
+  if [[ $# -lt 1 || $# -gt 2 || ! $lesson =~ ^[1-5]$ || ! $mode =~ ^(script|manual)$ ]]; then
+    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (1–5) [script|manual]' >&2
     return 1
   fi
   if [[ -n ${DUCK_LAB:-} ]]; then
@@ -72,9 +72,12 @@ $query"
   else
     echo 'Existing EXIT trap retained; run duck_cleanup when finished.' >&2
   fi
-  if ! bash "$course/lab/inspect.sh" "$lesson" "$lab"; then
+  if [[ $mode == script ]] && ! bash "$course/lab/inspect.sh" "$lesson" "$lab"; then
     duck_cleanup
     return 1
+  fi
+  if [[ $mode == manual ]]; then
+    echo 'Fixture ready. Run the lesson’s manual DuckDB setup commands next.'
   fi
   printf 'Lesson %s ready. Edit the supplied starter: %s/query.sql\nRun:\n' "$lesson" "$DUCK_LAB"
   if [[ $lesson == 5 ]]; then

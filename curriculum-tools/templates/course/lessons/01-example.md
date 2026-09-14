@@ -25,8 +25,21 @@ client --> server
 Caution placeholder: note anything risky before running the command.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. Replace this placeholder with the reusable software setup helper.
+
 ```sh
-mkdir -p example
+echo "Replace with scripted software preparation"
+```
+
+### Setup - manual
+
+Replace this placeholder with the target tool's native preparation and inspection commands.
+Both paths should use helpers for lab folders/fixtures and reach the same starting state.
+
+```sh
+echo "Replace with manual software preparation"
 ```
 
 ## Run

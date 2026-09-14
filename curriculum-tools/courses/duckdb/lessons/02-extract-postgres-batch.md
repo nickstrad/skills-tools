@@ -46,6 +46,10 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
   **-bail** stops on SQL errors and **-csv** prints CSV results.
   Run **duck_cleanup** when finished; normal shell
   exit also cleans up unless your shell already had an EXIT trap.
+- Setup offers a script or manual path. **manual** still prepares folders, fixture, variables and
+  starters, but leaves the DuckDB connection check to you. **LOAD postgres** loads the extension;
+  **ATTACH ... AS app (TYPE postgres, READ_ONLY)** names the source connection and protects it
+  from writes through DuckDB. **-c** executes the quoted SQL and exits.
 - **postgres_query('app', $$ ... $$)** executes the enclosed SQL in PostgreSQL.
   The dollar-quoted SQL string avoids escaping its single-quoted date and status values.
   Inside it use **sales.orders**: app is DuckDB's alias and is not a PostgreSQL schema.
@@ -95,9 +99,31 @@ Run the source-insert block once per setup; a second attempt conflicts on its pr
 For a fresh attempt, clean up and repeat Setup.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. This prepares the lab and checks the source connection for you.
+Both options leave the same populated query.sql to edit before Run.
+
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2
 ```
+
+### Setup - manual
+
+The helper handles folders, fixture provisioning and shell variables. Run LOAD and ATTACH
+yourself, then check that the source has five orders. Bash substitutes **$DUCK_LAB** in the SQL.
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 manual
+duck :memory: -bail -csv -c "
+LOAD postgres;
+ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
+  AS app (TYPE postgres, READ_ONLY);
+SELECT count(*) AS source_orders FROM app.sales.orders;"
+```
+
+This check uses a temporary connection and makes no local extract. Run repeats the shown
+LOAD/ATTACH from session.sql in a new connection to local.duckdb, then executes your edited query.
 
 ## Run
 ```bash

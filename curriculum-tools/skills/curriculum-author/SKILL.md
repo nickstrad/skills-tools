@@ -66,6 +66,12 @@ authoring or revising lessons. Verify rendered content, not only Markdown. An ex
 authorized catalog rollout uses the tutor CLI after copy-based progress checks; authoring alone
 continues to use temporary databases.
 
+Offer **Setup - script** and **Setup - manual** for software preparation that is useful practice,
+following AUTHORING.md's Setup subsection grammar. Both may hide folders, fixtures and shell
+variables in helpers; manual exposes the target software's native commands, SQL and settings.
+They lead to equivalent starting state and the same visible Run/cleanup. Validate both choices;
+generic validation runs the script choice only. Apply across courses as lessons are authored or revised.
+
 Every lesson causes a phenomenon and observes it. The generic CLI owns presentation:
 `tutor <course> route` lists status, `<n> lesson` prints one complete lesson, and explicit
 `<n> done` or `<n> skip` records the learner's decision. `undone` restores a skipped lesson to

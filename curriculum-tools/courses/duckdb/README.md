@@ -35,14 +35,42 @@ when you choose to record completion. `skip` and `undone` are explicit progress 
 
 ## Lab lifecycle
 
-Lessons 1–5 use one sourced setup command. For example, from any directory in Bash:
+Lessons 1–5 offer **Setup - script** and **Setup - manual**. Choose one option per attempt;
+both prepare the same fixture and query.sql, then lead to the same Run and cleanup.
+This is the common authoring approach across courses: practice the software's setup while new,
+or bypass it with a script once familiar. Both paths hide lab-folder and fixture plumbing.
+
+### Setup - script
+
+For example, from any directory in Bash:
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2
 ```
 
+### Setup - manual
+
+The helper prepares only infrastructure and starter files. The lesson then shows the actual
+DuckDB commands to execute. For lesson 2:
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 manual
+duck :memory: -bail -csv -c "
+LOAD postgres;
+ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
+  AS app (TYPE postgres, READ_ONLY);
+SELECT count(*) AS source_orders FROM app.sales.orders;"
+```
+
+Manual preparation covers LOAD/ATTACH, catalog inspection, SQLite scanner settings/raw staging
+and CSV type inspection as relevant to the lesson. Lesson 4 explicitly shows a failed scan before
+the corrected one. These inspection connections close; Run repeats connection/staging SQL in
+its own process. Each lesson explains that lifetime and expected evidence.
+
+### Run and cleanup
+
 Use the current lesson number 1–5. Setup creates the fixture and editable `query.sql`, supplies
-the connection/staging SQL, prints the lesson's initial source observations, and records file
+the connection/staging SQL, and records file
 fingerprints where applicable. It prints the full work-file path and the run/cleanup commands.
 `query.sql` already contains starter SQL; edit that file and save it. For lesson 2, run:
 
@@ -117,14 +145,14 @@ cd curriculum-tools
 go run ./courses/duckdb/validation
 ```
 
-The Go driver reads the actual Markdown through the shared parser. It executes each starter,
-displayed answer and one consequential wrong choice in fresh fixtures; then checks the shared
+The Go driver reads the actual Markdown through the shared parser. It executes both setup choices
+with each starter, displayed answer and one consequential wrong choice in fresh fixtures; then checks the shared
 validator with the starters and the complete worked sequence. It does not infer semantic success
 from a successful shell exit. Only lesson 4 deliberately emits a SQLite scan type mismatch.
 The driver uses temporary course/progress state and removes its fixtures. Validation of private
 PostgreSQL requires host process/OS-user permissions that the agent sandbox may not provide.
 
-The ordinary `bin/tutor duckdb validate --isolated` runs the editable starters as displayed.
+The ordinary `bin/tutor duckdb validate --isolated` chooses script setup and runs the editable starters.
 Its completed-step count is harness evidence, not completion of the learner's task. See
 [batch acceptance](validation/batch-one.md) for actual results and
 [the repository workflow](../../../docs/lesson-batch-workflow.md) for batch requirements.

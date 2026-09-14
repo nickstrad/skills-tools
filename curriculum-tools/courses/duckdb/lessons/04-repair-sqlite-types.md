@@ -39,7 +39,8 @@ the ability to reconcile the report with its input.
 ## Syntax breakdown
 
 - In Bash, **source .../session.sh 4** supplies a fresh file, **DUCK_LAB**, **DUCK_COURSE**,
-  your starter and the helpers; it needs the installed CLI but no earlier fixture.
+  your starter and the helpers; it needs the installed CLI but no earlier fixture. Add **manual**
+  to perform the native source inspection and DuckDB setup yourself, using the supplied lab paths.
   **duck_check_source** checks the source fingerprint
   saved by the helper. **duck** forwards arguments to the pinned CLI with course settings;
   **:memory:** selects a temporary database, **-bail** stops on SQL errors, and **-csv** prints CSV.
@@ -50,8 +51,9 @@ the ability to reconcile the report with its input.
   its column declaration. Numeric text '2300' was stored as integer by SQLite's column affinity;
   oops remained text. NULL means missing, not zero.
 - Setup first tries **SELECT * FROM source.main.invoices** with the normal scanner and prints
-  its deliberate type error. The helper handles that expected failure; unrelated errors stop setup.
-- Setup then prints **text-attach.sql**, the supplied connection and raw-stage SQL that
+  its deliberate type error. Script setup handles that expected failure; manual setup lets you
+  run the failing command, inspect its error and continue with the corrected connection.
+- Script setup prints **text-attach.sql**, the supplied connection and raw-stage SQL that
   is also copied into **session.sql**. The CLI executes it before your query.
   Inspect the ordering of these statements:
 
@@ -102,9 +104,48 @@ amounts as well as missing/invalid ones. Keep raw and every staged row; do not a
 that discards rejects. The ID and original text must remain visible beside the disposition.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. This prepares the file, shows its stored types, runs the deliberate
+scan failure and previews the corrected raw stage for you. Both options supply query.sql to edit.
+
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4
 ```
+
+### Setup - manual
+
+The helper prepares folders, the source file, variables, fingerprints and starter files.
+First inspect SQLite's stored types, then run the normal DuckDB scan yourself. **-c** executes
+the quoted SQL and exits. The DuckDB command below is expected to fail with **Mismatch Type Error**
+for oops; run these steps in your interactive Bash terminal, then continue to the next block.
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4 manual
+sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
+SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type
+FROM invoices ORDER BY invoice_id;"
+duck :memory: -bail -csv -c "
+LOAD sqlite;
+ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+SELECT * FROM source.main.invoices;"
+```
+
+Now open a fresh connection with the text-scanner setting, create the raw stage yourself,
+and inspect it. Apply the setting before ATTACH. Expect all five IDs and raw values to survive.
+
+```bash
+duck :memory: -bail -csv -c "
+LOAD sqlite;
+SET sqlite_all_varchar=true;
+ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+CREATE TABLE raw AS
+SELECT invoice_id, amount_cents AS raw_amount FROM source.main.invoices;
+SELECT * FROM raw ORDER BY invoice_id;"
+```
+
+The temporary raw stage disappears when this CLI exits. Run repeats these preparation statements
+from session.sql in a new connection before executing the conversion rule you edit in query.sql.
 
 ## Run
 ```bash

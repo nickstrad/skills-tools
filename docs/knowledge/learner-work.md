@@ -50,6 +50,20 @@ prepare with a simple setup script, do the work being taught, and clean up easil
 to new lessons and revisions of existing lessons. This is shared authoring guidance, not a
 claim that every legacy lesson has already been converted.
 
+Nick refined this later on 2026-09-14: offer **Setup - script** and **Setup - manual** across
+courses. Manual setup teaches the software's commands, connections, inspection and settings;
+script setup bypasses that practice once familiar. The learner chooses one, then uses the same
+Run and cleanup. Both may use helpers for lab folders, fixtures, environment variables and
+teardown: manual is not a shell-scaffolding exercise. Apply to new and revised lessons; this
+does not claim every existing course has been retrofitted.
+
+Supply equivalent starting state and evidence for both choices. Explain temporary connections
+and preparation that must repeat in Run. Keep the experiment and learner decisions visible
+even with script setup. Validate both paths, including intentional errors, reruns and cleanup.
+AUTHORING.md supports the two named subsections inside Setup. Generic validation selects the
+script path; course validation must also exercise manual setup. If a lesson needs no tool-specific
+preparation, say so rather than inventing work.
+
 - Supply one setup command and one cleanup command wherever practical. Hide repeated exports,
   shell functions, fixture provisioning, editable starter-file creation, connection plumbing,
   fingerprints and process teardown in reusable course helpers. Use a sourced Bash helper when
@@ -75,7 +89,9 @@ what is supplied, what to edit, what each invocation executes and what survives 
 An execution helper such as `duck_run` removes useful practice even when it leaves SQL visible.
 This is the learner's explicit calibration, not an inference from his broader systems experience.
 
-DuckDB lessons 1–5 use `source .../lab/session.sh N`, a populated editable `query.sql`, explicit
+DuckDB lessons 1–5 offer both choices: `source .../lab/session.sh N` performs script setup;
+adding `manual` prepares infrastructure and leaves the native setup commands to the learner.
+Both supply a populated editable `query.sql`, explicit
 `duck` CLI invocations and `duck_cleanup`. Lessons 1–4 feed session.sql then query.sql to one
 process; lesson 2 names its persistent local database and lesson 5 reads query.sql directly.
 The thin `duck` wrapper only selects the pinned CLI and settings. The

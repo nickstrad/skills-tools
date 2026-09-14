@@ -1,5 +1,28 @@
 # DuckDB CLI practice revision
 
+Latest scope (2026-09-14): user requests both "Setup - script" and "Setup - manual", with
+the choice a shared convention across courses. Apply now to DuckDB 1–5, preserving automatic
+folder/fixture preparation in both paths and keeping explicit Run commands. Add generic setup
+choices to the existing Setup text field (no database schema/progress migration), parser/renderer/
+harness support and tests. Validate both choices on real tools. Update shared skills/template,
+guidance and knowledge entry; refresh live catalog only after new copy-based checks.
+The prior CLI-only implementation/rollout is an intermediate checkpoint, not final acceptance.
+Knowledge-store edit was interrupted/rejected by sandbox; reread confirmed the entry unchanged.
+
+Final acceptance checkpoint:
+- Both setup choices implemented and rendered for DuckDB 1–5; shared format/renderer/harness,
+  template, skills and course-wide guidance updated. All Go tests passed.
+- New driver passed 30 script/manual × starter/answer/wrong trials and both shared 5/5 sequences.
+  All 24 manifest hashes verified; every recorded fixture path absent; installed CLI/connectors ready.
+- Refreshed live catalog after copy checks. All five body renders match; all 40 progress and 41
+  attempt rows exactly match original dumps. DuckDB remains 1 done / 4 todo, no skipped/stale.
+- Knowledge updates succeeded and were reread: data/duckdb-course-tools.md and
+  data/pgcoach-course-authoring.md. Shared skills are installed through repository symlinks.
+- Durable acceptance appended to courses/duckdb/validation/batch-one.md. Latest headroom:
+  142 GiB free, 2% inodes, 6.8 GiB available RAM. No visible PostgreSQL process remains.
+- Remaining: commit checkpoint, remove owned 5.2 MiB scratch/copy/editor directory, delete this log,
+  commit final removal, and verify only the intentionally uncommitted learner database remains.
+
 Objective: revise authored lessons 1–5 and durable guidance so the learner executes visible
 DuckDB CLI commands while helpers retain recurring setup/cleanup. User explicitly requests
 repository/knowledge-store updates and rollout of the currently authored lessons.
@@ -38,3 +61,11 @@ Remaining: authorized live refresh and rendered verification; durable knowledge 
 final resource/manifest checks and scratch cleanup. Scratch copy/output lives only under
 `/tmp/duckdb-cli-practice-20260914`, to be removed before completion.
 Delete this log only after completion and knowledge-store reflection, committing its removal.
+
+- 2026-09-14: live tutor catalog refreshed after copy validation; exact progress/attempt dumps
+  match baseline. Full rendering comparison initially differed only in the CLI's expected
+  temporary --db suffix on done/skip suggestions; compare lesson bodies without these footer lines.
+- 2026-09-14: user clarified wanting DuckDB-oriented practice and asked for a list of operations
+  still hidden. Answered with LOAD/ATTACH, catalog inspection, scanner setting, raw staging,
+  deliberate failure scan and CSV DESCRIBE. Recorded this boundary in profile/repository knowledge;
+  no new lesson tasks or route scope inferred from the request to list them.

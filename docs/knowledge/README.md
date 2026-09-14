@@ -24,9 +24,9 @@ archive index owns their historical catalog entry.
 | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [concise-course-cli.md](concise-course-cli.md) | Shared Go `tutor` route/lesson/done flow, Markdown plans, course discovery, the one progress database, and roadmap commands. |
 | [go-tutor-migration.md](go-tutor-migration.md) | Shared database preservation, raw/refreshed parity, source archives, validation limits and accepted Go migration evidence. |
-| [learner-work.md](learner-work.md) | Meaningful learner work and the all-course simple setup → focused work → easy cleanup contract. |
+| [learner-work.md](learner-work.md) | Meaningful learner work, script/manual software setup choices, and the shared lab lifecycle. |
 | [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
-| [duckdb-course.md](duckdb-course.md) | Shared setup helpers, pinned 1.5.5 connectors, source qualification/type boundaries, and exact-query validation for practical DuckDB. |
+| [duckdb-course.md](duckdb-course.md) | Explicit CLI practice, script/manual setup, pinned connectors, source/type boundaries, and validation of both paths. |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |
 | [repo-tooling.md](repo-tooling.md)                                             | Go checks, the cached launcher, shared progress path, Docker rig, and bounded validation resources. |
 | [validation-harness.md](validation-harness.md)                                 | How `tutor <course> validate` drives sessions, why completion is not semantic evidence, and how to verify progress on a copy. |

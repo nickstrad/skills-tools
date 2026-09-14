@@ -42,7 +42,8 @@ the next planned lesson tackles messy input and explicit type contracts.
   **:memory:** starts a fresh temporary database, **-bail** stops on SQL errors, and
   **-csv** prints CSV results. Bash's **<** feeds the file to DuckDB's standard input.
   This lesson reads CSV directly, so no attachment SQL needs to precede your query.
-- Setup prints the small raw CSV so you can independently check which rows belong.
+- Script setup prints the small raw CSV and its inferred types; the manual option lets you run
+  these inspections yourself. Both prepare folders, variables, fingerprints and starter files.
   The helper records a fingerprint; **duck_check_source** verifies that analysis left it unchanged.
 - **read_csv('path', header=true)** exposes the file as rows and uses the first line as names.
   **DESCRIBE SELECT ...** inspects inferred column types before your report runs.
@@ -74,9 +75,30 @@ orders in the requested day. Inspect the resulting IDs and reconcile their integ
 with the raw file. Hint: a date filter alone still includes a pending order.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. This prepares the CSV and shows its contents and inferred types for you.
+Both options create the same populated query.sql; edit it before Run.
+
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5
 ```
+
+### Setup - manual
+
+The helper handles folders, the fixture file and variables. Print the CSV, then inspect its
+types through DuckDB yourself. **-c** executes the SQL string and exits; Bash supplies the path.
+Expect BIGINT, DATE, VARCHAR and BIGINT for the four columns.
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5 manual
+cat "$DUCK_LAB/orders.csv"
+duck :memory: -bail -csv -c "
+DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
+```
+
+The inspection connection closes afterward. Run reads the CSV again using your edited SQL;
+neither path needs an attachment or a persistent DuckDB database.
 
 ## Run
 ```bash

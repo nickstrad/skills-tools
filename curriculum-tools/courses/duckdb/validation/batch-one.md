@@ -137,3 +137,45 @@ runtime location, wrapper, offline behavior, private fixture lifecycle and autho
 Course-specific findings live in [repository knowledge](../../../../docs/knowledge/duckdb-course.md).
 The batch follows [the lesson workflow](../../../../docs/lesson-batch-workflow.md); its transient
 root state.md is deleted only after these checks, reflection and final scratch cleanup.
+
+## Script/manual setup and CLI practice revision — 2026-09-14
+
+The learner requested visible CLI execution, then optional manual software setup alongside a
+script shortcut. Lessons 1–5 now offer **Setup - script** and **Setup - manual**. Both retain
+fixture/folder/variable setup and cleanup in helpers; manual runs the native connection,
+catalog/type inspection and relevant staging commands explicitly. The common Run continues
+to execute the edited query through the CLI. Temporary setup connections and repeated attachment/
+staging in Run are explained. Existing tasks, source boundaries, slugs and revisions are retained;
+the added preparation option does not invalidate a completed query task.
+
+The generic parser/writer/renderer preserves both subsections in the existing Setup text field;
+the harness selects only script setup. No database schema migration was introduced. Parser
+round-trip/rejection tests, renderer checks and a harness test that must not execute the manual
+alternative pass, as does `go test ./...` from curriculum-tools. Structural and Bash syntax checks,
+installed skill-link checks, and all 24 course source-manifest hashes also pass.
+
+The updated Go driver accepted **30 independent trials**: script/manual × starter/answer/wrong
+choice for every lesson. Both shared script sequences also passed 5/5. The outcomes in the
+table above are unchanged. Manual lesson 4 directly observes its expected type error, then opens
+the corrected connection; the driver checks exactly one error while allowing that deliberate
+nonzero command as interactive Bash does. Script setup and manual setup both preview all five
+raw records. [results.txt](results.txt) and [source-manifest.json](source-manifest.json) contain
+the latest accepted evidence; trailing terminal whitespace is normalized in the log.
+
+Copy-based progress verification preserved 266 lesson identities, all 40 progress records and
+41 attempts. The authorized `bin/tutor duckdb init` refreshed the live catalog; every live lesson
+body matched the tested copy after excluding the expected temporary --db suffix on progress
+suggestions. Exact progress/attempt dumps remained identical to the starting baseline. DuckDB
+still reports 1 done, 4 todo, no skipped or stale lessons. The learner database is not committed.
+
+All recorded trial fixture paths were checked absent after normal cleanup. Private PostgreSQL
+fixtures remained around 40 MiB; the shared 500 MiB scratch budget was respected. The pinned
+DuckDB 1.5.5 CLI and both extensions pass the final readiness check. Persistent PostgreSQL
+services remain intentionally stopped under the learner's newer instruction; retained learner
+data and legacy progress backups were not touched. Root still has about 142 GiB free, 2% inodes
+used, and 6.8 GiB available memory. Only compact text evidence and installed tools are retained.
+
+Knowledge-store reflection updated and reread `data/duckdb-course-tools.md` and
+`data/pgcoach-course-authoring.md` through kb. They record the explicit CLI and two-choice setup
+workflow, generic format/validation behavior, and links to the shared course-wide authoring norm.
+AGENTS, learner profile, skills, authoring/validation guides and the course template carry that norm.

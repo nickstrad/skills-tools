@@ -120,35 +120,45 @@ func main() {
 		case 5:
 			wrong = strings.ReplaceAll(answer, " AND status='paid'", "")
 		}
-		for _, variant := range []string{"starter", "answer", "wrong"} {
-			if l.Ordinal < *from || l.Ordinal > *to {
-				continue
-			}
-			script := "set -euo pipefail\n" + l.Setup + "\nprintf 'fixture=%s\\n' \"$DUCK_LAB\"\n"
-			if variant == "answer" {
-				script += replacement(answer)
-			}
-			if variant == "wrong" {
-				script += replacement(wrong)
-			}
-			script += l.Code + "\ndu -sk \"$DUCK_LAB\"\n" + cleanup + "\n"
-			path := filepath.Join(work, "trial.sh")
-			write(path, script)
-			label := fmt.Sprintf("%02d-%s", l.Ordinal, variant)
-			out := command(label, "timeout", "--kill-after=10s", "90s", "bash", path)
-			checks := starters[l.Ordinal]
-			if variant == "answer" {
-				checks = answers[l.Ordinal]
-			}
-			if variant == "wrong" {
-				checks = wrongChecks[l.Ordinal]
-			}
-			contains(label, out, checks...)
-			if l.Ordinal != 4 && strings.Contains(out, "Error:") {
-				panic(label + " unexpected error")
-			}
-			if l.Ordinal == 4 && strings.Count(out, "Error:") != 1 {
-				panic(label + " unexpected error inventory")
+		for _, mode := range []string{"script", "manual"} {
+			for _, variant := range []string{"starter", "answer", "wrong"} {
+				if l.Ordinal < *from || l.Ordinal > *to {
+					continue
+				}
+				setup, e := course.SetupCommands(l.Setup, mode)
+				must(e)
+				options := "set -euo pipefail\n"
+				if mode == "manual" && l.Ordinal == 4 {
+					// The displayed manual scan deliberately exits nonzero before the corrected call.
+					// Match interactive Bash here; the error inventory below must still be exactly one.
+					options = "set -uo pipefail\n"
+				}
+				script := options + setup + "\nset -e\nprintf 'fixture=%s\\n' \"$DUCK_LAB\"\n"
+				if variant == "answer" {
+					script += replacement(answer)
+				}
+				if variant == "wrong" {
+					script += replacement(wrong)
+				}
+				script += l.Code + "\ndu -sk \"$DUCK_LAB\"\n" + cleanup + "\n"
+				path := filepath.Join(work, "trial.sh")
+				write(path, script)
+				label := fmt.Sprintf("%02d-%s-%s", l.Ordinal, mode, variant)
+				out := command(label, "timeout", "--kill-after=10s", "90s", "bash", path)
+				checks := starters[l.Ordinal]
+				if variant == "answer" {
+					checks = answers[l.Ordinal]
+				}
+				if variant == "wrong" {
+					checks = wrongChecks[l.Ordinal]
+				}
+				contains(label, out, checks...)
+				if l.Ordinal != 4 && strings.Contains(out, "Error:") {
+					panic(label + " unexpected error")
+				}
+				if l.Ordinal == 4 && strings.Count(out, "Error:") != 1 {
+					panic(label + " unexpected error inventory")
+				}
 			}
 		}
 		l.Code = replacement(answer) + l.Code + "\n" + cleanup
@@ -183,5 +193,5 @@ func main() {
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	must(err)
 	write(filepath.Join(dir, "validation/source-manifest.json"), string(data)+"\n")
-	fmt.Println("All five lessons: starters, worked answers, wrong choices and shared sequence accepted; owned fixtures removed.")
+	fmt.Println("All five lessons: both setup choices with starters, worked answers, wrong choices and shared sequence accepted; owned fixtures removed.")
 }

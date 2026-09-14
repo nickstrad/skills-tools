@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"skills-tools/tutor/internal/course"
@@ -114,6 +115,15 @@ func TestRenderLessonGolden(t *testing.T) {
 	want := string(bytes.TrimRight(readTestdata(t, "lesson-08.md"), "\n"))
 	if got != want {
 		t.Fatalf("RenderLesson mismatch\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
+func TestRenderSetupChoicesAsSections(t *testing.T) {
+	l, _ := loadGoldenLesson(t)
+	l.Setup = "### Setup - script\n\nChoose one.\n\n```sh\necho scripted\n```\n\n### Setup - manual\n\n```sh\necho manual\n```"
+	out := RenderLesson(postgresEssentials(), l, "", "")
+	if !strings.Contains(out, "## Setup\n"+l.Setup+"\n\n## Run") {
+		t.Fatalf("setup alternatives were not rendered as Markdown sections: %s", out)
 	}
 }
 

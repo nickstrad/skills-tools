@@ -422,7 +422,13 @@ func Validate(lessons []course.Lesson, opts Options) (Result, error) {
 		}
 		if lesson.Setup != "" {
 			log("  -- setup --")
-			ok = runStep("A", lesson.Setup, false)
+			setup, err := course.SetupCommands(lesson.Setup, "script")
+			if err != nil {
+				log("  !! " + err.Error())
+				ok = false
+			} else {
+				ok = runStep("A", setup, false)
+			}
 		}
 		for _, st := range SplitSteps(lesson.Code) {
 			if !ok {

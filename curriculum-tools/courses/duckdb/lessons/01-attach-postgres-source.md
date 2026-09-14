@@ -42,7 +42,8 @@ which paid orders belong to September 14, 2026, and what is their total?
   Existing PostgreSQL 16 and sqlite3 clients supply the source tools.
 - **source .../session.sh 1** prepares the fixture, editable starter and helpers in your current
   Bash shell. It supplies connection details and a SELECT-only reader role, then prints the
-  attachment and catalog inventory. **DUCK_LAB** is your unique directory, never /labs/pglab.
+  attachment and catalog inventory in script mode. Adding **manual** prepares only the lab;
+  you run the DuckDB setup commands below. **DUCK_LAB** is your unique directory, never /labs/pglab.
   Finish with **duck_cleanup**; normal shell exit also cleans up unless an EXIT trap already exists.
 - **duck** is a thin shell wrapper around the course's pinned DuckDB CLI; it forwards your
   arguments and supplies the installed version and extension settings. **-bail** stops on SQL errors.
@@ -51,7 +52,7 @@ which paid orders belong to September 14, 2026, and what is their total?
   sends the two SQL files, in that order, to one DuckDB process through standard input.
   **session.sql** supplies the attachment; **query.sql** contains the query you edit.
   Each invocation starts a fresh in-memory database, so attach and query must run together.
-- Setup prints **attach.sql**, the actual connection: **LOAD postgres** loads the connector;
+- **LOAD postgres** loads the connector;
   **ATTACH ... AS app (TYPE postgres, READ_ONLY)** connects under the catalog name app.
   The fixture uses a private socket directory, port 55439, database postgres and role reader.
 - **information_schema.tables** lists table_catalog, table_schema and table_name.
@@ -87,9 +88,35 @@ marked privileged. Keep all supplied paths and connection flags. READ_ONLY prote
 the fixture's reader role also lacks source write privileges. Reads still consume source resources.
 
 ## Setup
+### Setup - script
+
+Choose one setup option. This runs the connection and catalog inspection for you; both options
+prepare the same fixture and populated query.sql. Then edit your query and continue to Run.
+
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 1
 ```
+
+### Setup - manual
+
+The helper handles folders, the PostgreSQL fixture, shell variables and starter files.
+You run the DuckDB connection and inspection yourself. **-c** executes the quoted SQL and exits;
+Bash fills in **$DUCK_LAB** inside the double quotes. Expect app.public.orders and app.sales.orders.
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 1 manual
+duck :memory: -bail -csv -c "
+LOAD postgres;
+ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
+  AS app (TYPE postgres, READ_ONLY);
+SELECT table_catalog, table_schema, table_name
+FROM information_schema.tables
+WHERE table_catalog='app' AND table_schema IN ('public','sales')
+ORDER BY table_schema, table_name;"
+```
+
+This inspection connection closes afterward. Run loads the supplied session.sql again so your
+query gets its own attachment; it contains the same LOAD/ATTACH statements shown above.
 
 ## Run
 ```bash

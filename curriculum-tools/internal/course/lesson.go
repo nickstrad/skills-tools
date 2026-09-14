@@ -158,6 +158,13 @@ func ParseLessonFile(name string, data []byte) (Lesson, []string, error) {
 	text := map[string]string{}
 	for sec, body := range bodies {
 		body = trimBlankLines(body)
+		if sec == secSetup && HasSetupChoices(strings.Join(body, "\n")) {
+			text[sec] = strings.Join(body, "\n")
+			if _, err := SetupCommands(text[sec], "script"); err != nil {
+				return fail("section %q: %v", sec, err)
+			}
+			continue
+		}
 		if fencedSections[sec] {
 			content, err := unfence(body)
 			if err != nil {
@@ -286,7 +293,11 @@ func FormatLessonFile(c Course, l Lesson, prereqSlugs []string) []byte {
 	prose(secOverview, l.Overview)
 	prose(secSyntax, l.SyntaxBreakdown)
 	prose(secCaution, l.Caution)
-	code(secSetup, l.Setup)
+	if HasSetupChoices(l.Setup) {
+		prose(secSetup, l.Setup)
+	} else {
+		code(secSetup, l.Setup)
+	}
 	code(secRun, l.Code)
 	prose(secExpected, l.ExpectedResult)
 	prose(secLens, l.SystemsLens)

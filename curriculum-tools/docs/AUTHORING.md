@@ -83,6 +83,10 @@ For an unfamiliar tool, executing its CLI is part of the learner work: show the 
 arguments and relevant flags, with a short explanation. In DuckDB, keep `duck` calls visible
 instead of replacing them with `duck_run`; the thin version/settings wrapper is sufficient.
 Setup should create a populated starter and explicitly tell the learner to edit and save it.
+Offer **Setup - script** and **Setup - manual** when the software's preparation is useful practice.
+Both may use infrastructure helpers; manual exposes native commands, SQL, connections and settings.
+Explain equivalent starting state, choose-one semantics and connection lifetime. Keep a common
+Run/cleanup and validate both paths. Apply this convention across new and revised courses.
 Verify both source and rendered lesson content. When catalog rollout is authorized, test on a copy,
 refresh through `tutor COURSE init`, and verify progress preservation and actual displayed text.
 
@@ -137,8 +141,9 @@ The title is the first line and is followed by a blank line. The header has one 
 line with no blank lines inside it, followed by a blank line before the sections. Every header key
 shown above is required except `prerequisites`, and `min-version` is required with no default. The
 required sections are exactly `Overview`, `Syntax breakdown`, `Run`, `Expected result`, and
-`Systems lens`; `Caution`, `Setup`, and `Optional variation` are optional. Setup and Run bodies are
-exactly one fenced block, copied verbatim. Ordinals are the zero-padded positive integer in the
+`Systems lens`; `Caution`, `Setup`, and `Optional variation` are optional. Run is exactly one
+fenced block. Setup is either one fenced block or the two choices described below.
+Ordinals are the zero-padded positive integer in the
 filename prefix (two digits minimum), files sort by ordinal, and ordinals must be consecutive from
 1 through the last lesson. Prerequisite slugs must name earlier lessons; they document sequencing
 only, and the CLI does not gate lesson availability on their completion.
@@ -160,13 +165,43 @@ These fields and sections retain the following meanings:
 | `revision` | Increment when the available lesson changes materially so stale completion is served again. |
 | `Overview`, `Syntax breakdown` | Required prose that gives the learner the question, mechanism, terms, and commands before the experiment. |
 | `Caution` | Optional prose stating a concrete risk, response, and reason. |
-| `Setup` | Optional fenced block that prepares the lesson's owned state. |
+| `Setup` | Optional preparation: one fenced block, or script/manual alternatives described below. |
 | `Run` | Required fenced block that causes the phenomenon. |
 | `Expected result`, `Systems lens` | Required prose describing decisive evidence, interpretation, limits, and the systems principle. |
 | `Optional variation` | Optional prose or commands for a bounded comparison outside the core path. |
 
-Setup and Run bodies are fenced blocks copied verbatim; backslashes and backticks need no escaping;
+Run and legacy Setup blocks are copied verbatim; backslashes and backticks need no escaping;
 a line of three or more backticks inside them forces a longer fence.
+
+For setup choices, start the Setup body with exactly `### Setup - script`, then add
+`### Setup - manual`. Each may include concise prose explaining its purpose and expected evidence.
+Script contains exactly one nonempty fenced command block; manual contains one or more.
+Use the lesson's execution language in every executable block. Explain that the learner chooses
+one option and both feed the same Run/cleanup. The renderer preserves these as Markdown.
+The existing setup catalog field stores this text; no progress schema change is needed.
+Generic validation executes only the script block. Validate the manual blocks with the real
+tool too, including explicitly expected failures that may need driver-side handling.
+
+````markdown
+## Setup
+### Setup - script
+
+Choose one option. This helper performs the software preparation for you.
+
+```sh
+source /path/to/lab/session.sh 1
+```
+
+### Setup - manual
+
+Prepare the same fixture, then execute the software's native setup and inspection commands.
+Supply those actual commands here; do not leave a placeholder in an authored lesson.
+
+```sh
+source /path/to/lab/session.sh 1 manual
+tool --database "$LAB/database" --command 'native setup and inspection'
+```
+````
 
 ## Writing the pre-experiment explanation
 

@@ -16,7 +16,10 @@ ORDER BY table_schema, table_name;
 SQL
     } | duck :memory: -bail -csv
     ;;
-  2) ;;
+  2)
+    { cat "$lab/attach.sql"; echo 'SELECT count(*) AS source_orders FROM app.sales.orders;'; } |
+      duck :memory: -bail -csv
+    ;;
   3)
     { cat "$lab/session.sql"; cat <<'SQL'
 SELECT table_catalog, table_schema, table_name
@@ -36,6 +39,8 @@ SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type FROM invoic
     # Only the intended scanner failure counts as this lesson's initial evidence.
     [[ $(< "$lab/scan.txt") == *'Mismatch Type Error'* ]]
     cat "$lab/text-attach.sql"
+    { cat "$lab/text-attach.sql"; echo 'SELECT * FROM raw ORDER BY invoice_id;'; } |
+      duck :memory: -bail -csv
     ;;
   5)
     cat "$lab/orders.csv"

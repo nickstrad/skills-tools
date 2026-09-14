@@ -46,6 +46,15 @@ experiments (lock waits, serialization failures, deadlocks) run as they would in
    the preceding command's exit status, so a nonzero assertion fails validation. Run privileged
    shell lessons only in the dedicated lab VM.
 
+## Setup choices
+
+Lessons may offer `Setup - script` and `Setup - manual` subsections inside Setup. Generic
+validation executes only the script choice, then the shared Run block. Authors must also
+validate manual setup against the real tool and the same outcomes/cleanup; the DuckDB Go
+driver exercises both choices with starters, worked answers and consequential wrong choices.
+Manual instructions may include an explicitly expected failing command (DuckDB lesson 4);
+the driver must check that specific error and continue as an interactive learner would.
+
 ## Progress refresh verification
 
 `progress verify` checks that refreshing one course's lesson rows preserves learner state:

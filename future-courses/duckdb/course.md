@@ -21,6 +21,11 @@ Keep environment/fixture setup and cleanup in helpers, while showing the `duck` 
 database target, SQL input and flags. Learners edit a supplied starter and run it themselves;
 explain what each call does and retains. Apply this to the first five lessons and later batches.
 
+The follow-up requests two alternatives: **Setup - manual** exposes the target software's
+native preparation and inspection; **Setup - script** bypasses that work once familiar. Both
+keep lab folders, fixtures, variables and cleanup in helpers and share the same visible Run.
+This is now the common approach for authoring/revising lessons across courses, first applied here.
+
 Start with small application records, then use supplied synthetic worker events, AI run results,
 grades, feedback, documents, and retrieval results. Give each lesson its own complete starting
 fixture. Explain the record's grain and identifiers before commands. The AI examples need no
@@ -247,6 +252,9 @@ reviewed on 2026-09-14. Capabilities are documented; lesson outcomes and timings
 
 ## Learner feedback and final sign-off
 
+- 2026-09-14: requested both named setup choices, then generalized this distinction between
+  software practice and lab scaffolding across courses. Adopt both in authored DuckDB lessons 1–5;
+  the canonical route and future batch authorization remain unchanged.
 - 2026-09-14: requested revising authored lessons 1–5 to expose the CLI invocation in place of
   `duck_run`, retaining simple setup/cleanup and editable starters. Record this level of detail
   in teaching guidance; the route's scope, count and lesson order remain the same.

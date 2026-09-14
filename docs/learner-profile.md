@@ -66,6 +66,12 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- Setup choices across courses (2026-09-14): offer **Setup - script** to bypass familiar
+  software preparation and **Setup - manual** to practice the target tool's commands and SQL.
+  Both should keep lab folders, fixture provisioning, shell variables and cleanup in helpers.
+  Choose one setup path, then use the same visible Run commands. Apply to new and revised
+  lessons across courses; DuckDB 1–5 are the first adoption. This supersedes interpreting
+  setup simplicity as a reason to hide all target-tool preparation.
 - DuckDB CLI practice (2026-09-14): Nick explicitly says he is brand new to DuckDB and wants
   muscle memory with its CLI. Keep recurring environment variables, fixtures and cleanup in
   helpers, but show the actual `duck` invocation that executes the SQL he edits. Explain the
@@ -73,6 +79,9 @@ this roadmap at the learner's request.
   editable starter and say what to change. `duck` may select the pinned CLI/settings;
   `duck_run` hides the execution step he wants to practice. This refines the setup-helper
   preference below and applies to authored lessons 1–5 and future DuckDB lessons.
+  He further clarified that DuckDB-oriented commands are the practice, and asked which operations
+  setup still hides. Do not equate a visible CLI invocation with exposing LOAD/ATTACH, catalog/type
+  inspection or staging when supplied SQL/setup still performs those operations for him.
 - Inactive course resources (2026-09-14): Nick is currently working on DuckDB, not PostgreSQL
   Essentials. Leave no PostgreSQL instance unrelated to an active DuckDB lesson running,
   including the separate default instance. Disable automatic startup; Nick will request a

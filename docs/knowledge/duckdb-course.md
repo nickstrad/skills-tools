@@ -54,6 +54,22 @@ and SQL. The learner explicitly requested CLI muscle memory while keeping recurr
 hidden; the course's wrapper handles version/settings only. The all-course contract is in
 [the learner-work norm](learner-work.md#simple-lab-lifecycle).
 
+Each lesson now offers **Setup - script** and **Setup - manual**. Script performs the DuckDB
+preparation/inspection. Manual uses `source .../session.sh N manual` for infrastructure only,
+then exposes LOAD/ATTACH, catalog queries (1/3), the source count check (2), scanner error and
+text setting/raw stage (4), or CSV DESCRIBE (5) as executable CLI calls. Both feed the same Run.
+Their inspection connections close, so Run repeats connection/staging SQL from session.sql in
+its own process. The wrapper still selects extension location, installation policy and resource
+caps. Temporary directories, fixture servers, shell variables and cleanup remain supplied.
+
+The generic lesson Setup field can contain two Markdown subsections, `### Setup - script`
+and `### Setup - manual`, without a progress schema change. Parser/writer/renderer preserve
+them; generic validation extracts only the script code. The DuckDB driver additionally executes
+both choices with each starter, answer and wrong choice (30 independent trials). Manual lesson 4
+intentionally returns an SQL error before its corrected call; the driver mirrors interactive
+Bash and checks exactly one expected error instead of aborting that setup at the deliberate failure.
+This shared authoring convention is recorded in [learner-work](learner-work.md#simple-lab-lifecycle).
+
 The tutor displays stored catalog content, not live Markdown. A helper refactor can be present
 in source while the learner still sees old exports and heredocs. For an authorized rollout,
 test `tutor duckdb init --db ABSOLUTE_COPY_PATH`, compare recorded progress/attempts, then refresh

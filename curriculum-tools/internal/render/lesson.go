@@ -129,7 +129,11 @@ func RenderLesson(c course.Course, l course.Lesson, notes, dbFlag string) string
 		section("Caution", l.Caution)
 	}
 	if l.Setup != "" {
-		section("Setup", fence(lang, l.Setup))
+		if course.HasSetupChoices(l.Setup) {
+			section("Setup", l.Setup)
+		} else {
+			section("Setup", fence(lang, l.Setup))
+		}
 	}
 	section("Run", fence(lang, l.Code))
 	section("Expected result", l.ExpectedResult)

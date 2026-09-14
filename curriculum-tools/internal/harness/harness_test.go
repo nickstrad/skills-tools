@@ -165,3 +165,12 @@ func TestSelectorsRangeSetupAndPerLessonHook(t *testing.T) {
 		t.Fatalf("%q", got)
 	}
 }
+
+func TestSetupChoicesExecuteOnlyScript(t *testing.T) {
+	l := shellLesson(`test "$READY" = yes`)
+	l.Setup = "### Setup - script\n\n```sh\nexport READY=yes\n```\n\n### Setup - manual\n\n```sh\nexit 7\n```"
+	r, err := harness.Validate([]course.Lesson{l}, harness.Options{Repl: shellRepl, Log: func(string) {}})
+	if err != nil || r.Failures != 0 {
+		t.Fatalf("script choice did not prepare Run, or manual also executed: %v %+v", err, r)
+	}
+}
