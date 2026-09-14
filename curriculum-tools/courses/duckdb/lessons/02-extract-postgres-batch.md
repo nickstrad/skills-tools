@@ -18,6 +18,10 @@ An attachment keeps reading PostgreSQL. A local extract stores a chosen result i
 so later analysis can reuse it. You will choose what crosses the boundary and observe that
 new source data appears locally only after a refresh.
 
+The practical goal is to copy a useful slice once and analyze it locally while PostgreSQL
+keeps changing. You choose what to copy and when to rebuild it. In this experiment, the local
+copy keeps two matching orders after PostgreSQL gains a third; rerunning your SQL updates it.
+
 This lesson creates its own PostgreSQL orders fixture. Each row is one order, with order_id,
 ordered_on, status, amount_cents and a synthetic customer_email. Your extract must contain
 only order_id and amount_cents for paid orders on September 14, 2026. The email is unnecessary.
@@ -38,7 +42,8 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 - In Bash, **source .../session.sh 2** prepares a fresh private PostgreSQL fixture, sets
   **DUCK_COURSE** and **DUCK_LAB**, creates your starter, and defines the helpers. Use source so
   these stay available in your shell. No earlier lab is needed; the CLI must already be installed.
-  **duck**, **-bail** and **-csv** behave as in lesson 1.
+  **duck** forwards your arguments to the pinned DuckDB CLI with course settings;
+  **-bail** stops on SQL errors and **-csv** prints CSV results.
   Run **duck_cleanup** when finished; normal shell
   exit also cleans up unless your shell already had an EXIT trap.
 - **postgres_query('app', $$ ... $$)** executes the enclosed SQL in PostgreSQL.
@@ -53,9 +58,16 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 - **psql ... -U postgres** performs the supplied source insert only in this owned fixture.
   The attachment still uses the SELECT-only reader. Each CLI invocation closes before the next opens.
 - Rerunning query.sql performs an explicit replacement; it does not append another copy.
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck "$DUCK_LAB/local.duckdb" -bail -csv**
+  feeds the supplied PostgreSQL attachment SQL followed by your edited query into one CLI process.
+  The database-file argument makes the local batch persist when that process exits.
+- **duck ... -c "SELECT ... FROM batch;"** executes the SQL string directly against the saved
+  local file. It does not run query.sql or refresh the batch. The first file-based invocation
+  creates the extract; the final one rebuilds it after the two clients reveal different totals.
 
-The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
-in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+The setup helper creates **query.sql** with this starter already in it; the file is not empty.
+Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its full path.
+Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
 CREATE OR REPLACE TABLE batch AS
@@ -67,9 +79,8 @@ SELECT * FROM batch ORDER BY order_id;
 SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
 ```
 
-**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
-connection, stops on SQL errors, and prints CSV results. It reuses **local.duckdb** so
-the saved batch survives between runs.
+Each file-based CLI invocation rereads your saved query and reuses **local.duckdb**.
+The refresh comes from **CREATE OR REPLACE TABLE batch**, not from opening the database file.
 
 Spend 3–5 minutes editing query.sql before Run. Replace the all-columns, all-orders starter
 with the two-column source query for paid orders in the requested day. Preserve the local table
@@ -90,7 +101,8 @@ source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.s
 
 ## Run
 ```bash
-duck_run
+cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
+  duck "$DUCK_LAB/local.duckdb" -bail -csv
 psql -X -h "$DUCK_LAB" -p 55439 -U postgres -d postgres -v ON_ERROR_STOP=1 -c "
 INSERT INTO sales.orders VALUES (106,'2026-09-14','paid',600,'new@example.invalid');"
 duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
@@ -98,7 +110,8 @@ SELECT 'local_before_refresh' AS stage, count(*) AS orders, sum(amount_cents) AS
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
 SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM sales.orders
 WHERE ordered_on >= DATE '2026-09-14' AND ordered_on < DATE '2026-09-15' AND status='paid';"
-duck_run
+cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
+  duck "$DUCK_LAB/local.duckdb" -bail -csv
 ```
 
 ## Expected result

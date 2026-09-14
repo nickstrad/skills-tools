@@ -66,6 +66,13 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- DuckDB CLI practice (2026-09-14): Nick explicitly says he is brand new to DuckDB and wants
+  muscle memory with its CLI. Keep recurring environment variables, fixtures and cleanup in
+  helpers, but show the actual `duck` invocation that executes the SQL he edits. Explain the
+  database argument, input files or `-c`, flags and connection lifetime. Supply an existing
+  editable starter and say what to change. `duck` may select the pinned CLI/settings;
+  `duck_run` hides the execution step he wants to practice. This refines the setup-helper
+  preference below and applies to authored lessons 1–5 and future DuckDB lessons.
 - Inactive course resources (2026-09-14): Nick is currently working on DuckDB, not PostgreSQL
   Essentials. Leave no PostgreSQL instance unrelated to an active DuckDB lesson running,
   including the separate default instance. Disable automatic startup; Nick will request a

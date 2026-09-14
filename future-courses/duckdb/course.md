@@ -16,6 +16,11 @@ and has SQLite/DuckDB attempts he wants to improve. Teach connector setup, sourc
 type conversion, and unfamiliar SQL explicitly. Prior experience does not establish the causes
 of problems in his existing attempts. No previous course completion is required.
 
+Nick clarified on 2026-09-14 that he is brand new to DuckDB and wants CLI muscle memory.
+Keep environment/fixture setup and cleanup in helpers, while showing the `duck` invocation,
+database target, SQL input and flags. Learners edit a supplied starter and run it themselves;
+explain what each call does and retains. Apply this to the first five lessons and later batches.
+
 Start with small application records, then use supplied synthetic worker events, AI run results,
 grades, feedback, documents, and retrieval results. Give each lesson its own complete starting
 fixture. Explain the record's grain and identifiers before commands. The AI examples need no
@@ -242,6 +247,9 @@ reviewed on 2026-09-14. Capabilities are documented; lesson outcomes and timings
 
 ## Learner feedback and final sign-off
 
+- 2026-09-14: requested revising authored lessons 1–5 to expose the CLI invocation in place of
+  `duck_run`, retaining simple setup/cleanup and editable starters. Record this level of detail
+  in teaching guidance; the route's scope, count and lesson order remain the same.
 - 2026-09-14: requested a DuckDB course, then specified practical data flows and high-level use;
   this supersedes the original engine-internals assumption and older roadmap emphasis.
 - 2026-09-14: requested SQLite and PostgreSQL integration, citing frequent PostgreSQL use and

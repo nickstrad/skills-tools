@@ -79,6 +79,10 @@ mechanism, and one cleanup command retires owned resources. Put repeated exports
 plumbing, file-writing scaffolding and teardown behind reusable helpers. Keep the relevant SQL,
 commands and evidence visible and the learner's meaningful decisions unfinished. Apply this to
 new lessons and revisions; do not require learners to rebuild the same shell setup each time.
+For an unfamiliar tool, executing its CLI is part of the learner work: show the database/input
+arguments and relevant flags, with a short explanation. In DuckDB, keep `duck` calls visible
+instead of replacing them with `duck_run`; the thin version/settings wrapper is sufficient.
+Setup should create a populated starter and explicitly tell the learner to edit and save it.
 Verify both source and rendered lesson content. When catalog rollout is authorized, test on a copy,
 refresh through `tutor COURSE init`, and verify progress preservation and actual displayed text.
 

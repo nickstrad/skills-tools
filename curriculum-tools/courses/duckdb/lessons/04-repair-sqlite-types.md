@@ -41,14 +41,19 @@ the ability to reconcile the report with its input.
 - In Bash, **source .../session.sh 4** supplies a fresh file, **DUCK_LAB**, **DUCK_COURSE**,
   your starter and the helpers; it needs the installed CLI but no earlier fixture.
   **duck_check_source** checks the source fingerprint
-  saved by the helper. **duck :memory: -bail -csv** uses a temporary database and stops on SQL errors.
+  saved by the helper. **duck** forwards arguments to the pinned CLI with course settings;
+  **:memory:** selects a temporary database, **-bail** stops on SQL errors, and **-csv** prints CSV.
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck :memory: -bail -csv**
+  sends the connection/raw-stage SQL followed by your edited query to one DuckDB process.
+  Each invocation starts fresh, so the raw stage and your query must execute together.
 - **sqlite3 typeof(amount_cents)** reports each stored SQLite value's type, independently of
   its column declaration. Numeric text '2300' was stored as integer by SQLite's column affinity;
   oops remained text. NULL means missing, not zero.
 - Setup first tries **SELECT * FROM source.main.invoices** with the normal scanner and prints
   its deliberate type error. The helper handles that expected failure; unrelated errors stop setup.
 - Setup then prints **text-attach.sql**, the supplied connection and raw-stage SQL that
-  **duck_run** executes before your query. Inspect the ordering of these statements:
+  is also copied into **session.sql**. The CLI executes it before your query.
+  Inspect the ordering of these statements:
 
   ```sql
   LOAD sqlite;
@@ -70,8 +75,9 @@ the ability to reconcile the report with its input.
   **GROUP BY disposition** lets you account for both groups. SUM ignores NULLs,
   so only the accepted sum is the report's usable total.
 
-The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
-in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+The setup helper creates **query.sql** with this starter already in it; the file is not empty.
+Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its full path.
+Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
 CREATE TABLE staged AS
@@ -87,8 +93,8 @@ SELECT (SELECT count(*) FROM raw) AS source_rows,
        (SELECT count(*) FROM classified) AS classified_rows;
 ```
 
-**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
-connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
+The Run command reads your saved edits each time. The temporary tables disappear when the
+CLI exits; rerunning both files recreates them from the source with your revised rule.
 
 Spend 3–5 minutes completing query.sql before Run: replace the dummy NULL conversion with
 TRY_CAST(raw_amount AS BIGINT), then strengthen the acceptance condition to reject negative
@@ -102,7 +108,8 @@ source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.s
 
 ## Run
 ```bash
-duck_run
+cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
+  duck :memory: -bail -csv
 duck_check_source
 ```
 

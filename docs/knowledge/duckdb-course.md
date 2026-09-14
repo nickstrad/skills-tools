@@ -36,15 +36,22 @@ count is not proof that a learner has solved the tasks.
 Repeated shell preparation belongs in reusable helpers, leaving DuckDB decisions and observations
 in the lesson. Lessons 1–5 source `lab/session.sh N` to select a fresh owned fixture, create
 editable SQL starters, print initial source evidence, export the session variables, define
-`duck`/`duck_run`, save file fingerprints where applicable, and arrange cleanup.
-`duck_run` reads the learner's query and supplied connection/staging SQL in the same connection;
-only lesson 2 persists its local DuckDB database. Numbered SQL templates live in `lab/`.
+the pinned `duck` wrapper, save file fingerprints where applicable, and arrange cleanup.
+The Run blocks expose the CLI invocation for repeated practice: lessons 1–4 pipe `session.sql`
+then `query.sql` into one `duck` process; lesson 5 redirects `query.sql` directly with `<`.
+Only lesson 2 names a persistent `local.duckdb`; other lessons explicitly select `:memory:`.
+The files execute in order in one connection, so attachment/raw-stage state exists when the
+learner's query runs. `-bail` stops on SQL errors and `-csv` prints CSV; lesson 2 also uses
+`-c` for a local query that does not refresh its stored batch. Numbered SQL templates live in
+`lab/` and setup creates populated starters to edit. `duck_run` remains a compatibility helper
+but is not the taught execution path. Setup prints the same explicit command as the lesson.
 Use `duck_check_source` for the read-only file check and `duck_cleanup` to finish. Source the helper
 in Bash; executing it in a child process cannot configure the learner's shell. It resolves its
 own location, leaves cwd/options alone, refuses to replace a selected lab, and preserves existing
 EXIT handlers. With a pre-existing EXIT trap, explicit cleanup is required. Keep attachment,
 conversion, catalog inspection and learner-written query logic visible in lesson explanations
-and SQL even when a helper performs the repetitive invocation. The all-course contract is in
+and SQL. The learner explicitly requested CLI muscle memory while keeping recurring setup
+hidden; the course's wrapper handles version/settings only. The all-course contract is in
 [the learner-work norm](learner-work.md#simple-lab-lifecycle).
 
 The tutor displays stored catalog content, not live Markdown. A helper refactor can be present

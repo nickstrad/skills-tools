@@ -37,6 +37,11 @@ the next planned lesson tackles messy input and explicit type contracts.
 - In Bash, **source .../session.sh 5** supplies a fresh orders.csv, **DUCK_LAB**,
   **DUCK_COURSE**, your starter and the helpers. No PostgreSQL or earlier lab is required.
   The course CLI must be installed.
+- **duck :memory: -bail -csv < "$DUCK_LAB/query.sql"** runs your saved SQL file through
+  the CLI. **duck** forwards arguments to the pinned DuckDB CLI with course settings;
+  **:memory:** starts a fresh temporary database, **-bail** stops on SQL errors, and
+  **-csv** prints CSV results. Bash's **<** feeds the file to DuckDB's standard input.
+  This lesson reads CSV directly, so no attachment SQL needs to precede your query.
 - Setup prints the small raw CSV so you can independently check which rows belong.
   The helper records a fingerprint; **duck_check_source** verifies that analysis left it unchanged.
 - **read_csv('path', header=true)** exposes the file as rows and uses the first line as names.
@@ -50,8 +55,9 @@ the next planned lesson tackles messy input and explicit type contracts.
 - The helper supplies the file path in your query; only the WHERE clauses are your task.
   Finish with **duck_cleanup**.
 
-The setup helper creates **query.sql** with this starter. Open **"$DUCK_LAB/query.sql"**
-in your editor after Setup; the helper prints its full path. Your edits are the lesson task.
+The setup helper creates **query.sql** with this starter already in it; the file is not empty.
+Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its full path.
+Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
 SELECT order_id, amount_cents FROM read_csv('LAB_PATH/orders.csv', header=true)
@@ -60,8 +66,7 @@ SELECT count(*) AS orders, sum(amount_cents) AS total_cents
 FROM read_csv('LAB_PATH/orders.csv', header=true) WHERE status='paid';
 ```
 
-**duck_run** runs that file with the supplied attachment and staging SQL in one DuckDB
-connection, stops on SQL errors, and prints CSV results. Each run uses a fresh in-memory database.
+The Run command reads your saved edits each time and closes DuckDB after executing the file.
 The helper fills in **LAB_PATH** with your actual fixture directory.
 
 Spend 3–4 minutes adapting both WHERE clauses in query.sql before Run. Select only paid
@@ -75,7 +80,7 @@ source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.s
 
 ## Run
 ```bash
-duck_run
+duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 duck_check_source
 ```
 

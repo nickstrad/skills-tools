@@ -68,8 +68,18 @@ claim that every legacy lesson has already been converted.
   authorized rollout, verify refresh on a copy, run `tutor COURSE init`, and compare recorded
   progress and displayed content. Author-only checks continue to use temporary databases.
 
-DuckDB lessons 1–5 implement this with `source .../lab/session.sh N`, an editable `query.sql`,
-`duck_run`, and `duck_cleanup`; their course README documents the details.
+On 2026-09-14 Nick clarified the boundary for DuckDB: he is new to the tool and wants to
+practice the CLI call that runs the SQL he edits. Hide recurring environment setup, but retain
+the database argument, SQL input and relevant CLI flags as visible learner commands. Explain
+what is supplied, what to edit, what each invocation executes and what survives its exit.
+An execution helper such as `duck_run` removes useful practice even when it leaves SQL visible.
+This is the learner's explicit calibration, not an inference from his broader systems experience.
+
+DuckDB lessons 1–5 use `source .../lab/session.sh N`, a populated editable `query.sql`, explicit
+`duck` CLI invocations and `duck_cleanup`. Lessons 1–4 feed session.sql then query.sql to one
+process; lesson 2 names its persistent local database and lesson 5 reads query.sql directly.
+The thin `duck` wrapper only selects the pinned CLI and settings. The
+[course README](../../curriculum-tools/courses/duckdb/README.md) documents the commands.
 
 The installed [tutor skill](../../curriculum-tools/skills/tutor/SKILL.md), local AGENTS guidance,
 [authoring contract](../../curriculum-tools/docs/AUTHORING.md) and templates carry this rule. At

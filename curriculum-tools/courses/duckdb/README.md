@@ -44,23 +44,38 @@ source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.s
 Use the current lesson number 1–5. Setup creates the fixture and editable `query.sql`, supplies
 the connection/staging SQL, prints the lesson's initial source observations, and records file
 fingerprints where applicable. It prints the full work-file path and the run/cleanup commands.
-Edit `"$DUCK_LAB/query.sql"` in your editor, then follow the lesson's Run block:
+`query.sql` already contains starter SQL; edit that file and save it. For lesson 2, run:
 
 ```bash
-duck_run
+cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
+  duck "$DUCK_LAB/local.duckdb" -bail -csv
 # Inspect the results and any additional source comparison in the lesson.
 duck_cleanup
 ```
 
-`duck_run` reads your edited query every time. It executes the supplied `session.sql` followed
-by `query.sql` in one connection with SQL-error checking and CSV output. Lesson 2 reuses
-`local.duckdb`; other lessons use fresh in-memory databases. It does not insert the new source
-order in lesson 2: that explicitly shown experiment step remains in the lesson's Run block.
-The starter SQL and mechanism-relevant connection/staging SQL remain visible in the lessons.
+The pipeline sends the supplied `session.sql` followed by your edited `query.sql` to one
+DuckDB process. `duck` is a thin wrapper around the pinned DuckDB CLI: it forwards arguments
+and supplies version/extension/resource settings. `-bail` stops on SQL errors; `-csv` prints CSV.
+Lesson 2 reuses `local.duckdb`; lessons 1, 3 and 4 use the same pipeline with `:memory:` instead.
+Lesson 5 needs no attachment, so its command is simply:
+
+```bash
+duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+```
+
+Bash's `<` feeds the SQL file to the CLI's standard input. Each invocation rereads saved edits.
+In lesson 2, `CREATE OR REPLACE TABLE batch` refreshes the local extract; opening the file with
+`duck "$DUCK_LAB/local.duckdb" -bail -csv -c "SELECT * FROM batch;"` only reads the saved table.
+The source insert remains an explicit separate step in the lesson's Run block.
+
+Nick is brand new to DuckDB and requested this level of CLI practice on 2026-09-14. Keep
+recurring environment variables, fixtures and teardown behind helpers, while retaining the
+actual execution command, input and flags in lessons. `duck_run` remains available for existing
+sessions, but lessons teach the explicit calls above. Starter and connection/staging SQL stay visible.
 Use `duck_check_source` for the unchanged-file check in lessons 3–5.
 
 After a lesson-source update, run `tutor duckdb init` once to refresh the catalog shown by
-`tutor duckdb N lesson`. Verify the displayed Setup calls `session.sh N`; modifying Markdown
+`tutor duckdb N lesson`. Verify Setup calls `session.sh N` and Run shows the explicit CLI command; modifying Markdown
 alone does not refresh the stored catalog. This mechanical refactor retains lesson revisions
 and recorded progress because the learning tasks and expected results have not changed.
 

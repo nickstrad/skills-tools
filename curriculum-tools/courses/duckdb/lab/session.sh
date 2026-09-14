@@ -76,7 +76,17 @@ $query"
     duck_cleanup
     return 1
   fi
-  printf 'Lesson %s ready. Edit: %s/query.sql\nRun: duck_run\nCleanup: duck_cleanup\n' "$lesson" "$DUCK_LAB"
+  printf 'Lesson %s ready. Edit the supplied starter: %s/query.sql\nRun:\n' "$lesson" "$DUCK_LAB"
+  if [[ $lesson == 5 ]]; then
+    printf '%s\n' 'duck :memory: -bail -csv < "$DUCK_LAB/query.sql"'
+  elif [[ $lesson == 2 ]]; then
+    printf '%s\n' 'cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |' \
+      '  duck "$DUCK_LAB/local.duckdb" -bail -csv'
+  else
+    printf '%s\n' 'cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |' \
+      '  duck :memory: -bail -csv'
+  fi
+  printf 'Cleanup: duck_cleanup\n'
 }
 
 _duck_session_start "$@"

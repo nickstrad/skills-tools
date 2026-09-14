@@ -25,6 +25,16 @@ Events:
 - 2026-09-14: read authoring/tutor/knowledge skills, repository guidance, route and current sources.
   Confirmed existing Go validator exercises actual Run blocks with starters, answers and wrong choices.
 
-Remaining: edits; structural check; full real-tool driver; copy-based catalog/progress checks;
-authorized live refresh and rendered verification; durable knowledge reflection/update; cleanup.
+- 2026-09-14: revised five lessons and setup's printed command, retained compatible duck_run.
+  Updated profile, shared authoring norm, course README/route feedback and repository knowledge.
+- 2026-09-14: structural check and Bash syntax passed. Full existing Go driver accepted all
+  15 independent starter/answer/wrong trials plus 5/5 shared starters and 5/5 worked sequence.
+  Peak fixture 40,280 KiB; fixtures cleaned after each run. Latest logs/manifest are course-local.
+- 2026-09-14: progress verify passed on a copy (266 lesson identities, 40 progress, 41 attempts).
+  Refreshed separate `/tmp/duckdb-cli-practice-20260914/catalog.sqlite`, inspected all five
+  rendered Run blocks, and compared exact progress/attempt dumps unchanged.
+
+Remaining: authorized live refresh and rendered verification; durable knowledge reflection/update;
+final resource/manifest checks and scratch cleanup. Scratch copy/output lives only under
+`/tmp/duckdb-cli-practice-20260914`, to be removed before completion.
 Delete this log only after completion and knowledge-store reflection, committing its removal.
