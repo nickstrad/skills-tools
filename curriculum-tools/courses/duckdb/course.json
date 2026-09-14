@@ -1,0 +1,14 @@
+{
+  "id": "duckdb",
+  "name": "Practical DuckDB: Data Flows and Improving AI Systems",
+  "description": "Connect sources, prepare dependable data, and investigate system outcomes",
+  "tool": "duckdb",
+  "minVersion": "1.5.5",
+  "revision": 1,
+  "repl": {
+    "mode": "shell",
+    "command": ["bash", "--noprofile", "--norc"],
+    "echo": "printf '%s %s\\n' '{marker}' \"$?\"",
+    "quit": "exit"
+  }
+}

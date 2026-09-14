@@ -1,0 +1,6 @@
+order_id,ordered_on,status,amount_cents
+101,2026-09-13,paid,1200
+102,2026-09-14,paid,2300
+103,2026-09-14,pending,800
+104,2026-09-14,paid,1700
+105,2026-09-15,paid,900

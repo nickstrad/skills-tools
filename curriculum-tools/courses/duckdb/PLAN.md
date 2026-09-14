@@ -1,0 +1,1 @@
+../../../future-courses/duckdb/course.md
