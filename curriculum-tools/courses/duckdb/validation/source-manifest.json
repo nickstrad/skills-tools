@@ -5,12 +5,13 @@
   "lab/install.sh": "452aa0d99b7d44f168553d638fffaa17b017d503443eab31b6ba3158397f648d",
   "lab/orders.csv": "710454e1e5f78056e5e510d72a82ac06828cf3713d94270cc1b1abaa343e93c4",
   "lab/postgres.sql": "ccf3a1a0c06ad1e6cb9b8c267d54fdc9901847e5fcd01a5a9e58851af28dc00e",
+  "lab/session.sh": "af243e0ae49f2cfd34e9241ae18362ca60647383e91ea762cde2ffb100510a5d",
   "lab/setup.sh": "560f0d769588ade36646a8a216b179de2e47276c60efdd63507735024c8d7d61",
   "lab/sqlite.sql": "4613d5ea4a7357f28738aac6fa5bc1aafd06b741fbdf110aded4eed85d998e25",
   "lessons/01-attach-postgres-source.md": "e600d4c66179b3019386442db8ad56a19cd0c0dfedd2284a359efaf29bcbc637",
-  "lessons/02-extract-postgres-batch.md": "4086ea718b5dbc5ffd6f1045cb1718f83acc91d897e027029c106d1354aacd7d",
-  "lessons/03-attach-sqlite-file.md": "e5a0267fe9dd56c678aa4910f66e4e1ad75a7433f7a60ff03d4d228f10cca318",
-  "lessons/04-repair-sqlite-types.md": "5cdb8444093ecfc944d068decb03d9883e3b190c63d731e6de8740c5916b31f6",
-  "lessons/05-query-a-file.md": "697ae7d16a894799e4cb76e4c858f659fe400b84eda0d201094ffcefddaa8f32",
+  "lessons/02-extract-postgres-batch.md": "b17ae9d566d52dd6c348228da4cdf3f8b82137da213f6ae6825dc8a20df2711e",
+  "lessons/03-attach-sqlite-file.md": "e6f3e1189f7ff0bbe02fd189ea856928c04c4cfcc0ec7780b94e13c8c12ee718",
+  "lessons/04-repair-sqlite-types.md": "781592a6480cc06ec7074c524f6d90ccb47fe150dce00dee0af1dad99eabf857",
+  "lessons/05-query-a-file.md": "2a17071db762d534ee6108dd0dddb1319c1d0b5a65cd01de30e228aca74dc501",
   "validation/main.go": "e91e6c4023a79324d1ce0125baa2ffb91f4e78f2f955b5ba51081e615269adac"
 }

@@ -10,7 +10,7 @@ run-in: shell
 sessions: 1
 min-version: 1.5.5
 minutes: 10
-revision: 1
+revision: 2
 
 ## Overview
 
@@ -34,10 +34,11 @@ the next planned lesson tackles messy input and explicit type contracts.
 
 ## Syntax breakdown
 
-- **setup.sh 5** supplies a fresh orders.csv; no PostgreSQL or earlier lab is required.
-  Run in Bash with the course CLI installed as in lesson 1.
+- In Bash, **source .../session.sh 5** supplies a fresh orders.csv, **DUCK_LAB**,
+  **DUCK_COURSE**, **duck**, and **duck_cleanup**. No PostgreSQL or earlier lab is required.
+  The course CLI must be installed; the remaining Setup runs only if the helper succeeds.
 - **cat** prints the small raw CSV so you can independently check which rows belong.
-  **sha256sum** records a fingerprint and **-c** verifies that analysis did not change the file.
+  The helper records a fingerprint; **duck_check_source** verifies that analysis left it unchanged.
 - **read_csv('path', header=true)** exposes the file as rows and uses the first line as names.
   **DESCRIBE SELECT ...** inspects inferred column types before your report runs.
   This CLI uses **:memory:** so no persistent DuckDB database is created.
@@ -48,7 +49,7 @@ the next planned lesson tackles messy input and explicit type contracts.
   than a total alone.
 - The unquoted shell **<<SQL** expands DUCK_LAB when writing your query file. The generated
   path is supplied; only the WHERE clauses are your task. The earlier **duck** wrapper,
-  **-bail**, **-csv**, and teardown trap behave as before.
+  **-bail** and **-csv** behave as before. Finish with **duck_cleanup**.
 
 Spend 3–4 minutes adapting both WHERE clauses in query.sql before Run. Select only paid
 orders in the requested day. Inspect the resulting IDs and reconcile their integer-cent sum
@@ -56,14 +57,8 @@ with the raw file. Hint: a date filter alone still includes a pending order.
 
 ## Setup
 ```bash
-cd /root/Software/skills-tools
-export DUCK_COURSE="$PWD/curriculum-tools/courses/duckdb"
-export DUCK_LAB=$(bash "$DUCK_COURSE/lab/setup.sh" 5)
-test -n "$DUCK_LAB" || exit 1
-trap 'bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"' EXIT
-duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5 && {
 cat "$DUCK_LAB/orders.csv"
-sha256sum "$DUCK_LAB/orders.csv" > "$DUCK_LAB/source.sha256"
 duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
 cat > "$DUCK_LAB/query.sql" <<SQL
 SELECT order_id, amount_cents FROM read_csv('$DUCK_LAB/orders.csv', header=true)
@@ -72,12 +67,13 @@ SELECT count(*) AS orders, sum(amount_cents) AS total_cents
 FROM read_csv('$DUCK_LAB/orders.csv', header=true) WHERE status='paid';
 SQL
 printf 'Edit both predicates in %s/query.sql before Run.\n' "$DUCK_LAB"
+}
 ```
 
 ## Run
 ```bash
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
-sha256sum -c "$DUCK_LAB/source.sha256"
+duck_check_source
 ```
 
 ## Expected result
@@ -98,9 +94,7 @@ WHERE ordered_on=DATE '2026-09-14' AND status='paid';
 
 Cleanup:
 ```bash
-bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"
-trap - EXIT
-unset DUCK_LAB
+duck_cleanup
 ```
 
 ## Systems lens
@@ -109,4 +103,3 @@ A file can be a query input without first becoming a stored database table. The 
 meaning comes from its row grain and selection boundary. Successful parsing and SQL execution
 do not establish that the predicate answers the question. This small, well-formed fixture
 does not establish that inference will choose suitable types for future exports.
-

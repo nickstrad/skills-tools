@@ -10,7 +10,7 @@ run-in: shell
 sessions: 1
 min-version: 1.5.5
 minutes: 12
-revision: 1
+revision: 2
 
 ## Overview
 
@@ -35,9 +35,12 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 
 ## Syntax breakdown
 
-- Use Bash and the installed course CLI from lesson 1. **setup.sh 2** supplies a new private
-  PostgreSQL cluster, read-only app attachment, and cleanup marker. No previous lab is needed.
-  **duck**, **-bail**, **-csv**, the attachment pipeline and **trap** behave as in lesson 1.
+- In Bash, **source .../session.sh 2** prepares a fresh private PostgreSQL fixture, sets
+  **DUCK_COURSE** and **DUCK_LAB**, and defines **duck** and **duck_cleanup**. Use source so
+  these stay available in your shell. No earlier lab is needed; the CLI must already be installed.
+  The remaining Setup runs only if the helper succeeds. **duck**, **-bail**, **-csv** and the
+  attachment pipeline behave as in lesson 1. Run **duck_cleanup** when finished; normal shell
+  exit also cleans up unless your shell already had an EXIT trap.
 - **postgres_query('app', $$ ... $$)** executes the enclosed SQL in PostgreSQL.
   The dollar-quoted SQL string avoids escaping its single-quoted date and status values.
   Inside it use **sales.orders**: app is DuckDB's alias and is not a PostgreSQL schema.
@@ -65,12 +68,7 @@ For a fresh attempt, clean up and repeat Setup.
 
 ## Setup
 ```bash
-cd /root/Software/skills-tools
-export DUCK_COURSE="$PWD/curriculum-tools/courses/duckdb"
-export DUCK_LAB=$(bash "$DUCK_COURSE/lab/setup.sh" 2)
-test -n "$DUCK_LAB" || exit 1
-trap 'bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"' EXIT
-duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 && {
 cat > "$DUCK_LAB/query.sql" <<'SQL'
 CREATE OR REPLACE TABLE batch AS
 SELECT * FROM postgres_query('app', $$
@@ -81,6 +79,7 @@ SELECT * FROM batch ORDER BY order_id;
 SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
 SQL
 printf 'Edit the SQL inside postgres_query in %s/query.sql before Run.\n' "$DUCK_LAB"
+}
 ```
 
 ## Run
@@ -121,9 +120,7 @@ SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
 
 Cleanup:
 ```bash
-bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"
-trap - EXIT
-unset DUCK_LAB
+duck_cleanup
 ```
 
 ## Systems lens
@@ -133,4 +130,3 @@ saved result; it does not rerun the source query. Replacing the table moves the 
 Source-side SQL controls the result transmitted to DuckDB, but this small fixture does not
 measure network bytes or source execution cost. Independent extracts from multiple databases
 would not automatically form one atomic snapshot.
-

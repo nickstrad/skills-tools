@@ -66,6 +66,17 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- Inactive course resources (2026-09-14): Nick is currently working on DuckDB, not PostgreSQL
+  Essentials. Leave no PostgreSQL instance unrelated to an active DuckDB lesson running,
+  including the separate default instance. Disable automatic startup; Nick will request a
+  restart if he returns to PostgreSQL. Check dependencies against DuckDB and keep recorded
+  lesson progress. Current
+  service/data disposition is in [the lab note](knowledge/postgres-lab.md).
+- DuckDB setup helpers (2026-09-14): move repeated setup that does not teach DuckDB into
+  runnable helpers, including course/lab environment variables, fixture lifecycle and file
+  fingerprints. Nick explicitly requested this for lessons 2–5 to spend lesson time on DuckDB.
+  Apply the same rule when authoring later DuckDB lessons; keep mechanism-relevant SQL,
+  source inspection and the learner's query decisions visible in the lesson.
 - DuckDB course scope (2026-09-14): Nick wants a very practical course for building data flows
   and understanding how to use DuckDB at a high level. Focus on reading files, cleaning and
   combining data, producing outputs, and repeatable pipelines. Explain internals only when they

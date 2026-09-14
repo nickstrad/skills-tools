@@ -33,6 +33,16 @@ count is not proof that a learner has solved the tasks.
 
 ## How to apply
 
+Repeated shell preparation belongs in reusable helpers, leaving DuckDB decisions and observations
+in the lesson. Lessons 2–5 source `lab/session.sh N` to select a fresh owned fixture, export
+DUCK_COURSE/DUCK_LAB, define `duck`, save file fingerprints where applicable, and arrange cleanup.
+Use `duck_check_source` for the read-only file check and `duck_cleanup` to finish. Source the helper
+in Bash; executing it in a child process cannot configure the learner's shell. It resolves its
+own location, leaves cwd/options alone, refuses to replace a selected lab, and preserves existing
+EXIT handlers. With a pre-existing EXIT trap, explicit cleanup is required. Do not hide attachment,
+conversion, catalog inspection or learner-written query logic in setup helpers. The learner's
+standing preference is recorded in [the profile](../learner-profile.md).
+
 Use [the course README](../../curriculum-tools/courses/duckdb/README.md) and
 [batch acceptance](../../curriculum-tools/courses/duckdb/validation/batch-one.md).
 The pinned runtime lives under the ignored curriculum-tools/.cache/duckdb-1.5.5 directory;
@@ -46,6 +56,14 @@ not a DuckDB or PostgreSQL defect. Author rendering/progress tests use explicit 
 paths: bin/tutor changes its working directory to curriculum-tools. DuckDB must first be adopted
 on a **copy** before its progress verify command can check that new course; never initialize the
 real learner database as an authoring side effect.
+
+The persistent `pglab.service` and default `16/main` instance were intentionally stopped and
+disabled on 2026-09-14; the default cluster has manual startup configured. DuckDB
+needs PostgreSQL 16 binaries and the postgres OS account, not either standing PostgreSQL service
+on ports 5440/5432. A fresh DuckDB PostgreSQL fixture returned its five source orders with
+Essentials stopped, then cleaned up successfully. Do not start Essentials to make DuckDB ready.
+Only keep PostgreSQL running for an active DuckDB fixture; clean it up after use.
+See [the lab lifecycle note](postgres-lab.md) for the separate persistent clusters.
 
 Primary references: [PostgreSQL attachment](https://duckdb.org/docs/current/core_extensions/postgres/overview),
 [source-side SQL](https://duckdb.org/docs/current/core_extensions/postgres/functions),

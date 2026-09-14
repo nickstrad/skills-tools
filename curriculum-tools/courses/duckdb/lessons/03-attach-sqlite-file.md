@@ -10,7 +10,7 @@ run-in: shell
 sessions: 1
 min-version: 1.5.5
 minutes: 10
-revision: 1
+revision: 2
 
 ## Overview
 
@@ -34,10 +34,11 @@ synthetic file at setup, then uses a read-only attachment.
 
 ## Syntax breakdown
 
-- Use Bash with the course CLI installed as in lesson 1. **setup.sh 3** creates its own
-  SQLite file without starting PostgreSQL. **DUCK_LAB**, **duck**, **trap**, **-bail**, and
-  **-csv** have the same meanings as before; **:memory:** creates a temporary DuckDB database.
-- **sha256sum** saves the source file's byte fingerprint; **-c** later checks it.
+- In Bash, **source .../session.sh 3** creates a fresh SQLite fixture without PostgreSQL,
+  sets **DUCK_LAB** and **DUCK_COURSE**, and supplies **duck** and **duck_cleanup**.
+  Use source with the course CLI already installed; the remaining Setup runs only on success.
+  **-bail** stops on SQL errors, **-csv** prints CSV; **:memory:** creates a temporary database.
+- The helper saves the source file's byte fingerprint; **duck_check_source** verifies it.
   Our fixture is closed and has no active writer. Do not copy only the main file of a live
   SQLite database with pending WAL; use a SQLite-native backup for real data.
 - **LOAD sqlite; ATTACH ... AS source (TYPE sqlite, READ_ONLY)** exposes the file.
@@ -56,13 +57,7 @@ the two customers tables. Success means matching native IDs/names and leaving th
 
 ## Setup
 ```bash
-cd /root/Software/skills-tools
-export DUCK_COURSE="$PWD/curriculum-tools/courses/duckdb"
-export DUCK_LAB=$(bash "$DUCK_COURSE/lab/setup.sh" 3)
-test -n "$DUCK_LAB" || exit 1
-trap 'bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"' EXIT
-duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
-sha256sum "$DUCK_LAB/source.sqlite" > "$DUCK_LAB/source.sha256"
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3 && {
 cat > "$DUCK_LAB/local.sql" <<'SQL'
 CREATE TABLE customers AS SELECT 999 AS customer_id, 'west' AS region, 'Decoy' AS name;
 SQL
@@ -76,6 +71,7 @@ SELECT customer_id, name FROM memory.main.customers
 WHERE region='east' ORDER BY customer_id;
 SQL
 printf 'Edit the source and region in %s/query.sql before Run.\n' "$DUCK_LAB"
+}
 ```
 
 ## Run
@@ -83,7 +79,7 @@ printf 'Edit the source and region in %s/query.sql before Run.\n' "$DUCK_LAB"
 { cat "$DUCK_LAB/attach.sql"; cat "$DUCK_LAB/local.sql"; cat "$DUCK_LAB/query.sql"; } | duck :memory: -bail -csv
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
 SELECT customer_id, name FROM customers WHERE region='west' ORDER BY customer_id;"
-sha256sum -c "$DUCK_LAB/source.sha256"
+duck_check_source
 ```
 
 ## Expected result
@@ -100,9 +96,7 @@ WHERE region='west' ORDER BY customer_id;
 
 Cleanup:
 ```bash
-bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"
-trap - EXIT
-unset DUCK_LAB
+duck_cleanup
 ```
 
 ## Systems lens
@@ -111,4 +105,3 @@ DuckDB provides an analytical interface to existing storage. The attachment alia
 which catalog is read; no local copy was created by SELECT. The successful native reopen and
 unchanged fingerprint corroborate the file boundary for this quiet fixture. They do not test
 concurrent writer behavior or establish a backup procedure.
-

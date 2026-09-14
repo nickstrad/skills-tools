@@ -1,5 +1,33 @@
 # DuckDB first-batch acceptance — lessons 1–5
 
+## Setup-helper revision — 2026-09-14
+
+Lessons 2–5 now use revision 2 and the sourced `lab/session.sh` lifecycle helper. SQL starters,
+worked answers and expected data are unchanged. The current results and source manifest below
+were regenerated with a full `go run ./courses/duckdb/validation`: all 15 independent trials and
+both shared five-lesson sequences passed, including PostgreSQL extraction and SQLite type errors.
+Evidence has CRLF and trailing whitespace normalized. `bin/tutor duckdb check` and Bash syntax
+checks passed. The initial acceptance record below remains historical context.
+
+Additional real helper checks passed: source-only invocation and lesson-number validation,
+execution from /tmp without changing cwd/options, CLI query, preservation of active lab/query
+edits on repeated setup, detection of a modified source, sequential fresh fixtures, repeated
+explicit cleanup, automatic EXIT cleanup, and preservation of an existing EXIT handler.
+Every owned fixture was removed. A helper never silently replaces an existing EXIT handler;
+that case requires the displayed explicit cleanup.
+
+Lessons 2–5 rendered with the new commands on a temporary catalog. Copy-based progress
+verification preserved 266 identities, 40 progress rows and 41 attempts; done/skip/undone
+were smoke-tested only on temporary state (`tutor duckdb undone 3` is the supported undo syntax).
+The pre-existing modified learner database was untouched: SHA256
+`258edc4cfb93d488e9b716ab7f30cb788e83355b95f0851e0d76e301a8b54eca`, zero-byte WAL.
+The learner PostgreSQL endpoint answered SELECT 1 after author validation. Project knowledge
+and learner preferences now record the setup-helper boundary; `data/duckdb-course-tools.md`
+was updated, reread and reindexed through kb. No skill change was needed: the reusable facts
+belong in the existing project/tooling notes.
+
+## Initial acceptance
+
 Accepted 2026-09-14. Implements only the first five lessons of the agreed revision-3
 [route](../PLAN.md). Primary agent authored, reviewed and validated; no delegation.
 The user selected DuckDB **1.5.5** and required the live state log, final knowledge-store

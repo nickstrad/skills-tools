@@ -35,6 +35,28 @@ when you choose to record completion. `skip` and `undone` are explicit progress 
 
 ## Lab lifecycle
 
+Lessons 2–5 replace repeated shell setup with one sourced helper. For example, from any directory:
+
+```bash
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2
+```
+
+Use the lesson number 2, 3, 4 or 5. This sets `DUCK_COURSE` and `DUCK_LAB`, defines `duck`,
+creates the fixture, and records the source fingerprint for file lessons. Continue with the
+lesson's SQL starter and experiment; sourcing alone does not create query.sql. The lesson Setup
+includes the source command, so paste that complete block instead when following a lesson.
+The `&& { ... }` group prevents starter files being overwritten if setup fails.
+
+After a lesson-source update, run `tutor duckdb init` once to refresh the catalog shown by
+`tutor duckdb N lesson`. Existing progress is retained; revisions 2–5 now use these helpers.
+
+Finish with `duck_cleanup`; run `duck_check_source` where lessons 3–5 check an unchanged file.
+Repeat cleanup safely, then source again for a fresh attempt. Setup refuses to replace a selected
+lab, preserving unfinished query edits. Source in Bash rather than running `bash session.sh`,
+because variables and functions must remain in the current shell. The helper leaves cwd and shell
+options unchanged. It installs an EXIT cleanup trap when none exists; if your shell already has
+one, it retains that handler and asks you to run `duck_cleanup` explicitly.
+
 Setup creates a uniquely named `/tmp/duckdb-lesson.XXXXXX` directory and prints it as DUCK_LAB.
 Lessons 1–2 create one small PostgreSQL cluster, listening only on that directory's Unix socket
 at port 55439. Distinct socket paths avoid collisions; no TCP listener is exposed. READ_ONLY

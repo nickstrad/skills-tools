@@ -10,7 +10,7 @@ run-in: shell
 sessions: 1
 min-version: 1.5.5
 minutes: 12
-revision: 1
+revision: 2
 
 ## Overview
 
@@ -38,8 +38,10 @@ the ability to reconcile the report with its input.
 
 ## Syntax breakdown
 
-- **setup.sh 4** supplies a new file; it needs no earlier fixture. The shared Bash helper and
-  **duck :memory: -bail -csv** conventions are unchanged.
+- In Bash, **source .../session.sh 4** supplies a fresh file, **DUCK_LAB**, **DUCK_COURSE**,
+  **duck**, and **duck_cleanup**; it needs the installed CLI but no earlier fixture.
+  The remaining Setup runs only on success. **duck_check_source** checks the source fingerprint
+  saved by the helper. **duck :memory: -bail -csv** uses a temporary database and stops on SQL errors.
 - **sqlite3 typeof(amount_cents)** reports each stored SQLite value's type, independently of
   its column declaration. Numeric text '2300' was stored as integer by SQLite's column affinity;
   oops remained text. NULL means missing, not zero.
@@ -63,13 +65,7 @@ that discards rejects. The ID and original text must remain visible beside the d
 
 ## Setup
 ```bash
-cd /root/Software/skills-tools
-export DUCK_COURSE="$PWD/curriculum-tools/courses/duckdb"
-export DUCK_LAB=$(bash "$DUCK_COURSE/lab/setup.sh" 4)
-test -n "$DUCK_LAB" || exit 1
-trap 'bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"' EXIT
-duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
-sha256sum "$DUCK_LAB/source.sqlite" > "$DUCK_LAB/source.sha256"
+source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4 && {
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
 SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type FROM invoices ORDER BY invoice_id;"
 if { cat "$DUCK_LAB/attach.sql"; echo 'SELECT * FROM source.main.invoices;'; } | duck :memory: -bail -csv > "$DUCK_LAB/scan.txt" 2>&1; then
@@ -99,12 +95,13 @@ SELECT (SELECT count(*) FROM raw) AS source_rows,
        (SELECT count(*) FROM classified) AS classified_rows;
 SQL
 printf 'Complete conversion and acceptance in %s/query.sql before Run.\n' "$DUCK_LAB"
+}
 ```
 
 ## Run
 ```bash
 { cat "$DUCK_LAB/text-attach.sql"; cat "$DUCK_LAB/query.sql"; } | duck :memory: -bail -csv
-sha256sum -c "$DUCK_LAB/source.sha256"
+duck_check_source
 ```
 
 ## Expected result
@@ -135,9 +132,7 @@ SELECT (SELECT count(*) FROM raw) AS source_rows,
 
 Cleanup:
 ```bash
-bash "$DUCK_COURSE/lab/cleanup.sh" "$DUCK_LAB"
-trap - EXIT
-unset DUCK_LAB
+duck_cleanup
 ```
 
 ## Systems lens
@@ -147,4 +142,3 @@ the scanner boundary; explicit conversion and a domain rule decide report member
 Every source row belongs to exactly one group. This is a rule for this integer-cent fixture,
 not a complete monetary-text validator: other inputs, such as fractional text that a cast can
 round, would need a stricter parsing contract.
-
