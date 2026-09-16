@@ -1,15 +1,15 @@
 # Practical DuckDB: Data Flows and Improving AI Systems
 
-Status: partly implemented; first batch validated. Updated: 2026-09-14.
+Status: partly implemented; first batch validated. Updated: 2026-09-16.
 Course ID: `duckdb`. Implementation: lessons 1–5 authored and validated; 6–32 and optional projects planned.
-Outline revision: 3. Final-outline sign-off: 2026-09-14 via request to implement its first five lessons.
+Outline revision: 4. Final-outline sign-off: 2026-09-16 via approval of the two Quack lesson swaps.
 
 ## Goal and scope
 
 Use DuckDB to connect existing data, build dependable transformations, investigate distributed
-work, and measure changes to AI systems. Organize the course around the eight practical uses
-in [duckdbresearch.md](../../duckdbresearch.md), with five optional practice projects after
-all core lessons, as Nick requested on 2026-09-14.
+work, and measure changes to AI systems. Build on the eight practical uses in
+[duckdbresearch.md](../../duckdbresearch.md), adding a two-lesson Quack client/server section
+as Nick approved on 2026-09-16. Five optional practice projects follow all core lessons.
 
 Assume basic SQL, shell, and application-development knowledge. Nick uses PostgreSQL frequently
 and has SQLite/DuckDB attempts he wants to improve. Teach connector setup, source qualification,
@@ -50,29 +50,35 @@ split into 2–4 short sessions. Doing all five adds 2 hours 30 minutes to five 
 projects by interest rather than treating them as completion requirements. Project setup and
 process control are supplied. They are not homework, a review gate, or a request to build an app.
 
-The route grows from 21 to 32 lessons because the chosen categories add distinct investigations:
-worker retries/completeness, AI comparisons and feedback, dataset selection/splits, retrieval,
-and memory evaluation. Preserve existing slugs when their questions remain. The standalone
-query-work lesson is absorbed into bounded extraction and remote-file selection; the original
-end-to-end handoff becomes the shared-dataset lesson and final optional project. These are
-revisions to an unimplemented outline, with no learner history to transfer.
+Revision 3 grew the route from 21 to 32 lessons. Revision 4 keeps 32 by replacing the planned
+"Turn reviewed failures into useful examples" (old 24) and "Test whether a memory policy helps"
+(old 29) with two Quack lessons immediately after lesson 17. Their specialized selection and
+matched-comparison work overlaps existing lessons; Quack adds process ownership, remote writes,
+and explicit remote execution. Retain dataset separation and reproducibility. Existing lessons
+keep their stable slugs; only planned rows are removed or renumbered, with no learner history to
+transfer. The standalone query-work lesson remains absorbed into bounded extraction and
+remote-file selection; the original end-to-end handoff remains the shared-dataset lesson and
+final optional project.
 
 One-time setup is provisionally 15–20 minutes through supplied commands: a pinned DuckDB CLI,
 matching SQLite/PostgreSQL extensions, native sqlite3/psql clients, small fixtures, and an owned
 PostgreSQL instance separate from `/labs/pglab`. A supplied HTTP fixture and matching httpfs
-extension are needed only for lesson 31. No tools or labs are created during planning.
+extension are needed only for lesson 31. Lessons 18–19 also require a matching pinned Quack
+extension and two local DuckDB CLI processes. Quack setup time must be measured during their
+implementation. No tools or labs are created during planning.
 
-## Eight categories and their sequence
+## Categories and their sequence
 
 | Category | Lessons | Why it comes here |
 | --- | --- | --- |
 | PostgreSQL analytical companion | 1–2 | Begin with a familiar source and an immediately useful local extract. |
 | Combining scattered data | 3–9 | Learn SQLite and file boundaries, then join sources with known types and keys. |
 | Repeatable data preparation | 10–17 | Turn one-off exploration into clean stages, checked outputs, and safe reruns. |
-| Distributed-system investigations | 18–20 | Apply identifiers, joins, and timestamps to retries, missing work, and delay. |
-| AI evaluation and feedback analysis | 21–23 | Compare versions using complete populations and attributable measurements. |
-| Evaluation and training dataset preparation | 24–26 | Turn observed failures into curated, separated, reproducible example sets. |
-| Retrieval and memory experiments | 27–29 | Use that evaluation discipline to assess retrieved evidence and candidate memories. |
+| DuckDB client/server with Quack | 18–19 | Use two terminals to observe remote writes and combine remote computation with local data. |
+| Distributed-system investigations | 20–22 | Apply identifiers, joins, and timestamps to retries, missing work, and delay. |
+| AI evaluation and feedback analysis | 23–25 | Compare versions using complete populations and attributable measurements. |
+| Evaluation dataset preparation | 26–27 | Keep supplied examples separated and reproducible. |
+| Retrieval experiments | 28–29 | Use that evaluation discipline to assess retrieved evidence and answer support. |
 | Shared analytical datasets | 30–32 | Lay out, query, and deliver identified datasets that other workers can consume. |
 
 ## Research and breakdown rationale
@@ -94,6 +100,16 @@ ideas, and limits. The outline applies it as follows:
   [JSON](https://duckdb.org/docs/current/data/json/loading_json),
   [schema combination](https://duckdb.org/docs/current/data/multiple_files/combining_schemas),
   [COPY](https://duckdb.org/docs/current/sql/statements/copy).
+- **Two DuckDB processes before worker analysis:** use the ordinary CLI in both terminals,
+  start a listener with `quack_serve`, and attach it from the other process. Separate the
+  remote-write/commit experiment from constructing a remote aggregation and local join.
+  `remote.query(...)` makes the intended execution location explicit. Quack documents remote
+  writes and forwarded transactions; exact visibility, commands, and extension compatibility
+  remain to be validated with the pinned course runtime. The documentation reviewed on
+  2026-09-16 labels Quack beta.
+  [Quack overview](https://duckdb.org/docs/current/quack/overview),
+  [remote query example](https://duckdb.org/2026/05/12/quack-remote-protocol),
+  [extension status](https://duckdb.org/docs/current/core_extensions/quack).
 - **Preparation before diagnosis:** the worker and AI modules reuse clean tables and ordinary
   SQL. Their new ideas are record identity, completeness, comparison populations, and evidence.
   They need separate lessons because a query can run successfully while answering the wrong
@@ -101,7 +117,7 @@ ideas, and limits. The outline applies it as follows:
   [agent-evaluation guidance](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents);
   our specific datasets and exercises are teaching proposals.
 - **Evaluation before retrieval experiments:** first establish valid comparisons, then measure
-  relevance, answer support, and the effect of memory separately. Supply fixed embeddings and
+  relevance and answer support separately. Supply fixed embeddings and
   labels for bounded experiments. No model calls or persistent approximate-search index are
   required. [Text analytics](https://duckdb.org/2025/06/13/text-analytics) supplies capability
   context; current [VSS persistence limits](https://duckdb.org/docs/current/core_extensions/vss#persistence)
@@ -146,21 +162,43 @@ Authored tag vocabulary: `duckdb`, `connections`, `data-flows`.
 | 15 | Run the flow as a repeatable job / `run-a-sql-job` | Adapt a supplied CLI invocation to a batch and output path; introduce one known SQL error and verify job failure. | Make inputs, outputs, and failure behavior explicit. |
 | 16 | Rerun a batch without double counting / `replace-a-daily-batch` | Complete transactional replacement of a known complete source day; rerun and verify identical results with other days preserved. | A clear replacement boundary makes retries repeatable. |
 | 17 | Send a checked result back to PostgreSQL / `write-postgres-result` | Complete a column mapping into an owned reporting table using a supplied replacement pattern; rerun and verify keys and totals in psql. | Local transformation and destination commit are separate responsibilities. |
-| 18 | Separate logical work from retries / `identify-worker-attempts` | Choose keys that remove duplicate event deliveries while retaining distinct attempts; reconcile logical tasks and attempts. | A retry is different from a duplicate copy of an event. |
-| 19 | Find work that never produced a result / `find-missing-worker-results` | Join accepted jobs with terminal attempts and published results using a supplied observation cutoff; identify pending and missing outcomes. | Successful rows cannot establish the completeness of the whole workload. |
-| 20 | Locate delay in a worker flow / `locate-worker-delay` | Separate queue and execution time from supplied compatible timestamps; identify the stage responsible for a changed latency distribution. | Attribute delay to a stage; cross-host timestamps alone do not prove causality. |
-| 21 | Compare AI versions on the same tasks / `compare-ai-versions` | Construct a same-task baseline/candidate comparison including failed and missing trials; identify one regression category. | An easier or incomplete task population can mimic improvement. |
-| 22 | Compare quality with usage fairly / `compare-quality-and-usage` | Aggregate multiple grades to the intended run grain before joining token/latency records; verify totals and compare verified outcomes with usage. | A many-to-many join can invent cost or apparent success. |
-| 23 | Connect user feedback to measured outcomes / `reconcile-ai-feedback` | Join delayed corrections to runs and automated grades; separate disagreement, explicit negative feedback, and missing feedback. | Feedback is attributable evidence, not automatically a ground-truth label. |
-| 24 | Turn reviewed failures into useful examples / `curate-learning-examples` | Complete selection rules using supplied review labels; preserve raw examples and provenance while excluding unreviewed or duplicate candidates. | A curated dataset has explicit inclusion criteria. |
-| 25 | Keep evaluation examples separate / `separate-evaluation-data` | Repair a split that places related examples on both sides by assigning whole source groups; verify no forbidden overlap remains. | Leakage can make a weak change look effective. |
-| 26 | Identify a reproducible dataset version / `version-evaluation-dataset` | Complete a manifest of source versions, transformation version, and split identity; reproduce a supplied result from those identified inputs. | Reproduction needs more than a filename or a timestamp. |
-| 27 | Measure whether retrieval finds useful evidence / `measure-retrieval-relevance` | Compare supplied retrieval configurations against fixed relevance labels; compute hit-at-k by query, including empty results. | Evaluate retrieved evidence on a fixed question set. |
-| 28 | Separate retrieval success from answer success / `trace-answer-support` | Join retrieved document versions, answers, and supplied support/correctness labels; isolate a case where relevant retrieval still produced a bad answer. | Retrieval quality and answer quality are separate measurements. |
-| 29 | Test whether a memory policy helps / `evaluate-memory-policy` | Compare matched runs with and without candidate memories; retain memory provenance and identify one helped and one harmed task. | Remembering more is not evidence of improving. |
+| 18 | Serve a DuckDB database and change it from another terminal / `serve-duckdb-with-quack` | Start a Quack listener in terminal A and authenticate/attach from a separate DuckDB CLI in B; complete a qualified remote update and observe it from A before and after commit, then try rollback. | The serving process owns the database; remote writes have transaction boundaries. |
+| 19 | Combine local data with a remote DuckDB result / `combine-local-and-remote-duckdb` | With worker events on A and a local lookup on B, construct an aggregation inside `remote.query(...)`, join its result to B's lookup, and reconcile supplied totals. | A DuckDB client can compute locally while explicitly sending selected work to the server. |
+| 20 | Separate logical work from retries / `identify-worker-attempts` | Choose keys that remove duplicate event deliveries while retaining distinct attempts; reconcile logical tasks and attempts. | A retry is different from a duplicate copy of an event. |
+| 21 | Find work that never produced a result / `find-missing-worker-results` | Join accepted jobs with terminal attempts and published results using a supplied observation cutoff; identify pending and missing outcomes. | Successful rows cannot establish the completeness of the whole workload. |
+| 22 | Locate delay in a worker flow / `locate-worker-delay` | Separate queue and execution time from supplied compatible timestamps; identify the stage responsible for a changed latency distribution. | Attribute delay to a stage; cross-host timestamps alone do not prove causality. |
+| 23 | Compare AI versions on the same tasks / `compare-ai-versions` | Construct a same-task baseline/candidate comparison including failed and missing trials; identify one regression category. | An easier or incomplete task population can mimic improvement. |
+| 24 | Compare quality with usage fairly / `compare-quality-and-usage` | Aggregate multiple grades to the intended run grain before joining token/latency records; verify totals and compare verified outcomes with usage. | A many-to-many join can invent cost or apparent success. |
+| 25 | Connect user feedback to measured outcomes / `reconcile-ai-feedback` | Join delayed corrections to runs and automated grades; separate disagreement, explicit negative feedback, and missing feedback. | Feedback is attributable evidence, not automatically a ground-truth label. |
+| 26 | Keep evaluation examples separate / `separate-evaluation-data` | Repair a split that places related examples on both sides by assigning whole source groups; verify no forbidden overlap remains. | Leakage can make a weak change look effective. |
+| 27 | Identify a reproducible dataset version / `version-evaluation-dataset` | Complete a manifest of source versions, transformation version, and split identity; reproduce a supplied result from those identified inputs. | Reproduction needs more than a filename or a timestamp. |
+| 28 | Measure whether retrieval finds useful evidence / `measure-retrieval-relevance` | Compare supplied retrieval configurations against fixed relevance labels; compute hit-at-k by query, including empty results. | Evaluate retrieved evidence on a fixed question set. |
+| 29 | Separate retrieval success from answer success / `trace-answer-support` | Join retrieved document versions, answers, and supplied support/correctness labels; isolate a case where relevant retrieval still produced a bad answer. | Retrieval quality and answer quality are separate measurements. |
 | 30 | Lay out Parquet for downstream queries / `partition-parquet-output` | Choose a useful date partition key; query one partition and inspect selected files and results. | Dataset layout should match consumer selection. |
 | 31 | Query files where they live / `query-remote-parquet` | Adapt a Parquet query to a supplied local HTTP endpoint, narrow columns/rows, and verify its answer and request evidence. | Remote analytical reads can be selective; measure work rather than assuming a speedup. |
 | 32 | Deliver an identified, complete dataset / `deliver-a-validated-batch` | Complete a supplied reader's choice of accepted manifest, check expected file identities, and reject a missing-input candidate while preserving the previous result. | Candidate files and a published complete dataset are different states. |
+
+### Quack lesson boundaries
+
+Each of lessons 18–19 targets 10–15 minutes including context, setup, 3–5 minutes of learner
+work, evidence, and cleanup. Supply an independent fixture for each, local ports, authentication
+details, connection syntax, and deterministic terminal ordering. Keep both DuckDB processes
+alive throughout the experiment. Show the CLI invocation, `quack_serve`, attachment, query,
+and stop commands explicitly; helpers prepare files and fixtures and clean owned processes.
+Retain the common script/manual setup choices without hiding the mechanism being taught.
+
+In 18, A opens the owned database file and serves it; B opens its own DuckDB session and
+accesses A through Quack. The learner completes the remote table qualification and update.
+Use fresh observation statements in A around B's commit/rollback so an unrelated long-lived
+snapshot does not obscure the experiment. Confirm visible row values, not just command success.
+In 19, supply the connection plumbing and reserve the aggregation and local join for the learner.
+Use explicit remote SQL and reconciled totals as evidence; do not infer a speedup or claim that
+every operation in an arbitrary attached-catalog query executes remotely.
+
+An optional variation in 19 lets B serve its own local table on a second port and A attach to
+B, demonstrating that either process can take the client or server role. Keep the objects
+distinct and the query path finite. This is remote access, not replication or automatic
+distributed coordination. The variation adds no core lesson or third required terminal.
 
 ## Optional project practice — after the lessons
 
@@ -171,11 +209,11 @@ answer submission. The estimates below cover the whole project, not one ten-minu
 
 | Order | Project / stable slug | Uses lessons | Practice and evidence | Suggested sessions |
 | --- | --- | --- | --- | --- |
-| P1 | Compare two AI versions / `practice-ai-version-comparison` | 12–16, 21–23 | Build a same-task report from supplied run, grade, feedback, and usage data. Account for missing trials, expose a regression, and verify denominators and totals. | 3 × 10–15 min: assemble, compare, verify. |
+| P1 | Compare two AI versions / `practice-ai-version-comparison` | 12–16, 23–25 | Build a same-task report from supplied run, grade, feedback, and usage data. Account for missing trials, expose a regression, and verify denominators and totals. | 3 × 10–15 min: assemble, compare, verify. |
 | P2 | Repair a SQLite-to-DuckDB flow / `practice-sqlite-flow-repair` | 3–6, 9–16 | Diagnose one supplied catalog/type failure, repair the transformation, and export a checked dataset with every source row accounted for. | 2–3 × 15 min: diagnose, repair, verify as needed. |
-| P3 | Reconcile two worker outputs / `practice-worker-reconciliation` | 10, 14, 18–20, 32 | Complete retry deduplication and a completeness decision in a supplied two-worker flow. Reconcile sums/counts against a known single-worker answer; reject a missing shard. | 3–4 × 10–15 min: inspect, reconcile, inject omission, verify. |
-| P4 | Improve a retrieval configuration / `practice-retrieval-comparison` | 21, 24–29 | Compare two supplied retrieval-result sets and answer labels. Choose one consequential configuration change from supplied variants, identify tradeoffs, and rerun the fixed comparison. | 3 × 10–15 min: baseline, change, verify. |
-| P5 | Publish a repeatable evaluation batch / `practice-evaluation-publication` | 14–17, 26, 30–32 | Complete the acceptance decision around supplied immutable-file and PostgreSQL metadata operations. Interrupt after output creation, retry, and prove no duplicate acceptance or publication of an incomplete batch. | 3–4 × 10–15 min: inspect, complete, interrupt/retry, verify. |
+| P3 | Reconcile two worker outputs / `practice-worker-reconciliation` | 10, 14, 20–22, 32 | Complete retry deduplication and a completeness decision in a supplied two-worker flow. Reconcile sums/counts against a known single-worker answer; reject a missing shard. | 3–4 × 10–15 min: inspect, reconcile, inject omission, verify. |
+| P4 | Improve a retrieval configuration / `practice-retrieval-comparison` | 23, 26–29 | Compare two supplied retrieval-result sets and answer labels. Choose one consequential configuration change from supplied variants, identify tradeoffs, and rerun the fixed comparison. | 3 × 10–15 min: baseline, change, verify. |
+| P5 | Publish a repeatable evaluation batch / `practice-evaluation-publication` | 14–17, 27, 30–32 | Complete the acceptance decision around supplied immutable-file and PostgreSQL metadata operations. Interrupt after output creation, retry, and prove no duplicate acceptance or publication of an incomplete batch. | 3–4 × 10–15 min: inspect, complete, interrupt/retry, verify. |
 
 These are separate optional project plans, not numbered core lessons or a separate review
 stage. Their practice ordering is explicit here; the plan-only tutor route lists the 32 core
@@ -193,23 +231,26 @@ PostgreSQL + SQLite + CSV/JSON
                v
      DuckDB: clean -> join -> validate
                |
+               +--> Quack server A <-> DuckDB client B + local lookup
+               |
                +--> worker attempts -> missing work / delay
                |
                +--> AI runs + grades + feedback -> compare versions
                |                                      |
                |                                      v
-               |                              curated evaluation data
+               |                              separated, versioned evaluation data
                |                                      |
                |                                      v
-               |                              retrieval / memory tests
+               |                              retrieval / answer tests
                v
      identified Parquet batch -> accepted manifest -> downstream reader
 ```
 
 Use attachment/extraction maps in 1–4, before/after rows and join-grain diagrams in 5–14,
-a batch-replacement diagram in 16–17, task/attempt/event timelines in 18–20, matched trial
-and grader maps in 21–23, provenance and split diagrams in 24–26, retrieval/answer/memory
-maps in 27–29, and partition plus candidate/accepted-state diagrams in 30–32. Place each
+a batch-replacement diagram in 16–17, two-terminal ownership and execution maps in 18–19,
+task/attempt/event timelines in 20–22, matched trial and grader maps in 23–25, provenance
+and split diagrams in 26–27, retrieval/answer maps in 28–29, and partition plus
+candidate/accepted-state diagrams in 30–32. Place each
 before setup and connect its labels to evidence. Plain Markdown/ASCII remains sufficient.
 
 ## Delivery and implementation boundary
@@ -220,7 +261,7 @@ bounded learner task, commands, expected evidence, interpretation, and cleanup. 
 progress operations change progress. There is no required quiz, homework, external reading,
 review, or submission stage.
 
-The 2026-09-14 implementation request authorizes lessons 1–5 of this revision. The user selected
+The 2026-09-14 implementation request authorized lessons 1–5, retained in this revision. The user selected
 DuckDB 1.5.5 with matching extensions. Runtime setup and validation live in
 [the implemented course](../../curriculum-tools/courses/duckdb/README.md).
 Lessons 6–32 and optional project parts await later batch requests. Use native SQL and shell for
@@ -238,9 +279,13 @@ at each checkpoint and verify learner readiness before finishing a batch.
 
 Primary-source findings are linked above and in [duckdbresearch.md](../../duckdbresearch.md),
 reviewed on 2026-09-14. Capabilities are documented; lesson outcomes and timings remain untested.
+Quack sources were reviewed on 2026-09-16 for this route revision; the new labs have not been run.
 
 - Use synthetic application/worker/AI records with supplied ground-truth outcomes. The exact
   schemas and implementation details can be settled in their batches without growing scope.
+- Before authoring 18–19, pin a compatible Quack extension for DuckDB 1.5.5 and verify the
+  documented API, remote transaction visibility, explicit remote aggregation/local join, both
+  setup choices, and cleanup. The route change does not install or validate Quack.
 - The causes of Nick's existing SQLite/DuckDB difficulties remain unknown. Catalog and type
   failures are proposed useful cases, not diagnoses of his actual data.
 - Keep live model calls, training, online vector serving, and DuckLake deployment optional and
@@ -252,6 +297,11 @@ reviewed on 2026-09-14. Capabilities are documented; lesson outcomes and timings
 
 ## Learner feedback and final sign-off
 
+- 2026-09-16: approved replacing revision 3 lessons 24 (reviewed-failure curation) and 29
+  (memory-policy evaluation) with the proposed two-terminal Quack lessons. Revision 4 places
+  them at 18–19 immediately after PostgreSQL write-back, retains 32 core lessons and five
+  optional projects, and updates subsequent numbering and project references. This signs off
+  the revised route; the request changes the outline, not authored lesson availability.
 - 2026-09-14: requested both named setup choices, then generalized this distinction between
   software practice and lab scaffolding across courses. Adopt both in authored DuckDB lessons 1–5;
   the canonical route and future batch authorization remain unchanged.
