@@ -2,14 +2,15 @@
 
 Status: partly implemented; first batch validated. Updated: 2026-09-16.
 Course ID: `duckdb`. Implementation: lessons 1–5 authored and validated; 6–32 and optional projects planned.
-Outline revision: 4. Final-outline sign-off: 2026-09-16 via approval of the two Quack lesson swaps.
+Outline revision: 5. Final-outline sign-off: 2026-09-16 via approval of the file-ownership lesson swap.
 
 ## Goal and scope
 
 Use DuckDB to connect existing data, build dependable transformations, investigate distributed
 work, and measure changes to AI systems. Build on the eight practical uses in
-[duckdbresearch.md](../../duckdbresearch.md), adding a two-lesson Quack client/server section
-as Nick approved on 2026-09-16. Five optional practice projects follow all core lessons.
+[duckdbresearch.md](../../duckdbresearch.md), adding file ownership followed by two Quack
+client/server lessons as Nick approved on 2026-09-16. Five optional practice projects follow
+all core lessons.
 
 Assume basic SQL, shell, and application-development knowledge. Nick uses PostgreSQL frequently
 and has SQLite/DuckDB attempts he wants to improve. Teach connector setup, source qualification,
@@ -50,7 +51,7 @@ split into 2–4 short sessions. Doing all five adds 2 hours 30 minutes to five 
 projects by interest rather than treating them as completion requirements. Project setup and
 process control are supplied. They are not homework, a review gate, or a request to build an app.
 
-Revision 3 grew the route from 21 to 32 lessons. Revision 4 keeps 32 by replacing the planned
+Revision 3 grew the route from 21 to 32 lessons. Revision 4 kept 32 by replacing the planned
 "Turn reviewed failures into useful examples" (old 24) and "Test whether a memory policy helps"
 (old 29) with two Quack lessons immediately after lesson 17. Their specialized selection and
 matched-comparison work overlaps existing lessons; Quack adds process ownership, remote writes,
@@ -59,6 +60,12 @@ keep their stable slugs; only planned rows are removed or renumbered, with no le
 transfer. The standalone query-work lesson remains absorbed into bounded extraction and
 remote-file selection; the original end-to-end handoff remains the shared-dataset lesson and
 final optional project.
+
+Revision 5 replaces "Produce a useful daily report" (revision 4 lesson 12) with "Understand
+who owns a DuckDB database file" at 17. Former lessons 13–17 move to 12–16; Quack remains at
+18–19 and the total remains 32. File ownership gives the client/server section its motivation.
+The export lesson supplies a small report fixture, while grouping practice remains in the
+remote aggregation and AI analysis lessons. No separate daily-report exercise is required.
 
 One-time setup is provisionally 15–20 minutes through supplied commands: a pinned DuckDB CLI,
 matching SQLite/PostgreSQL extensions, native sqlite3/psql clients, small fixtures, and an owned
@@ -73,8 +80,8 @@ implementation. No tools or labs are created during planning.
 | --- | --- | --- |
 | PostgreSQL analytical companion | 1–2 | Begin with a familiar source and an immediately useful local extract. |
 | Combining scattered data | 3–9 | Learn SQLite and file boundaries, then join sources with known types and keys. |
-| Repeatable data preparation | 10–17 | Turn one-off exploration into clean stages, checked outputs, and safe reruns. |
-| DuckDB client/server with Quack | 18–19 | Use two terminals to observe remote writes and combine remote computation with local data. |
+| Repeatable data preparation | 10–16 | Turn one-off exploration into clean stages, checked outputs, and safe reruns. |
+| File ownership and DuckDB client/server with Quack | 17–19 | Establish direct-file access rules, then use two terminals for remote writes and computation. |
 | Distributed-system investigations | 20–22 | Apply identifiers, joins, and timestamps to retries, missing work, and delay. |
 | AI evaluation and feedback analysis | 23–25 | Compare versions using complete populations and attributable measurements. |
 | Evaluation dataset preparation | 26–27 | Keep supplied examples separated and reproducible. |
@@ -89,7 +96,7 @@ ideas, and limits. The outline applies it as follows:
 - **Connections before combinations:** SQLite and PostgreSQL attachments expose source data;
   they do not silently convert it into a local DuckDB copy. Source qualification, SQLite value
   conversion, and local extraction each produce a different observable problem. Start with
-  read-only sources and reserve writable PostgreSQL output for lesson 17.
+  read-only sources and reserve writable PostgreSQL output for lesson 16.
   [SQLite extension](https://duckdb.org/docs/current/core_extensions/sqlite),
   [PostgreSQL extension](https://duckdb.org/docs/current/core_extensions/postgres/overview),
   [source-side SQL](https://duckdb.org/docs/current/core_extensions/postgres/functions).
@@ -100,6 +107,13 @@ ideas, and limits. The outline applies it as follows:
   [JSON](https://duckdb.org/docs/current/data/json/loading_json),
   [schema combination](https://duckdb.org/docs/current/data/multiple_files/combining_schemas),
   [COPY](https://duckdb.org/docs/current/sql/statements/copy).
+- **File ownership before remote access:** distinguish separate database files, shared read-only
+  access, and a single process owning read-write access to a native DuckDB file. Lesson 17
+  makes the file-lock boundary visible in two terminals before Quack introduces server-mediated
+  access. Explain that multiple connections inside one process are a different concurrency
+  boundary; a single owning process can still execute concurrent work. Keep conflicting-row
+  updates and retry experiments outside this lesson's core.
+  [Concurrency](https://duckdb.org/docs/current/connect/concurrency), reviewed 2026-09-16.
 - **Two DuckDB processes before worker analysis:** use the ordinary CLI in both terminals,
   start a listener with `quack_serve`, and attach it from the other process. Separate the
   remote-write/commit experiment from constructing a remote aggregation and local join.
@@ -156,12 +170,12 @@ Authored tag vocabulary: `duckdb`, `connections`, `data-flows`.
 | 9 | Join SQLite, PostgreSQL, and file data / `join-reference-data` | Complete a join across a PostgreSQL extract, SQLite reference rows, and a CSV lookup; detect a duplicate reference key and verify unmatched keys. | Cross-source joins need compatible types and known key cardinality. |
 | 10 | Keep one authoritative record / `deduplicate-records` | Complete a window ordering rule with a stable tie-breaker; verify the winning record for each key. | Deduplication requires identity and a deterministic winner. |
 | 11 | Organize a flow into SQL stages / `organize-sql-stages` | Choose a view or materialized table for a reusable cleaning stage; change the source and observe freshness. | Views and stored results have different reuse and refresh behavior. |
-| 12 | Produce a useful daily report / `build-daily-report` | Build a daily run-count and failure-count report at a specified grain; reconcile it with the input. | Grouping and time boundaries define the meaning of a report. |
-| 13 | Write outputs another tool can use / `export-and-reopen` | Export a report as CSV and cleaned rows as Parquet, then reopen and compare types and totals. | Check delivery from the consumer side. |
-| 14 | Stop bad data before delivery / `validate-before-delivery` | Complete one uniqueness or completeness check in a supplied stage; verify bad input blocks delivery. | SQL success alone does not establish data quality. |
-| 15 | Run the flow as a repeatable job / `run-a-sql-job` | Adapt a supplied CLI invocation to a batch and output path; introduce one known SQL error and verify job failure. | Make inputs, outputs, and failure behavior explicit. |
-| 16 | Rerun a batch without double counting / `replace-a-daily-batch` | Complete transactional replacement of a known complete source day; rerun and verify identical results with other days preserved. | A clear replacement boundary makes retries repeatable. |
-| 17 | Send a checked result back to PostgreSQL / `write-postgres-result` | Complete a column mapping into an owned reporting table using a supplied replacement pattern; rerun and verify keys and totals in psql. | Local transformation and destination commit are separate responsibilities. |
+| 12 | Write outputs another tool can use / `export-and-reopen` | Export a supplied report as CSV and cleaned rows as Parquet, then reopen and compare types and totals. | Check delivery from the consumer side. |
+| 13 | Stop bad data before delivery / `validate-before-delivery` | Complete one uniqueness or completeness check in a supplied stage; verify bad input blocks delivery. | SQL success alone does not establish data quality. |
+| 14 | Run the flow as a repeatable job / `run-a-sql-job` | Adapt a supplied CLI invocation to a batch and output path; introduce one known SQL error and verify job failure. | Make inputs, outputs, and failure behavior explicit. |
+| 15 | Rerun a batch without double counting / `replace-a-daily-batch` | Complete transactional replacement of a known complete source day; rerun and verify identical results with other days preserved. | A clear replacement boundary makes retries repeatable. |
+| 16 | Send a checked result back to PostgreSQL / `write-postgres-result` | Complete a column mapping into an owned reporting table using a supplied replacement pattern; rerun and verify keys and totals in psql. | Local transformation and destination commit are separate responsibilities. |
+| 17 | Understand who owns a DuckDB database file / `understand-duckdb-file-ownership` | Keep A open read-write and observe B's direct open fail, including read-only; close A and query from both read-only, then arrange the connections to permit a write and verify its stored result. | Direct access to one native file supports one read-write process or multiple read-only processes; server-mediated access uses a different boundary. |
 | 18 | Serve a DuckDB database and change it from another terminal / `serve-duckdb-with-quack` | Start a Quack listener in terminal A and authenticate/attach from a separate DuckDB CLI in B; complete a qualified remote update and observe it from A before and after commit, then try rollback. | The serving process owns the database; remote writes have transaction boundaries. |
 | 19 | Combine local data with a remote DuckDB result / `combine-local-and-remote-duckdb` | With worker events on A and a local lookup on B, construct an aggregation inside `remote.query(...)`, join its result to B's lookup, and reconcile supplied totals. | A DuckDB client can compute locally while explicitly sending selected work to the server. |
 | 20 | Separate logical work from retries / `identify-worker-attempts` | Choose keys that remove duplicate event deliveries while retaining distinct attempts; reconcile logical tasks and attempts. | A retry is different from a duplicate copy of an event. |
@@ -178,7 +192,23 @@ Authored tag vocabulary: `duckdb`, `connections`, `data-flows`.
 | 31 | Query files where they live / `query-remote-parquet` | Adapt a Parquet query to a supplied local HTTP endpoint, narrow columns/rows, and verify its answer and request evidence. | Remote analytical reads can be selective; measure work rather than assuming a speedup. |
 | 32 | Deliver an identified, complete dataset / `deliver-a-validated-batch` | Complete a supplied reader's choice of accepted manifest, check expected file identities, and reject a missing-input candidate while preserving the previous result. | Candidate files and a published complete dataset are different states. |
 
-### Quack lesson boundaries
+### File-ownership and Quack lesson boundaries
+
+Lesson 17 targets 10–15 minutes including a 3–5 minute learner task. Supply one disposable
+native DuckDB file on local disk, two labelled terminal sessions, the CLI access-mode syntax,
+expected lock-error evidence, and cleanup. Keep the first connection alive while testing the
+second; show both unsuccessful read-write and read-only opens against A's read-write ownership.
+After closing A, show both processes reading with explicit read-only access. The learner then
+chooses which connections to close and how to reopen for a write, verifies the stored change,
+and closes both sessions. Check the actual lock failure and data result during authoring.
+
+Explain the distinction between processes and connections before commands. Separate files
+represent independent databases. Multiple connections inside one owning process can perform
+concurrent work; they are not the two independent CLI processes in this experiment. Bridge to
+18 by showing how Quack clients reach the owning server rather than opening its file directly.
+Supply file preparation and cleanup through the usual helpers while keeping open/close and
+access-mode choices visible. Do not add network filesystems, DuckLake deployment, or a second
+conflicting-transaction experiment to this core lesson.
 
 Each of lessons 18–19 targets 10–15 minutes including context, setup, 3–5 minutes of learner
 work, evidence, and cleanup. Supply an independent fixture for each, local ports, authentication
@@ -209,11 +239,11 @@ answer submission. The estimates below cover the whole project, not one ten-minu
 
 | Order | Project / stable slug | Uses lessons | Practice and evidence | Suggested sessions |
 | --- | --- | --- | --- | --- |
-| P1 | Compare two AI versions / `practice-ai-version-comparison` | 12–16, 23–25 | Build a same-task report from supplied run, grade, feedback, and usage data. Account for missing trials, expose a regression, and verify denominators and totals. | 3 × 10–15 min: assemble, compare, verify. |
-| P2 | Repair a SQLite-to-DuckDB flow / `practice-sqlite-flow-repair` | 3–6, 9–16 | Diagnose one supplied catalog/type failure, repair the transformation, and export a checked dataset with every source row accounted for. | 2–3 × 15 min: diagnose, repair, verify as needed. |
-| P3 | Reconcile two worker outputs / `practice-worker-reconciliation` | 10, 14, 20–22, 32 | Complete retry deduplication and a completeness decision in a supplied two-worker flow. Reconcile sums/counts against a known single-worker answer; reject a missing shard. | 3–4 × 10–15 min: inspect, reconcile, inject omission, verify. |
+| P1 | Compare two AI versions / `practice-ai-version-comparison` | 12–15, 23–25 | Build a same-task report from supplied run, grade, feedback, and usage data. Account for missing trials, expose a regression, and verify denominators and totals. | 3 × 10–15 min: assemble, compare, verify. |
+| P2 | Repair a SQLite-to-DuckDB flow / `practice-sqlite-flow-repair` | 3–6, 9–15 | Diagnose one supplied catalog/type failure, repair the transformation, and export a checked dataset with every source row accounted for. | 2–3 × 15 min: diagnose, repair, verify as needed. |
+| P3 | Reconcile two worker outputs / `practice-worker-reconciliation` | 10, 13, 20–22, 32 | Complete retry deduplication and a completeness decision in a supplied two-worker flow. Reconcile sums/counts against a known single-worker answer; reject a missing shard. | 3–4 × 10–15 min: inspect, reconcile, inject omission, verify. |
 | P4 | Improve a retrieval configuration / `practice-retrieval-comparison` | 23, 26–29 | Compare two supplied retrieval-result sets and answer labels. Choose one consequential configuration change from supplied variants, identify tradeoffs, and rerun the fixed comparison. | 3 × 10–15 min: baseline, change, verify. |
-| P5 | Publish a repeatable evaluation batch / `practice-evaluation-publication` | 14–17, 27, 30–32 | Complete the acceptance decision around supplied immutable-file and PostgreSQL metadata operations. Interrupt after output creation, retry, and prove no duplicate acceptance or publication of an incomplete batch. | 3–4 × 10–15 min: inspect, complete, interrupt/retry, verify. |
+| P5 | Publish a repeatable evaluation batch / `practice-evaluation-publication` | 13–16, 27, 30–32 | Complete the acceptance decision around supplied immutable-file and PostgreSQL metadata operations. Interrupt after output creation, retry, and prove no duplicate acceptance or publication of an incomplete batch. | 3–4 × 10–15 min: inspect, complete, interrupt/retry, verify. |
 
 These are separate optional project plans, not numbered core lessons or a separate review
 stage. Their practice ordering is explicit here; the plan-only tutor route lists the 32 core
@@ -231,7 +261,7 @@ PostgreSQL + SQLite + CSV/JSON
                v
      DuckDB: clean -> join -> validate
                |
-               +--> Quack server A <-> DuckDB client B + local lookup
+               +--> file ownership -> Quack server A <-> DuckDB client B + local lookup
                |
                +--> worker attempts -> missing work / delay
                |
@@ -246,8 +276,9 @@ PostgreSQL + SQLite + CSV/JSON
      identified Parquet batch -> accepted manifest -> downstream reader
 ```
 
-Use attachment/extraction maps in 1–4, before/after rows and join-grain diagrams in 5–14,
-a batch-replacement diagram in 16–17, two-terminal ownership and execution maps in 18–19,
+Use attachment/extraction maps in 1–4, before/after rows and join-grain diagrams in 5–13,
+a batch-replacement diagram in 15–16, a two-process file-access map in 17, and two-terminal
+server-ownership and execution maps in 18–19,
 task/attempt/event timelines in 20–22, matched trial and grader maps in 23–25, provenance
 and split diagrams in 26–27, retrieval/answer maps in 28–29, and partition plus
 candidate/accepted-state diagrams in 30–32. Place each
@@ -279,10 +310,14 @@ at each checkpoint and verify learner readiness before finishing a batch.
 
 Primary-source findings are linked above and in [duckdbresearch.md](../../duckdbresearch.md),
 reviewed on 2026-09-14. Capabilities are documented; lesson outcomes and timings remain untested.
-Quack sources were reviewed on 2026-09-16 for this route revision; the new labs have not been run.
+Quack and concurrency sources were reviewed on 2026-09-16 for these route revisions; the new
+labs have not been run.
 
 - Use synthetic application/worker/AI records with supplied ground-truth outcomes. The exact
   schemas and implementation details can be settled in their batches without growing scope.
+- Before authoring 17, verify direct-open failures, simultaneous read-only access, and ownership
+  handoff on the pinned DuckDB CLI with separate live processes and a disposable local file.
+  This route revision does not execute the experiment or change authored availability.
 - Before authoring 18–19, pin a compatible Quack extension for DuckDB 1.5.5 and verify the
   documented API, remote transaction visibility, explicit remote aggregation/local join, both
   setup choices, and cleanup. The route change does not install or validate Quack.
@@ -297,6 +332,11 @@ Quack sources were reviewed on 2026-09-16 for this route revision; the new labs 
 
 ## Learner feedback and final sign-off
 
+- 2026-09-16: approved replacing the daily-report lesson with the proposed file-ownership
+  experiment. Revision 5 places it at 17 before Quack, moves revision 4 lessons 13–17 to 12–16,
+  and retains 32 core lessons and five optional projects. Updated project references and
+  supplied-report setup remove reliance on the retired daily-report lesson. This signs off
+  the route change; runnable lessons remain a later implementation batch.
 - 2026-09-16: approved replacing revision 3 lessons 24 (reviewed-failure curation) and 29
   (memory-policy evaluation) with the proposed two-terminal Quack lessons. Revision 4 places
   them at 18–19 immediately after PostgreSQL write-back, retains 32 core lessons and five
