@@ -4,7 +4,11 @@ set -euo pipefail
 course=$(cd -- "$(dirname -- "$0")/.." && pwd)
 lesson=${1:?lesson number}
 lab=${2:?owned lab directory}
-[[ $lesson =~ ^[1-5]$ && -f $lab/.duckdb-owned ]] || exit 1
+[[ $lesson =~ ^([1-9]|10)$ && -f $lab/.duckdb-owned ]] || exit 1
+if [[ $lesson == 6 || $lesson == 7 ]]; then
+  printf 'Practice at the live DuckDB prompt using lesson %s. No query.sql edit is needed.\n' "$lesson" > "$lab/task.txt"
+  exit 0
+fi
 sed "s|LAB_PATH|$lab|g" "$course/lab/$lesson-query.sql" > "$lab/query.sql"
 case $lesson in
   3) cp "$course/lab/3-local.sql" "$lab/local.sql" ;;
@@ -12,7 +16,7 @@ case $lesson in
 esac
 if [[ $lesson == 4 ]]; then
   cp "$lab/text-attach.sql" "$lab/session.sql"
-elif [[ $lesson == 5 ]]; then
+elif (( lesson >= 5 )); then
   : > "$lab/session.sql"
 else
   cp "$lab/attach.sql" "$lab/session.sql"

@@ -46,3 +46,17 @@ Implement helpers and five lessons; review rendered teaching; real script/manual
 wrong-choice and restart trials; generic harness and copied progress flow; commit coherent chunks;
 update availability and durable findings; knowledge reflection; final resource/readiness/progress
 checks and cleanup; remove log and commit completion.
+
+## Implementation checkpoint
+
+- 2026-09-16: Host process survey confirmed no postgres processes; persistent clusters remain
+  stopped as intended. No existing resource is owned by this batch or eligible for removal.
+- 2026-09-16: Authored lessons 6–10 and extended marked setup/inspection/cleanup lifecycle.
+  Lessons 6–7 use labelled live CLI transcripts, not learner scripts; 8–10 supply editable SQL.
+  All five have script/manual setup, bounded tasks, wrong-choice evidence, and cleanup.
+- `bin/tutor duckdb check`: 10 lessons OK; helper Bash syntax check passed.
+  Real evidence remains pending; expected values are not acceptance until checked.
+- Validation design: translate only the two interactive transcript boundaries into input-fed
+  CLI sessions for automated checks, preserving the SQL and reconnects; also exercise a real PTY.
+  Shared shell validation cannot directly execute a mixed Bash/DuckDB transcript. Keep this
+  adapter in the author driver/private catalog, not in learner-facing Run commands.

@@ -8,8 +8,9 @@ fi
 
 _duck_session_start() {
   local lesson=${1:-} mode=${2:-script} course lab source_file
-  if [[ $# -lt 1 || $# -gt 2 || ! $lesson =~ ^[1-5]$ || ! $mode =~ ^(script|manual)$ ]]; then
-    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (1–5) [script|manual]' >&2
+  local -a source_files=()
+  if [[ $# -lt 1 || $# -gt 2 || ! $lesson =~ ^([1-9]|10)$ || ! $mode =~ ^(script|manual)$ ]]; then
+    echo 'Usage: source .../lab/session.sh LESSON_NUMBER (1–10) [script|manual]' >&2
     return 1
   fi
   if [[ -n ${DUCK_LAB:-} ]]; then
@@ -22,7 +23,7 @@ _duck_session_start() {
     echo 'Setup returned no lab directory.' >&2
     return 1
   fi
-  if (( lesson >= 3 )); then
+  if (( lesson >= 3 && lesson <= 5 )); then
     source_file=source.sqlite
     if [[ $lesson == 5 ]]; then source_file=orders.csv; fi
     if ! sha256sum "$lab/$source_file" > "$lab/source.sha256"; then
@@ -30,9 +31,21 @@ _duck_session_start() {
       return 1
     fi
   fi
+  if (( lesson >= 6 && lesson != 7 )); then
+    case $lesson in
+      6) source_files=("$lab/orders.csv") ;;
+      8) source_files=("$lab/messy.csv") ;;
+      9) source_files=("$lab/runs.jsonl") ;;
+      10) source_files=("$lab/batch-v1.csv" "$lab/batch-v2.csv") ;;
+    esac
+    if ! sha256sum "${source_files[@]}" > "$lab/source.sha256"; then
+      bash "$course/lab/cleanup.sh" "$lab"
+      return 1
+    fi
+  fi
   export DUCK_COURSE="$course" DUCK_LAB="$lab"
   export DUCK_DB=:memory:
-  if [[ $lesson == 2 ]]; then DUCK_DB="$lab/local.duckdb"; fi
+  if [[ $lesson == 2 || $lesson == 6 || $lesson == 7 ]]; then DUCK_DB="$lab/local.duckdb"; fi
 
   duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
   duck_run() {
@@ -50,7 +63,7 @@ $query"
   }
   duck_check_source() {
     if [[ -z ${DUCK_LAB:-} || ! -f $DUCK_LAB/source.sha256 ]]; then
-      echo 'No file fingerprint is active (available in lessons 3–5).' >&2
+      echo 'No file fingerprint is active for this lesson.' >&2
       return 1
     fi
     sha256sum -c "$DUCK_LAB/source.sha256"
@@ -79,8 +92,12 @@ $query"
   if [[ $mode == manual ]]; then
     echo 'Fixture ready. Run the lesson’s manual DuckDB setup commands next.'
   fi
+  if [[ $lesson == 6 || $lesson == 7 ]]; then
+    printf 'Lesson %s ready. Practice at the live prompt using the lesson task.\nLab path: %s\nOpen: duck "$DUCK_LAB/local.duckdb"\nCleanup after .quit: duck_cleanup\n' "$lesson" "$DUCK_LAB"
+    return 0
+  fi
   printf 'Lesson %s ready. Edit the supplied starter: %s/query.sql\nRun:\n' "$lesson" "$DUCK_LAB"
-  if [[ $lesson == 5 ]]; then
+  if (( lesson >= 5 )); then
     printf '%s\n' 'duck :memory: -bail -csv < "$DUCK_LAB/query.sql"'
   elif [[ $lesson == 2 ]]; then
     printf '%s\n' 'cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |' \

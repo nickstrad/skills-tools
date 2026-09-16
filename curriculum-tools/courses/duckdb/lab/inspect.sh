@@ -46,5 +46,23 @@ SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type FROM invoic
     cat "$lab/orders.csv"
     duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$lab/orders.csv', header=true);"
     ;;
+  6)
+    duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$lab/orders.csv', header=true);"
+    ;;
+  7)
+    duck "$lab/local.duckdb" -bail -csv < "$lab/setup.sql"
+    ;;
+  8)
+    cat "$lab/messy.csv"
+    duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$lab/messy.csv', header=true);"
+    ;;
+  9)
+    cat "$lab/runs.jsonl"
+    duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_json('$lab/runs.jsonl', format='newline_delimited');"
+    ;;
+  10)
+    cat "$lab/batch-v1.csv" "$lab/batch-v2.csv"
+    duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$lab/batch-v1.csv'); DESCRIBE SELECT * FROM read_csv('$lab/batch-v2.csv');"
+    ;;
   *) exit 1 ;;
 esac

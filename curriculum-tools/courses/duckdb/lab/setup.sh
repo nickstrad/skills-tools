@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Supply a fresh bounded fixture; print its directory only after successful setup.
 set -euo pipefail
-lesson=${1:?lesson number 1..5}
-[[ "$lesson" =~ ^[1-5]$ ]] || exit 1
+lesson=${1:?lesson number 1..10}
+[[ "$lesson" =~ ^([1-9]|10)$ ]] || exit 1
 course=$(cd -- "$(dirname -- "$0")/.." && pwd)
 bash "$course/lab/duckdb.sh" -c 'SELECT 1;' >/dev/null
 lab=$(mktemp -d /tmp/duckdb-lesson.XXXXXX)
@@ -22,13 +22,21 @@ if (( lesson <= 2 )); then
 LOAD postgres;
 ATTACH 'host=$lab port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
 SQL
-else
+elif (( lesson <= 5 )); then
   sqlite3 "$lab/source.sqlite" < "$course/lab/sqlite.sql"
   cp "$course/lab/orders.csv" "$lab/orders.csv"
   cat > "$lab/attach.sql" <<SQL
 LOAD sqlite;
 ATTACH '$lab/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 SQL
+else
+  case $lesson in
+    6) cp "$course/lab/orders.csv" "$lab/orders.csv" ;;
+    7) cp "$course/lab/7-setup.sql" "$lab/setup.sql" ;;
+    8) cp "$course/lab/messy.csv" "$lab/messy.csv" ;;
+    9) cp "$course/lab/runs.jsonl" "$lab/runs.jsonl" ;;
+    10) cp "$course/lab/batch-v1.csv" "$course/lab/batch-v2.csv" "$lab/" ;;
+  esac
 fi
 bash "$course/lab/prepare.sh" "$lesson" "$lab"
 trap - EXIT
