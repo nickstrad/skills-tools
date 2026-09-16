@@ -182,7 +182,7 @@ func main() {
 		contains(fmt.Sprint(n), out, checks...)
 	}
 	manifest := map[string]string{}
-	for _, pattern := range []string{"lessons/*.md", "lab/*", "validation/main.go", "course.json"} {
+	for _, pattern := range []string{"lessons/0[1-5]-*.md", "lab/*", "validation/main.go", "course.json"} {
 		files, e := filepath.Glob(filepath.Join(dir, pattern))
 		must(e)
 		for _, file := range files {

@@ -1,7 +1,7 @@
 # Practical DuckDB: Data Flows and Improving AI Systems
 
-Status: partly implemented; first batch validated. Updated: 2026-09-16.
-Course ID: `duckdb`. Implementation: lessons 1–5 authored and validated; 6–32 and optional projects planned.
+Status: partly implemented; two batches validated. Updated: 2026-09-16.
+Course ID: `duckdb`. Implementation: lessons 1–10 authored and validated; 11–32 and optional projects planned.
 Outline revision: 8. Final-outline sign-off: 2026-09-16 via approval of the three observability lesson swaps and project revision.
 
 ## Goal and scope
@@ -222,7 +222,7 @@ DuckLake catalog. Explain these as workflow boundaries, not separate internals u
 
 ## Canonical lesson route
 
-Lessons 1–5 are authored; remaining rows are planned. The category table above groups this
+Lessons 1–10 are authored; remaining rows are planned. The category table above groups this
 single ordered route. Every row reserves a concrete learner choice within the stated attempt
 budget; setup, syntax examples, process control, hints, and cleanup are supplied.
 

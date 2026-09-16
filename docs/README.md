@@ -88,6 +88,11 @@ verification. These are teaching inputs, not automatic course changes.
 
 ## Optional technical source research
 
+Practical DuckDB has [ten authored lessons](../curriculum-tools/courses/duckdb/README.md).
+The second batch adds interactive persistence/settings and CSV/JSON/schema work;
+[acceptance evidence](../curriculum-tools/courses/duckdb/validation/batch-two.md) records both
+setup paths, real CLI restarts and copied progress checks. Later route entries remain planned.
+
 [`../duckdbresearch.md`](../duckdbresearch.md) groups practical DuckDB uses around SQLite and
 PostgreSQL integration, distributed-system analysis, AI evaluation/feedback, retrieval experiments,
 and shared datasets. It distinguishes documented capabilities from proposed applications; it does

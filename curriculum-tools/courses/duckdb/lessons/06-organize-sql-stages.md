@@ -44,12 +44,15 @@ close CLI --> reopen same file --> both objects still exist
   **.mode csv**, and **.quit** occupy their own line, with **no semicolon**. `.tables` lists
   tables and views; **DESCRIBE orders** prints column names/types. `.mode csv` changes display.
 - **CREATE OR REPLACE TABLE ... AS SELECT ...** stores a query result. Repeating it replaces
-  that table's rows. Add **WHERE ordered_on=DATE '2026-09-14'** when selecting this day's rows;
-  for comparison, **WHERE ordered_on < DATE '2026-09-14'** would select earlier days.
+  that table's rows. Add a WHERE predicate to choose the stored population. For example,
+  **WHERE ordered_on < DATE '2026-09-14'** would select earlier days; adapt the comparison
+  to the requested day while retaining both statuses.
 - **CREATE OR REPLACE VIEW ... AS SELECT ...** stores the SELECT definition. The paid
   predicate is supplied so you can focus on persistence and freshness.
 - **UPDATE ... WHERE order_id=102** changes exactly one stored row. In this experiment each
   statement commits automatically; there is no open explicit transaction to leave unfinished.
+- **UNION ALL** stacks the live and saved aggregate rows into one display. Their literal
+  labels identify which object supplied each **sum(amount_cents)**.
 - An unnamed/default in-memory database disappears at exit. **.open** switches databases by
   closing the current connection; it does not copy an in-memory database into the named file.
   Open the intended filename from the start. You do not need `.open` for this experiment.

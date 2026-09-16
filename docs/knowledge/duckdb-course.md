@@ -1,6 +1,6 @@
 # Practical DuckDB connector and validation findings
 
-Verified 2026-09-14 on DuckDB 1.5.5, PostgreSQL 16.15 and the installed sqlite3 client.
+Verified through 2026-09-16 on DuckDB 1.5.5, PostgreSQL 16.15 and the installed sqlite3 client.
 Read this before extending the practical course or reusing its fixture helpers.
 
 ## What happened
@@ -103,3 +103,43 @@ Primary references: [PostgreSQL attachment](https://duckdb.org/docs/current/core
 [SQLite types](https://duckdb.org/docs/current/core_extensions/sqlite),
 [CSV reading](https://duckdb.org/docs/current/data/csv/overview).
 Those pages can evolve; the observed first-batch evidence uses the pinned 1.5.5 runtime.
+
+## Persistence, settings and file transformations (lessons 6–10)
+
+The session helper now accepts 1–10. Lessons 6–7 use labelled live CLI transcripts and named
+database files; setup does not supply a query.sql task. In 6 the learner creates the base table
+and compares persisted view/table freshness. In 7 script setup creates the tiny table, while
+manual exposes that same native preparation; the setting changes remain learner work. Quit the
+CLI before reopening or cleanup. A shell variable in SQL is not automatically expanded: the
+interactive CSV path must be replaced with the printed owned path.
+
+The [second-batch driver](../../curriculum-tools/courses/duckdb/validation/batchtwo/main.go)
+translates only interactive prompt boundaries into separate CLI processes in an author-only
+catalog. Generic Bash validation cannot interpret a mixed Bash/DuckDB transcript directly.
+Both interactive lessons additionally passed real PTY checks. One virtual terminal did not
+answer background-color probes; `-dark-mode` avoided the five-second presentation delay.
+Do not change SQL or weaken outcome checks to accommodate a terminal capability problem.
+
+Pinned observations useful for later batches:
+
+- `default_null_order` is GLOBAL in the running instance; NULLS_FIRST changes implicit sorting,
+  explicit query null placement overrides it, RESET returns NULLS_LAST, and a fresh wrapper
+  process also uses NULLS_LAST. GLOBAL does not mean a property saved into the database file.
+  The wrapper's 256 MB memory_limit displays as 244.1 MiB; it is not total process RSS.
+- CSV inference already retains this fixture's leading-zero IDs as VARCHAR. An explicit BIGINT
+  cast would discard zeros. Do not manufacture an inference failure from the general warning
+  that numeric-looking identifiers need a text contract. Decimal amount conversion plus a
+  separate nonnegative rule preserves 19.75 while rejecting malformed/missing/negative values.
+- Unnesting 2/0/1 events from three parent runs produces three event rows. The unchanged total
+  hides a change of grain: assert parent/event pairs and empty-list behavior, not count alone.
+- Reading a v1-first CSV glob without union_by_name can succeed while omitting the v2-only
+  region field. The later projection raises a missing-column Binder Error. With name union,
+  retain original NULLs and filename alongside display labels; correct totals cannot detect
+  fabricated labels. These results depend on this fixture/reader, not every schema mismatch.
+
+See [second-batch acceptance](../../curriculum-tools/courses/duckdb/validation/batch-two.md)
+for both setup paths, wrong choices, reruns, progress preservation and cleanup. Current primary
+references: [CLI](https://duckdb.org/docs/current/clients/cli/overview),
+[settings/pragmas](https://duckdb.org/docs/current/configuration/pragmas),
+[JSON loading](https://duckdb.org/docs/current/data/json/loading_json), and
+[schema combination](https://duckdb.org/docs/current/data/multiple_files/combining_schemas).

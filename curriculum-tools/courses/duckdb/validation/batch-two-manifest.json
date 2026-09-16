@@ -25,10 +25,10 @@
   "lab/session.sh": "8dc566d2b09662faa680b0542a714ea1cd969cbdcb636f2a2ac16de715bf08cd",
   "lab/setup.sh": "05da6951ae2490a84c20e05d1fdce0f8e21835d7934f5d5d0ee3009b9bb6ce75",
   "lab/sqlite.sql": "4613d5ea4a7357f28738aac6fa5bc1aafd06b741fbdf110aded4eed85d998e25",
-  "lessons/01-attach-postgres-source.md": "b523c254493dbd12b331cd26c1adff420d8bd5541a31cda6daee260cf307abb2",
-  "lessons/02-extract-postgres-batch.md": "86ca50f30ea59d608623e279904b564534c24433d8fe1cf2f0eac134716e0e26",
-  "lessons/03-attach-sqlite-file.md": "b2a3aedf6340cba2cf23b9038d78e5217e2eb79bc6b76e965a28234461a4cfbf",
-  "lessons/04-repair-sqlite-types.md": "5c88c858e5e84e544b95c0902f224770ffd6756cbf88ccbf308148f72970950c",
-  "lessons/05-query-a-file.md": "949a528d8c5d300cab1d853db0c0aac16e5c31d1331069d289695904fd798853",
-  "validation/main.go": "afb06294710021e915f86cc869652080aaa28cc93e7ac69b74c8ebaa2840bc4b"
+  "lessons/06-organize-sql-stages.md": "bb163f15960a7a2589c10e0b1957b99d82cfefd26c33eaf57fa8585a1e0e0c96",
+  "lessons/07-inspect-change-reset-settings.md": "54ba8e6efbb0bec74ac56bcde3c427578d1a6e76dc4321b4a797cf805c41d5fc",
+  "lessons/08-clean-input-types.md": "08f238d3563293b1fec79b482d96aec08f34f89501bed2e2dcfb18c7876f4c59",
+  "lessons/09-flatten-json-records.md": "cab10087b4e7cc445bbe6c6e2693d3ff3d23350cf1e43dc7f44ca782822ad206",
+  "lessons/10-combine-file-batches.md": "1c33ee3dc1ed39ad647e410de313653bc7a8f20e5d21c2eb92447ffd3cdb63b8",
+  "validation/batchtwo/main.go": "0bd6371d72c4801cf932d5b8324c8480a9871fe0bb6839df1335e43794e7a53e"
 }

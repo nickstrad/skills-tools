@@ -40,8 +40,10 @@ quit --> saved rows survive; fresh CLI applies its startup settings
   and **scope**. Scope describes where a setting applies inside a running instance, not whether
   it is written into a database file. **current_setting('default_null_order')** reads one value.
 - **SET default_null_order='NULLS_FIRST'** changes implicit null placement. **NULLS_LAST** is
-  the other choice used here. **ORDER BY priority ASC NULLS LAST** can set placement in a
-  query; **NULLS FIRST** would put the unknown value first. Ascending sorts known numbers low to high.
+  the other setting value used here. In a query, append **NULLS FIRST** or **NULLS LAST**
+  after the ordering expression and direction. For example **ORDER BY score DESC NULLS FIRST**
+  puts missing scores first, then known scores high to low. Adapt the column, direction and
+  placement for the required priority report; **ASC** sorts known numbers low to high.
 - **RESET default_null_order** returns the setting to its default, not to an arbitrary previous
   SET value. A fresh wrapper process applies startup configuration again. Our wrapper ignores
   personal startup files and sets threads=2 and memory_limit=256MB; it does not set null ordering.

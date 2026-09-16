@@ -60,3 +60,33 @@ checks and cleanup; remove log and commit completion.
   CLI sessions for automated checks, preserving the SQL and reconnects; also exercise a real PTY.
   Shared shell validation cannot directly execute a mixed Bash/DuckDB transcript. Keep this
   adapter in the author driver/private catalog, not in learner-facing Run commands.
+
+- 2026-09-16: 30 independent new-lesson trials, 10 same-fixture answer reruns, worked shared
+  sequence 6–10 and exact shared starters 8–10 passed. First-batch regression also passed all
+  30 independent paths plus both shared sequences. Go course/route/render/CLI tests passed.
+- Progress verify on a byte copy preserved all 42 progress rows, 44 attempts, and existing
+  identities; real learner hash unchanged. Reviewed all five complete rendered lessons on a
+  temporary catalog. Simplified syntax examples to keep learner constructions unfinished.
+- Extra lesson-10 probe caught an inaccurate failure description: without union_by_name,
+  SELECT * succeeds but omits the new region column; selecting region then raises Binder Error.
+  Corrected lesson text and added a specific extra assertion. The failed probe's trap removed
+  its fixture. This is a reusable finding for the knowledge reflection.
+- Live PTY lesson 6 passed table/view update and process reopen. PTY lesson 7 change/reset
+  passed; fresh restart and cleanup remain. This virtual terminal lacks color-query responses;
+  initial calls wait about 5s, then work. Validation-only -dark-mode avoids that presentation
+  wait without changing SQL or wrapper defaults.
+- Extra identifier probe corrected a second assumption: pinned CSV inference already retains
+  leading-zero IDs as VARCHAR. Lesson 8 now teaches preserving that representation while choosing
+  decimal amounts; an explicit BIGINT identifier conversion demonstrates the harmful choice.
+  The new assertion checks actual 001/1 etc. evidence. All trial fixtures were cleaned.
+- PTY lesson 7 fresh process restored NULLS_LAST and retained all three rows; explicit cleanup
+  completed for both PTY labs, and the owned interactive shell exited.
+- Final new-batch driver passed after correcting both source claims: 30 independent trials,
+  10 answer reruns, extra schema/identifier probes and both shared sequences. Source manifests
+  and compact outcome logs retained in the course validation directory. No live lab retained.
+- Updated canonical availability and documentation to 1–10 authored. Complete rendered lessons
+  reviewed on temporary catalog; done/skip worked. Initially tried unsupported `7 undone`;
+  corrected to documented `undone 7` for the final progress-flow check.
+- Implementation and real validation are complete. Remaining: final CLI flow result inspection,
+  manifest audit, knowledge reflection/update, final cleanup/readiness and progress hash checks;
+  then remove this log and commit completion.

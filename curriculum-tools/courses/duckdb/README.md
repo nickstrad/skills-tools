@@ -1,6 +1,6 @@
 # Practical DuckDB: Data Flows and Improving AI Systems
 
-The [canonical route](PLAN.md) has 32 core lessons and five optional projects. The first five
+The [canonical route](PLAN.md) has 32 core lessons and five optional projects. The first ten
 lessons are authored. Later lessons and projects remain planned; authoring never completes work
 in the learner's progress database.
 
@@ -18,7 +18,7 @@ The installer is already run on this VM. It pins **DuckDB 1.5.5**, official CLI 
 `d8cdaa33fd`, postgres_scanner `41223e5`, and sqlite_scanner `f79b1db` in the ignored
 `curriculum-tools/.cache/duckdb-1.5.5/` directory. Download hashes are checked and both extensions
 must load. No machine-wide DuckDB binary or personal startup file is changed. Reinstalling needs
-network access; the five lessons then work offline. The wrapper caps DuckDB at two threads and
+network access; the ten lessons then work offline. The wrapper caps DuckDB at two threads and
 256 MB memory. Installation and fixture helpers are Bash process/bootstrap glue; the validator
 is Go. Native SQL supplies the actual experiments.
 
@@ -28,15 +28,16 @@ the existing postgres OS account through runuser. The lab helpers also support a
 with access to the checkout and binaries. These are droplet instructions, not a cross-platform
 installer. One-time setup is separate from the lessons' 10–12 minute estimates.
 
-Each complete lesson supplies explanation, a small diagram, setup, an editable query file, the
+Each complete lesson supplies explanation, a small diagram, setup, a bounded task, the
 Run commands, expected evidence, a labelled worked answer and cleanup. Spend the stated 3–5 minutes
 on the query task; there is no required submission or review. Use `bin/tutor duckdb 1 done` only
 when you choose to record completion. `skip` and `undone` are explicit progress operations too.
 
 ## Lab lifecycle
 
-Lessons 1–5 offer **Setup - script** and **Setup - manual**. Choose one option per attempt;
-both prepare the same fixture and query.sql, then lead to the same Run and cleanup.
+Lessons 1–10 offer **Setup - script** and **Setup - manual**. Choose one option per attempt;
+both prepare the same fixture, then lead to the same Run and cleanup. Lessons 6–7 use a live
+prompt; the other authored lessons supply an editable query.sql.
 This is the common authoring approach across courses: practice the software's setup while new,
 or bypass it with a script once familiar. Both paths hide lab-folder and fixture plumbing.
 
@@ -69,7 +70,7 @@ its own process. Each lesson explains that lifetime and expected evidence.
 
 ### Run and cleanup
 
-Use the current lesson number 1–5. Setup creates the fixture and editable `query.sql`, supplies
+For lessons 1–5 and 8–10, setup creates the fixture and editable `query.sql`, supplies
 the connection/staging SQL, and records file
 fingerprints where applicable. It prints the full work-file path and the run/cleanup commands.
 `query.sql` already contains starter SQL; edit that file and save it. For lesson 2, run:
@@ -85,7 +86,7 @@ The pipeline sends the supplied `session.sql` followed by your edited `query.sql
 DuckDB process. `duck` is a thin wrapper around the pinned DuckDB CLI: it forwards arguments
 and supplies version/extension/resource settings. `-bail` stops on SQL errors; `-csv` prints CSV.
 Lesson 2 reuses `local.duckdb`; lessons 1, 3 and 4 use the same pipeline with `:memory:` instead.
-Lesson 5 needs no attachment, so its command is simply:
+Lessons 5 and 8–10 need no attachment, so their command is simply:
 
 ```bash
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
@@ -100,7 +101,30 @@ Nick is brand new to DuckDB and requested this level of CLI practice on 2026-09-
 recurring environment variables, fixtures and teardown behind helpers, while retaining the
 actual execution command, input and flags in lessons. `duck_run` remains available for existing
 sessions, but lessons teach the explicit calls above. Starter and connection/staging SQL stay visible.
-Use `duck_check_source` for the unchanged-file check in lessons 3–5.
+Use `duck_check_source` for the unchanged-file check in lessons 3–6 and 8–10.
+
+### Interactive lessons 6–7
+
+Source `lab/session.sh 6` or `7` (optionally adding `manual`), then open the named file:
+
+```bash
+duck "$DUCK_LAB/local.duckdb"
+```
+
+Follow the lesson's labelled transcript at the live DuckDB prompt. SQL ends in a semicolon;
+dot commands such as `.tables`, `.mode csv` and `.quit` have no semicolon. Lesson 6 asks you
+to adapt the stored population, compare a view and a saved result, then close and reopen.
+Lesson 7 asks you to inspect/change/reset settings and make ordering explicit under either
+default. Their core work does not use query.sql, redirected SQL or `.read`.
+
+`$DUCK_LAB` expands in Bash, not inside DuckDB SQL. In lesson 6, substitute the printed absolute
+lab path for LAB_PATH. Enter each transcript group at its labelled prompt; the whole Run block
+is not a Bash script. Use `.quit` before another CLI process or `duck_cleanup`. The cleanup
+removes the disposable database file too, so complete both sessions before invoking it.
+
+The supplied validation PTY does not answer background-color queries. If a terminal prints a
+background-color detection timeout, adding `-dark-mode` or `-light-mode` to the `duck` invocation
+avoids that probe. This affects CLI presentation, not SQL settings or persisted data.
 
 After a lesson-source update, run `tutor duckdb init` once to refresh the catalog shown by
 `tutor duckdb N lesson`. Verify Setup calls `session.sh N` and Run shows the explicit CLI command; modifying Markdown
@@ -121,7 +145,7 @@ scanner failure. Neither helper fills in the learner's answer.
 Setup creates a uniquely named `/tmp/duckdb-lesson.XXXXXX` directory and prints it as DUCK_LAB.
 Lessons 1–2 create one small PostgreSQL cluster, listening only on that directory's Unix socket
 at port 55439. Distinct socket paths avoid collisions; no TCP listener is exposed. READ_ONLY
-attachments use a SELECT-only database role. Lessons 3–5 use small synthetic files and no server.
+attachments use a SELECT-only database role. Lessons 3–10 use small synthetic files and no server.
 Every lesson has a complete starting fixture and can run independently.
 
 The lab neither connects to `/labs/pglab` nor reads the learner's existing SQLite/DuckDB files.
@@ -143,16 +167,22 @@ directory for diagnosis. The first batch budgets under 500 MiB peak scratch and 
 bin/tutor duckdb check
 cd curriculum-tools
 go run ./courses/duckdb/validation
+go run ./courses/duckdb/validation/batchtwo
 ```
 
-The Go driver reads the actual Markdown through the shared parser. It executes both setup choices
+Both Go drivers read the actual Markdown through the shared parser. The first covers lessons 1–5;
+the second covers 6–10. They execute both setup choices
 with each starter, displayed answer and one consequential wrong choice in fresh fixtures; then checks the shared
 validator with the starters and the complete worked sequence. It does not infer semantic success
 from a successful shell exit. Only lesson 4 deliberately emits a SQLite scan type mismatch.
 The driver uses temporary course/progress state and removes its fixtures. Validation of private
 PostgreSQL requires host process/OS-user permissions that the agent sandbox may not provide.
 
-The ordinary `bin/tutor duckdb validate --isolated` chooses script setup and runs the editable starters.
-Its completed-step count is harness evidence, not completion of the learner's task. See
+The ordinary `bin/tutor duckdb validate --isolated --from 8 --to 10` chooses script setup and
+runs those editable starters. For lessons 6–7 use the second driver: it adapts only the prompt
+boundaries into input-fed CLI processes in a temporary catalog, preserving SQL and real reconnects.
+The generic shell harness cannot directly execute a mixed Bash/DuckDB transcript. Both interactive
+lessons have also been checked through a real terminal. A completed-step count is harness evidence,
+not completion of the learner's task. See [second-batch acceptance](validation/batch-two.md),
 [batch acceptance](validation/batch-one.md) for actual results and
 [the repository workflow](../../../docs/lesson-batch-workflow.md) for batch requirements.

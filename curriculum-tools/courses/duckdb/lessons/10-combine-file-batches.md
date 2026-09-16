@@ -40,13 +40,15 @@ batch-v2.csv: event_id duration_ms region /               --> NULL for old regio
   matching files, aligns columns by header name, fills an absent column with NULL, and exposes
   a **filename** column identifying each source. The glob belongs to the SQL reader; Bash
   does not expand it inside the SQL file. This owned folder contains exactly two matching files.
-- Without **union_by_name**, these files have incompatible column counts and the combined
-  reader fails. The option does not resolve every possible type or meaning conflict between
-  versions; both versions here agree on event_id and duration_ms types and meaning.
+- Without **union_by_name**, this reader uses the first file's schema: it returns all four
+  events but omits region. A later SELECT of region then fails because that column is absent.
+  The option does not resolve every possible type or meaning conflict between versions;
+  both versions here agree on event_id and duration_ms types and meaning.
 - **DESCRIBE SELECT ...** lets you inspect each version's schema first. **CREATE OR REPLACE
   TEMP TABLE** captures the combined rows only for this query process.
-- **coalesce(region, 'unknown') AS region_label** selects the first non-NULL value. A related
-  example **coalesce(NULL, 'unreported')** returns unreported. Keep the original region in
+- **coalesce(value, fallback)** selects the first non-NULL value. For example,
+  **coalesce(NULL, 'unreported')** returns unreported. Construct the requested display label
+  from region and your fallback. Keep the original region in
   the earlier output so the display label cannot erase the distinction between known and absent.
 - **count(*)** counts all rows; **count(region)** counts non-NULL regions. Their difference
   counts missing regions. **sum(duration_ms)** reconciles the four source durations.
@@ -101,8 +103,8 @@ duck_check_source
 The completed query returns four rows, two missing regions, and 200ms total. e1/e2 carry a
 filename ending batch-v1.csv and region NULL, displayed as unknown. e3/e4 come from batch-v2.csv
 and keep west/east. Both file hashes are OK. The untouched starter reads only e3/e4:
-two rows, no missing regions, 100ms. Reading both files without name alignment causes a
-schema mismatch on the pinned reader; replacing missing region with 'west' would invent data
+two rows, no missing regions, 100ms. Reading both files without name alignment omits region
+on this pinned reader; the report then raises a column-not-found error. Replacing NULL with 'west' would invent data
 even if all row counts and sums still matched.
 
 Worked answer:

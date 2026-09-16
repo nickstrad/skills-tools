@@ -26,7 +26,7 @@ archive index owns their historical catalog entry.
 | [go-tutor-migration.md](go-tutor-migration.md) | Shared database preservation, raw/refreshed parity, source archives, validation limits and accepted Go migration evidence. |
 | [learner-work.md](learner-work.md) | Meaningful learner work, script/manual software setup choices, and the shared lab lifecycle. |
 | [grpc-course.md](grpc-course.md) | Short gRPC/protobuf scope, direct walkthroughs, raw decoding, real-RPC acceptance and cleanup. |
-| [duckdb-course.md](duckdb-course.md) | Explicit CLI practice, script/manual setup, pinned connectors, source/type boundaries, and validation of both paths. |
+| [duckdb-course.md](duckdb-course.md) | Interactive persistence/settings, file schema/type boundaries, pinned connectors, script/manual setup and real validation. |
 | [vm-resource-cleanup.md](vm-resource-cleanup.md)                               | VM resource budgets, verified ownership, bounded evidence retention, cleanup checkpoints and learner-lab readiness.                                                        |
 | [repo-tooling.md](repo-tooling.md)                                             | Go checks, the cached launcher, shared progress path, Docker rig, and bounded validation resources. |
 | [validation-harness.md](validation-harness.md)                                 | How `tutor <course> validate` drives sessions, why completion is not semantic evidence, and how to verify progress on a copy. |

@@ -15,9 +15,9 @@ revision: 1
 ## Overview
 
 An identifier can look numeric without representing a quantity. This CSV contains account
-codes with leading zeros and amounts in decimal currency units. Inference would read the
-codes as integers and lose the zeros. One malformed amount, a negative amount, and a missing
-amount also need explicit handling before you publish a total.
+codes with leading zeros and amounts in decimal currency units. This reader already infers
+the codes as text; converting them to integers would lose the zeros. One malformed amount,
+a negative amount, and a missing amount need explicit handling before you publish a total.
 
 There is one row per account_id: 001/12.50, 010/7.25, 011/oops, 012/-1.00, 013/missing.
 Keep account_id as text, convert amounts to **DECIMAL(10,2)**, and accept only nonmissing,
@@ -39,13 +39,15 @@ CSV -- all_varchar --> raw text -- TRY_CAST --> decimal or NULL
 - **read_csv(..., header=true)** normally infers types. **all_varchar=true** reads all columns
   as VARCHAR so identifiers keep leading zeros. An empty CSV field still becomes NULL here.
 - **DESCRIBE SELECT ...** inspects reader types; **DESCRIBE typed** inspects the transformed
-  table. Inference on this fixture yields account_id BIGINT and amount VARCHAR.
+  table. Inference on this fixture yields VARCHAR for both columns. Preserve that identifier
+  representation while choosing a numeric type for amounts.
 - **TRY_CAST(amount AS DECIMAL(10,2))** converts a value to a fixed-scale number: ten total
   digits, two after the decimal point. Failed conversions yield NULL without dropping the row.
   For example **TRY_CAST('4.25' AS DECIMAL(10,2))** gives 4.25. BIGINT is unsuitable for cents
   expressed after a decimal point; it can round numeric input instead of preserving fractions.
-- **amount IS NOT NULL AND amount >= 0** expresses this fixture's acceptance contract. A
-  successful cast alone would also accept -1.00. Decimal casts can round extra fractional
+- **IS NOT NULL** detects a nonmissing converted value. Combine that test with the appropriate
+  numeric comparison using **AND**. A successful cast alone would also accept -1.00.
+  Decimal casts can round extra fractional
   digits; this supplied fixture has at most two, so this is not a general money-text validator.
 - **CREATE OR REPLACE TEMP TABLE** stores intermediate rows only in this CLI process.
   **TEMP VIEW** keeps a classification query over them. **raw_amount** retains the source text.
@@ -55,8 +57,8 @@ CSV -- all_varchar --> raw text -- TRY_CAST --> decimal or NULL
   verifies the input file stayed unchanged; **duck_cleanup** removes only your owned fixture.
 
 Spend 3–4 minutes editing the two marked expressions in query.sql: replace the BIGINT conversion
-and the always-false acceptance rule. The supplied reader already preserves identifiers. Inspect
-the raw file and DESCRIBE evidence to explain why removing all_varchar would be a harmful change.
+and the always-false acceptance rule. The supplied reader explicitly preserves identifiers. Inspect
+the raw file and DESCRIBE evidence to distinguish which field needs numeric conversion.
 The file contains this starter:
 
 ```sql
@@ -109,7 +111,8 @@ it is not a published revenue amount. The source hash is OK.
 
 The untouched starter marks all five rejected and rounds 12.50 to 13 and 7.25 to 7. Accepting
 all successfully cast values incorrectly admits account 012, producing three accepted/18.75.
-Removing all_varchar loses the leading zeros even if the amount total is correct.
+Casting account_id to BIGINT would lose the leading zeros even if the amount total were correct.
+Removing all_varchar happens to preserve them on this fixture; it would leave that choice to inference.
 
 Worked answer — the helper has already replaced LAB_PATH in your editable file:
 ```sql
