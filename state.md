@@ -52,3 +52,11 @@ cluster.
   Cluster stopped and removed. Render of lessons 8 and 23 checked with a temporary --db; Go
   render/route/course tests pass. AUTHORING tidy list extended (only this hunk staged; the other
   session's AUTHORING hunk left unstaged). Live catalog refresh still needs authorization.
+- 2026-09-17 03:00 — Knowledge-store reflection: `data/sql-formatter.md` extended with psql rules
+  (trailing `\gset`/`\gexec` handling, no blank before `\else`/`\endif`, blank before `-- Session`,
+  indented code blocks), new tidy rows (`set local`, explain/vacuum options, `filter (where)`,
+  aggregate calls, drop lists), LSN/column-padding normalization, variation-copy validation and the
+  idempotence check. Reindexed `data/duckdb-course-tools.md`, which the concurrent DuckDB session had
+  edited without reindexing (my DUCK_LAB note intact). `kb doctor` clean.
+- Final checks: no `/tmp/pg-essentials-fmt-*` roots, no PostgreSQL processes; `/labs/pglab` untouched.
+  Batch complete; this file is deleted in the next commit.
