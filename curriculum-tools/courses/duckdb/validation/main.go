@@ -113,15 +113,18 @@ func main() {
 		wrong := answer
 		switch l.Ordinal {
 		case 1:
-			wrong = strings.ReplaceAll(answer, " AND status='paid'", "")
+			wrong = strings.ReplaceAll(answer, "\n  AND status = 'paid'", "")
 		case 2:
-			wrong = strings.ReplaceAll(answer, "AND ordered_on < DATE '2026-09-15' ", "")
+			wrong = strings.ReplaceAll(answer, "\n        AND ordered_on < DATE '2026-09-15'", "")
 		case 3:
 			wrong = strings.ReplaceAll(answer, "source.main.customers", "memory.main.customers")
 		case 4:
-			wrong = strings.ReplaceAll(answer, " AND amount_cents >= 0", "")
+			wrong = strings.ReplaceAll(answer, "\n    AND amount_cents >= 0", "")
 		case 5:
-			wrong = strings.ReplaceAll(answer, " AND status='paid'", "")
+			wrong = strings.ReplaceAll(answer, "\n  AND status = 'paid'", "")
+		}
+		if wrong == answer {
+			panic(fmt.Sprintf("lesson %d wrong-choice edit no longer matches the formatted answer", l.Ordinal))
 		}
 		for _, mode := range []string{"script", "manual"} {
 			for _, variant := range []string{"starter", "answer", "wrong"} {

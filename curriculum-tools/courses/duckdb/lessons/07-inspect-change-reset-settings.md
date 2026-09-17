@@ -73,8 +73,22 @@ exits; **-bail -csv** stops on error and prints CSV. The rows persist after this
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 7 manual
 duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
 CREATE OR REPLACE TABLE priorities AS
-SELECT * FROM (VALUES ('alpha', 2), ('beta', NULL), ('gamma', 1)) t(job, priority);
-SELECT * FROM priorities ORDER BY job;"
+SELECT
+  *
+FROM
+  (
+    VALUES
+      ('alpha', 2),
+      ('beta', NULL),
+      ('gamma', 1)
+  ) t (job, priority);
+
+SELECT
+  *
+FROM
+  priorities
+ORDER BY
+  job;"
 ```
 
 ## Run
@@ -84,29 +98,89 @@ duck "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt
 .mode csv
 PRAGMA database_list;
+
 PRAGMA table_info('priorities');
-SELECT name, value, scope FROM duckdb_settings()
-WHERE name IN ('default_null_order','threads','memory_limit') ORDER BY name;
-SELECT current_setting('default_null_order') AS initial;
-SELECT job, priority FROM priorities ORDER BY priority;
-SET default_null_order='NULLS_FIRST';
-SELECT current_setting('default_null_order') AS changed;
-SELECT job, priority FROM priorities ORDER BY priority;
+
+SELECT
+  name,
+  value,
+  scope
+FROM
+  duckdb_settings()
+WHERE
+  name IN ('default_null_order', 'threads', 'memory_limit')
+ORDER BY
+  name;
+
+SELECT
+  current_setting('default_null_order') AS initial;
+
+SELECT
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority;
+
+SET default_null_order = 'NULLS_FIRST';
+
+SELECT
+  current_setting('default_null_order') AS changed;
+
+SELECT
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority;
+
 -- Adapt this report query, then type the same adapted query under NULLS_LAST below.
-SELECT 'report' AS kind, job, priority FROM priorities ORDER BY priority;
-SET default_null_order='NULLS_LAST';
-SELECT 'report' AS kind, job, priority FROM priorities ORDER BY priority;
+SELECT
+  'report' AS kind,
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority;
+
+SET default_null_order = 'NULLS_LAST';
+
+SELECT
+  'report' AS kind,
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority;
+
 RESET default_null_order;
-SELECT current_setting('default_null_order') AS reset_value;
+
+SELECT
+  current_setting('default_null_order') AS reset_value;
+
 -- Leave a different runtime value active so restart tests more than RESET.
-SET default_null_order='NULLS_FIRST';
+SET default_null_order = 'NULLS_FIRST';
+
 .quit
 # Bash: reopen saved rows in a fresh process.
 duck "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt
 .mode csv
-SELECT current_setting('default_null_order') AS fresh_value;
-SELECT job, priority FROM priorities ORDER BY priority;
+SELECT
+  current_setting('default_null_order') AS fresh_value;
+
+SELECT
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority;
+
 .quit
 ```
 
@@ -120,7 +194,14 @@ starter's first report puts beta first; explicit NULLS FIRST would violate the r
 
 Worked report query — enter this at both marked positions:
 ```sql
-SELECT 'report' AS kind, job, priority FROM priorities ORDER BY priority ASC NULLS LAST;
+SELECT
+  'report' AS kind,
+  job,
+  priority
+FROM
+  priorities
+ORDER BY
+  priority ASC NULLS LAST;
 ```
 
 The table survives exit, but the final SET does not become a saved property of the file.

@@ -58,13 +58,38 @@ unfinished and finished versions happen to return three rows. Your starter is:
 
 ```sql
 CREATE OR REPLACE TEMP TABLE runs AS
-SELECT * FROM read_json('LAB_PATH/runs.jsonl', format='newline_delimited');
-SELECT run_id, len(events) AS event_count FROM runs ORDER BY run_id;
+SELECT
+  *
+FROM
+  read_json('LAB_PATH/runs.jsonl', format = 'newline_delimited');
+
+SELECT
+  run_id,
+  len(events) AS event_count
+FROM
+  runs
+ORDER BY
+  run_id;
+
 CREATE OR REPLACE TEMP TABLE expanded AS
-SELECT run_id, events AS event FROM runs;
-SELECT * FROM expanded ORDER BY run_id;
+SELECT
+  run_id,
+  events AS event
+FROM
+  runs;
+
+SELECT
+  *
+FROM
+  expanded
+ORDER BY
+  run_id;
+
 -- Add the requested field projection after expanding.
-SELECT count(*) AS output_rows FROM expanded;
+SELECT
+  count(*) AS output_rows
+FROM
+  expanded;
 ```
 
 ## Setup
@@ -104,13 +129,41 @@ leaving only two actual events. Dropping run_id would make the two e1 rows ambig
 Worked answer:
 ```sql
 CREATE OR REPLACE TEMP TABLE runs AS
-SELECT * FROM read_json('LAB_PATH/runs.jsonl', format='newline_delimited');
-SELECT run_id, len(events) AS event_count FROM runs ORDER BY run_id;
+SELECT
+  *
+FROM
+  read_json('LAB_PATH/runs.jsonl', format = 'newline_delimited');
+
+SELECT
+  run_id,
+  len(events) AS event_count
+FROM
+  runs
+ORDER BY
+  run_id;
+
 CREATE OR REPLACE TEMP TABLE expanded AS
-SELECT run_id, unnest(events) AS event FROM runs;
-SELECT run_id, event.event_id, event.tool, event.duration_ms
-FROM expanded ORDER BY run_id, event.event_id;
-SELECT count(*) AS output_rows FROM expanded;
+SELECT
+  run_id,
+  unnest(events) AS event
+FROM
+  runs;
+
+SELECT
+  run_id,
+  event.event_id,
+  event.tool,
+  event.duration_ms
+FROM
+  expanded
+ORDER BY
+  run_id,
+  event.event_id;
+
+SELECT
+  count(*) AS output_rows
+FROM
+  expanded;
 ```
 
 Use the actual path already present in query.sql. Reruns rebuild temporary state from the

@@ -153,9 +153,12 @@ func main() {
 		answerCode := l.Code
 		answerSQL := fence(l.ExpectedResult, "sql")
 		if l.Ordinal == 6 {
-			answerCode = strings.Replace(l.Code, "CREATE OR REPLACE TABLE orders AS\nSELECT * FROM read_csv('LAB_PATH/orders.csv', header=true);", answerSQL, 1)
+			answerCode = strings.Replace(l.Code, "CREATE OR REPLACE TABLE orders AS\nSELECT\n  *\nFROM\n  read_csv('LAB_PATH/orders.csv', header = true);", answerSQL, 1)
 		} else if l.Ordinal == 7 {
-			answerCode = strings.ReplaceAll(l.Code, "SELECT 'report' AS kind, job, priority FROM priorities ORDER BY priority;", answerSQL)
+			answerCode = strings.ReplaceAll(l.Code, "SELECT\n  'report' AS kind,\n  job,\n  priority\nFROM\n  priorities\nORDER BY\n  priority;", answerSQL)
+		}
+		if l.Ordinal <= 7 && answerCode == l.Code {
+			panic(fmt.Sprintf("lesson %d answer edit no longer matches the formatted Run transcript", l.Ordinal))
 		}
 		for _, mode := range []string{"script", "manual"} {
 			for _, variant := range []string{"starter", "answer", "wrong"} {
@@ -166,18 +169,22 @@ func main() {
 					code = answerCode
 				}
 				if variant == "wrong" {
+					before := code + sql
 					switch l.Ordinal {
 					case 6:
-						code = strings.Replace(code, "WHERE ordered_on=DATE '2026-09-14';", "WHERE ordered_on=DATE '2026-09-14' AND status='paid';", 1)
+						code = strings.Replace(code, "WHERE\n  ordered_on = DATE '2026-09-14';", "WHERE\n  ordered_on = DATE '2026-09-14'\n  AND status = 'paid';", 1)
 					case 7:
-						code = strings.ReplaceAll(code, "ORDER BY priority ASC NULLS LAST;", "ORDER BY priority ASC NULLS FIRST;")
+						code = strings.ReplaceAll(code, "\n  priority ASC NULLS LAST;", "\n  priority ASC NULLS FIRST;")
 					case 8:
-						sql = strings.ReplaceAll(sql, " AND amount >= 0", "")
+						sql = strings.ReplaceAll(sql, "\n  AND amount >= 0", "")
 					case 9:
 						sql = strings.ReplaceAll(sql, "unnest(events)", "events[1]")
-						sql = strings.ReplaceAll(sql, "AS event FROM runs;", "AS event FROM runs WHERE len(events)>0;")
+						sql = strings.ReplaceAll(sql, "AS event\nFROM\n  runs;", "AS event\nFROM\n  runs\nWHERE\n  len(events) > 0;")
 					case 10:
 						sql = strings.ReplaceAll(sql, "coalesce(region, 'unknown')", "coalesce(region, 'west')")
+					}
+					if code+sql == before {
+						panic(fmt.Sprintf("lesson %d wrong-choice edit no longer matches the formatted SQL", l.Ordinal))
 					}
 				}
 				script := "set -euo pipefail\n" + setup + "\nprintf 'fixture=%s\\n' \"$DUCK_LAB\"\n"

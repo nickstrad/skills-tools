@@ -90,25 +90,84 @@ duck "$DUCK_LAB/local.duckdb"
 .help tables
 .mode csv
 CREATE OR REPLACE TABLE orders AS
-SELECT * FROM read_csv('LAB_PATH/orders.csv', header=true);
+SELECT
+  *
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true);
+
 .tables
 DESCRIBE orders;
-SELECT order_id, status, amount_cents FROM orders ORDER BY order_id;
+
+SELECT
+  order_id,
+  status,
+  amount_cents
+FROM
+  orders
+ORDER BY
+  order_id;
+
 CREATE OR REPLACE VIEW paid_live AS
-SELECT order_id, amount_cents FROM orders WHERE status='paid';
-CREATE OR REPLACE TABLE paid_saved AS SELECT * FROM paid_live;
-SELECT 'before' AS phase, sum(amount_cents) AS total_cents FROM paid_live;
-UPDATE orders SET amount_cents=2500 WHERE order_id=102;
-SELECT 'live' AS report, sum(amount_cents) AS total_cents FROM paid_live
-UNION ALL SELECT 'saved', sum(amount_cents) FROM paid_saved;
+SELECT
+  order_id,
+  amount_cents
+FROM
+  orders
+WHERE
+  status = 'paid';
+
+CREATE OR REPLACE TABLE paid_saved AS
+SELECT
+  *
+FROM
+  paid_live;
+
+SELECT
+  'before' AS phase,
+  sum(amount_cents) AS total_cents
+FROM
+  paid_live;
+
+UPDATE orders
+SET
+  amount_cents = 2500
+WHERE
+  order_id = 102;
+
+SELECT
+  'live' AS report,
+  sum(amount_cents) AS total_cents
+FROM
+  paid_live
+UNION ALL
+SELECT
+  'saved',
+  sum(amount_cents)
+FROM
+  paid_saved;
+
 .quit
 # Bash: launch a fresh process against the same file.
 duck "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt: inspect what survived.
 .mode csv
 .tables
-SELECT order_id, amount_cents FROM paid_live ORDER BY order_id;
-SELECT order_id, amount_cents FROM paid_saved ORDER BY order_id;
+SELECT
+  order_id,
+  amount_cents
+FROM
+  paid_live
+ORDER BY
+  order_id;
+
+SELECT
+  order_id,
+  amount_cents
+FROM
+  paid_saved
+ORDER BY
+  order_id;
+
 .quit
 # Bash: the original CSV should be unchanged.
 duck_check_source
@@ -127,8 +186,12 @@ base-table boundary even though the report total looks correct.
 Worked correction to the first statement — use the printed absolute path:
 ```sql
 CREATE OR REPLACE TABLE orders AS
-SELECT * FROM read_csv('LAB_PATH/orders.csv', header=true)
-WHERE ordered_on=DATE '2026-09-14';
+SELECT
+  *
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true)
+WHERE
+  ordered_on = DATE '2026-09-14';
 ```
 
 To repeat, enter the corrected CREATE TABLE and the remaining first-session commands again;

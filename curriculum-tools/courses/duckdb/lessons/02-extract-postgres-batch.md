@@ -75,12 +75,33 @@ Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
 CREATE OR REPLACE TABLE batch AS
-SELECT * FROM postgres_query('app', $$
-  SELECT * FROM sales.orders
-$$);
+SELECT
+  *
+FROM
+  postgres_query(
+    'app',
+    $$
+      SELECT
+        *
+      FROM
+        sales.orders
+    $$
+  );
+
 DESCRIBE batch;
-SELECT * FROM batch ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
+
+SELECT
+  *
+FROM
+  batch
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  batch;
 ```
 
 Each file-based CLI invocation rereads your saved query and reuses **local.duckdb**.
@@ -117,9 +138,13 @@ yourself, then check that the source has five orders. Bash substitutes **$DUCK_L
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 manual
 duck :memory: -bail -csv -c "
 LOAD postgres;
-ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
-  AS app (TYPE postgres, READ_ONLY);
-SELECT count(*) AS source_orders FROM app.sales.orders;"
+
+ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+
+SELECT
+  count(*) AS source_orders
+FROM
+  app.sales.orders;"
 ```
 
 This check uses a temporary connection and makes no local extract. Run repeats the shown
@@ -130,12 +155,27 @@ LOAD/ATTACH from session.sql in a new connection to local.duckdb, then executes 
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
   duck "$DUCK_LAB/local.duckdb" -bail -csv
 psql -X -h "$DUCK_LAB" -p 55439 -U postgres -d postgres -v ON_ERROR_STOP=1 -c "
-INSERT INTO sales.orders VALUES (106,'2026-09-14','paid',600,'new@example.invalid');"
+INSERT INTO
+  sales.orders
+VALUES
+  (106, '2026-09-14', 'paid', 600, 'new@example.invalid');"
 duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
-SELECT 'local_before_refresh' AS stage, count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;"
+SELECT
+  'local_before_refresh' AS stage,
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  batch;"
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM sales.orders
-WHERE ordered_on >= DATE '2026-09-14' AND ordered_on < DATE '2026-09-15' AND status='paid';"
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  sales.orders
+WHERE
+  ordered_on >= DATE '2026-09-14'
+  AND ordered_on < DATE '2026-09-15'
+  AND status = 'paid';"
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
   duck "$DUCK_LAB/local.duckdb" -bail -csv
 ```
@@ -153,14 +193,38 @@ Use IDs and DESCRIBE as well as totals to detect an incorrect extraction boundar
 Worked answer — replace query.sql with:
 ```sql
 CREATE OR REPLACE TABLE batch AS
-SELECT * FROM postgres_query('app', $$
-  SELECT order_id, amount_cents FROM sales.orders
-  WHERE ordered_on >= DATE '2026-09-14'
-    AND ordered_on < DATE '2026-09-15' AND status='paid'
-$$);
+SELECT
+  *
+FROM
+  postgres_query(
+    'app',
+    $$
+      SELECT
+        order_id,
+        amount_cents
+      FROM
+        sales.orders
+      WHERE
+        ordered_on >= DATE '2026-09-14'
+        AND ordered_on < DATE '2026-09-15'
+        AND status = 'paid'
+    $$
+  );
+
 DESCRIBE batch;
-SELECT * FROM batch ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM batch;
+
+SELECT
+  *
+FROM
+  batch
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  batch;
 ```
 
 Cleanup:

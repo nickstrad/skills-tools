@@ -6,13 +6,13 @@ ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.NaWcFk
+Lab path: /tmp/duckdb-lesson.gut55v
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.NaWcFk
+fixture=/tmp/duckdb-lesson.gut55v
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -39,8 +39,8 @@ before,6100
 report,total_cents
 live,6300
 saved,6100
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -61,8 +61,8 @@ order_id,amount_cents
 102,2300
 104,1700
 105,900
-/tmp/duckdb-lesson.NaWcFk/orders.csv: OK
-796	/tmp/duckdb-lesson.NaWcFk
+/tmp/duckdb-lesson.gut55v/orders.csv: OK
+796	/tmp/duckdb-lesson.gut55v
 
 === 06-script-answer ===
 column_name,column_type,null,key,default,extra
@@ -71,13 +71,13 @@ ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.kXWoeJ
+Lab path: /tmp/duckdb-lesson.OOqauZ
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.kXWoeJ
+fixture=/tmp/duckdb-lesson.OOqauZ
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -102,8 +102,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -120,10 +120,10 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.kXWoeJ/orders.csv: OK
+/tmp/duckdb-lesson.OOqauZ/orders.csv: OK
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -148,8 +148,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -166,8 +166,8 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.kXWoeJ/orders.csv: OK
-1308	/tmp/duckdb-lesson.kXWoeJ
+/tmp/duckdb-lesson.OOqauZ/orders.csv: OK
+1308	/tmp/duckdb-lesson.OOqauZ
 
 === 06-script-wrong ===
 column_name,column_type,null,key,default,extra
@@ -176,13 +176,13 @@ ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.LMJJ9l
+Lab path: /tmp/duckdb-lesson.87N79U
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.LMJJ9l
+fixture=/tmp/duckdb-lesson.87N79U
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -206,8 +206,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -224,13 +224,13 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.LMJJ9l/orders.csv: OK
-796	/tmp/duckdb-lesson.LMJJ9l
+/tmp/duckdb-lesson.87N79U/orders.csv: OK
+796	/tmp/duckdb-lesson.87N79U
 
 === 06-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.MpABzW
+Lab path: /tmp/duckdb-lesson.SP5e3G
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 column_name,column_type,null,key,default,extra
@@ -238,10 +238,10 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.MpABzW
+fixture=/tmp/duckdb-lesson.SP5e3G
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -268,8 +268,8 @@ before,6100
 report,total_cents
 live,6300
 saved,6100
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -290,13 +290,13 @@ order_id,amount_cents
 102,2300
 104,1700
 105,900
-/tmp/duckdb-lesson.MpABzW/orders.csv: OK
-796	/tmp/duckdb-lesson.MpABzW
+/tmp/duckdb-lesson.SP5e3G/orders.csv: OK
+796	/tmp/duckdb-lesson.SP5e3G
 
 === 06-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.2oJq2G
+Lab path: /tmp/duckdb-lesson.utPbY4
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 column_name,column_type,null,key,default,extra
@@ -304,10 +304,10 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.2oJq2G
+fixture=/tmp/duckdb-lesson.utPbY4
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -332,8 +332,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -350,10 +350,10 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.2oJq2G/orders.csv: OK
+/tmp/duckdb-lesson.utPbY4/orders.csv: OK
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -378,8 +378,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -396,13 +396,13 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.2oJq2G/orders.csv: OK
-1308	/tmp/duckdb-lesson.2oJq2G
+/tmp/duckdb-lesson.utPbY4/orders.csv: OK
+1308	/tmp/duckdb-lesson.utPbY4
 
 === 06-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 6 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.FQYeAG
+Lab path: /tmp/duckdb-lesson.0Jv9ru
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 column_name,column_type,null,key,default,extra
@@ -410,10 +410,10 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.FQYeAG
+fixture=/tmp/duckdb-lesson.0Jv9ru
 [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-[38;5;172m ─────── local ────────
-[00m[38;5;39m ──────── main ────────
+[38;5;172m ─────── local ──────── 
+[00m[38;5;39m ──────── main ──────── 
 [00m[90m┌──────────────────────┐[00m[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
 [00m[90m│                      │[00m[90m
@@ -437,8 +437,8 @@ before,4000
 report,total_cents
 live,4200
 saved,4000
-[38;5;172m ────────────────────────────── local ───────────────────────────────
-[00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+[38;5;172m ────────────────────────────── local ─────────────────────────────── 
+[00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
 [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
 [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
 [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -455,8 +455,8 @@ saved,4000
 order_id,amount_cents
 102,2300
 104,1700
-/tmp/duckdb-lesson.FQYeAG/orders.csv: OK
-796	/tmp/duckdb-lesson.FQYeAG
+/tmp/duckdb-lesson.0Jv9ru/orders.csv: OK
+796	/tmp/duckdb-lesson.0Jv9ru
 
 === 07-script-starter ===
 job,priority
@@ -464,12 +464,12 @@ alpha,2
 beta,NULL
 gamma,1
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.2SHlhQ
+Lab path: /tmp/duckdb-lesson.Q4yGxw
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.2SHlhQ
+fixture=/tmp/duckdb-lesson.Q4yGxw
 seq,name,file
-20631,local,/tmp/duckdb-lesson.2SHlhQ/local.duckdb
+20631,local,/tmp/duckdb-lesson.Q4yGxw/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -505,7 +505,7 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.2SHlhQ
+536	/tmp/duckdb-lesson.Q4yGxw
 
 === 07-script-answer ===
 job,priority
@@ -513,12 +513,12 @@ alpha,2
 beta,NULL
 gamma,1
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.GRetMk
+Lab path: /tmp/duckdb-lesson.Z2eMGd
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.GRetMk
+fixture=/tmp/duckdb-lesson.Z2eMGd
 seq,name,file
-20631,local,/tmp/duckdb-lesson.GRetMk/local.duckdb
+20631,local,/tmp/duckdb-lesson.Z2eMGd/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -555,7 +555,7 @@ gamma,1
 alpha,2
 beta,NULL
 seq,name,file
-20631,local,/tmp/duckdb-lesson.GRetMk/local.duckdb
+20631,local,/tmp/duckdb-lesson.Z2eMGd/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -591,7 +591,7 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.GRetMk
+536	/tmp/duckdb-lesson.Z2eMGd
 
 === 07-script-wrong ===
 job,priority
@@ -599,12 +599,12 @@ alpha,2
 beta,NULL
 gamma,1
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.jzeMyR
+Lab path: /tmp/duckdb-lesson.9rAeKS
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
-fixture=/tmp/duckdb-lesson.jzeMyR
+fixture=/tmp/duckdb-lesson.9rAeKS
 seq,name,file
-20631,local,/tmp/duckdb-lesson.jzeMyR/local.duckdb
+20631,local,/tmp/duckdb-lesson.9rAeKS/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -640,21 +640,21 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.jzeMyR
+536	/tmp/duckdb-lesson.9rAeKS
 
 === 07-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.MhqF21
+Lab path: /tmp/duckdb-lesson.n6Mwc1
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 job,priority
 alpha,2
 beta,NULL
 gamma,1
-fixture=/tmp/duckdb-lesson.MhqF21
+fixture=/tmp/duckdb-lesson.n6Mwc1
 seq,name,file
-20631,local,/tmp/duckdb-lesson.MhqF21/local.duckdb
+20631,local,/tmp/duckdb-lesson.n6Mwc1/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -690,21 +690,21 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.MhqF21
+536	/tmp/duckdb-lesson.n6Mwc1
 
 === 07-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.7Afjlj
+Lab path: /tmp/duckdb-lesson.q2RPSN
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 job,priority
 alpha,2
 beta,NULL
 gamma,1
-fixture=/tmp/duckdb-lesson.7Afjlj
+fixture=/tmp/duckdb-lesson.q2RPSN
 seq,name,file
-20631,local,/tmp/duckdb-lesson.7Afjlj/local.duckdb
+20631,local,/tmp/duckdb-lesson.q2RPSN/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -741,7 +741,7 @@ gamma,1
 alpha,2
 beta,NULL
 seq,name,file
-20631,local,/tmp/duckdb-lesson.7Afjlj/local.duckdb
+20631,local,/tmp/duckdb-lesson.q2RPSN/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -777,21 +777,21 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.7Afjlj
+536	/tmp/duckdb-lesson.q2RPSN
 
 === 07-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
 Lesson 7 ready. Practice at the live prompt using the lesson task.
-Lab path: /tmp/duckdb-lesson.D20z9N
+Lab path: /tmp/duckdb-lesson.zUXnw3
 Open: duck "$DUCK_LAB/local.duckdb"
 Cleanup after .quit: duck_cleanup
 job,priority
 alpha,2
 beta,NULL
 gamma,1
-fixture=/tmp/duckdb-lesson.D20z9N
+fixture=/tmp/duckdb-lesson.zUXnw3
 seq,name,file
-20631,local,/tmp/duckdb-lesson.D20z9N/local.duckdb
+20631,local,/tmp/duckdb-lesson.zUXnw3/local.duckdb
 cid,name,type,notnull,dflt_value,pk
 0,job,VARCHAR,false,NULL,false
 1,priority,INTEGER,false,NULL,false
@@ -827,7 +827,7 @@ job,priority
 gamma,1
 alpha,2
 beta,NULL
-536	/tmp/duckdb-lesson.D20z9N
+536	/tmp/duckdb-lesson.zUXnw3
 
 === 08-script-starter ===
 account_id,amount
@@ -839,11 +839,11 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.OsYXhr/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.iRQarP/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.OsYXhr
+fixture=/tmp/duckdb-lesson.iRQarP
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -856,8 +856,8 @@ account_id,raw_amount,amount,accepted
 013,NULL,NULL,false
 accepted,rows,total
 false,5,19
-/tmp/duckdb-lesson.OsYXhr/messy.csv: OK
-16	/tmp/duckdb-lesson.OsYXhr
+/tmp/duckdb-lesson.iRQarP/messy.csv: OK
+16	/tmp/duckdb-lesson.iRQarP
 
 === 08-script-answer ===
 account_id,amount
@@ -869,11 +869,11 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.BRE0HW/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.yR0ZuS/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.BRE0HW
+fixture=/tmp/duckdb-lesson.yR0ZuS
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -887,7 +887,7 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,3,-1.00
 true,2,19.75
-/tmp/duckdb-lesson.BRE0HW/messy.csv: OK
+/tmp/duckdb-lesson.yR0ZuS/messy.csv: OK
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -901,8 +901,8 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,3,-1.00
 true,2,19.75
-/tmp/duckdb-lesson.BRE0HW/messy.csv: OK
-16	/tmp/duckdb-lesson.BRE0HW
+/tmp/duckdb-lesson.yR0ZuS/messy.csv: OK
+16	/tmp/duckdb-lesson.yR0ZuS
 
 === 08-script-wrong ===
 account_id,amount
@@ -914,11 +914,11 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.zzGifG/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.aARbBb/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.zzGifG
+fixture=/tmp/duckdb-lesson.aARbBb
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -932,12 +932,12 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,2,NULL
 true,3,18.75
-/tmp/duckdb-lesson.zzGifG/messy.csv: OK
-16	/tmp/duckdb-lesson.zzGifG
+/tmp/duckdb-lesson.aARbBb/messy.csv: OK
+16	/tmp/duckdb-lesson.aARbBb
 
 === 08-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.IA5ZNc/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.ObAv0T/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -950,7 +950,7 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.IA5ZNc
+fixture=/tmp/duckdb-lesson.ObAv0T
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -963,12 +963,12 @@ account_id,raw_amount,amount,accepted
 013,NULL,NULL,false
 accepted,rows,total
 false,5,19
-/tmp/duckdb-lesson.IA5ZNc/messy.csv: OK
-16	/tmp/duckdb-lesson.IA5ZNc
+/tmp/duckdb-lesson.ObAv0T/messy.csv: OK
+16	/tmp/duckdb-lesson.ObAv0T
 
 === 08-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.gyye3E/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.dKGpAs/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -981,7 +981,7 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.gyye3E
+fixture=/tmp/duckdb-lesson.dKGpAs
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -995,7 +995,7 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,3,-1.00
 true,2,19.75
-/tmp/duckdb-lesson.gyye3E/messy.csv: OK
+/tmp/duckdb-lesson.dKGpAs/messy.csv: OK
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -1009,12 +1009,12 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,3,-1.00
 true,2,19.75
-/tmp/duckdb-lesson.gyye3E/messy.csv: OK
-16	/tmp/duckdb-lesson.gyye3E
+/tmp/duckdb-lesson.dKGpAs/messy.csv: OK
+16	/tmp/duckdb-lesson.dKGpAs
 
 === 08-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.amkrqw/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.aHT8q0/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1027,7 +1027,7 @@ account_id,amount
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 amount,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.amkrqw
+fixture=/tmp/duckdb-lesson.aHT8q0
 column_name,column_type,null,key,default,extra
 account_id,VARCHAR,YES,NULL,NULL,NULL
 raw_amount,VARCHAR,YES,NULL,NULL,NULL
@@ -1041,8 +1041,8 @@ account_id,raw_amount,amount,accepted
 accepted,rows,total
 false,2,NULL
 true,3,18.75
-/tmp/duckdb-lesson.amkrqw/messy.csv: OK
-16	/tmp/duckdb-lesson.amkrqw
+/tmp/duckdb-lesson.aHT8q0/messy.csv: OK
+16	/tmp/duckdb-lesson.aHT8q0
 
 === 09-script-starter ===
 {"run_id":"r1","events":[{"event_id":"e1","tool":"search","duration_ms":40},{"event_id":"e2","tool":"fetch","duration_ms":60}]}
@@ -1051,11 +1051,11 @@ true,3,18.75
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.R27GYc/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.9kRVZJ/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.R27GYc
+fixture=/tmp/duckdb-lesson.9kRVZJ
 run_id,event_count
 r1,2
 r2,0
@@ -1066,8 +1066,8 @@ r2,[]
 r3,"[{'event_id': e1, 'tool': search, 'duration_ms': 25}]"
 output_rows
 3
-/tmp/duckdb-lesson.R27GYc/runs.jsonl: OK
-16	/tmp/duckdb-lesson.R27GYc
+/tmp/duckdb-lesson.9kRVZJ/runs.jsonl: OK
+16	/tmp/duckdb-lesson.9kRVZJ
 
 === 09-script-answer ===
 {"run_id":"r1","events":[{"event_id":"e1","tool":"search","duration_ms":40},{"event_id":"e2","tool":"fetch","duration_ms":60}]}
@@ -1076,11 +1076,11 @@ output_rows
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.xJ0deJ/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.4Iydpx/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.xJ0deJ
+fixture=/tmp/duckdb-lesson.4Iydpx
 run_id,event_count
 r1,2
 r2,0
@@ -1091,7 +1091,7 @@ r1,e2,fetch,60
 r3,e1,search,25
 output_rows
 3
-/tmp/duckdb-lesson.xJ0deJ/runs.jsonl: OK
+/tmp/duckdb-lesson.4Iydpx/runs.jsonl: OK
 run_id,event_count
 r1,2
 r2,0
@@ -1102,8 +1102,8 @@ r1,e2,fetch,60
 r3,e1,search,25
 output_rows
 3
-/tmp/duckdb-lesson.xJ0deJ/runs.jsonl: OK
-16	/tmp/duckdb-lesson.xJ0deJ
+/tmp/duckdb-lesson.4Iydpx/runs.jsonl: OK
+16	/tmp/duckdb-lesson.4Iydpx
 
 === 09-script-wrong ===
 {"run_id":"r1","events":[{"event_id":"e1","tool":"search","duration_ms":40},{"event_id":"e2","tool":"fetch","duration_ms":60}]}
@@ -1112,11 +1112,11 @@ output_rows
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.Uo22HR/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.UYr3yZ/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.Uo22HR
+fixture=/tmp/duckdb-lesson.UYr3yZ
 run_id,event_count
 r1,2
 r2,0
@@ -1126,12 +1126,12 @@ r1,e1,search,40
 r3,e1,search,25
 output_rows
 2
-/tmp/duckdb-lesson.Uo22HR/runs.jsonl: OK
-16	/tmp/duckdb-lesson.Uo22HR
+/tmp/duckdb-lesson.UYr3yZ/runs.jsonl: OK
+16	/tmp/duckdb-lesson.UYr3yZ
 
 === 09-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.hJnF49/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.zey0uO/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1141,7 +1141,7 @@ Cleanup: duck_cleanup
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.hJnF49
+fixture=/tmp/duckdb-lesson.zey0uO
 run_id,event_count
 r1,2
 r2,0
@@ -1152,12 +1152,12 @@ r2,[]
 r3,"[{'event_id': e1, 'tool': search, 'duration_ms': 25}]"
 output_rows
 3
-/tmp/duckdb-lesson.hJnF49/runs.jsonl: OK
-16	/tmp/duckdb-lesson.hJnF49
+/tmp/duckdb-lesson.zey0uO/runs.jsonl: OK
+16	/tmp/duckdb-lesson.zey0uO
 
 === 09-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.gPVxyW/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.rTk5K4/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1167,7 +1167,7 @@ Cleanup: duck_cleanup
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.gPVxyW
+fixture=/tmp/duckdb-lesson.rTk5K4
 run_id,event_count
 r1,2
 r2,0
@@ -1178,7 +1178,7 @@ r1,e2,fetch,60
 r3,e1,search,25
 output_rows
 3
-/tmp/duckdb-lesson.gPVxyW/runs.jsonl: OK
+/tmp/duckdb-lesson.rTk5K4/runs.jsonl: OK
 run_id,event_count
 r1,2
 r2,0
@@ -1189,12 +1189,12 @@ r1,e2,fetch,60
 r3,e1,search,25
 output_rows
 3
-/tmp/duckdb-lesson.gPVxyW/runs.jsonl: OK
-16	/tmp/duckdb-lesson.gPVxyW
+/tmp/duckdb-lesson.rTk5K4/runs.jsonl: OK
+16	/tmp/duckdb-lesson.rTk5K4
 
 === 09-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.cTmT4f/query.sql
+Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.b77TGJ/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1204,7 +1204,7 @@ Cleanup: duck_cleanup
 column_name,column_type,null,key,default,extra
 run_id,VARCHAR,YES,NULL,NULL,NULL
 events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.cTmT4f
+fixture=/tmp/duckdb-lesson.b77TGJ
 run_id,event_count
 r1,2
 r2,0
@@ -1214,8 +1214,8 @@ r1,e1,search,40
 r3,e1,search,25
 output_rows
 2
-/tmp/duckdb-lesson.cTmT4f/runs.jsonl: OK
-16	/tmp/duckdb-lesson.cTmT4f
+/tmp/duckdb-lesson.b77TGJ/runs.jsonl: OK
+16	/tmp/duckdb-lesson.b77TGJ
 
 === 10-script-starter ===
 event_id,duration_ms
@@ -1231,22 +1231,22 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.4OVo9o/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.iDRBMA/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.4OVo9o
+fixture=/tmp/duckdb-lesson.iDRBMA
 event_id,duration_ms,region,filename
-e3,25,west,/tmp/duckdb-lesson.4OVo9o/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.4OVo9o/batch-v2.csv
+e3,25,west,/tmp/duckdb-lesson.iDRBMA/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.iDRBMA/batch-v2.csv
 event_id,region_label
 e3,west
 e4,east
 rows,missing_region,total_ms
 2,0,100
-/tmp/duckdb-lesson.4OVo9o/batch-v1.csv: OK
-/tmp/duckdb-lesson.4OVo9o/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.4OVo9o
+/tmp/duckdb-lesson.iDRBMA/batch-v1.csv: OK
+/tmp/duckdb-lesson.iDRBMA/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.iDRBMA
 
 === 10-script-answer ===
 event_id,duration_ms
@@ -1262,16 +1262,16 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.0rpMyi/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.XWXrtw/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.0rpMyi
+fixture=/tmp/duckdb-lesson.XWXrtw
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.0rpMyi/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.0rpMyi/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.0rpMyi/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.0rpMyi/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.XWXrtw/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.XWXrtw/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.XWXrtw/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.XWXrtw/batch-v2.csv
 event_id,region_label
 e1,unknown
 e2,unknown
@@ -1279,13 +1279,13 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.0rpMyi/batch-v1.csv: OK
-/tmp/duckdb-lesson.0rpMyi/batch-v2.csv: OK
+/tmp/duckdb-lesson.XWXrtw/batch-v1.csv: OK
+/tmp/duckdb-lesson.XWXrtw/batch-v2.csv: OK
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.0rpMyi/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.0rpMyi/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.0rpMyi/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.0rpMyi/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.XWXrtw/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.XWXrtw/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.XWXrtw/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.XWXrtw/batch-v2.csv
 event_id,region_label
 e1,unknown
 e2,unknown
@@ -1293,9 +1293,9 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.0rpMyi/batch-v1.csv: OK
-/tmp/duckdb-lesson.0rpMyi/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.0rpMyi
+/tmp/duckdb-lesson.XWXrtw/batch-v1.csv: OK
+/tmp/duckdb-lesson.XWXrtw/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.XWXrtw
 
 === 10-script-wrong ===
 event_id,duration_ms
@@ -1311,16 +1311,16 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.I6XgUD/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.VHUah1/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.I6XgUD
+fixture=/tmp/duckdb-lesson.VHUah1
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.I6XgUD/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.I6XgUD/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.I6XgUD/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.I6XgUD/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.VHUah1/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.VHUah1/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.VHUah1/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.VHUah1/batch-v2.csv
 event_id,region_label
 e1,west
 e2,west
@@ -1328,13 +1328,13 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.I6XgUD/batch-v1.csv: OK
-/tmp/duckdb-lesson.I6XgUD/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.I6XgUD
+/tmp/duckdb-lesson.VHUah1/batch-v1.csv: OK
+/tmp/duckdb-lesson.VHUah1/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.VHUah1
 
 === 10-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.JubaIr/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.1PmWoX/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1351,22 +1351,22 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.JubaIr
+fixture=/tmp/duckdb-lesson.1PmWoX
 event_id,duration_ms,region,filename
-e3,25,west,/tmp/duckdb-lesson.JubaIr/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.JubaIr/batch-v2.csv
+e3,25,west,/tmp/duckdb-lesson.1PmWoX/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.1PmWoX/batch-v2.csv
 event_id,region_label
 e3,west
 e4,east
 rows,missing_region,total_ms
 2,0,100
-/tmp/duckdb-lesson.JubaIr/batch-v1.csv: OK
-/tmp/duckdb-lesson.JubaIr/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.JubaIr
+/tmp/duckdb-lesson.1PmWoX/batch-v1.csv: OK
+/tmp/duckdb-lesson.1PmWoX/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.1PmWoX
 
 === 10-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.LoKUpz/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.8R3osw/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1383,12 +1383,12 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.LoKUpz
+fixture=/tmp/duckdb-lesson.8R3osw
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.LoKUpz/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.LoKUpz/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.LoKUpz/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.LoKUpz/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.8R3osw/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.8R3osw/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.8R3osw/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.8R3osw/batch-v2.csv
 event_id,region_label
 e1,unknown
 e2,unknown
@@ -1396,13 +1396,13 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.LoKUpz/batch-v1.csv: OK
-/tmp/duckdb-lesson.LoKUpz/batch-v2.csv: OK
+/tmp/duckdb-lesson.8R3osw/batch-v1.csv: OK
+/tmp/duckdb-lesson.8R3osw/batch-v2.csv: OK
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.LoKUpz/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.LoKUpz/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.LoKUpz/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.LoKUpz/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.8R3osw/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.8R3osw/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.8R3osw/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.8R3osw/batch-v2.csv
 event_id,region_label
 e1,unknown
 e2,unknown
@@ -1410,13 +1410,13 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.LoKUpz/batch-v1.csv: OK
-/tmp/duckdb-lesson.LoKUpz/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.LoKUpz
+/tmp/duckdb-lesson.8R3osw/batch-v1.csv: OK
+/tmp/duckdb-lesson.8R3osw/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.8R3osw
 
 === 10-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.YRw0eb/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.5Lufzw/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1433,12 +1433,12 @@ column_name,column_type,null,key,default,extra
 event_id,VARCHAR,YES,NULL,NULL,NULL
 duration_ms,BIGINT,YES,NULL,NULL,NULL
 region,VARCHAR,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.YRw0eb
+fixture=/tmp/duckdb-lesson.5Lufzw
 event_id,duration_ms,region,filename
-e1,40,NULL,/tmp/duckdb-lesson.YRw0eb/batch-v1.csv
-e2,60,NULL,/tmp/duckdb-lesson.YRw0eb/batch-v1.csv
-e3,25,west,/tmp/duckdb-lesson.YRw0eb/batch-v2.csv
-e4,75,east,/tmp/duckdb-lesson.YRw0eb/batch-v2.csv
+e1,40,NULL,/tmp/duckdb-lesson.5Lufzw/batch-v1.csv
+e2,60,NULL,/tmp/duckdb-lesson.5Lufzw/batch-v1.csv
+e3,25,west,/tmp/duckdb-lesson.5Lufzw/batch-v2.csv
+e4,75,east,/tmp/duckdb-lesson.5Lufzw/batch-v2.csv
 event_id,region_label
 e1,west
 e2,west
@@ -1446,28 +1446,28 @@ e3,west
 e4,east
 rows,missing_region,total_ms
 4,2,200
-/tmp/duckdb-lesson.YRw0eb/batch-v1.csv: OK
-/tmp/duckdb-lesson.YRw0eb/batch-v2.csv: OK
-20	/tmp/duckdb-lesson.YRw0eb
+/tmp/duckdb-lesson.5Lufzw/batch-v1.csv: OK
+/tmp/duckdb-lesson.5Lufzw/batch-v2.csv: OK
+20	/tmp/duckdb-lesson.5Lufzw
 
 === schema-and-identifier-boundaries ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.R0sboJ/query.sql
+Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.Bk17DV/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
 event_id,duration_ms,filename
-e1,40,/tmp/duckdb-lesson.R0sboJ/batch-v1.csv
-e2,60,/tmp/duckdb-lesson.R0sboJ/batch-v1.csv
-e3,25,/tmp/duckdb-lesson.R0sboJ/batch-v2.csv
-e4,75,/tmp/duckdb-lesson.R0sboJ/batch-v2.csv
+e1,40,/tmp/duckdb-lesson.Bk17DV/batch-v1.csv
+e2,60,/tmp/duckdb-lesson.Bk17DV/batch-v1.csv
+e3,25,/tmp/duckdb-lesson.Bk17DV/batch-v2.csv
+e4,75,/tmp/duckdb-lesson.Bk17DV/batch-v2.csv
 Binder Error: Referenced column "region" not found in FROM clause!
 Candidate bindings: "duration_ms", "event_id", "filename"
 
-LINE 1: SELECT region FROM read_csv('/tmp/duckdb-lesson.R0sboJ/batch-v...
+LINE 1: SELECT region FROM read_csv('/tmp/duckdb-lesson.Bk17DV/batch-v...
                ^
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.dgpxxS/query.sql
+Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.94Ibr7/query.sql
 Run:
 duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
@@ -1479,7 +1479,7 @@ account_id,numeric_id
 013,13
 
 === shared-worked-sequence-6-10 ===
-Evidence: /tmp/tutor-validation-926286966
+Evidence: /tmp/tutor-validation-4087835773
 
 === #6 organize-sql-stages [shell, 1 session(s)] ===
   -- setup --
@@ -1489,13 +1489,13 @@ Evidence: /tmp/tutor-validation-926286966
   [A] status,VARCHAR,YES,NULL,NULL,NULL
   [A] amount_cents,BIGINT,YES,NULL,NULL,NULL
   [A] Lesson 6 ready. Practice at the live prompt using the lesson task.
-  [A] Lab path: /tmp/duckdb-lesson.nv2DKo
+  [A] Lab path: /tmp/duckdb-lesson.TVsVwe
   [A] Open: duck "$DUCK_LAB/local.duckdb"
   [A] Cleanup after .quit: duck_cleanup
   -- Session A --
   [A] [32m.tables[00m[33m ?TABLE?[00m    List names of tables matching LIKE pattern TABLE
-  [A] [38;5;172m ─────── local ────────
-  [A] [00m[38;5;39m ──────── main ────────
+  [A] [38;5;172m ─────── local ──────── 
+  [A] [00m[38;5;39m ──────── main ──────── 
   [A] [00m[90m┌──────────────────────┐[00m[90m
   [A] [00m[90m│        [00m[1morders[00m[90m        │[00m[90m
   [A] [00m[90m│                      │[00m[90m
@@ -1521,8 +1521,8 @@ Evidence: /tmp/tutor-validation-926286966
   [A] report,total_cents
   [A] live,4200
   [A] saved,4000
-  [A] [38;5;172m ────────────────────────────── local ───────────────────────────────
-  [A] [00m[38;5;39m ─────────────────────────────── main ───────────────────────────────
+  [A] [38;5;172m ────────────────────────────── local ─────────────────────────────── 
+  [A] [00m[38;5;39m ─────────────────────────────── main ─────────────────────────────── 
   [A] [00m[90m┌──────────────────────┐[00m[90m┌─────────────────────┐[00m┌─────────────────────┐[90m
   [A] [00m[90m│        [00m[1morders[00m[90m        │[00m[90m│     [00m[1mpaid_saved[00m[90m      │[00m│      [1mpaid_live[00m      │[90m
   [A] [00m[90m│                      │[00m[90m│                     │[00m│                     │[90m
@@ -1540,7 +1540,7 @@ Evidence: /tmp/tutor-validation-926286966
   [A] order_id,amount_cents
   [A] 102,2300
   [A] 104,1700
-  [A] /tmp/duckdb-lesson.nv2DKo/orders.csv: OK
+  [A] /tmp/duckdb-lesson.TVsVwe/orders.csv: OK
 
 === #7 inspect-change-reset-settings [shell, 1 session(s)] ===
   -- setup --
@@ -1549,12 +1549,12 @@ Evidence: /tmp/tutor-validation-926286966
   [A] beta,NULL
   [A] gamma,1
   [A] Lesson 7 ready. Practice at the live prompt using the lesson task.
-  [A] Lab path: /tmp/duckdb-lesson.iEBFe0
+  [A] Lab path: /tmp/duckdb-lesson.zCK5Qu
   [A] Open: duck "$DUCK_LAB/local.duckdb"
   [A] Cleanup after .quit: duck_cleanup
   -- Session A --
   [A] seq,name,file
-  [A] 20631,local,/tmp/duckdb-lesson.iEBFe0/local.duckdb
+  [A] 20631,local,/tmp/duckdb-lesson.zCK5Qu/local.duckdb
   [A] cid,name,type,notnull,dflt_value,pk
   [A] 0,job,VARCHAR,false,NULL,false
   [A] 1,priority,INTEGER,false,NULL,false
@@ -1602,7 +1602,7 @@ Evidence: /tmp/tutor-validation-926286966
   [A] column_name,column_type,null,key,default,extra
   [A] account_id,VARCHAR,YES,NULL,NULL,NULL
   [A] amount,VARCHAR,YES,NULL,NULL,NULL
-  [A] Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.NQO9Je/query.sql
+  [A] Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.5TruY8/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
@@ -1620,7 +1620,7 @@ Evidence: /tmp/tutor-validation-926286966
   [A] accepted,rows,total
   [A] false,3,-1.00
   [A] true,2,19.75
-  [A] /tmp/duckdb-lesson.NQO9Je/messy.csv: OK
+  [A] /tmp/duckdb-lesson.5TruY8/messy.csv: OK
 
 === #9 flatten-json-records [shell, 1 session(s)] ===
   -- setup --
@@ -1630,7 +1630,7 @@ Evidence: /tmp/tutor-validation-926286966
   [A] column_name,column_type,null,key,default,extra
   [A] run_id,VARCHAR,YES,NULL,NULL,NULL
   [A] events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-  [A] Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.YZyRUq/query.sql
+  [A] Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.XJFx9S/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
@@ -1645,7 +1645,7 @@ Evidence: /tmp/tutor-validation-926286966
   [A] r3,e1,search,25
   [A] output_rows
   [A] 3
-  [A] /tmp/duckdb-lesson.YZyRUq/runs.jsonl: OK
+  [A] /tmp/duckdb-lesson.XJFx9S/runs.jsonl: OK
 
 === #10 combine-file-batches [shell, 1 session(s)] ===
   -- setup --
@@ -1662,16 +1662,16 @@ Evidence: /tmp/tutor-validation-926286966
   [A] event_id,VARCHAR,YES,NULL,NULL,NULL
   [A] duration_ms,BIGINT,YES,NULL,NULL,NULL
   [A] region,VARCHAR,YES,NULL,NULL,NULL
-  [A] Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.qS8nxZ/query.sql
+  [A] Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.MgsWFm/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] event_id,duration_ms,region,filename
-  [A] e1,40,NULL,/tmp/duckdb-lesson.qS8nxZ/batch-v1.csv
-  [A] e2,60,NULL,/tmp/duckdb-lesson.qS8nxZ/batch-v1.csv
-  [A] e3,25,west,/tmp/duckdb-lesson.qS8nxZ/batch-v2.csv
-  [A] e4,75,east,/tmp/duckdb-lesson.qS8nxZ/batch-v2.csv
+  [A] e1,40,NULL,/tmp/duckdb-lesson.MgsWFm/batch-v1.csv
+  [A] e2,60,NULL,/tmp/duckdb-lesson.MgsWFm/batch-v1.csv
+  [A] e3,25,west,/tmp/duckdb-lesson.MgsWFm/batch-v2.csv
+  [A] e4,75,east,/tmp/duckdb-lesson.MgsWFm/batch-v2.csv
   [A] event_id,region_label
   [A] e1,unknown
   [A] e2,unknown
@@ -1679,13 +1679,13 @@ Evidence: /tmp/tutor-validation-926286966
   [A] e4,east
   [A] rows,missing_region,total_ms
   [A] 4,2,200
-  [A] /tmp/duckdb-lesson.qS8nxZ/batch-v1.csv: OK
-  [A] /tmp/duckdb-lesson.qS8nxZ/batch-v2.csv: OK
+  [A] /tmp/duckdb-lesson.MgsWFm/batch-v1.csv: OK
+  [A] /tmp/duckdb-lesson.MgsWFm/batch-v2.csv: OK
 
 5/5 lessons completed without timeout
 
 === shared-exact-starters-8-10 ===
-Evidence: /tmp/tutor-validation-2735686679
+Evidence: /tmp/tutor-validation-2663764368
 
 === #8 clean-input-types [shell, 1 session(s)] ===
   -- setup --
@@ -1698,7 +1698,7 @@ Evidence: /tmp/tutor-validation-2735686679
   [A] column_name,column_type,null,key,default,extra
   [A] account_id,VARCHAR,YES,NULL,NULL,NULL
   [A] amount,VARCHAR,YES,NULL,NULL,NULL
-  [A] Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.U2CGz0/query.sql
+  [A] Lesson 8 ready. Edit the supplied starter: /tmp/duckdb-lesson.NWdk1D/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
@@ -1715,7 +1715,7 @@ Evidence: /tmp/tutor-validation-2735686679
   [A] 013,NULL,NULL,false
   [A] accepted,rows,total
   [A] false,5,19
-  [A] /tmp/duckdb-lesson.U2CGz0/messy.csv: OK
+  [A] /tmp/duckdb-lesson.NWdk1D/messy.csv: OK
 
 === #9 flatten-json-records [shell, 1 session(s)] ===
   -- setup --
@@ -1725,7 +1725,7 @@ Evidence: /tmp/tutor-validation-2735686679
   [A] column_name,column_type,null,key,default,extra
   [A] run_id,VARCHAR,YES,NULL,NULL,NULL
   [A] events,"STRUCT(event_id VARCHAR, tool VARCHAR, duration_ms BIGINT)[]",YES,NULL,NULL,NULL
-  [A] Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.LYdpIX/query.sql
+  [A] Lesson 9 ready. Edit the supplied starter: /tmp/duckdb-lesson.9RbUgw/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
@@ -1740,7 +1740,7 @@ Evidence: /tmp/tutor-validation-2735686679
   [A] r3,"[{'event_id': e1, 'tool': search, 'duration_ms': 25}]"
   [A] output_rows
   [A] 3
-  [A] /tmp/duckdb-lesson.LYdpIX/runs.jsonl: OK
+  [A] /tmp/duckdb-lesson.9RbUgw/runs.jsonl: OK
 
 === #10 combine-file-batches [shell, 1 session(s)] ===
   -- setup --
@@ -1757,20 +1757,20 @@ Evidence: /tmp/tutor-validation-2735686679
   [A] event_id,VARCHAR,YES,NULL,NULL,NULL
   [A] duration_ms,BIGINT,YES,NULL,NULL,NULL
   [A] region,VARCHAR,YES,NULL,NULL,NULL
-  [A] Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.eL8sGF/query.sql
+  [A] Lesson 10 ready. Edit the supplied starter: /tmp/duckdb-lesson.6Kyf7s/query.sql
   [A] Run:
   [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] event_id,duration_ms,region,filename
-  [A] e3,25,west,/tmp/duckdb-lesson.eL8sGF/batch-v2.csv
-  [A] e4,75,east,/tmp/duckdb-lesson.eL8sGF/batch-v2.csv
+  [A] e3,25,west,/tmp/duckdb-lesson.6Kyf7s/batch-v2.csv
+  [A] e4,75,east,/tmp/duckdb-lesson.6Kyf7s/batch-v2.csv
   [A] event_id,region_label
   [A] e3,west
   [A] e4,east
   [A] rows,missing_region,total_ms
   [A] 2,0,100
-  [A] /tmp/duckdb-lesson.eL8sGF/batch-v1.csv: OK
-  [A] /tmp/duckdb-lesson.eL8sGF/batch-v2.csv: OK
+  [A] /tmp/duckdb-lesson.6Kyf7s/batch-v1.csv: OK
+  [A] /tmp/duckdb-lesson.6Kyf7s/batch-v2.csv: OK
 
 3/3 lessons completed without timeout

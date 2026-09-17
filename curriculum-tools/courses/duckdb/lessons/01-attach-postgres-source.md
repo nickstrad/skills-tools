@@ -67,10 +67,25 @@ Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its
 Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
-SELECT order_id, amount_cents FROM app.public.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM app.public.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid';
+SELECT
+  order_id,
+  amount_cents
+FROM
+  app.public.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid'
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  app.public.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid';
 ```
 
 The Run command reads your saved edits every time. Setup handles environment variables and the
@@ -107,12 +122,21 @@ Bash fills in **$DUCK_LAB** inside the double quotes. Expect app.public.orders a
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 1 manual
 duck :memory: -bail -csv -c "
 LOAD postgres;
-ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
-  AS app (TYPE postgres, READ_ONLY);
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables
-WHERE table_catalog='app' AND table_schema IN ('public','sales')
-ORDER BY table_schema, table_name;"
+
+ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+
+SELECT
+  table_catalog,
+  table_schema,
+  table_name
+FROM
+  information_schema.tables
+WHERE
+  table_catalog = 'app'
+  AND table_schema IN ('public', 'sales')
+ORDER BY
+  table_schema,
+  table_name;"
 ```
 
 This inspection connection closes afterward. Run loads the supplied session.sql again so your
@@ -123,10 +147,25 @@ query gets its own attachment; it contains the same LOAD/ATTACH statements shown
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
   duck :memory: -bail -csv
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
-SELECT order_id, amount_cents FROM sales.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM sales.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid';"
+SELECT
+  order_id,
+  amount_cents
+FROM
+  sales.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid'
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  sales.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid';"
 ```
 
 ## Expected result
@@ -140,10 +179,25 @@ different CLI processes. Piping both SQL files into one CLI invocation keeps the
 
 Worked answer — replace query.sql with:
 ```sql
-SELECT order_id, amount_cents FROM app.sales.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents FROM app.sales.orders
-WHERE ordered_on=DATE '2026-09-14' AND status='paid';
+SELECT
+  order_id,
+  amount_cents
+FROM
+  app.sales.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid'
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  app.sales.orders
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid';
 ```
 
 Cleanup, after inspecting the results:

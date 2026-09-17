@@ -9,10 +9,18 @@ case $lesson in
   1)
     cat "$lab/attach.sql"
     { cat "$lab/attach.sql"; cat <<'SQL'
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables WHERE table_catalog='app'
-  AND table_schema IN ('public','sales')
-ORDER BY table_schema, table_name;
+SELECT
+  table_catalog,
+  table_schema,
+  table_name
+FROM
+  information_schema.tables
+WHERE
+  table_catalog = 'app'
+  AND table_schema IN ('public', 'sales')
+ORDER BY
+  table_schema,
+  table_name;
 SQL
     } | duck :memory: -bail -csv
     ;;
@@ -22,14 +30,29 @@ SQL
     ;;
   3)
     { cat "$lab/session.sql"; cat <<'SQL'
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables WHERE table_name='customers' ORDER BY table_catalog;
+SELECT
+  table_catalog,
+  table_schema,
+  table_name
+FROM
+  information_schema.tables
+WHERE
+  table_name = 'customers'
+ORDER BY
+  table_catalog;
 SQL
     } | duck :memory: -bail -csv
     ;;
   4)
     sqlite3 -readonly -header -csv "$lab/source.sqlite" "
-SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type FROM invoices ORDER BY invoice_id;"
+SELECT
+  invoice_id,
+  amount_cents,
+  typeof(amount_cents) AS stored_type
+FROM
+  invoices
+ORDER BY
+  invoice_id;"
     if { cat "$lab/attach.sql"; echo 'SELECT * FROM source.main.invoices;'; } | duck :memory: -bail -csv > "$lab/scan.txt" 2>&1; then
       cat "$lab/scan.txt"
       echo 'Unexpected successful scan: inspect the fixture before continuing.' >&2

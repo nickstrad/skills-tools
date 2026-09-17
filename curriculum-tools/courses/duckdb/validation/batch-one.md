@@ -3,6 +3,17 @@
 Latest: [one-command setup and live catalog rollout](setup-refresh.md) covers the completed
 helper refactor for all five lessons. Earlier sections below remain historical evidence.
 
+## SQL formatting revision — 2026-09-17
+
+All lesson SQL, lab starters/fixtures and helper SQL were reformatted with sql-formatter
+(see [Formatting SQL](../../../docs/AUTHORING.md#formatting-sql)). The change is editorial:
+revisions, tasks, answers and expected evidence are unchanged. The drivers' wrong-choice edits
+now match the formatted text and fail if an edit no longer applies. Both drivers were rerun in
+full on real fixtures: lessons 1–5 (30 trials and both shared sequences) and 6–10 (30 trials,
+10 reruns, boundary probes and both shared sequences) passed, and their results and manifests
+were regenerated. Validation drivers must run without an inherited DUCK_LAB; `session.sh`
+refuses to start a second lab in the same environment.
+
 ## Setup-helper revision — 2026-09-14
 
 Lessons 2–5 now use revision 2 and the sourced `lab/session.sh` lifecycle helper. SQL starters,

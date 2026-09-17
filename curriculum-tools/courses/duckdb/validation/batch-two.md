@@ -4,6 +4,17 @@ Accepted 2026-09-16 on pinned DuckDB 1.5.5 (`d8cdaa33fd`). The approved revision
 remains 32 lessons plus five optional projects; this batch adds only ordinals 6–10.
 Follow [the batch workflow](../../../../docs/lesson-batch-workflow.md).
 
+## SQL formatting revision — 2026-09-17
+
+All lesson SQL, lab starters/fixtures and helper SQL were reformatted with sql-formatter
+(see [Formatting SQL](../../../docs/AUTHORING.md#formatting-sql)). The change is editorial:
+revisions, tasks, answers and expected evidence are unchanged. The drivers' wrong-choice edits
+now match the formatted text and fail if an edit no longer applies. Both drivers were rerun in
+full on real fixtures: lessons 1–5 (30 trials and both shared sequences) and 6–10 (30 trials,
+10 reruns, boundary probes and both shared sequences) passed, and their results and manifests
+were regenerated. Validation drivers must run without an inherited DUCK_LAB; `session.sh`
+refuses to start a second lab in the same environment.
+
 ## Evidence and commands
 
 From the repository root:

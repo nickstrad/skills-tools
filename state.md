@@ -44,3 +44,19 @@ courses. Formatting is editorial-only: keep revisions, slugs, semantics and expe
 
 - 2026-09-17 01:20 — Guidance committed (AGENTS.md, AUTHORING.md, curriculum-author skill,
   `.sql-formatter.json`). Learner lesson 5 lab removed at the learner's request.
+- 2026-09-17 01:35 — DuckDB formatted: `sql` fences via the scratch segmenting formatter (dot/meta
+  lines verbatim) with the root config; `lab/*.sql` (duckdb; `postgres.sql` with postgresql,
+  `sqlite.sql` with sqlite); Bash-embedded SQL (manual `-c` strings, psql/sqlite3 checks, lesson 6–7
+  prompt transcripts) and helper heredocs formatted with the tool, then pasted. Single-statement
+  `-c "DESCRIBE SELECT ..."` one-liners left as they are. Hand fixes for formatter quirks:
+  `TRY_CAST (`, standalone `SET\n  x = y;`, `GRANT\nSELECT\n  ON ...`, `postgres_query (` with an
+  unformatted `$$` body (inner SQL formatted with -l postgresql and indented).
+- 2026-09-17 01:40 — Drivers' exact-text wrong-choice/answer edits updated for formatted SQL, with a
+  panic when an edit no longer applies. First run failed immediately: this shell inherited
+  `DUCK_LAB` (the removed learner lab) and `session.sh` refused a second lab. Rerun under
+  `env -u DUCK_LAB -u DUCK_DB -u DUCK_COURSE`: both drivers passed in full; no fixtures or
+  PostgreSQL left. `tutor duckdb check` OK; lessons 5/7 rendered with a temporary --db.
+- User asked (mid-batch) to save reusable formatter settings for postgres/sqlite/duckdb and the
+  hand-formatting gaps in the knowledge store — do this in the final reflection.
+- Knowledge-store notes so far: config lookup needs cwd inside the repo (a copy under the
+  scratchpad silently used defaults — pass -c); quirks listed above; DUCK_LAB inheritance.

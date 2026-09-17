@@ -62,11 +62,35 @@ filename on each row as well as count, missing-value count, and total. The start
 
 ```sql
 CREATE OR REPLACE TEMP TABLE combined AS
-SELECT * FROM read_csv('LAB_PATH/batch-v2.csv', header=true, filename=true);
-SELECT event_id, duration_ms, region, filename FROM combined ORDER BY event_id;
-SELECT event_id, region AS region_label FROM combined ORDER BY event_id;
-SELECT count(*) AS rows, count(*) - count(region) AS missing_region,
-       sum(duration_ms) AS total_ms FROM combined;
+SELECT
+  *
+FROM
+  read_csv('LAB_PATH/batch-v2.csv', header = true, filename = true);
+
+SELECT
+  event_id,
+  duration_ms,
+  region,
+  filename
+FROM
+  combined
+ORDER BY
+  event_id;
+
+SELECT
+  event_id,
+  region AS region_label
+FROM
+  combined
+ORDER BY
+  event_id;
+
+SELECT
+  count(*) AS rows,
+  count(*) - count(region) AS missing_region,
+  sum(duration_ms) AS total_ms
+FROM
+  combined;
 ```
 
 ## Setup
@@ -110,11 +134,35 @@ even if all row counts and sums still matched.
 Worked answer:
 ```sql
 CREATE OR REPLACE TEMP TABLE combined AS
-SELECT * FROM read_csv('LAB_PATH/batch-v*.csv', header=true, union_by_name=true, filename=true);
-SELECT event_id, duration_ms, region, filename FROM combined ORDER BY event_id;
-SELECT event_id, coalesce(region, 'unknown') AS region_label FROM combined ORDER BY event_id;
-SELECT count(*) AS rows, count(*) - count(region) AS missing_region,
-       sum(duration_ms) AS total_ms FROM combined;
+SELECT
+  *
+FROM
+  read_csv('LAB_PATH/batch-v*.csv', header = true, union_by_name = true, filename = true);
+
+SELECT
+  event_id,
+  duration_ms,
+  region,
+  filename
+FROM
+  combined
+ORDER BY
+  event_id;
+
+SELECT
+  event_id,
+  coalesce(region, 'unknown') AS region_label
+FROM
+  combined
+ORDER BY
+  event_id;
+
+SELECT
+  count(*) AS rows,
+  count(*) - count(region) AS missing_region,
+  sum(duration_ms) AS total_ms
+FROM
+  combined;
 ```
 
 Keep the actual lab path in query.sql. Reruns read the same two files and recreate temporary

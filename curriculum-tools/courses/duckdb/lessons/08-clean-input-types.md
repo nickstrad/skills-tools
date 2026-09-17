@@ -63,15 +63,39 @@ The file contains this starter:
 
 ```sql
 CREATE OR REPLACE TEMP TABLE typed AS
-SELECT account_id, amount AS raw_amount,
-       TRY_CAST(amount AS BIGINT) AS amount
-FROM read_csv('LAB_PATH/messy.csv', header=true, all_varchar=true);
+SELECT
+  account_id,
+  amount AS raw_amount,
+  TRY_CAST(amount AS BIGINT) AS amount
+FROM
+  read_csv('LAB_PATH/messy.csv', header = true, all_varchar = true);
+
 CREATE OR REPLACE TEMP VIEW classified AS
-SELECT *, false AS accepted FROM typed;
+SELECT
+  *,
+  false AS accepted
+FROM
+  typed;
+
 DESCRIBE typed;
-SELECT * FROM classified ORDER BY account_id;
-SELECT accepted, count(*) AS rows, sum(amount) AS total
-FROM classified GROUP BY accepted ORDER BY accepted;
+
+SELECT
+  *
+FROM
+  classified
+ORDER BY
+  account_id;
+
+SELECT
+  accepted,
+  count(*) AS rows,
+  sum(amount) AS total
+FROM
+  classified
+GROUP BY
+  accepted
+ORDER BY
+  accepted;
 ```
 
 ## Setup
@@ -117,15 +141,40 @@ Removing all_varchar happens to preserve them on this fixture; it would leave th
 Worked answer — the helper has already replaced LAB_PATH in your editable file:
 ```sql
 CREATE OR REPLACE TEMP TABLE typed AS
-SELECT account_id, amount AS raw_amount,
-       TRY_CAST(amount AS DECIMAL(10,2)) AS amount
-FROM read_csv('LAB_PATH/messy.csv', header=true, all_varchar=true);
+SELECT
+  account_id,
+  amount AS raw_amount,
+  TRY_CAST(amount AS DECIMAL(10, 2)) AS amount
+FROM
+  read_csv('LAB_PATH/messy.csv', header = true, all_varchar = true);
+
 CREATE OR REPLACE TEMP VIEW classified AS
-SELECT *, amount IS NOT NULL AND amount >= 0 AS accepted FROM typed;
+SELECT
+  *,
+  amount IS NOT NULL
+  AND amount >= 0 AS accepted
+FROM
+  typed;
+
 DESCRIBE typed;
-SELECT * FROM classified ORDER BY account_id;
-SELECT accepted, count(*) AS rows, sum(amount) AS total
-FROM classified GROUP BY accepted ORDER BY accepted;
+
+SELECT
+  *
+FROM
+  classified
+ORDER BY
+  account_id;
+
+SELECT
+  accepted,
+  count(*) AS rows,
+  sum(amount) AS total
+FROM
+  classified
+GROUP BY
+  accepted
+ORDER BY
+  accepted;
 ```
 
 Rerunning reads the same file and rebuilds only temporary state. Cleanup in Bash:

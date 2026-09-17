@@ -20,6 +20,7 @@ if (( lesson <= 2 )); then
   psql -X -h "$lab" -p 55439 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$course/lab/postgres.sql" >/dev/null
   cat > "$lab/attach.sql" <<SQL
 LOAD postgres;
+
 ATTACH 'host=$lab port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
 SQL
 elif (( lesson <= 5 )); then
@@ -27,6 +28,7 @@ elif (( lesson <= 5 )); then
   cp "$course/lab/orders.csv" "$lab/orders.csv"
   cat > "$lab/attach.sql" <<SQL
 LOAD sqlite;
+
 ATTACH '$lab/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 SQL
 else

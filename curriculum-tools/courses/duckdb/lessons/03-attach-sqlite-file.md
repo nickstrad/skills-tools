@@ -61,8 +61,15 @@ Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its
 Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
-SELECT customer_id, name FROM memory.main.customers
-WHERE region='east' ORDER BY customer_id;
+SELECT
+  customer_id,
+  name
+FROM
+  memory.main.customers
+WHERE
+  region = 'east'
+ORDER BY
+  customer_id;
 ```
 
 The Run command reads your saved edits each time. Setup continues to handle the environment
@@ -92,12 +99,25 @@ query should show both memory.main.customers and source.main.customers.
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3 manual
 duck :memory: -bail -csv -c "
 LOAD sqlite;
+
 ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+
 CREATE TABLE customers AS
-SELECT 999 AS customer_id, 'west' AS region, 'Decoy' AS name;
-SELECT table_catalog, table_schema, table_name
-FROM information_schema.tables
-WHERE table_name='customers' ORDER BY table_catalog;"
+SELECT
+  999 AS customer_id,
+  'west' AS region,
+  'Decoy' AS name;
+
+SELECT
+  table_catalog,
+  table_schema,
+  table_name
+FROM
+  information_schema.tables
+WHERE
+  table_name = 'customers'
+ORDER BY
+  table_catalog;"
 ```
 
 The inspection connection closes, so its local decoy disappears. Run repeats LOAD/ATTACH and
@@ -108,7 +128,15 @@ CREATE TABLE from session.sql in the same fresh connection as your edited query.
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
   duck :memory: -bail -csv
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
-SELECT customer_id, name FROM customers WHERE region='west' ORDER BY customer_id;"
+SELECT
+  customer_id,
+  name
+FROM
+  customers
+WHERE
+  region = 'west'
+ORDER BY
+  customer_id;"
 duck_check_source
 ```
 
@@ -120,8 +148,15 @@ The untouched starter returns no rows. Changing only the region returns the loca
 
 Worked answer — replace query.sql with:
 ```sql
-SELECT customer_id, name FROM source.main.customers
-WHERE region='west' ORDER BY customer_id;
+SELECT
+  customer_id,
+  name
+FROM
+  source.main.customers
+WHERE
+  region = 'west'
+ORDER BY
+  customer_id;
 ```
 
 Cleanup:

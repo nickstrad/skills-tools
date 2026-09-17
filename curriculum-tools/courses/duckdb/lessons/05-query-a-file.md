@@ -61,10 +61,23 @@ Open **"$DUCK_LAB/query.sql"** in your editor after Setup; the helper prints its
 Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
-SELECT order_id, amount_cents FROM read_csv('LAB_PATH/orders.csv', header=true)
-WHERE status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents
-FROM read_csv('LAB_PATH/orders.csv', header=true) WHERE status='paid';
+SELECT
+  order_id,
+  amount_cents
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true)
+WHERE
+  status = 'paid'
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true)
+WHERE
+  status = 'paid';
 ```
 
 The Run command reads your saved edits each time and closes DuckDB after executing the file.
@@ -115,11 +128,25 @@ The source hash is OK. These values can be reconciled directly with the five pri
 
 Worked answer — use the actual DUCK_LAB path printed in Setup in place of LAB_PATH:
 ```sql
-SELECT order_id, amount_cents FROM read_csv('LAB_PATH/orders.csv', header=true)
-WHERE ordered_on=DATE '2026-09-14' AND status='paid' ORDER BY order_id;
-SELECT count(*) AS orders, sum(amount_cents) AS total_cents
-FROM read_csv('LAB_PATH/orders.csv', header=true)
-WHERE ordered_on=DATE '2026-09-14' AND status='paid';
+SELECT
+  order_id,
+  amount_cents
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true)
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid'
+ORDER BY
+  order_id;
+
+SELECT
+  count(*) AS orders,
+  sum(amount_cents) AS total_cents
+FROM
+  read_csv('LAB_PATH/orders.csv', header = true)
+WHERE
+  ordered_on = DATE '2026-09-14'
+  AND status = 'paid';
 ```
 
 Cleanup:

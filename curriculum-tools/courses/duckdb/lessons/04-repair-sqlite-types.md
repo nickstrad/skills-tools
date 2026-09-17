@@ -59,10 +59,17 @@ the ability to reconcile the report with its input.
 
   ```sql
   LOAD sqlite;
-  SET sqlite_all_varchar=true;
+
+  SET sqlite_all_varchar = true;
+
   ATTACH 'LAB_PATH/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+
   CREATE TABLE raw AS
-  SELECT invoice_id, amount_cents AS raw_amount FROM source.main.invoices;
+  SELECT
+    invoice_id,
+    amount_cents AS raw_amount
+  FROM
+    source.main.invoices;
   ```
 
   The helper fills in the actual file path.
@@ -83,16 +90,53 @@ Edit the existing SQL, save it, then execute the CLI command in Run.
 
 ```sql
 CREATE TABLE staged AS
-SELECT *, CAST(NULL AS BIGINT) AS amount_cents FROM raw;
-CREATE VIEW classified AS SELECT *,
-  CASE WHEN amount_cents IS NOT NULL
-       THEN 'accepted' ELSE 'rejected' END AS disposition
-FROM staged;
-SELECT * FROM classified ORDER BY invoice_id;
-SELECT disposition, count(*) AS records, sum(amount_cents) AS total_cents
-FROM classified GROUP BY disposition ORDER BY disposition;
-SELECT (SELECT count(*) FROM raw) AS source_rows,
-       (SELECT count(*) FROM classified) AS classified_rows;
+SELECT
+  *,
+  CAST(NULL AS BIGINT) AS amount_cents
+FROM
+  raw;
+
+CREATE VIEW classified AS
+SELECT
+  *,
+  CASE
+    WHEN amount_cents IS NOT NULL THEN 'accepted'
+    ELSE 'rejected'
+  END AS disposition
+FROM
+  staged;
+
+SELECT
+  *
+FROM
+  classified
+ORDER BY
+  invoice_id;
+
+SELECT
+  disposition,
+  count(*) AS records,
+  sum(amount_cents) AS total_cents
+FROM
+  classified
+GROUP BY
+  disposition
+ORDER BY
+  disposition;
+
+SELECT
+  (
+    SELECT
+      count(*)
+    FROM
+      raw
+  ) AS source_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      classified
+  ) AS classified_rows;
 ```
 
 The Run command reads your saved edits each time. The temporary tables disappear when the
@@ -123,12 +167,23 @@ for oops; run these steps in your interactive Bash terminal, then continue to th
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 4 manual
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
-SELECT invoice_id, amount_cents, typeof(amount_cents) AS stored_type
-FROM invoices ORDER BY invoice_id;"
+SELECT
+  invoice_id,
+  amount_cents,
+  typeof(amount_cents) AS stored_type
+FROM
+  invoices
+ORDER BY
+  invoice_id;"
 duck :memory: -bail -csv -c "
 LOAD sqlite;
+
 ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
-SELECT * FROM source.main.invoices;"
+
+SELECT
+  *
+FROM
+  source.main.invoices;"
 ```
 
 Now open a fresh connection with the text-scanner setting, create the raw stage yourself,
@@ -137,11 +192,24 @@ and inspect it. Apply the setting before ATTACH. Expect all five IDs and raw val
 ```bash
 duck :memory: -bail -csv -c "
 LOAD sqlite;
-SET sqlite_all_varchar=true;
+
+SET sqlite_all_varchar = true;
+
 ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+
 CREATE TABLE raw AS
-SELECT invoice_id, amount_cents AS raw_amount FROM source.main.invoices;
-SELECT * FROM raw ORDER BY invoice_id;"
+SELECT
+  invoice_id,
+  amount_cents AS raw_amount
+FROM
+  source.main.invoices;
+
+SELECT
+  *
+FROM
+  raw
+ORDER BY
+  invoice_id;"
 ```
 
 The temporary raw stage disappears when this CLI exits. Run repeats these preparation statements
@@ -168,16 +236,54 @@ source_rows and classified_rows both equal 5, and the source hash is OK.
 Worked answer — replace query.sql with:
 ```sql
 CREATE TABLE staged AS
-SELECT *, TRY_CAST(raw_amount AS BIGINT) AS amount_cents FROM raw;
-CREATE VIEW classified AS SELECT *,
-  CASE WHEN amount_cents IS NOT NULL AND amount_cents >= 0
-       THEN 'accepted' ELSE 'rejected' END AS disposition
-FROM staged;
-SELECT * FROM classified ORDER BY invoice_id;
-SELECT disposition, count(*) AS records, sum(amount_cents) AS total_cents
-FROM classified GROUP BY disposition ORDER BY disposition;
-SELECT (SELECT count(*) FROM raw) AS source_rows,
-       (SELECT count(*) FROM classified) AS classified_rows;
+SELECT
+  *,
+  TRY_CAST(raw_amount AS BIGINT) AS amount_cents
+FROM
+  raw;
+
+CREATE VIEW classified AS
+SELECT
+  *,
+  CASE
+    WHEN amount_cents IS NOT NULL
+    AND amount_cents >= 0 THEN 'accepted'
+    ELSE 'rejected'
+  END AS disposition
+FROM
+  staged;
+
+SELECT
+  *
+FROM
+  classified
+ORDER BY
+  invoice_id;
+
+SELECT
+  disposition,
+  count(*) AS records,
+  sum(amount_cents) AS total_cents
+FROM
+  classified
+GROUP BY
+  disposition
+ORDER BY
+  disposition;
+
+SELECT
+  (
+    SELECT
+      count(*)
+    FROM
+      raw
+  ) AS source_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      classified
+  ) AS classified_rows;
 ```
 
 Cleanup:
