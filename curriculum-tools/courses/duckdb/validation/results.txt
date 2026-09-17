@@ -15,13 +15,13 @@ order_id,amount_cents
 999,99900
 orders,total_cents
 1,99900
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -47,13 +47,13 @@ order_id,amount_cents
 104,1700
 orders,total_cents
 2,4000
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -80,13 +80,13 @@ order_id,amount_cents
 104,1700
 orders,total_cents
 3,4800
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -110,13 +110,13 @@ order_id,amount_cents
 999,99900
 orders,total_cents
 1,99900
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -141,13 +141,13 @@ order_id,amount_cents
 104,1700
 orders,total_cents
 2,4000
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -173,13 +173,13 @@ order_id,amount_cents
 104,1700
 orders,total_cents
 3,4800
- order_id | amount_cents 
+ order_id | amount_cents
 ----------+--------------
       102 |         2300
       104 |         1700
 (2 rows)
 
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       2 |        4000
 (1 row)
@@ -214,7 +214,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,5,6900
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -258,7 +258,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,2,4000
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -297,7 +297,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,3,4900
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -343,7 +343,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,5,6900
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -388,7 +388,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,2,4000
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -428,7 +428,7 @@ orders,total_cents
 INSERT 0 1
 stage,orders,total_cents
 local_before_refresh,3,4900
- orders | total_cents 
+ orders | total_cents
 --------+-------------
       3 |        4600
 (1 row)
@@ -963,12 +963,12 @@ Evidence: /tmp/tutor-validation-3157786517
   [A] 999,99900
   [A] orders,total_cents
   [A] 1,99900
-  [A]  order_id | amount_cents 
+  [A]  order_id | amount_cents
   [A] ----------+--------------
   [A]       102 |         2300
   [A]       104 |         1700
   [A] (2 rows)
-  [A]  orders | total_cents 
+  [A]  orders | total_cents
   [A] --------+-------------
   [A]       2 |        4000
   [A] (1 row)
@@ -1003,7 +1003,7 @@ Evidence: /tmp/tutor-validation-3157786517
   [A] INSERT 0 1
   [A] stage,orders,total_cents
   [A] local_before_refresh,5,6900
-  [A]  orders | total_cents 
+  [A]  orders | total_cents
   [A] --------+-------------
   [A]       3 |        4600
   [A] (1 row)
@@ -1132,12 +1132,12 @@ Evidence: /tmp/tutor-validation-1743501567
   [A] 104,1700
   [A] orders,total_cents
   [A] 2,4000
-  [A]  order_id | amount_cents 
+  [A]  order_id | amount_cents
   [A] ----------+--------------
   [A]       102 |         2300
   [A]       104 |         1700
   [A] (2 rows)
-  [A]  orders | total_cents 
+  [A]  orders | total_cents
   [A] --------+-------------
   [A]       2 |        4000
   [A] (1 row)
@@ -1166,7 +1166,7 @@ Evidence: /tmp/tutor-validation-1743501567
   [A] INSERT 0 1
   [A] stage,orders,total_cents
   [A] local_before_refresh,2,4000
-  [A]  orders | total_cents 
+  [A]  orders | total_cents
   [A] --------+-------------
   [A]       3 |        4600
   [A] (1 row)

@@ -71,7 +71,15 @@ operation was performed. Refresh locally with `tutor duckdb init` when adopting 
 
 `progress verify` refreshed a byte copy of the actual learner database: all 42 progress records,
 44 attempts, existing lesson identities and unrelated course content were preserved. The actual
-database SHA256 remained `985549c8401fd6510465a1212cdec197afeb0d80ca589e0b0a1eb0ea80ce7885`.
+database SHA256 at that check remained
+`985549c8401fd6510465a1212cdec197afeb0d80ca589e0b0a1eb0ea80ce7885`.
+
+During final cleanup on 2026-09-17, the live database had gained a separate manual completion
+of DuckDB lesson 4 at 01:04:48 UTC. That learner activity was preserved. Repeating the copy-based
+verification against the latest database preserved all 43 progress records and 45 attempts,
+with existing identities unchanged. Its new hash was
+`5d1caaea8d942670afde1f05c251d34b766db5327d0474ebc7c0e799c45833ef`.
+The batch made no progress writes to the live database and did not restore the earlier snapshot.
 
 ## Resources and limits
 
@@ -81,8 +89,20 @@ failed probes and PTY runs. Reused installed tools stay available; no new extens
 needed for 6–10. The first-batch PostgreSQL regression used and retired only its marked private
 clusters. Persistent learner PostgreSQL data and its intentionally stopped state were preserved.
 
-Final resource/readiness verification is recorded with the batch's completion commit. No database
-images or raw lab directories are retained for acceptance; committed text and manifests suffice.
+Final 2026-09-17 resource/readiness verification: 139 GiB disk free, 6.7 GiB memory available,
+no PostgreSQL process on the host, and the preserved `/labs/pglab/primary` directory in place.
+The pinned CLI loaded both postgres and sqlite connectors and returned version 1.5.5/ready=1.
+All fixture paths recorded in either driver's logs, both PTY paths and both failed-probe paths
+were absent. Temporary review/catalog and editor files (232 KiB) were removed; the combined
+course validation directory retains about 172 KiB of text/source/manifests, with no database
+images. Both source manifests were rehashed: 32 files each, zero mismatches.
+
+The required knowledge reflection updated `data/duckdb-course-tools.md` through `kb edit`, then
+verified it with `kb show`. It records interactive lifecycle/validation, terminal color probing,
+settings lifetime, and the observed CSV inference/schema behavior. No separate knowledge-repository
+commit was made. Validation output has trailing presentation whitespace removed for repository
+hygiene; semantic outcomes and input hashes are unchanged.
+
 Lesson estimates (10–12 minutes) are author estimates with 3–5 minutes of learner work, not timed
 learner sessions. The checks cover supplied tiny fixtures and the pinned runtime, not arbitrary
 input schemas, power-loss durability, production resource tuning or cross-platform terminals.
