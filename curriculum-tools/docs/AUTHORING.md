@@ -203,6 +203,36 @@ tool --database "$LAB/database" --command 'native setup and inspection'
 ```
 ````
 
+## Formatting SQL
+
+Format SQL before you validate it, so learners read (and validation runs) the formatted form. Use
+`sql-formatter` (`npm install -g sql-formatter`; see `kb show data/sql-formatter.md`) with the
+dialect of the lesson's tool:
+
+```sh
+sql-formatter -l postgresql --fix courses/<id>/lab/<file>.sql   # rewrite a SQL file in place
+sql-formatter -l duckdb < statements.sql                        # print formatted statements
+```
+
+The repository-root `.sql-formatter.json` applies from any directory in the repository. It keeps
+keyword case as written (follow the course's existing case), puts short lists such as `VALUES`
+rows on one line, and leaves psql variables (`:name`, `:'name'`, `:"name"`) intact. Use `-l
+postgresql`, `-l duckdb` or `-l sqlite`; the default dialect rejects syntax such as `::` casts.
+
+Apply this to `sql` fenced Setup and Run blocks, `lab/*.sql` starters and fixtures, and validation SQL.
+Comments such as `-- Session A` stay in place. When the tool cannot take the SQL, format it by hand in
+the same style (one clause per line, two-space indentation, a blank line between statements):
+
+- psql meta-commands (`\gset`, `\echo`, `\d`) make the formatter fail. Format the statements between
+  them and keep each meta-command where it was; `\gset` stays on the last line of its query.
+- SQL inside shell strings (`psql -c '...'`, heredocs) is formatted by hand; a short one-statement
+  `-c` string may stay on one line.
+- Bodies inside `$$ ... $$` are left unformatted by the tool.
+
+The formatter does not check SQL: always run the result against the real tool. Reformatting an
+existing lesson is editorial-only (no `revision` bump), but still run `tutor <id> check` and re-validate
+the affected experiment.
+
 ## Writing the pre-experiment explanation
 
 The learner knows basic SQL and a shell, not the tool's internals, and reads the lesson cold,

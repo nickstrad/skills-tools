@@ -66,6 +66,11 @@ authoring or revising lessons. Verify rendered content, not only Markdown. An ex
 authorized catalog rollout uses the tutor CLI after copy-based progress checks; authoring alone
 continues to use temporary databases.
 
+Format every SQL block, starter and fixture you write with `sql-formatter -l <dialect>` before
+validating it, using the repository-root `.sql-formatter.json`. Where the tool cannot take the SQL
+(psql meta-commands, SQL inside shell strings), format it by hand in the same style. Follow
+AUTHORING.md's Formatting SQL section.
+
 Offer **Setup - script** and **Setup - manual** for software preparation that is useful practice,
 following AUTHORING.md's Setup subsection grammar. Both may hide folders, fixtures and shell
 variables in helpers; manual exposes the target software's native commands, SQL and settings.

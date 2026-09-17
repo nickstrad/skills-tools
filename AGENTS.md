@@ -106,6 +106,10 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
   [`curriculum-tools/docs/AUTHORING.md`](curriculum-tools/docs/AUTHORING.md): context, setup and
   commands, expected evidence, interpretation, and cleanup. Use a plain-text-readable diagram when
   it clarifies the mechanism; the shared tutor renders every course.
+- Format SQL you write (lesson blocks, lab starters, fixtures, validation SQL) with
+  `sql-formatter -l <dialect>` and the root `.sql-formatter.json` before validating it. Format by
+  hand in the same style where the tool cannot parse it, such as psql meta-commands. See
+  [Formatting SQL](curriculum-tools/docs/AUTHORING.md#formatting-sql).
 - Run `bin/tutor <course> check` before committing lesson or route changes. Use
   `bin/tutor <course> validate` for real-tool evidence, always with isolated validation state
   rather than learner progress or the live PostgreSQL lab.
