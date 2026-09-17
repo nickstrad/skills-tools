@@ -75,3 +75,12 @@ courses. Formatting is editorial-only: keep revisions, slugs, semantics and expe
   message (`ok = 1`; Expected result updated). Lesson 17 fails in both (isolated lab lacks 16's crash
   pair); baseline lesson 16 hit its readiness deadline once. Formatted 16 then 17 in one shared lab
   passed. No validation labs or sqlite3 processes left. VALIDATION.md and sqlite gotchas updated.
+- 2026-09-17 02:25 — Knowledge-store reflection done. Updated and reread through kb:
+  `data/sql-formatter.md` (shared PostgreSQL/SQLite/DuckDB config and why every paramTypes form is
+  needed; config lookup; the hand-formatting rules for client commands, shell strings, `$$` bodies,
+  triggers, tidy-ups; SQL text echoed back by engines and exact-string consumers; validation diff
+  method) and `data/duckdb-course-tools.md` (inherited DUCK_LAB blocks drivers and learner shells).
+  `kb doctor` clean.
+- Final checks: no /tmp/duckdb-lesson.*, /tmp/tutor-validation-* or sqlite scratch labs; no
+  PostgreSQL or sqlite3 processes; `/labs/pglab` untouched; `tutor duckdb route` shows 4 done with
+  lesson 5 next. Batch complete; this file is deleted in the next commit.
