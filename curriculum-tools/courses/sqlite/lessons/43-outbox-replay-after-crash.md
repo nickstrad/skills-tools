@@ -85,9 +85,14 @@ echo "evidence_directory=$lab"
 # These functions invoke separate sqlite3 processes. No transaction spans both files.
 init_receiver() {
   sqlite3 -bail "$1" <<'SQL'
-CREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-INSERT INTO account VALUES(1,100);
-CREATE TABLE receipts(op_id TEXT PRIMARY KEY NOT NULL, amount INTEGER NOT NULL);
+CREATE TABLE account (id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
+
+INSERT INTO
+  account
+VALUES
+  (1, 100);
+
+CREATE TABLE receipts (op_id TEXT PRIMARY KEY NOT NULL, amount INTEGER NOT NULL);
 SQL
 }
 deliver() {

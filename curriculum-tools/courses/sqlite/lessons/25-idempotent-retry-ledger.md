@@ -45,43 +45,133 @@ Keep the payload guard, receipt and domain effect in the same transaction. Do no
 ## Setup
 ```sql
 DROP TABLE IF EXISTS applied_operations;
+
 DROP TABLE IF EXISTS account;
-CREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-CREATE TABLE applied_operations(operation_id TEXT PRIMARY KEY NOT NULL, delta INTEGER NOT NULL);
+
+CREATE TABLE account (id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
+
+CREATE TABLE applied_operations (operation_id TEXT PRIMARY KEY NOT NULL, delta INTEGER NOT NULL);
+
 DROP TABLE IF EXISTS temp.identity_guard;
-CREATE TEMP TABLE identity_guard(ok INTEGER CHECK(ok=1));
-INSERT INTO account VALUES (1, 100);
+
+CREATE TEMP TABLE identity_guard (ok INTEGER CHECK (ok = 1));
+
+INSERT INTO
+  account
+VALUES
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A
 BEGIN IMMEDIATE;
-INSERT OR ROLLBACK INTO identity_guard
-SELECT 0 FROM applied_operations WHERE operation_id='op-42' AND delta<>10;
-INSERT INTO applied_operations VALUES ('op-42', 10) ON CONFLICT(operation_id) DO NOTHING;
-SELECT 'claim 1', changes();
-UPDATE account SET balance=balance+10 WHERE id=1 AND changes()=1;
+
+INSERT OR ROLLBACK INTO
+  identity_guard
+SELECT
+  0
+FROM
+  applied_operations
+WHERE
+  operation_id = 'op-42'
+  AND delta <> 10;
+
+INSERT INTO
+  applied_operations
+VALUES
+  ('op-42', 10)
+ON CONFLICT (operation_id) DO NOTHING;
+
+SELECT
+  'claim 1',
+  changes();
+
+UPDATE account
+SET
+  balance = balance + 10
+WHERE
+  id = 1
+  AND changes() = 1;
+
 COMMIT;
-SELECT 'after first', balance FROM account;
+
+SELECT
+  'after first',
+  balance
+FROM
+  account;
 
 BEGIN IMMEDIATE;
-INSERT OR ROLLBACK INTO identity_guard
-SELECT 0 FROM applied_operations WHERE operation_id='op-42' AND delta<>10;
-INSERT INTO applied_operations VALUES ('op-42', 10) ON CONFLICT(operation_id) DO NOTHING;
-SELECT 'claim 2', changes();
-UPDATE account SET balance=balance+10 WHERE id=1 AND changes()=1;
+
+INSERT OR ROLLBACK INTO
+  identity_guard
+SELECT
+  0
+FROM
+  applied_operations
+WHERE
+  operation_id = 'op-42'
+  AND delta <> 10;
+
+INSERT INTO
+  applied_operations
+VALUES
+  ('op-42', 10)
+ON CONFLICT (operation_id) DO NOTHING;
+
+SELECT
+  'claim 2',
+  changes();
+
+UPDATE account
+SET
+  balance = balance + 10
+WHERE
+  id = 1
+  AND changes() = 1;
+
 COMMIT;
-SELECT 'after replay', balance, (SELECT count(*) FROM applied_operations) FROM account;
+
+SELECT
+  'after replay',
+  balance,
+  (
+    SELECT
+      count(*)
+    FROM
+      applied_operations
+  )
+FROM
+  account;
 
 BEGIN IMMEDIATE;
-INSERT OR ROLLBACK INTO identity_guard
-SELECT 0 FROM applied_operations WHERE operation_id='op-42' AND delta<>99;
-SELECT 'different payload rejected', balance, (SELECT count(*) FROM applied_operations) FROM account;
+
+INSERT OR ROLLBACK INTO
+  identity_guard
+SELECT
+  0
+FROM
+  applied_operations
+WHERE
+  operation_id = 'op-42'
+  AND delta <> 99;
+
+SELECT
+  'different payload rejected',
+  balance,
+  (
+    SELECT
+      count(*)
+    FROM
+      applied_operations
+  )
+FROM
+  account;
 ```
 
 ## Expected result
-The first claim reports 1 and balance 110. The replay reports claim 0 and balance 110 with one receipt. Reusing op-42 with amount 99 produces the expected CHECK constraint failed: ok=1; different payload rejected still reports balance 110 and one receipt.
+The first claim reports 1 and balance 110. The replay reports claim 0 and balance 110 with one receipt. Reusing op-42 with amount 99 produces the expected CHECK constraint failed: ok = 1; different payload rejected still reports balance 110 and one receipt.
 
 ## Systems lens
 PostgreSQL can teach idempotency deeply once; SQLite adds the embedded one-file boundary and its particular conflict/error semantics. This ledger covers only local database effects. Lost acknowledgments across a second database, an email provider or another service need a protocol at that other system's commit boundary, developed in module 08.

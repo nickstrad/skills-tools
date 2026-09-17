@@ -42,10 +42,16 @@ The first B COMMIT is supposed to fail after its short budget; do not release A 
 ## Setup
 ```sql
 .print -- close every other sqlite3 session first: the next line must print delete
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 DROP TABLE IF EXISTS messages;
-CREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT);
-INSERT INTO messages(body) VALUES ('before');
+
+CREATE TABLE messages (id INTEGER PRIMARY KEY, body TEXT);
+
+INSERT INTO
+  messages (body)
+VALUES
+  ('before');
 ```
 
 ## Run
@@ -53,23 +59,43 @@ INSERT INTO messages(body) VALUES ('before');
 -- Session A
 .timeout 5000
 BEGIN;
-SELECT 'A sees', count(*) FROM messages;
+
+SELECT
+  'A sees',
+  count(*)
+FROM
+  messages;
 
 -- Session B
 .timeout 150
 BEGIN IMMEDIATE;
-INSERT INTO messages(body) VALUES ('after');
+
+INSERT INTO
+  messages (body)
+VALUES
+  ('after');
+
 .timer on
 COMMIT;
+
 .timer off
-SELECT 'B pending after busy COMMIT', count(*) FROM messages;
+SELECT
+  'B pending after busy COMMIT',
+  count(*)
+FROM
+  messages;
 
 -- Session A
 COMMIT;
 
 -- Session B
 COMMIT;
-SELECT 'B committed', count(*) FROM messages;
+
+SELECT
+  'B committed',
+  count(*)
+FROM
+  messages;
 ```
 
 ## Expected result

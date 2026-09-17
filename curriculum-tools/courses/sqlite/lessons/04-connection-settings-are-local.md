@@ -43,31 +43,91 @@ The exact default synchronous integer is version and build dependent; record B's
 ## Setup
 ```sql
 DROP TABLE IF EXISTS child;
+
 DROP TABLE IF EXISTS parent;
-CREATE TABLE parent(id INTEGER PRIMARY KEY);
-CREATE TABLE child(parent_id INTEGER REFERENCES parent(id));
-INSERT INTO parent VALUES (1);
+
+CREATE TABLE parent (id INTEGER PRIMARY KEY);
+
+CREATE TABLE child (parent_id INTEGER REFERENCES parent (id));
+
+INSERT INTO
+  parent
+VALUES
+  (1);
 ```
 
 ## Run
 ```sql
 -- Session A
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=NORMAL;
-PRAGMA foreign_keys=ON;
+PRAGMA journal_mode = WAL;
+
+PRAGMA synchronous = NORMAL;
+
+PRAGMA foreign_keys = ON;
+
 .timeout 750
-SELECT 'A policies' AS who, journal_mode, synchronous, foreign_keys, timeout AS busy_timeout FROM pragma_journal_mode, pragma_synchronous, pragma_foreign_keys, pragma_busy_timeout;
-INSERT INTO child VALUES (99);
+SELECT
+  'A policies' AS who,
+  journal_mode,
+  synchronous,
+  foreign_keys,
+  timeout AS busy_timeout
+FROM
+  pragma_journal_mode,
+  pragma_synchronous,
+  pragma_foreign_keys,
+  pragma_busy_timeout;
+
+INSERT INTO
+  child
+VALUES
+  (99);
 
 -- Session B: a newly opened sqlite3 process against the same TUTOR_SQLITE_DB
-SELECT 'B fresh policies' AS who, journal_mode, synchronous, foreign_keys, timeout AS busy_timeout FROM pragma_journal_mode, pragma_synchronous, pragma_foreign_keys, pragma_busy_timeout;
-INSERT INTO child VALUES (98);
-SELECT 'B FK off accepted' AS evidence, count(*) AS child_rows FROM child;
-PRAGMA synchronous=NORMAL;
-PRAGMA foreign_keys=ON;
+SELECT
+  'B fresh policies' AS who,
+  journal_mode,
+  synchronous,
+  foreign_keys,
+  timeout AS busy_timeout
+FROM
+  pragma_journal_mode,
+  pragma_synchronous,
+  pragma_foreign_keys,
+  pragma_busy_timeout;
+
+INSERT INTO
+  child
+VALUES
+  (98);
+
+SELECT
+  'B FK off accepted' AS evidence,
+  count(*) AS child_rows
+FROM
+  child;
+
+PRAGMA synchronous = NORMAL;
+
+PRAGMA foreign_keys = ON;
+
 .timeout 750
-SELECT 'B initialized policies' AS who, journal_mode, synchronous, foreign_keys, timeout AS busy_timeout FROM pragma_journal_mode, pragma_synchronous, pragma_foreign_keys, pragma_busy_timeout;
-INSERT INTO child VALUES (97);
+SELECT
+  'B initialized policies' AS who,
+  journal_mode,
+  synchronous,
+  foreign_keys,
+  timeout AS busy_timeout
+FROM
+  pragma_journal_mode,
+  pragma_synchronous,
+  pragma_foreign_keys,
+  pragma_busy_timeout;
+
+INSERT INTO
+  child
+VALUES
+  (97);
 ```
 
 ## Expected result

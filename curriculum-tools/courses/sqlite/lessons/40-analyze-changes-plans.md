@@ -42,22 +42,87 @@ Do not edit sqlite_stat1 as a tuning shortcut in a lesson run. Statistics format
 ## Setup
 ```sql
 DROP TABLE IF EXISTS skewed_events;
-CREATE TABLE skewed_events(id INTEGER PRIMARY KEY, region TEXT NOT NULL, kind TEXT NOT NULL, body TEXT NOT NULL);
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 10000)
-INSERT INTO skewed_events
-SELECT x, CASE WHEN x <= 100 THEN 'rare-region' ELSE 'region-' || printf('%03d', x % 99) END,
-  CASE WHEN x % 2 = 0 THEN 'common-kind' ELSE 'other-kind' END, 'body-' || x FROM n;
-CREATE INDEX skewed_region_idx ON skewed_events(region);
-CREATE INDEX skewed_kind_idx ON skewed_events(kind);
+
+CREATE TABLE skewed_events (
+  id INTEGER PRIMARY KEY,
+  region TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  body TEXT NOT NULL
+);
+
+WITH RECURSIVE
+  n (x) AS (
+    SELECT
+      1
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 10000
+  )
+INSERT INTO
+  skewed_events
+SELECT
+  x,
+  CASE
+    WHEN x <= 100 THEN 'rare-region'
+    ELSE 'region-' || printf('%03d', x % 99)
+  END,
+  CASE
+    WHEN x % 2 = 0 THEN 'common-kind'
+    ELSE 'other-kind'
+  END,
+  'body-' || x
+FROM
+  n;
+
+CREATE INDEX skewed_region_idx ON skewed_events (region);
+
+CREATE INDEX skewed_kind_idx ON skewed_events (kind);
 ```
 
 ## Run
 ```sql
-EXPLAIN QUERY PLAN SELECT body FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';
-SELECT count(*) AS expected_matches FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';
+EXPLAIN QUERY PLAN
+SELECT
+  body
+FROM
+  skewed_events
+WHERE
+  region = 'rare-region'
+  AND kind = 'common-kind';
+
+SELECT
+  count(*) AS expected_matches
+FROM
+  skewed_events
+WHERE
+  region = 'rare-region'
+  AND kind = 'common-kind';
+
 ANALYZE skewed_events;
-SELECT tbl, idx, stat FROM sqlite_stat1 WHERE tbl = 'skewed_events' ORDER BY idx;
-EXPLAIN QUERY PLAN SELECT body FROM skewed_events WHERE region = 'rare-region' AND kind = 'common-kind';
+
+SELECT
+  tbl,
+  idx,
+  stat
+FROM
+  sqlite_stat1
+WHERE
+  tbl = 'skewed_events'
+ORDER BY
+  idx;
+
+EXPLAIN QUERY PLAN
+SELECT
+  body
+FROM
+  skewed_events
+WHERE
+  region = 'rare-region'
+  AND kind = 'common-kind';
 ```
 
 ## Expected result

@@ -41,25 +41,91 @@ The copy path is the reserved lab artifact TUTOR_SQLITE_DB-vacuum.db and a rerun
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS retained;
-CREATE TABLE retained(id INTEGER PRIMARY KEY, payload TEXT);
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 3000) INSERT INTO retained SELECT x, printf('payload-%05d', x) FROM n;
+
+CREATE TABLE retained (id INTEGER PRIMARY KEY, payload TEXT);
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 3000
+  )
+INSERT INTO
+  retained
+SELECT
+  x,
+  printf('payload-%05d', x)
+FROM
+  n;
 ```
 
 ## Run
 ```sql
 .headers on
 .mode box
-SELECT 'before_delete' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;
+SELECT
+  'before_delete' AS phase,
+  page_count,
+  freelist_count
+FROM
+  pragma_page_count,
+  pragma_freelist_count;
+
 .shell stat -c 'before_delete_bytes=%s' "$TUTOR_SQLITE_DB"
-DELETE FROM retained WHERE id > 500;
-SELECT 'after_delete' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;
+DELETE FROM retained
+WHERE
+  id > 500;
+
+SELECT
+  'after_delete' AS phase,
+  page_count,
+  freelist_count
+FROM
+  pragma_page_count,
+  pragma_freelist_count;
+
 .shell stat -c 'after_delete_bytes=%s' "$TUTOR_SQLITE_DB"
-WITH RECURSIVE n(x) AS (VALUES(3001) UNION ALL SELECT x + 1 FROM n WHERE x < 3100) INSERT INTO retained SELECT x, printf('replacement-%05d', x) FROM n;
-SELECT 'after_reuse' AS phase, page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (3001)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 3100
+  )
+INSERT INTO
+  retained
+SELECT
+  x,
+  printf('replacement-%05d', x)
+FROM
+  n;
+
+SELECT
+  'after_reuse' AS phase,
+  page_count,
+  freelist_count
+FROM
+  pragma_page_count,
+  pragma_freelist_count;
+
 .shell cp "$TUTOR_SQLITE_DB" "$TUTOR_SQLITE_DB-vacuum.db"
 .shell sqlite3 "$TUTOR_SQLITE_DB-vacuum.db" "VACUUM; SELECT page_count, freelist_count FROM pragma_page_count, pragma_freelist_count;"
 .shell stat -c 'after_vacuum_bytes=%s' "$TUTOR_SQLITE_DB-vacuum.db"

@@ -99,12 +99,26 @@ echo "evidence_directory=$lab"
 # Each origin is one device generation. (origin,seq) is an immutable operation identity.
 init_replica() {
   sqlite3 -bail "$1" <<'SQL'
-CREATE TABLE inbox(origin TEXT NOT NULL, seq INTEGER NOT NULL CHECK(seq>0),
- clock INTEGER NOT NULL, doc TEXT NOT NULL, body TEXT, deleted INTEGER NOT NULL CHECK(deleted IN(0,1)),
- applied INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(origin,seq)) WITHOUT ROWID;
-CREATE TABLE cursors(origin TEXT PRIMARY KEY NOT NULL, last_seq INTEGER NOT NULL);
-CREATE TABLE notes(doc TEXT PRIMARY KEY NOT NULL, body TEXT, deleted INTEGER NOT NULL,
- clock INTEGER NOT NULL, origin TEXT NOT NULL);
+CREATE TABLE inbox (
+  origin TEXT NOT NULL,
+  seq INTEGER NOT NULL CHECK (seq > 0),
+  clock INTEGER NOT NULL,
+  doc TEXT NOT NULL,
+  body TEXT,
+  deleted INTEGER NOT NULL CHECK (deleted IN (0, 1)),
+  applied INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (origin, seq)
+) WITHOUT ROWID;
+
+CREATE TABLE cursors (origin TEXT PRIMARY KEY NOT NULL, last_seq INTEGER NOT NULL);
+
+CREATE TABLE notes (
+  doc TEXT PRIMARY KEY NOT NULL,
+  body TEXT,
+  deleted INTEGER NOT NULL,
+  clock INTEGER NOT NULL,
+  origin TEXT NOT NULL
+);
 SQL
 }
 apply_batch() {

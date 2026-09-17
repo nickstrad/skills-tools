@@ -60,3 +60,18 @@ courses. Formatting is editorial-only: keep revisions, slugs, semantics and expe
   hand-formatting gaps in the knowledge store — do this in the final reflection.
 - Knowledge-store notes so far: config lookup needs cwd inside the repo (a copy under the
   scratchpad silently used defaults — pass -c); quirks listed above; DUCK_LAB inheritance.
+- 2026-09-17 01:50 — User authorized live DuckDB catalog refresh. `tutor duckdb progress verify`
+  on a copy: 266 identities, 43 progress, 45 attempts preserved. `tutor duckdb init --db
+  curriculum-tools/tutor.sqlite`; progress/attempts/roadmap dumps byte-identical before/after;
+  lesson 5 renders formatted SQL. DuckDB still 4 done.
+- 2026-09-17 02:05 — Shared config broadened: its psql-oriented `paramTypes` replaced the SQLite
+  dialect's parameter rules (`@name`, `$name` failed to parse). New config keeps positional `?`,
+  numbered `?1`/`$1`, named `:`/`@`/`$` and psql `:'x'`/`:"x"`; checked on postgresql/sqlite/duckdb,
+  PostgreSQL `@>`/`@@`/JSON operators unaffected, DuckDB formatted output byte-identical.
+- 2026-09-17 02:10 — SQLite legacy: `sql` fences and 18 `<<'SQL'` heredocs in 41 lessons formatted;
+  4 triggers (47, 51) hand-formatted; one-line SQL in shell plumbing left unchanged. Session headers
+  and dot-command counts identical per lesson. Validation `--isolated` on original (baseline) and
+  formatted lessons, normalized diff: only interleaving, lesson 6 stored schema text, lesson 25 CHECK
+  message (`ok = 1`; Expected result updated). Lesson 17 fails in both (isolated lab lacks 16's crash
+  pair); baseline lesson 16 hit its readiness deadline once. Formatted 16 then 17 in one shared lab
+  passed. No validation labs or sqlite3 processes left. VALIDATION.md and sqlite gotchas updated.

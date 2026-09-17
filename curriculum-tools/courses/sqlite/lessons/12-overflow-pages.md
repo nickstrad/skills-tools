@@ -41,22 +41,68 @@ The values are intentionally large and the database is disposable. Do not run th
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS blobs;
-CREATE TABLE blobs(id INTEGER PRIMARY KEY, value TEXT NOT NULL);
+
+CREATE TABLE blobs (id INTEGER PRIMARY KEY, value TEXT NOT NULL);
 ```
 
 ## Run
 ```sql
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 20)
-INSERT INTO blobs SELECT x, hex(randomblob(5000)) FROM n;
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 20
+  )
+INSERT INTO
+  blobs
+SELECT
+  x,
+  hex(randomblob(5000))
+FROM
+  n;
+
 .headers on
 .mode box
-SELECT count(*) AS rows, max(length(value)) AS max_value_chars FROM blobs;
-SELECT pagetype, count(*) AS pages, sum(payload) AS payload_bytes, max(mx_payload) AS max_payload FROM dbstat WHERE name='blobs' GROUP BY pagetype ORDER BY pagetype;
-SELECT count(*) AS overflow_page_count FROM dbstat WHERE name='blobs' AND pagetype='overflow';
+SELECT
+  count(*) AS rows,
+  max(length(value)) AS max_value_chars
+FROM
+  blobs;
+
+SELECT
+  pagetype,
+  count(*) AS pages,
+  sum(payload) AS payload_bytes,
+  max(mx_payload) AS max_payload
+FROM
+  dbstat
+WHERE
+  name = 'blobs'
+GROUP BY
+  pagetype
+ORDER BY
+  pagetype;
+
+SELECT
+  count(*) AS overflow_page_count
+FROM
+  dbstat
+WHERE
+  name = 'blobs'
+  AND pagetype = 'overflow';
 ```
 
 ## Expected result

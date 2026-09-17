@@ -46,44 +46,146 @@ a logical test clock so takeover and a stale result happen in a deterministic or
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
+PRAGMA journal_mode = WAL;
+
 DROP TABLE IF EXISTS durable_jobs;
-CREATE TABLE durable_jobs(id INTEGER PRIMARY KEY,state TEXT NOT NULL,owner TEXT,
- token INTEGER NOT NULL DEFAULT 0,lease_until INTEGER,result TEXT);
-INSERT INTO durable_jobs(id,state) VALUES(1,'queued'),(2,'queued');
+
+CREATE TABLE durable_jobs (
+  id INTEGER PRIMARY KEY,
+  state TEXT NOT NULL,
+  owner TEXT,
+  token INTEGER NOT NULL DEFAULT 0,
+  lease_until INTEGER,
+  result TEXT
+);
+
+INSERT INTO
+  durable_jobs (id, state)
+VALUES
+  (1, 'queued'),
+  (2, 'queued');
 ```
 
 ## Run
 ```sql
 -- Session A
 BEGIN IMMEDIATE;
-UPDATE durable_jobs SET state='claimed',owner='a',token=token+1,lease_until=100
- WHERE id=(SELECT id FROM durable_jobs WHERE state='queued' ORDER BY id LIMIT 1)
- RETURNING id,owner,token;
+
+UPDATE durable_jobs
+SET
+  state = 'claimed',
+  owner = 'a',
+  token = token + 1,
+  lease_until = 100
+WHERE
+  id = (
+    SELECT
+      id
+    FROM
+      durable_jobs
+    WHERE
+      state = 'queued'
+    ORDER BY
+      id
+    LIMIT
+      1
+  )
+RETURNING
+  id,
+  owner,
+  token;
+
 -- Session B
 .timeout 100
 BEGIN IMMEDIATE;
+
 -- Session A
 COMMIT;
+
 .print A is doing slow work with no open write transaction
 -- Session B
 BEGIN IMMEDIATE;
-UPDATE durable_jobs SET state='claimed',owner='b',token=token+1,lease_until=300
- WHERE id=(SELECT id FROM durable_jobs WHERE state='queued' ORDER BY id LIMIT 1)
- RETURNING id,owner,token;
+
+UPDATE durable_jobs
+SET
+  state = 'claimed',
+  owner = 'b',
+  token = token + 1,
+  lease_until = 300
+WHERE
+  id = (
+    SELECT
+      id
+    FROM
+      durable_jobs
+    WHERE
+      state = 'queued'
+    ORDER BY
+      id
+    LIMIT
+      1
+  )
+RETURNING
+  id,
+  owner,
+  token;
+
 COMMIT;
-UPDATE durable_jobs SET owner='b',token=token+1,lease_until=300
- WHERE id=1 AND state='claimed' AND lease_until<=200;
-SELECT 'takeover',changes();
+
+UPDATE durable_jobs
+SET
+  owner = 'b',
+  token = token + 1,
+  lease_until = 300
+WHERE
+  id = 1
+  AND state = 'claimed'
+  AND lease_until <= 200;
+
+SELECT
+  'takeover',
+  changes();
+
 -- Session A
-UPDATE durable_jobs SET state='done',result='late-a'
- WHERE id=1 AND owner='a' AND token=1 AND state='claimed';
-SELECT 'stale_completion',changes();
+UPDATE durable_jobs
+SET
+  state = 'done',
+  result = 'late-a'
+WHERE
+  id = 1
+  AND owner = 'a'
+  AND token = 1
+  AND state = 'claimed';
+
+SELECT
+  'stale_completion',
+  changes();
+
 -- Session B
-UPDATE durable_jobs SET state='done',result='current-b'
- WHERE id=1 AND owner='b' AND token=2 AND state='claimed';
-SELECT 'current_completion',changes();
-SELECT id,state,owner,token,result FROM durable_jobs ORDER BY id;
+UPDATE durable_jobs
+SET
+  state = 'done',
+  result = 'current-b'
+WHERE
+  id = 1
+  AND owner = 'b'
+  AND token = 2
+  AND state = 'claimed';
+
+SELECT
+  'current_completion',
+  changes();
+
+SELECT
+  id,
+  state,
+  owner,
+  token,
+  result
+FROM
+  durable_jobs
+ORDER BY
+  id;
 ```
 
 ## Expected result

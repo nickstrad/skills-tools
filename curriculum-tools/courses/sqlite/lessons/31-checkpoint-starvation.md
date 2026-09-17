@@ -41,39 +41,82 @@ WAL is same-host coordination, not replication or consensus; do not place the fi
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
-PRAGMA wal_autocheckpoint=0;
+PRAGMA journal_mode = WAL;
+
+PRAGMA wal_autocheckpoint = 0;
+
 DROP TABLE IF EXISTS queue;
-CREATE TABLE queue(id INTEGER PRIMARY KEY, payload TEXT);
-INSERT INTO queue(payload) VALUES ('anchor');
+
+CREATE TABLE queue (id INTEGER PRIMARY KEY, payload TEXT);
+
+INSERT INTO
+  queue (payload)
+VALUES
+  ('anchor');
 ```
 
 ## Run
 ```sql
 -- Session B
 BEGIN;
-SELECT 'old reader', count(*) FROM queue;
+
+SELECT
+  'old reader',
+  count(*)
+FROM
+  queue;
 
 -- Session A
-PRAGMA wal_autocheckpoint=0;
-INSERT INTO queue(payload) VALUES ('batch-1');
-INSERT INTO queue(payload) VALUES ('batch-2');
-INSERT INTO queue(payload) VALUES ('batch-3');
-PRAGMA wal_checkpoint(PASSIVE);
-.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
-INSERT INTO queue(payload) VALUES ('batch-4');
-INSERT INTO queue(payload) VALUES ('batch-5');
-INSERT INTO queue(payload) VALUES ('batch-6');
-PRAGMA wal_checkpoint(PASSIVE);
-.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
+PRAGMA wal_autocheckpoint = 0;
 
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-1');
+
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-2');
+
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-3');
+
+PRAGMA wal_checkpoint (PASSIVE);
+
+.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-4');
+
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-5');
+
+INSERT INTO
+  queue (payload)
+VALUES
+  ('batch-6');
+
+PRAGMA wal_checkpoint (PASSIVE);
+
+.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
 -- Session B
 COMMIT;
 
 -- Session A
-PRAGMA wal_checkpoint(TRUNCATE);
+PRAGMA wal_checkpoint (TRUNCATE);
+
 .shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal";
-SELECT 'current rows', count(*) FROM queue;
+SELECT
+  'current rows',
+  count(*)
+FROM
+  queue;
 ```
 
 ## Expected result

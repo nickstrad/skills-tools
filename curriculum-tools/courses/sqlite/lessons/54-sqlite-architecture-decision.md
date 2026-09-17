@@ -90,12 +90,35 @@ echo "evidence_directory=$lab"
 
 db=$lab/workload.db
 sqlite3 -bail "$db" <<'SQL'
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=FULL;
-CREATE TABLE events(id INTEGER PRIMARY KEY,tenant INTEGER,payload TEXT);
-WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<5000)
-INSERT INTO events SELECT x,x%100,'event-'||x FROM n;
-CREATE INDEX by_tenant ON events(tenant);
+PRAGMA journal_mode = WAL;
+
+PRAGMA synchronous = FULL;
+
+CREATE TABLE events (id INTEGER PRIMARY KEY, tenant INTEGER, payload TEXT);
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 5000
+  )
+INSERT INTO
+  events
+SELECT
+  x,
+  x % 100,
+  'event-' || x
+FROM
+  n;
+
+CREATE INDEX by_tenant ON events (tenant);
+
 ANALYZE;
 SQL
 sqlite3 "$db" 'SELECT sqlite_version(); EXPLAIN QUERY PLAN SELECT payload FROM events WHERE tenant=7; SELECT count(*) FROM events WHERE tenant=7;' >"$lab/query-evidence.txt"

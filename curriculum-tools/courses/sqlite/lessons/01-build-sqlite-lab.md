@@ -47,11 +47,24 @@ sqlite3 "$SQLITE_LAB/lab.db" <<'SQL'
 .headers on
 .mode box
 DROP TABLE IF EXISTS events;
-CREATE TABLE events(event_id INTEGER PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '');
-INSERT INTO events(kind, payload) VALUES ('baseline', 'owned lab');
+
+CREATE TABLE events (
+  event_id INTEGER PRIMARY KEY,
+  kind TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT ''
+);
+
+INSERT INTO
+  events (kind, payload)
+VALUES
+  ('baseline', 'owned lab');
+
 .databases
 .tables
-SELECT count(*) AS baseline_rows FROM events;
+SELECT
+  count(*) AS baseline_rows
+FROM
+  events;
 SQL
 stat -c 'lab.db bytes=%s path=%n' "$SQLITE_LAB/lab.db"
 ```

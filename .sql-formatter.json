@@ -1,7 +1,9 @@
 {
   "expressionWidth": 80,
   "paramTypes": {
-    "named": [":"],
+    "positional": true,
+    "numbered": ["?", "$"],
+    "named": [":", "@", "$"],
     "custom": [
       { "regex": ":'[A-Za-z_][A-Za-z0-9_]*'" },
       { "regex": ":\"[A-Za-z_][A-Za-z0-9_]*\"" }

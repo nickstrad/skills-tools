@@ -88,9 +88,14 @@ echo "evidence_directory=$lab"
 # These functions invoke separate sqlite3 processes. No transaction spans both files.
 init_receiver() {
   sqlite3 -bail "$1" <<'SQL'
-CREATE TABLE account(id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
-INSERT INTO account VALUES(1,100);
-CREATE TABLE receipts(op_id TEXT PRIMARY KEY NOT NULL, amount INTEGER NOT NULL);
+CREATE TABLE account (id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
+
+INSERT INTO
+  account
+VALUES
+  (1, 100);
+
+CREATE TABLE receipts (op_id TEXT PRIMARY KEY NOT NULL, amount INTEGER NOT NULL);
 SQL
 }
 deliver() {
@@ -111,17 +116,43 @@ sender=$lab/agent.db
 receiver=$lab/receiver.db
 init_receiver "$receiver"
 sqlite3 -bail "$sender" <<'SQL'
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=FULL;
-PRAGMA user_version=1;
-CREATE TABLE account(id INTEGER PRIMARY KEY,balance INTEGER NOT NULL);
-CREATE TABLE outbox(op_id TEXT PRIMARY KEY NOT NULL,amount INTEGER NOT NULL,sent INTEGER NOT NULL DEFAULT 0);
-CREATE TABLE jobs(id INTEGER PRIMARY KEY,owner TEXT,token INTEGER,result TEXT);
-INSERT INTO account VALUES(1,100);
-INSERT INTO jobs VALUES(1,'a',1,NULL);
+PRAGMA journal_mode = WAL;
+
+PRAGMA synchronous = FULL;
+
+PRAGMA user_version = 1;
+
+CREATE TABLE account (id INTEGER PRIMARY KEY, balance INTEGER NOT NULL);
+
+CREATE TABLE outbox (
+  op_id TEXT PRIMARY KEY NOT NULL,
+  amount INTEGER NOT NULL,
+  sent INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE jobs (id INTEGER PRIMARY KEY, owner TEXT, token INTEGER, result TEXT);
+
+INSERT INTO
+  account
+VALUES
+  (1, 100);
+
+INSERT INTO
+  jobs
+VALUES
+  (1, 'a', 1, NULL);
+
 BEGIN IMMEDIATE;
-UPDATE account SET balance=balance-10;
-INSERT INTO outbox(op_id,amount) VALUES('a/g1:1',10);
+
+UPDATE account
+SET
+  balance = balance -10;
+
+INSERT INTO
+  outbox (op_id, amount)
+VALUES
+  ('a/g1:1', 10);
+
 COMMIT;
 SQL
 mkfifo "$lab/writer.fifo"

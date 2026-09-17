@@ -53,43 +53,128 @@ Finish A's transaction before leaving. Never delete the WAL to reclaim space; it
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
-PRAGMA wal_autocheckpoint=0;
+PRAGMA journal_mode = WAL;
+
+PRAGMA wal_autocheckpoint = 0;
+
 DROP TABLE IF EXISTS incident_events;
-CREATE TABLE incident_events(id INTEGER PRIMARY KEY,payload TEXT NOT NULL);
+
+CREATE TABLE incident_events (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
 ```
 
 ## Run
 ```sql
 -- Session A
 BEGIN;
-SELECT 'A_start',count(*) FROM incident_events;
+
+SELECT
+  'A_start',
+  count(*)
+FROM
+  incident_events;
+
 -- Session B
-PRAGMA wal_autocheckpoint=0;
+PRAGMA wal_autocheckpoint = 0;
+
 BEGIN;
-WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
-INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 200
+  )
+INSERT INTO
+  incident_events (payload)
+SELECT
+  hex(randomblob(700))
+FROM
+  n;
+
 COMMIT;
+
 BEGIN;
-WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
-INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 200
+  )
+INSERT INTO
+  incident_events (payload)
+SELECT
+  hex(randomblob(700))
+FROM
+  n;
+
 COMMIT;
+
 BEGIN;
-WITH RECURSIVE n(x) AS(VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<200)
-INSERT INTO incident_events(payload) SELECT hex(randomblob(700)) FROM n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 200
+  )
+INSERT INTO
+  incident_events (payload)
+SELECT
+  hex(randomblob(700))
+FROM
+  n;
+
 COMMIT;
-SELECT 'B_committed',count(*) FROM incident_events;
+
+SELECT
+  'B_committed',
+  count(*)
+FROM
+  incident_events;
+
 .shell stat -c 'wal_after_writes=%s' "$TUTOR_SQLITE_DB-wal"
-PRAGMA wal_checkpoint(PASSIVE);
+PRAGMA wal_checkpoint (PASSIVE);
+
 -- Session A
-SELECT 'A_now',count(*) FROM incident_events;
+SELECT
+  'A_now',
+  count(*)
+FROM
+  incident_events;
+
 .print Observation boundary: compare the old reader, committed rows, and checkpoint progress
 -- Session A
 COMMIT;
+
 -- Session B
-PRAGMA wal_checkpoint(TRUNCATE);
+PRAGMA wal_checkpoint (TRUNCATE);
+
 .shell stat -c 'wal_after_remedy=%s' "$TUTOR_SQLITE_DB-wal"
-SELECT 'verified_rows',count(*) FROM incident_events;
+SELECT
+  'verified_rows',
+  count(*)
+FROM
+  incident_events;
+
 PRAGMA integrity_check;
 ```
 

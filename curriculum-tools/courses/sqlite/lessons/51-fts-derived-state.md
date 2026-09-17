@@ -59,33 +59,121 @@ capability=$(sqlite3 "$fts_db" "SELECT CASE WHEN EXISTS (SELECT 1 FROM pragma_mo
 if [ "$capability" != yes ]; then echo "fts5_capability=missing runtime=$(sqlite3 --version | cut -d' ' -f1)" >&2; exit 3; fi
 echo 'fts5_capability=yes'
 sqlite3 -bail "$fts_db" >"$scratch/fts.log" <<'SQL'
-PRAGMA journal_mode=WAL;
-CREATE TABLE docs(id INTEGER PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL);
-INSERT INTO docs VALUES (1, 'one', 'pager recovery'), (2, 'two', 'writer checkpoint');
-CREATE VIRTUAL TABLE docs_fts USING fts5(title, body, content='docs', content_rowid='id');
-SELECT 'before_rebuild', count(*) FROM docs_fts WHERE docs_fts MATCH 'pager';
-INSERT INTO docs_fts(docs_fts) VALUES ('rebuild');
-SELECT 'after_rebuild', count(*) FROM docs_fts WHERE docs_fts MATCH 'pager';
-CREATE TRIGGER docs_ai AFTER INSERT ON docs BEGIN
-  INSERT INTO docs_fts(rowid, title, body) VALUES (new.id, new.title, new.body);
+PRAGMA journal_mode = WAL;
+
+CREATE TABLE docs (id INTEGER PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL);
+
+INSERT INTO
+  docs
+VALUES
+  (1, 'one', 'pager recovery'),
+  (2, 'two', 'writer checkpoint');
+
+CREATE VIRTUAL TABLE docs_fts USING fts5 (title, body, content = 'docs', content_rowid = 'id');
+
+SELECT
+  'before_rebuild',
+  count(*)
+FROM
+  docs_fts
+WHERE
+  docs_fts MATCH 'pager';
+
+INSERT INTO
+  docs_fts (docs_fts)
+VALUES
+  ('rebuild');
+
+SELECT
+  'after_rebuild',
+  count(*)
+FROM
+  docs_fts
+WHERE
+  docs_fts MATCH 'pager';
+
+CREATE TRIGGER docs_ai AFTER INSERT ON docs
+BEGIN
+  INSERT INTO
+    docs_fts (rowid, title, body)
+  VALUES
+    (new.id, new.title, new.body);
 END;
-CREATE TRIGGER docs_ad AFTER DELETE ON docs BEGIN
-  INSERT INTO docs_fts(docs_fts, rowid, title, body) VALUES ('delete', old.id, old.title, old.body);
+
+CREATE TRIGGER docs_ad AFTER DELETE ON docs
+BEGIN
+  INSERT INTO
+    docs_fts (docs_fts, rowid, title, body)
+  VALUES
+    ('delete', old.id, old.title, old.body);
 END;
-CREATE TRIGGER docs_au AFTER UPDATE ON docs BEGIN
-  INSERT INTO docs_fts(docs_fts, rowid, title, body) VALUES ('delete', old.id, old.title, old.body);
-  INSERT INTO docs_fts(rowid, title, body) VALUES (new.id, new.title, new.body);
+
+CREATE TRIGGER docs_au AFTER UPDATE ON docs
+BEGIN
+  INSERT INTO
+    docs_fts (docs_fts, rowid, title, body)
+  VALUES
+    ('delete', old.id, old.title, old.body);
+
+  INSERT INTO
+    docs_fts (rowid, title, body)
+  VALUES
+    (new.id, new.title, new.body);
 END;
-INSERT INTO docs VALUES (3, 'three', 'quota incident');
-UPDATE docs SET body='pager repaired' WHERE id=2;
-DELETE FROM docs WHERE id=1;
-SELECT 'after_trigger_mutations', count(*) FROM docs_fts WHERE docs_fts MATCH 'pager';
+
+INSERT INTO
+  docs
+VALUES
+  (3, 'three', 'quota incident');
+
+UPDATE docs
+SET
+  body = 'pager repaired'
+WHERE
+  id = 2;
+
+DELETE FROM docs
+WHERE
+  id = 1;
+
+SELECT
+  'after_trigger_mutations',
+  count(*)
+FROM
+  docs_fts
+WHERE
+  docs_fts MATCH 'pager';
+
 BEGIN;
-INSERT INTO docs VALUES (4, 'four', 'pager temporary');
-SELECT 'inside_rollback_matches', count(*) FROM docs_fts WHERE docs_fts MATCH 'temporary';
+
+INSERT INTO
+  docs
+VALUES
+  (4, 'four', 'pager temporary');
+
+SELECT
+  'inside_rollback_matches',
+  count(*)
+FROM
+  docs_fts
+WHERE
+  docs_fts MATCH 'temporary';
+
 ROLLBACK;
-SELECT 'rolled_back_matches', count(*) FROM docs_fts WHERE docs_fts MATCH 'temporary';
-INSERT INTO docs_fts(docs_fts, rank) VALUES ('integrity-check', 1);
+
+SELECT
+  'rolled_back_matches',
+  count(*)
+FROM
+  docs_fts
+WHERE
+  docs_fts MATCH 'temporary';
+
+INSERT INTO
+  docs_fts (docs_fts, rank)
+VALUES
+  ('integrity-check', 1);
+
 PRAGMA integrity_check;
 SQL
 cat "$scratch/fts.log"

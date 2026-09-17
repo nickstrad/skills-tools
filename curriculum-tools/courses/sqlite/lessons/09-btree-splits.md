@@ -36,23 +36,104 @@ An SQLite B-tree cannot grow smoothly forever: when a page fills, the engine all
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS ordered;
-CREATE TABLE ordered(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
+
+CREATE TABLE ordered (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
 ```
 
 ## Run
 ```sql
 .headers on
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 100) INSERT INTO ordered SELECT x, printf('batch-a-%04d', x) FROM n;
-SELECT 'after_100' AS sample, page_count FROM pragma_page_count;
-WITH RECURSIVE n(x) AS (VALUES(101) UNION ALL SELECT x + 1 FROM n WHERE x < 1000) INSERT INTO ordered SELECT x, printf('batch-b-%04d', x) FROM n;
-SELECT 'after_1000' AS sample, page_count FROM pragma_page_count;
-WITH RECURSIVE n(x) AS (VALUES(1001) UNION ALL SELECT x + 1 FROM n WHERE x < 5000) INSERT INTO ordered SELECT x, printf('batch-c-%04d', x) FROM n;
-SELECT 'after_5000' AS sample, page_count FROM pragma_page_count;
-SELECT max(length(path) - length(replace(path, '/', ''))) AS observed_depth FROM dbstat WHERE name='ordered';
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 100
+  )
+INSERT INTO
+  ordered
+SELECT
+  x,
+  printf('batch-a-%04d', x)
+FROM
+  n;
+
+SELECT
+  'after_100' AS sample,
+  page_count
+FROM
+  pragma_page_count;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (101)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 1000
+  )
+INSERT INTO
+  ordered
+SELECT
+  x,
+  printf('batch-b-%04d', x)
+FROM
+  n;
+
+SELECT
+  'after_1000' AS sample,
+  page_count
+FROM
+  pragma_page_count;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1001)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 5000
+  )
+INSERT INTO
+  ordered
+SELECT
+  x,
+  printf('batch-c-%04d', x)
+FROM
+  n;
+
+SELECT
+  'after_5000' AS sample,
+  page_count
+FROM
+  pragma_page_count;
+
+SELECT
+  max(length(path) - length(replace(path, '/', ''))) AS observed_depth
+FROM
+  dbstat
+WHERE
+  name = 'ordered';
 ```
 
 ## Expected result

@@ -37,30 +37,123 @@ SQLite rowid tables already have an internal integer identity. Declaring INTEGER
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS normal;
+
 DROP TABLE IF EXISTS alias;
+
 DROP TABLE IF EXISTS indexed;
-CREATE TABLE normal(logical_key TEXT, payload TEXT);
-CREATE TABLE alias(id INTEGER PRIMARY KEY, payload TEXT);
-CREATE TABLE indexed(logical_key TEXT, payload TEXT);
-CREATE UNIQUE INDEX indexed_key ON indexed(logical_key);
+
+CREATE TABLE normal (logical_key TEXT, payload TEXT);
+
+CREATE TABLE alias (id INTEGER PRIMARY KEY, payload TEXT);
+
+CREATE TABLE indexed (logical_key TEXT, payload TEXT);
+
+CREATE UNIQUE INDEX indexed_key ON indexed (logical_key);
 ```
 
 ## Run
 ```sql
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
-INSERT INTO normal SELECT printf('key-%05d', x), printf('payload-%05d', x) FROM n;
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
-INSERT INTO alias SELECT x, printf('payload-%05d', x) FROM n;
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 1000)
-INSERT INTO indexed SELECT printf('key-%05d', x), printf('payload-%05d', x) FROM n;
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 1000
+  )
+INSERT INTO
+  normal
+SELECT
+  printf('key-%05d', x),
+  printf('payload-%05d', x)
+FROM
+  n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 1000
+  )
+INSERT INTO
+  alias
+SELECT
+  x,
+  printf('payload-%05d', x)
+FROM
+  n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 1000
+  )
+INSERT INTO
+  indexed
+SELECT
+  printf('key-%05d', x),
+  printf('payload-%05d', x)
+FROM
+  n;
+
 .headers on
 .mode box
-SELECT name, count(*) AS pages, sum(pgsize) AS bytes FROM dbstat WHERE name IN ('normal', 'alias', 'indexed', 'indexed_key') GROUP BY name ORDER BY name;
-SELECT (SELECT count(*) FROM normal) AS normal_rows, (SELECT count(*) FROM alias) AS alias_rows, (SELECT count(*) FROM indexed) AS indexed_rows;
+SELECT
+  name,
+  count(*) AS pages,
+  sum(pgsize) AS bytes
+FROM
+  dbstat
+WHERE
+  name IN ('normal', 'alias', 'indexed', 'indexed_key')
+GROUP BY
+  name
+ORDER BY
+  name;
+
+SELECT
+  (
+    SELECT
+      count(*)
+    FROM
+      normal
+  ) AS normal_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      alias
+  ) AS alias_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      indexed
+  ) AS indexed_rows;
 ```
 
 ## Expected result

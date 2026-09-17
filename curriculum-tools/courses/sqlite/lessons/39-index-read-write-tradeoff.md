@@ -44,38 +44,161 @@ The two tables share one database, so page_count is a database-wide measure rath
 ## Setup
 ```sql
 DROP TABLE IF EXISTS trade_no_index;
+
 DROP TABLE IF EXISTS trade_with_indexes;
-CREATE TABLE trade_no_index(id INTEGER PRIMARY KEY, account TEXT NOT NULL, state TEXT NOT NULL, amount INTEGER NOT NULL);
-CREATE TABLE trade_with_indexes(id INTEGER PRIMARY KEY, account TEXT NOT NULL, state TEXT NOT NULL, amount INTEGER NOT NULL);
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 12000)
-INSERT INTO trade_no_index SELECT x, 'acct-' || printf('%04d', x % 1000), CASE WHEN x % 7 = 0 THEN 'open' ELSE 'closed' END, x % 10000 FROM n;
-INSERT INTO trade_with_indexes SELECT * FROM trade_no_index;
+
+CREATE TABLE trade_no_index (
+  id INTEGER PRIMARY KEY,
+  account TEXT NOT NULL,
+  state TEXT NOT NULL,
+  amount INTEGER NOT NULL
+);
+
+CREATE TABLE trade_with_indexes (
+  id INTEGER PRIMARY KEY,
+  account TEXT NOT NULL,
+  state TEXT NOT NULL,
+  amount INTEGER NOT NULL
+);
+
+WITH RECURSIVE
+  n (x) AS (
+    SELECT
+      1
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 12000
+  )
+INSERT INTO
+  trade_no_index
+SELECT
+  x,
+  'acct-' || printf('%04d', x % 1000),
+  CASE
+    WHEN x % 7 = 0 THEN 'open'
+    ELSE 'closed'
+  END,
+  x % 10000
+FROM
+  n;
+
+INSERT INTO
+  trade_with_indexes
+SELECT
+  *
+FROM
+  trade_no_index;
+
 PRAGMA optimize;
 ```
 
 ## Run
 ```sql
 .timer on
-SELECT 'before_indexes' AS observation, name, count(*) AS pages FROM dbstat WHERE name IN ('trade_no_index', 'trade_with_indexes') GROUP BY name ORDER BY name;
-EXPLAIN QUERY PLAN SELECT sum(amount) FROM trade_no_index WHERE account = 'acct-0042';
-SELECT sum(amount) FROM trade_no_index WHERE account = 'acct-0042';
-CREATE INDEX trade_account_idx ON trade_with_indexes(account);
-CREATE INDEX trade_state_idx ON trade_with_indexes(state);
-CREATE INDEX trade_amount_idx ON trade_with_indexes(amount);
-EXPLAIN QUERY PLAN SELECT sum(amount) FROM trade_with_indexes WHERE account = 'acct-0042';
-SELECT sum(amount) FROM trade_with_indexes WHERE account = 'acct-0042';
-SELECT 'after_indexes' AS observation, name, count(*) AS pages FROM dbstat WHERE name IN ('trade_no_index', 'trade_with_indexes', 'trade_account_idx', 'trade_state_idx', 'trade_amount_idx') GROUP BY name ORDER BY name;
+SELECT
+  'before_indexes' AS observation,
+  name,
+  count(*) AS pages
+FROM
+  dbstat
+WHERE
+  name IN ('trade_no_index', 'trade_with_indexes')
+GROUP BY
+  name
+ORDER BY
+  name;
+
+EXPLAIN QUERY PLAN
+SELECT
+  sum(amount)
+FROM
+  trade_no_index
+WHERE
+  account = 'acct-0042';
+
+SELECT
+  sum(amount)
+FROM
+  trade_no_index
+WHERE
+  account = 'acct-0042';
+
+CREATE INDEX trade_account_idx ON trade_with_indexes (account);
+
+CREATE INDEX trade_state_idx ON trade_with_indexes (state);
+
+CREATE INDEX trade_amount_idx ON trade_with_indexes (amount);
+
+EXPLAIN QUERY PLAN
+SELECT
+  sum(amount)
+FROM
+  trade_with_indexes
+WHERE
+  account = 'acct-0042';
+
+SELECT
+  sum(amount)
+FROM
+  trade_with_indexes
+WHERE
+  account = 'acct-0042';
+
+SELECT
+  'after_indexes' AS observation,
+  name,
+  count(*) AS pages
+FROM
+  dbstat
+WHERE
+  name IN (
+    'trade_no_index',
+    'trade_with_indexes',
+    'trade_account_idx',
+    'trade_state_idx',
+    'trade_amount_idx'
+  )
+GROUP BY
+  name
+ORDER BY
+  name;
+
 BEGIN;
+
 .stats on
-UPDATE trade_no_index SET amount = amount + 1 WHERE id BETWEEN 1 AND 4000;
+UPDATE trade_no_index
+SET
+  amount = amount + 1
+WHERE
+  id BETWEEN 1 AND 4000;
+
 .stats off
 COMMIT;
+
 BEGIN;
+
 .stats on
-UPDATE trade_with_indexes SET amount = amount + 1 WHERE id BETWEEN 1 AND 4000;
+UPDATE trade_with_indexes
+SET
+  amount = amount + 1
+WHERE
+  id BETWEEN 1 AND 4000;
+
 .stats off
 COMMIT;
-SELECT 'after_index_maintenance' AS observation, page_count, page_size FROM pragma_page_count, pragma_page_size;
+
+SELECT
+  'after_index_maintenance' AS observation,
+  page_count,
+  page_size
+FROM
+  pragma_page_count,
+  pragma_page_size;
+
 .timer off
 ```
 

@@ -61,8 +61,20 @@ sqlite3 "$WORKING_MAIN" <<'SQL'
 .headers on
 .mode box
 PRAGMA integrity_check;
-SELECT count(*) AS rows, min(substr(payload, 1, 10)) AS minimum_prefix, max(substr(payload, 1, 10)) AS maximum_prefix FROM crash_rows;
-SELECT count(*) AS uncommitted_rows_visible FROM crash_rows WHERE payload LIKE 'dirty-%';
+
+SELECT
+  count(*) AS rows,
+  min(substr(payload, 1, 10)) AS minimum_prefix,
+  max(substr(payload, 1, 10)) AS maximum_prefix
+FROM
+  crash_rows;
+
+SELECT
+  count(*) AS uncommitted_rows_visible
+FROM
+  crash_rows
+WHERE
+  payload LIKE 'dirty-%';
 SQL
 if [ -e "$WORKING_MAIN-journal" ]; then stat -c 'working_journal_bytes=%s' "$WORKING_MAIN-journal"; else echo 'working_journal_absent'; fi
 AFTER_HASH=$(sha256sum "$HOT_MAIN" "$HOT_MAIN-journal")

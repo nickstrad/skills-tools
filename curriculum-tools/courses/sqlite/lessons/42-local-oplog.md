@@ -48,38 +48,122 @@ The transaction below first succeeds and then aborts, so you can inspect exactly
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
+PRAGMA journal_mode = WAL;
+
 DROP TABLE IF EXISTS local_oplog;
+
 DROP TABLE IF EXISTS local_notes;
+
 DROP TABLE IF EXISTS device;
-CREATE TABLE device(origin TEXT PRIMARY KEY NOT NULL,next_seq INTEGER NOT NULL,clock INTEGER NOT NULL);
-INSERT INTO device VALUES('device-a/g1',1,0);
-CREATE TABLE local_notes(id INTEGER PRIMARY KEY,body TEXT NOT NULL);
-INSERT INTO local_notes VALUES(1,'draft');
-CREATE TABLE local_oplog(origin TEXT NOT NULL,seq INTEGER NOT NULL,clock INTEGER NOT NULL,
- note_id INTEGER NOT NULL,body TEXT NOT NULL,acknowledged INTEGER NOT NULL DEFAULT 0,
- PRIMARY KEY(origin,seq)) WITHOUT ROWID;
+
+CREATE TABLE device (
+  origin TEXT PRIMARY KEY NOT NULL,
+  next_seq INTEGER NOT NULL,
+  clock INTEGER NOT NULL
+);
+
+INSERT INTO
+  device
+VALUES
+  ('device-a/g1', 1, 0);
+
+CREATE TABLE local_notes (id INTEGER PRIMARY KEY, body TEXT NOT NULL);
+
+INSERT INTO
+  local_notes
+VALUES
+  (1, 'draft');
+
+CREATE TABLE local_oplog (
+  origin TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  clock INTEGER NOT NULL,
+  note_id INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  acknowledged INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (origin, seq)
+) WITHOUT ROWID;
 ```
 
 ## Run
 ```sql
 BEGIN IMMEDIATE;
-UPDATE device SET clock=clock+1;
-UPDATE local_notes SET body='offline edit';
-INSERT INTO local_oplog(origin,seq,clock,note_id,body)
- SELECT origin,next_seq,clock,id,body FROM device CROSS JOIN local_notes;
-UPDATE device SET next_seq=next_seq+1;
+
+UPDATE device
+SET
+  clock = clock + 1;
+
+UPDATE local_notes
+SET
+  body = 'offline edit';
+
+INSERT INTO
+  local_oplog (origin, seq, clock, note_id, body)
+SELECT
+  origin,
+  next_seq,
+  clock,
+  id,
+  body
+FROM
+  device
+  CROSS JOIN local_notes;
+
+UPDATE device
+SET
+  next_seq = next_seq + 1;
+
 COMMIT;
-SELECT printf('%s:%d',origin,seq) AS operation_id,clock,body,acknowledged FROM local_oplog;
+
+SELECT
+  printf('%s:%d', origin, seq) AS operation_id,
+  clock,
+  body,
+  acknowledged
+FROM
+  local_oplog;
+
 BEGIN IMMEDIATE;
-UPDATE device SET clock=clock+1;
-UPDATE local_notes SET body='aborted edit';
-INSERT INTO local_oplog(origin,seq,clock,note_id,body)
- SELECT origin,next_seq,clock,id,body FROM device CROSS JOIN local_notes;
-UPDATE device SET next_seq=next_seq+1;
+
+UPDATE device
+SET
+  clock = clock + 1;
+
+UPDATE local_notes
+SET
+  body = 'aborted edit';
+
+INSERT INTO
+  local_oplog (origin, seq, clock, note_id, body)
+SELECT
+  origin,
+  next_seq,
+  clock,
+  id,
+  body
+FROM
+  device
+  CROSS JOIN local_notes;
+
+UPDATE device
+SET
+  next_seq = next_seq + 1;
+
 ROLLBACK;
-SELECT body AS committed_body,next_seq,clock,(SELECT count(*) FROM local_oplog) AS durable_ops
- FROM local_notes CROSS JOIN device;
+
+SELECT
+  body AS committed_body,
+  next_seq,
+  clock,
+  (
+    SELECT
+      count(*)
+    FROM
+      local_oplog
+  ) AS durable_ops
+FROM
+  local_notes
+  CROSS JOIN device;
 ```
 
 ## Expected result

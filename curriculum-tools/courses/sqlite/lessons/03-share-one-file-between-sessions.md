@@ -40,7 +40,8 @@ Two CLI processes can coordinate through one local file without a server. The ex
 ```sql
 .print -- The wrapper has already opened $TUTOR_SQLITE_DB
 DROP TABLE IF EXISTS messages;
-CREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT NOT NULL);
+
+CREATE TABLE messages (id INTEGER PRIMARY KEY, body TEXT NOT NULL);
 ```
 
 ## Run
@@ -48,26 +49,51 @@ CREATE TABLE messages(id INTEGER PRIMARY KEY, body TEXT NOT NULL);
 -- Session A
 .headers on
 BEGIN;
-INSERT INTO messages(body) VALUES ('committed from A');
+
+INSERT INTO
+  messages (body)
+VALUES
+  ('committed from A');
+
 COMMIT;
 
 -- Session B
 .headers on
-SELECT id, body FROM messages ORDER BY id;
+SELECT
+  id,
+  body
+FROM
+  messages
+ORDER BY
+  id;
 
 -- Session A
 BEGIN;
-INSERT INTO messages(body) VALUES ('uncommitted from A');
-SELECT count(*) AS a_count FROM messages;
+
+INSERT INTO
+  messages (body)
+VALUES
+  ('uncommitted from A');
+
+SELECT
+  count(*) AS a_count
+FROM
+  messages;
 
 -- Session B
-SELECT count(*) AS b_count FROM messages;
+SELECT
+  count(*) AS b_count
+FROM
+  messages;
 
 -- Session A
 ROLLBACK;
 
 -- Session B
-SELECT count(*) AS b_after_rollback FROM messages;
+SELECT
+  count(*) AS b_after_rollback
+FROM
+  messages;
 ```
 
 ## Expected result

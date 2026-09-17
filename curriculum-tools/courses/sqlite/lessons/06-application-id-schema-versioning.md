@@ -43,35 +43,85 @@ Use an application-specific identifier in a real product and advance user_versio
 ```sql
 .print -- The wrapper has already opened $TUTOR_SQLITE_DB
 DROP TABLE IF EXISTS documents;
-PRAGMA application_id=0;
-PRAGMA user_version=0;
-CREATE TABLE documents(id INTEGER PRIMARY KEY, title TEXT NOT NULL);
-INSERT INTO documents(title) VALUES ('first document');
+
+PRAGMA application_id = 0;
+
+PRAGMA user_version = 0;
+
+CREATE TABLE documents (id INTEGER PRIMARY KEY, title TEXT NOT NULL);
+
+INSERT INTO
+  documents (title)
+VALUES
+  ('first document');
 ```
 
 ## Run
 ```sql
 BEGIN IMMEDIATE;
-ALTER TABLE documents ADD COLUMN body TEXT NOT NULL DEFAULT '';
-PRAGMA application_id=1397836884;
-PRAGMA user_version=2;
-INSERT INTO documents(title, body) VALUES ('migrated document', 'body survives reopen');
+
+ALTER TABLE documents
+ADD COLUMN body TEXT NOT NULL DEFAULT '';
+
+PRAGMA application_id = 1397836884;
+
+PRAGMA user_version = 2;
+
+INSERT INTO
+  documents (title, body)
+VALUES
+  ('migrated document', 'body survives reopen');
+
 COMMIT;
+
 .headers on
 .mode box
 PRAGMA application_id;
+
 PRAGMA user_version;
-SELECT sql FROM sqlite_schema WHERE name='documents';
-SELECT count(*) AS documents, count(body) AS rows_with_body FROM documents;
+
+SELECT
+  sql
+FROM
+  sqlite_schema
+WHERE
+  name = 'documents';
+
+SELECT
+  count(*) AS documents,
+  count(body) AS rows_with_body
+FROM
+  documents;
+
 .print -- A failed migration must explicitly abandon the transaction
 BEGIN IMMEDIATE;
-ALTER TABLE documents ADD COLUMN pending_column TEXT;
-PRAGMA user_version=3;
-INSERT INTO documents(id, title, body) VALUES (1, 'duplicate identity', 'must fail');
+
+ALTER TABLE documents
+ADD COLUMN pending_column TEXT;
+
+PRAGMA user_version = 3;
+
+INSERT INTO
+  documents (id, title, body)
+VALUES
+  (1, 'duplicate identity', 'must fail');
+
 ROLLBACK;
-SELECT 'after rollback', user_version,
-  (SELECT count(*) FROM pragma_table_info('documents') WHERE name='pending_column') AS leaked_column
-FROM pragma_user_version;
+
+SELECT
+  'after rollback',
+  user_version,
+  (
+    SELECT
+      count(*)
+    FROM
+      pragma_table_info ('documents')
+    WHERE
+      name = 'pending_column'
+  ) AS leaked_column
+FROM
+  pragma_user_version;
+
 .print -- A fresh reader refuses an unknown format or a mismatched schema generation
 .shell sqlite3 "$TUTOR_SQLITE_DB" "SELECT CASE WHEN application_id=1397836884 AND user_version=2 AND (SELECT count(*) FROM pragma_table_info('documents') WHERE name='body')=1 AND (SELECT count(*) FROM pragma_table_info('documents') WHERE name='pending_column')=0 THEN 'reader accepts v2' ELSE 'reader rejects file' END FROM pragma_application_id, pragma_user_version;"
 .shell sqlite3 "$TUTOR_SQLITE_DB" "PRAGMA application_id; PRAGMA user_version; SELECT count(*), count(body) FROM documents;"

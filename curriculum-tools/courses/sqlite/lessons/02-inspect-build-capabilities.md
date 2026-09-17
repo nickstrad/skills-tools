@@ -41,8 +41,12 @@ SQLite is a library that can be built with different optional features. Two prog
 
 ## Setup
 ```sql
-CREATE TABLE IF NOT EXISTS capability_baseline(id INTEGER PRIMARY KEY);
-INSERT OR REPLACE INTO capability_baseline VALUES (1);
+CREATE TABLE IF NOT EXISTS capability_baseline (id INTEGER PRIMARY KEY);
+
+INSERT OR REPLACE INTO
+  capability_baseline
+VALUES
+  (1);
 ```
 
 ## Run
@@ -50,16 +54,66 @@ INSERT OR REPLACE INTO capability_baseline VALUES (1);
 .bail off
 .headers on
 .mode box
-SELECT sqlite_version() AS sqlite_version;
-SELECT compile_options FROM pragma_compile_options WHERE compile_options LIKE '%DBSTAT%' OR compile_options LIKE '%DBPAGE%' OR compile_options LIKE '%FTS5%' OR compile_options LIKE '%THREADSAFE%' ORDER BY compile_options;
-SELECT name FROM pragma_module_list WHERE name IN ('dbstat', 'sqlite_dbpage', 'fts5') ORDER BY name;
-SELECT count(*) AS dbstat_probe_rows FROM dbstat;
+SELECT
+  sqlite_version() AS sqlite_version;
+
+SELECT
+  compile_options
+FROM
+  pragma_compile_options
+WHERE
+  compile_options LIKE '%DBSTAT%'
+  OR compile_options LIKE '%DBPAGE%'
+  OR compile_options LIKE '%FTS5%'
+  OR compile_options LIKE '%THREADSAFE%'
+ORDER BY
+  compile_options;
+
+SELECT
+  name
+FROM
+  pragma_module_list
+WHERE
+  name IN ('dbstat', 'sqlite_dbpage', 'fts5')
+ORDER BY
+  name;
+
+SELECT
+  count(*) AS dbstat_probe_rows
+FROM
+  dbstat;
+
 CREATE VIRTUAL TABLE temp.dbpage_probe USING sqlite_dbpage;
-SELECT pgno, length(data) AS page_bytes FROM dbpage_probe WHERE pgno=1;
-SELECT opcode FROM bytecode('SELECT 1') ORDER BY addr;
-CREATE VIRTUAL TABLE temp.fts_probe USING fts5(body);
-INSERT INTO fts_probe(body) VALUES ('capability probe');
-SELECT count(*) AS fts_matches FROM fts_probe WHERE fts_probe MATCH 'capability';
+
+SELECT
+  pgno,
+  length(data) AS page_bytes
+FROM
+  dbpage_probe
+WHERE
+  pgno = 1;
+
+SELECT
+  opcode
+FROM
+  bytecode ('SELECT 1')
+ORDER BY
+  addr;
+
+CREATE VIRTUAL TABLE temp.fts_probe USING fts5 (body);
+
+INSERT INTO
+  fts_probe (body)
+VALUES
+  ('capability probe');
+
+SELECT
+  count(*) AS fts_matches
+FROM
+  fts_probe
+WHERE
+  fts_probe MATCH 'capability';
+
 .help backup
 .help recover
 ```

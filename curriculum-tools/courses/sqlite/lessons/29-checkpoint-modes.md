@@ -41,38 +41,67 @@ Checkpoint results and exact sidecar sizes vary with page size and scheduling; c
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
-PRAGMA wal_autocheckpoint=0;
+PRAGMA journal_mode = WAL;
+
+PRAGMA wal_autocheckpoint = 0;
+
 DROP TABLE IF EXISTS frames;
-CREATE TABLE frames(id INTEGER PRIMARY KEY, note TEXT);
-INSERT INTO frames(note) VALUES ('base');
+
+CREATE TABLE frames (id INTEGER PRIMARY KEY, note TEXT);
+
+INSERT INTO
+  frames (note)
+VALUES
+  ('base');
 ```
 
 ## Run
 ```sql
 -- Session A
-PRAGMA wal_autocheckpoint=0;
+PRAGMA wal_autocheckpoint = 0;
 
 -- Session B
 BEGIN;
-SELECT 'reader pins snapshot', count(*) FROM frames;
+
+SELECT
+  'reader pins snapshot',
+  count(*)
+FROM
+  frames;
 
 -- Session A
-INSERT INTO frames(note) VALUES ('frame-1'), ('frame-2'), ('frame-3'), ('frame-4'), ('frame-5'), ('frame-6'), ('frame-7'), ('frame-8');
-.timeout 100
-PRAGMA wal_checkpoint(PASSIVE);
-PRAGMA wal_checkpoint(FULL);
-PRAGMA wal_checkpoint(RESTART);
-PRAGMA wal_checkpoint(TRUNCATE);
-.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
+INSERT INTO
+  frames (note)
+VALUES
+  ('frame-1'),
+  ('frame-2'),
+  ('frame-3'),
+  ('frame-4'),
+  ('frame-5'),
+  ('frame-6'),
+  ('frame-7'),
+  ('frame-8');
 
+.timeout 100
+PRAGMA wal_checkpoint (PASSIVE);
+
+PRAGMA wal_checkpoint (FULL);
+
+PRAGMA wal_checkpoint (RESTART);
+
+PRAGMA wal_checkpoint (TRUNCATE);
+
+.shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
 -- Session B
 COMMIT;
 
 -- Session A
-PRAGMA wal_checkpoint(FULL);
-PRAGMA wal_checkpoint(RESTART);
-PRAGMA wal_checkpoint(TRUNCATE);
+PRAGMA wal_checkpoint (FULL);
+
+PRAGMA wal_checkpoint (RESTART);
+
+PRAGMA wal_checkpoint (TRUNCATE);
+
 .shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal";
 ```
 

@@ -55,31 +55,70 @@ echo "evidence_dir=$scratch"
 main=$scratch/attach-main.sqlite; aux=$scratch/attach-aux.sqlite
 rm -f "$main" "$main-journal" "$main-wal" "$main-shm" "$aux" "$aux-journal" "$aux-wal" "$aux-shm"
 sqlite3 -bail "$main" <<SQL
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 ATTACH '$aux' AS aux;
-CREATE TABLE main.items(id INTEGER PRIMARY KEY, value TEXT);
-CREATE TABLE aux.items(id INTEGER PRIMARY KEY, value TEXT);
+
+CREATE TABLE main.items (id INTEGER PRIMARY KEY, value TEXT);
+
+CREATE TABLE aux.items (id INTEGER PRIMARY KEY, value TEXT);
+
 BEGIN IMMEDIATE;
-INSERT INTO main.items VALUES (1, 'main-commit');
-INSERT INTO aux.items VALUES (1, 'aux-commit');
+
+INSERT INTO
+  main.items
+VALUES
+  (1, 'main-commit');
+
+INSERT INTO
+  aux.items
+VALUES
+  (1, 'aux-commit');
+
 .shell stat -c 'main_journal_bytes=%s' '$main-journal'
 .shell stat -c 'aux_journal_bytes=%s' '$aux-journal'
 COMMIT;
-SELECT 'main_rows', count(*) FROM main.items;
-SELECT 'aux_rows', count(*) FROM aux.items;
+
+SELECT
+  'main_rows',
+  count(*)
+FROM
+  main.items;
+
+SELECT
+  'aux_rows',
+  count(*)
+FROM
+  aux.items;
+
 PRAGMA main.integrity_check;
+
 PRAGMA aux.integrity_check;
 SQL
 echo "after_commit_main_journal=$(test -e "$main-journal" && stat -c '%s' "$main-journal" || echo 0) after_commit_aux_journal=$(test -e "$aux-journal" && stat -c '%s' "$aux-journal" || echo 0)"
 sqlite3 -bail "$main" <<SQL
-PRAGMA journal_mode=WAL;
+PRAGMA journal_mode = WAL;
+
 ATTACH '$aux' AS aux;
-PRAGMA aux.journal_mode=WAL;
-PRAGMA wal_autocheckpoint=0;
+
+PRAGMA aux.journal_mode = WAL;
+
+PRAGMA wal_autocheckpoint = 0;
+
 BEGIN;
-INSERT INTO main.items VALUES (2, 'main-wal');
-INSERT INTO aux.items VALUES (2, 'aux-wal');
+
+INSERT INTO
+  main.items
+VALUES
+  (2, 'main-wal');
+
+INSERT INTO
+  aux.items
+VALUES
+  (2, 'aux-wal');
+
 COMMIT;
+
 .shell stat -c 'main_wal_bytes=%s' '$main-wal'
 .shell stat -c 'aux_wal_bytes=%s' '$aux-wal'
 SQL

@@ -38,33 +38,64 @@ A rollback journal holds original page contents so SQLite can undo an interrupte
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 DROP TABLE IF EXISTS journal_rows;
-CREATE TABLE journal_rows(id INTEGER PRIMARY KEY, payload TEXT);
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 200) INSERT INTO journal_rows SELECT x, 'baseline' FROM n;
+
+CREATE TABLE journal_rows (id INTEGER PRIMARY KEY, payload TEXT);
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 200
+  )
+INSERT INTO
+  journal_rows
+SELECT
+  x,
+  'baseline'
+FROM
+  n;
 ```
 
 ## Run
 ```sql
 -- Session A
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 BEGIN IMMEDIATE;
-UPDATE journal_rows SET payload='uncommitted-update' WHERE id <= 150;
+
+UPDATE journal_rows
+SET
+  payload = 'uncommitted-update'
+WHERE
+  id <= 150;
 
 -- Session B
 .shell ls -l "$TUTOR_SQLITE_DB" "$TUTOR_SQLITE_DB-journal"
 .shell sqlite3 "$TUTOR_SQLITE_DB" "SELECT 'b_visible_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';"
-
 -- Session A
 ROLLBACK;
 
 -- Session B
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'after_rollback journal_bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'after_rollback journal_absent'; fi
 .shell sqlite3 "$TUTOR_SQLITE_DB" "SELECT 'b_after_rollback_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';"
-
 -- Session A
 BEGIN IMMEDIATE;
-UPDATE journal_rows SET payload='committed-update' WHERE id <= 150;
+
+UPDATE journal_rows
+SET
+  payload = 'committed-update'
+WHERE
+  id <= 150;
+
 COMMIT;
 
 -- Session B

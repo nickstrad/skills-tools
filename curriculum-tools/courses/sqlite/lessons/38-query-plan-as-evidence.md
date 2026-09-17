@@ -42,25 +42,77 @@ Do not infer a universal speedup from one warm-cache run. Keep the data size, SQ
 ## Setup
 ```sql
 DROP TABLE IF EXISTS plan_events;
-CREATE TABLE plan_events(event_id INTEGER PRIMARY KEY, tenant TEXT NOT NULL, payload TEXT NOT NULL);
-WITH RECURSIVE n(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM n WHERE x < 20000)
-INSERT INTO plan_events(event_id, tenant, payload)
-SELECT x, 'tenant-' || printf('%02d', x % 100), 'payload-' || printf('%06d', x) FROM n;
+
+CREATE TABLE plan_events (event_id INTEGER PRIMARY KEY, tenant TEXT NOT NULL, payload TEXT NOT NULL);
+
+WITH RECURSIVE
+  n (x) AS (
+    SELECT
+      1
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 20000
+  )
+INSERT INTO
+  plan_events (event_id, tenant, payload)
+SELECT
+  x,
+  'tenant-' || printf('%02d', x % 100),
+  'payload-' || printf('%06d', x)
+FROM
+  n;
+
 DROP INDEX IF EXISTS plan_events_tenant_idx;
+
 PRAGMA optimize;
 ```
 
 ## Run
 ```sql
 .timer on
-EXPLAIN QUERY PLAN SELECT payload FROM plan_events WHERE tenant = 'tenant-37' ORDER BY event_id;
+EXPLAIN QUERY PLAN
+SELECT
+  payload
+FROM
+  plan_events
+WHERE
+  tenant = 'tenant-37'
+ORDER BY
+  event_id;
+
 .stats on
-SELECT count(*) AS matching_rows FROM plan_events WHERE tenant = 'tenant-37';
+SELECT
+  count(*) AS matching_rows
+FROM
+  plan_events
+WHERE
+  tenant = 'tenant-37';
+
 .stats off
-CREATE INDEX plan_events_tenant_idx ON plan_events(tenant, event_id, payload);
-EXPLAIN QUERY PLAN SELECT payload FROM plan_events WHERE tenant = 'tenant-37' ORDER BY event_id;
+CREATE INDEX plan_events_tenant_idx ON plan_events (tenant, event_id, payload);
+
+EXPLAIN QUERY PLAN
+SELECT
+  payload
+FROM
+  plan_events
+WHERE
+  tenant = 'tenant-37'
+ORDER BY
+  event_id;
+
 .stats on
-SELECT count(*) AS matching_rows FROM plan_events WHERE tenant = 'tenant-37';
+SELECT
+  count(*) AS matching_rows
+FROM
+  plan_events
+WHERE
+  tenant = 'tenant-37';
+
 .stats off
 .timer off
 ```

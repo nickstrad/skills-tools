@@ -55,19 +55,42 @@ quota_db=$scratch/storage-quota.sqlite
 echo "evidence_dir=$scratch"
 rm -f "$quota_db" "$quota_db-journal" "$quota_db-wal" "$quota_db-shm"
 sqlite3 -bail "$quota_db" <<'SQL'
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
-CREATE TABLE quota_rows(id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
-PRAGMA max_page_count=12;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
+CREATE TABLE quota_rows (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);
+
+PRAGMA max_page_count = 12;
 SQL
 echo "quota_db=$quota_db"
 echo "initial_limit=$(sqlite3 "$quota_db" 'PRAGMA max_page_count=12; SELECT max_page_count FROM pragma_max_page_count' | tail -n 1) initial_pages=$(sqlite3 "$quota_db" 'PRAGMA page_count')"
 set +e
 sqlite3 -bail "$quota_db" >"$scratch/failure.log" 2>&1 <<'SQL'
-PRAGMA max_page_count=12;
+PRAGMA max_page_count = 12;
+
 BEGIN IMMEDIATE;
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 100)
-INSERT INTO quota_rows SELECT x, hex(randomblob(700)) FROM n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 100
+  )
+INSERT INTO
+  quota_rows
+SELECT
+  x,
+  hex(randomblob(700))
+FROM
+  n;
+
 COMMIT;
 SQL
 quota_status=$?
@@ -80,10 +103,30 @@ echo "quota_insert_exit=$quota_status"
 echo "after_failure=$(sqlite3 "$quota_db" 'PRAGMA integrity_check; SELECT count(*) AS rows_after_failure FROM quota_rows; SELECT page_count FROM pragma_page_count;')"
 if [ "$quota_status" -eq 0 ]; then echo 'quota_failure=not-observed' >&2; exit 1; fi
 sqlite3 -bail "$quota_db" <<'SQL'
-PRAGMA max_page_count=240;
+PRAGMA max_page_count = 240;
+
 BEGIN IMMEDIATE;
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 100)
-INSERT INTO quota_rows SELECT x, hex(randomblob(700)) FROM n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 100
+  )
+INSERT INTO
+  quota_rows
+SELECT
+  x,
+  hex(randomblob(700))
+FROM
+  n;
+
 COMMIT;
 SQL
 echo "recovered_limit=$(sqlite3 "$quota_db" 'PRAGMA max_page_count=240; SELECT max_page_count FROM pragma_max_page_count' | tail -n 1) recovered_pages=$(sqlite3 "$quota_db" 'PRAGMA page_count')"

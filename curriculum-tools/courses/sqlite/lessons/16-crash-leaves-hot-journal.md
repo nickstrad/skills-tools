@@ -58,11 +58,33 @@ TUTOR_SQLITE_DB="$SCRATCH_DIR/crash.db"
 mkdir -p "$(dirname "$TUTOR_SQLITE_DB")"
 rm -f "$TUTOR_SQLITE_DB" "$TUTOR_SQLITE_DB-journal" "$TUTOR_SQLITE_DB.hot-main" "$TUTOR_SQLITE_DB.hot-main-journal" "$TUTOR_SQLITE_DB.commands"
 sqlite3 "$TUTOR_SQLITE_DB" <<'SQL'
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
-CREATE TABLE crash_rows(id INTEGER PRIMARY KEY, payload TEXT);
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 500) INSERT INTO crash_rows SELECT x, 'committed-' || hex(randomblob(2500)) FROM n;
+
+CREATE TABLE crash_rows (id INTEGER PRIMARY KEY, payload TEXT);
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 500
+  )
+INSERT INTO
+  crash_rows
+SELECT
+  x,
+  'committed-' || hex(randomblob(2500))
+FROM
+  n;
 SQL
 mkfifo "$TUTOR_SQLITE_DB.commands"
 WRITER_PID=0

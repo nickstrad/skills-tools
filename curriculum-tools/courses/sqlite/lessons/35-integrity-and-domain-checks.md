@@ -59,25 +59,64 @@ Foreign keys are connection settings; every writer must enable PRAGMA foreign_ke
 ## Setup
 ```sql
 DROP TABLE IF EXISTS child;
+
 DROP TABLE IF EXISTS parent;
-PRAGMA foreign_keys=ON;
-CREATE TABLE parent(id INTEGER PRIMARY KEY);
-CREATE TABLE child(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES parent(id), state TEXT NOT NULL);
-INSERT INTO parent VALUES (1);
-INSERT INTO child VALUES (1, 1, 'ready');
-PRAGMA foreign_keys=OFF;
-INSERT INTO child VALUES (2, 999, 'ready');
-PRAGMA foreign_keys=ON;
+
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE parent (id INTEGER PRIMARY KEY);
+
+CREATE TABLE child (
+  id INTEGER PRIMARY KEY,
+  parent_id INTEGER REFERENCES parent (id),
+  state TEXT NOT NULL
+);
+
+INSERT INTO
+  parent
+VALUES
+  (1);
+
+INSERT INTO
+  child
+VALUES
+  (1, 1, 'ready');
+
+PRAGMA foreign_keys = OFF;
+
+INSERT INTO
+  child
+VALUES
+  (2, 999, 'ready');
+
+PRAGMA foreign_keys = ON;
 ```
 
 ## Run
 ```sql
 -- Session A
 PRAGMA quick_check;
+
 PRAGMA integrity_check;
+
 PRAGMA foreign_key_check;
-SELECT 'domain orphan count', count(*) FROM child c LEFT JOIN parent p ON p.id=c.parent_id WHERE p.id IS NULL;
-SELECT 'domain ready count', count(*) FROM child WHERE state='ready';
+
+SELECT
+  'domain orphan count',
+  count(*)
+FROM
+  child c
+  LEFT JOIN parent p ON p.id = c.parent_id
+WHERE
+  p.id IS NULL;
+
+SELECT
+  'domain ready count',
+  count(*)
+FROM
+  child
+WHERE
+  state = 'ready';
 ```
 
 ## Expected result

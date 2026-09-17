@@ -3,6 +3,19 @@
 Historical validation record from before the Go tutor CLI migration; the commands and measured
 findings below are retained verbatim.
 
+## SQL formatting revision — 2026-09-17
+
+The `sql` blocks and `<<'SQL'` heredocs in 41 lessons were reformatted with sql-formatter (see
+[Formatting SQL](../../docs/AUTHORING.md#formatting-sql)); four triggers in lessons 47 and 51 were
+formatted by hand. One-line SQL inside shell plumbing was left unchanged. Revisions are unchanged.
+`tutor sqlite-legacy validate --isolated` ran on the original lessons and then on the formatted
+ones (SQLite 3.53.4). After normalizing paths, timings and numbers, the outputs differ only in
+stdout/stderr interleaving and in SQL text that SQLite echoes back: the stored schema text in
+lesson 6 and the CHECK expression in lesson 25's error (`ok = 1`, whose Expected result was updated).
+Both runs report lesson 17 as failed because `--isolated` cannot supply lesson 16's preserved
+crash pair; the baseline also hit lesson 16's writer-readiness deadline once. Running the formatted
+16 and then 17 in one shared lab passed: 500 committed rows, 0 dirty rows, evidence unchanged.
+
 All 54 lesson experiments reproduced their stated invariants in both a fresh sequential course run
 and an isolated-per-lesson run. This is an authoring validation result, not learner completion or
 production certification. The final architecture decision deliberately remains a learner-authored

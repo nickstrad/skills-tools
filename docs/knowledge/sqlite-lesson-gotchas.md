@@ -58,6 +58,12 @@ order, which is how a learner experiences it.
 Validate with both isolated lessons and a sequential fresh-lab run. Use
 `tutor sqlite-legacy validate --isolated`, which runs shell lessons as well as real Session A/B REPLs and
 can retain logs with `--keep`. Review every result: native completion still only detects timeouts.
+Isolated runs always report hot-journal-recovery (17) as failed: its private lab has no crash pair
+from lesson 16. Run 16's and then 17's Run blocks in one shared `TUTOR_SQLITE_DB` directory instead;
+non-isolated `validate` skips shell lessons. Lesson 16's 5-second writer-readiness loop can
+occasionally time out on a busy host; rerun it before treating that as a lesson regression.
+To check an editorial rewrite such as SQL formatting, validate the original and the edited
+lessons and diff the outputs after normalizing temporary paths, timings and numbers.
 The 2026-09-03 and 2026-09-04 revision counts and capability findings above are historical evidence;
 preserve earlier effective revisions for editorial-only improvements and never bump every lesson
 merely because its explanation was expanded.

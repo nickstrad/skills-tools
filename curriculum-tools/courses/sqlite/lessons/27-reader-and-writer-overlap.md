@@ -40,27 +40,59 @@ Readers must actually keep a transaction open; two autocommit SELECT statements 
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
-PRAGMA wal_autocheckpoint=0;
+PRAGMA journal_mode = WAL;
+
+PRAGMA wal_autocheckpoint = 0;
+
 DROP TABLE IF EXISTS items;
-CREATE TABLE items(id INTEGER PRIMARY KEY, value TEXT);
-INSERT INTO items VALUES (1, 'old');
+
+CREATE TABLE items (id INTEGER PRIMARY KEY, value TEXT);
+
+INSERT INTO
+  items
+VALUES
+  (1, 'old');
 ```
 
 ## Run
 ```sql
 -- Session A
 BEGIN;
-SELECT 'A before', count(*), group_concat(value) FROM items;
+
+SELECT
+  'A before',
+  count(*),
+  group_concat(value)
+FROM
+  items;
 
 -- Session B
-INSERT INTO items VALUES (2, 'new');
-SELECT 'B committed', count(*) FROM items;
+INSERT INTO
+  items
+VALUES
+  (2, 'new');
+
+SELECT
+  'B committed',
+  count(*)
+FROM
+  items;
 
 -- Session A
-SELECT 'A snapshot after B commit', count(*), group_concat(value) FROM items;
+SELECT
+  'A snapshot after B commit',
+  count(*),
+  group_concat(value)
+FROM
+  items;
+
 COMMIT;
-SELECT 'A current', count(*) FROM items;
+
+SELECT
+  'A current',
+  count(*)
+FROM
+  items;
 ```
 
 ## Expected result

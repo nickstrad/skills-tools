@@ -40,20 +40,63 @@ This experiment grows one table until its logical rows occupy many fixed-size pa
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS samples;
-CREATE TABLE samples(id INTEGER PRIMARY KEY, value TEXT NOT NULL);
+
+CREATE TABLE samples (id INTEGER PRIMARY KEY, value TEXT NOT NULL);
 ```
 
 ## Run
 ```sql
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000) INSERT INTO samples SELECT x, printf('row-%05d', x) FROM n;
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 2000
+  )
+INSERT INTO
+  samples
+SELECT
+  x,
+  printf('row-%05d', x)
+FROM
+  n;
+
 .headers on
 .mode box
-SELECT page_size, page_count, page_size * page_count AS file_bytes FROM pragma_page_size, pragma_page_count;
-SELECT name, pagetype, count(*) AS pages, sum(ncell) AS cells FROM dbstat WHERE name='samples' GROUP BY name, pagetype ORDER BY pagetype;
+SELECT
+  page_size,
+  page_count,
+  page_size * page_count AS file_bytes
+FROM
+  pragma_page_size,
+  pragma_page_count;
+
+SELECT
+  name,
+  pagetype,
+  count(*) AS pages,
+  sum(ncell) AS cells
+FROM
+  dbstat
+WHERE
+  name = 'samples'
+GROUP BY
+  name,
+  pagetype
+ORDER BY
+  pagetype;
 ```
 
 ## Expected result

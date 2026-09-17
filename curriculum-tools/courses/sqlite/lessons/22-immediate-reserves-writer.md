@@ -42,12 +42,20 @@ B's first BEGIN is intentionally a bounded 250 ms failure, not a release-depende
 ## Setup
 ```sql
 .print -- close every other sqlite3 session first: the next line must print delete
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 DROP TABLE IF EXISTS events;
+
 DROP TABLE IF EXISTS other_events;
-CREATE TABLE events(id INTEGER PRIMARY KEY, note TEXT);
-CREATE TABLE other_events(id INTEGER PRIMARY KEY, note TEXT);
-INSERT INTO events(note) VALUES ('baseline');
+
+CREATE TABLE events (id INTEGER PRIMARY KEY, note TEXT);
+
+CREATE TABLE other_events (id INTEGER PRIMARY KEY, note TEXT);
+
+INSERT INTO
+  events (note)
+VALUES
+  ('baseline');
 ```
 
 ## Run
@@ -55,24 +63,49 @@ INSERT INTO events(note) VALUES ('baseline');
 -- Session A
 .timeout 100
 BEGIN IMMEDIATE;
-INSERT INTO events(note) VALUES ('A owns writer');
+
+INSERT INTO
+  events (note)
+VALUES
+  ('A owns writer');
 
 -- Session B
 .timeout 250
 .timer on
 BEGIN IMMEDIATE;
+
 .timer off
-SELECT 'B refused admission, still autocommit', count(*) AS committed_rows FROM events;
+SELECT
+  'B refused admission, still autocommit',
+  count(*) AS committed_rows
+FROM
+  events;
 
 -- Session A
 COMMIT;
 
 -- Session B
 BEGIN IMMEDIATE;
-INSERT INTO events(note) VALUES ('B after admission');
-INSERT INTO other_events(note) VALUES ('a different table still required admission');
+
+INSERT INTO
+  events (note)
+VALUES
+  ('B after admission');
+
+INSERT INTO
+  other_events (note)
+VALUES
+  ('a different table still required admission');
+
 COMMIT;
-SELECT id, note FROM events ORDER BY id;
+
+SELECT
+  id,
+  note
+FROM
+  events
+ORDER BY
+  id;
 ```
 
 ## Expected result

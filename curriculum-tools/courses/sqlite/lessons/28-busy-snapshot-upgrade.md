@@ -41,10 +41,16 @@ The default CLI exposes the primary error text; bindings can inspect the extende
 
 ## Setup
 ```sql
-PRAGMA journal_mode=WAL;
+PRAGMA journal_mode = WAL;
+
 DROP TABLE IF EXISTS docs;
-CREATE TABLE docs(id INTEGER PRIMARY KEY, body TEXT);
-INSERT INTO docs VALUES (1, 'v1');
+
+CREATE TABLE docs (id INTEGER PRIMARY KEY, body TEXT);
+
+INSERT INTO
+  docs
+VALUES
+  (1, 'v1');
 ```
 
 ## Run
@@ -52,19 +58,56 @@ INSERT INTO docs VALUES (1, 'v1');
 -- Session A
 .timeout 100
 BEGIN;
-SELECT 'A read', body FROM docs WHERE id=1;
+
+SELECT
+  'A read',
+  body
+FROM
+  docs
+WHERE
+  id = 1;
 
 -- Session B
-UPDATE docs SET body='v2' WHERE id=1;
-SELECT 'B committed', body FROM docs WHERE id=1;
+UPDATE docs
+SET
+  body = 'v2'
+WHERE
+  id = 1;
+
+SELECT
+  'B committed',
+  body
+FROM
+  docs
+WHERE
+  id = 1;
 
 -- Session A
 .timer on
-UPDATE docs SET body='A stale write' WHERE id=1;
+UPDATE docs
+SET
+  body = 'A stale write'
+WHERE
+  id = 1;
+
 .timer off
-SELECT 'A still snapshot', body FROM docs WHERE id=1;
+SELECT
+  'A still snapshot',
+  body
+FROM
+  docs
+WHERE
+  id = 1;
+
 ROLLBACK;
-SELECT 'A retry view', body FROM docs WHERE id=1;
+
+SELECT
+  'A retry view',
+  body
+FROM
+  docs
+WHERE
+  id = 1;
 ```
 
 ## Expected result

@@ -42,10 +42,16 @@ The exact busy error text is CLI/version dependent; the lock boundary and the me
 ## Setup
 ```sql
 .print -- close every other sqlite3 session first: the next line must print delete
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 DROP TABLE IF EXISTS counter;
-CREATE TABLE counter(id INTEGER PRIMARY KEY, value INTEGER NOT NULL);
-INSERT INTO counter VALUES (1, 0);
+
+CREATE TABLE counter (id INTEGER PRIMARY KEY, value INTEGER NOT NULL);
+
+INSERT INTO
+  counter
+VALUES
+  (1, 0);
 ```
 
 ## Run
@@ -53,30 +59,74 @@ INSERT INTO counter VALUES (1, 0);
 -- Session A
 .timeout 2000
 BEGIN DEFERRED;
-SELECT 'A snapshot', value FROM counter WHERE id=1;
+
+SELECT
+  'A snapshot',
+  value
+FROM
+  counter
+WHERE
+  id = 1;
 
 -- Session B
 .timeout 2000
 BEGIN DEFERRED;
-SELECT 'B snapshot', value FROM counter WHERE id=1;
+
+SELECT
+  'B snapshot',
+  value
+FROM
+  counter
+WHERE
+  id = 1;
 
 -- Session A
-UPDATE counter SET value=value+1 WHERE id=1;
-SELECT 'A changes', changes();
+UPDATE counter
+SET
+  value = value + 1
+WHERE
+  id = 1;
+
+SELECT
+  'A changes',
+  changes();
 
 -- Session B
 .timer on
-UPDATE counter SET value=value+1 WHERE id=1;
+UPDATE counter
+SET
+  value = value + 1
+WHERE
+  id = 1;
+
 .timer off
-SELECT 'B still inside its read transaction', value FROM counter WHERE id=1;
+SELECT
+  'B still inside its read transaction',
+  value
+FROM
+  counter
+WHERE
+  id = 1;
 
 -- Session A
 ROLLBACK;
 
 -- Session B
-UPDATE counter SET value=value+1 WHERE id=1;
+UPDATE counter
+SET
+  value = value + 1
+WHERE
+  id = 1;
+
 COMMIT;
-SELECT 'committed value', value FROM counter WHERE id=1;
+
+SELECT
+  'committed value',
+  value
+FROM
+  counter
+WHERE
+  id = 1;
 ```
 
 ## Expected result

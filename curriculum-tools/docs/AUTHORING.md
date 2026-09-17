@@ -216,8 +216,11 @@ sql-formatter -l duckdb < statements.sql                        # print formatte
 
 The repository-root `.sql-formatter.json` applies from any directory in the repository. It keeps
 keyword case as written (follow the course's existing case), puts short lists such as `VALUES`
-rows on one line, and leaves psql variables (`:name`, `:'name'`, `:"name"`) intact. Use `-l
-postgresql`, `-l duckdb` or `-l sqlite`; the default dialect rejects syntax such as `::` casts.
+rows on one line, and leaves psql variables (`:name`, `:'name'`, `:"name"`) and SQLite/DuckDB
+parameters (`?`, `?1`, `$1`, `@name`, `$name`) intact. Its `paramTypes` replace each dialect's own
+parameter rules, so keep all of these forms when editing it. Use `-l postgresql`, `-l duckdb` or
+`-l sqlite`; the default dialect rejects syntax such as `::` casts. The config is found only from
+inside the repository: when formatting a copy elsewhere, pass `-c <repo>/.sql-formatter.json`.
 
 Apply this to `sql` fenced Setup and Run blocks, `lab/*.sql` starters and fixtures, and validation SQL.
 Comments such as `-- Session A` stay in place. When the tool cannot take the SQL, format it by hand in
@@ -227,7 +230,17 @@ the same style (one clause per line, two-space indentation, a blank line between
   them and keep each meta-command where it was; `\gset` stays on the last line of its query.
 - SQL inside shell strings (`psql -c '...'`, heredocs) is formatted by hand; a short one-statement
   `-c` string may stay on one line.
-- Bodies inside `$$ ... $$` are left unformatted by the tool.
+- Bodies inside `$$ ... $$` are left unformatted by the tool. For SQL passed as a string, such as
+  DuckDB's `postgres_query('app', $$ ... $$)`, format the inner query with its own dialect and
+  indent it inside the call.
+- `CREATE TRIGGER ... BEGIN ... END;` comes out flattened (and `AFTER UPDATE` is split). Keep the
+  header on one line (`WHEN` on the next), then indent the formatted body statements between
+  `BEGIN` and `END;`.
+- Tidy these layouts after formatting: a standalone `SET\n  name = value;` becomes one line
+  (not `UPDATE ... SET`); `GRANT\nSELECT\n  ON ...` becomes `GRANT SELECT ON ...;`; the DuckDB
+  dialect's `TRY_CAST (` becomes `TRY_CAST(`.
+- Leave one-line SQL inside shell plumbing (`test "$(sqlite3 ...)"`, FIFO `echo ... >&3`, `strace`
+  wrappers) as it is; format `<<'SQL'` heredoc bodies instead.
 
 The formatter does not check SQL: always run the result against the real tool. Reformatting an
 existing lesson is editorial-only (no `revision` bump), but still run `tutor <id> check` and re-validate

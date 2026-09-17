@@ -47,45 +47,121 @@ Each duplicate error is expected and intentionally followed by a scope-specific 
 ## Setup
 ```sql
 .bail off
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 DROP TABLE IF EXISTS ledger;
-CREATE TABLE ledger(id INTEGER PRIMARY KEY, note TEXT NOT NULL);
+
+CREATE TABLE ledger (id INTEGER PRIMARY KEY, note TEXT NOT NULL);
 ```
 
 ## Run
 ```sql
 -- Default ABORT: only the duplicate statement is cancelled
 BEGIN;
-INSERT INTO ledger VALUES (1, 'abort first');
-INSERT INTO ledger VALUES (1, 'abort duplicate');
-INSERT INTO ledger VALUES (2, 'abort continues');
+
+INSERT INTO
+  ledger
+VALUES
+  (1, 'abort first');
+
+INSERT INTO
+  ledger
+VALUES
+  (1, 'abort duplicate');
+
+INSERT INTO
+  ledger
+VALUES
+  (2, 'abort continues');
+
 COMMIT;
-SELECT 'after ABORT' AS case_name, count(*) AS committed_rows, group_concat(id) AS ids FROM ledger;
+
+SELECT
+  'after ABORT' AS case_name,
+  count(*) AS committed_rows,
+  group_concat(id) AS ids
+FROM
+  ledger;
 
 -- Explicit ROLLBACK: the caller abandons the whole transaction
 BEGIN;
-INSERT INTO ledger VALUES (3, 'explicit pending');
-INSERT INTO ledger VALUES (1, 'explicit duplicate');
+
+INSERT INTO
+  ledger
+VALUES
+  (3, 'explicit pending');
+
+INSERT INTO
+  ledger
+VALUES
+  (1, 'explicit duplicate');
+
 ROLLBACK;
-SELECT 'after explicit ROLLBACK' AS case_name, count(*) AS committed_rows, group_concat(id) AS ids FROM ledger;
+
+SELECT
+  'after explicit ROLLBACK' AS case_name,
+  count(*) AS committed_rows,
+  group_concat(id) AS ids
+FROM
+  ledger;
 
 -- OR ROLLBACK: the duplicate automatically aborts its transaction
 BEGIN;
-INSERT INTO ledger VALUES (3, 'automatic pending');
-INSERT OR ROLLBACK INTO ledger VALUES (1, 'automatic duplicate');
-SELECT 'after OR ROLLBACK' AS case_name, count(*) AS committed_rows, group_concat(id) AS ids FROM ledger;
+
+INSERT INTO
+  ledger
+VALUES
+  (3, 'automatic pending');
+
+INSERT OR ROLLBACK INTO
+  ledger
+VALUES
+  (1, 'automatic duplicate');
+
+SELECT
+  'after OR ROLLBACK' AS case_name,
+  count(*) AS committed_rows,
+  group_concat(id) AS ids
+FROM
+  ledger;
 
 -- SAVEPOINT: recover only the failed subunit, then commit the outer work
 BEGIN;
-INSERT INTO ledger VALUES (3, 'savepoint before');
+
+INSERT INTO
+  ledger
+VALUES
+  (3, 'savepoint before');
+
 SAVEPOINT unit;
-INSERT INTO ledger VALUES (5, 'savepoint pending work');
-INSERT INTO ledger VALUES (1, 'savepoint duplicate');
+
+INSERT INTO
+  ledger
+VALUES
+  (5, 'savepoint pending work');
+
+INSERT INTO
+  ledger
+VALUES
+  (1, 'savepoint duplicate');
+
 ROLLBACK TO unit;
-INSERT INTO ledger VALUES (4, 'savepoint after');
+
+INSERT INTO
+  ledger
+VALUES
+  (4, 'savepoint after');
+
 RELEASE unit;
+
 COMMIT;
-SELECT 'after SAVEPOINT' AS case_name, count(*) AS committed_rows, group_concat(id) AS ids FROM ledger;
+
+SELECT
+  'after SAVEPOINT' AS case_name,
+  count(*) AS committed_rows,
+  group_concat(id) AS ids
+FROM
+  ledger;
 ```
 
 ## Expected result

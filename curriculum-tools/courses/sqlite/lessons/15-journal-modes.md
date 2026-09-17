@@ -41,34 +41,67 @@ MEMORY and OFF are useful to discuss but are intentionally not used here: they w
 ## Setup
 ```sql
 DROP TABLE IF EXISTS mode_rows;
-CREATE TABLE mode_rows(mode TEXT, value INTEGER);
+
+CREATE TABLE mode_rows (mode TEXT, value INTEGER);
 ```
 
 ## Run
 ```sql
 DELETE FROM mode_rows;
-PRAGMA journal_mode=DELETE;
+
+PRAGMA journal_mode = DELETE;
+
 BEGIN;
-INSERT INTO mode_rows VALUES ('DELETE', 1), ('DELETE', 2);
+
+INSERT INTO
+  mode_rows
+VALUES
+  ('DELETE', 1),
+  ('DELETE', 2);
+
 COMMIT;
+
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'DELETE exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'DELETE absent'; fi
+PRAGMA journal_mode = TRUNCATE;
 
-PRAGMA journal_mode=TRUNCATE;
 BEGIN;
-INSERT INTO mode_rows VALUES ('TRUNCATE', 1), ('TRUNCATE', 2);
+
+INSERT INTO
+  mode_rows
+VALUES
+  ('TRUNCATE', 1),
+  ('TRUNCATE', 2);
+
 COMMIT;
+
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'TRUNCATE exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'TRUNCATE absent'; fi
+PRAGMA journal_mode = PERSIST;
 
-PRAGMA journal_mode=PERSIST;
 BEGIN;
-INSERT INTO mode_rows VALUES ('PERSIST', 1), ('PERSIST', 2);
-COMMIT;
-.shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'PERSIST exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'PERSIST absent'; fi
 
+INSERT INTO
+  mode_rows
+VALUES
+  ('PERSIST', 1),
+  ('PERSIST', 2);
+
+COMMIT;
+
+.shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'PERSIST exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'PERSIST absent'; fi
 .headers on
-SELECT mode, count(*) AS rows FROM mode_rows GROUP BY mode ORDER BY mode;
+SELECT
+  mode,
+  count(*) AS rows
+FROM
+  mode_rows
+GROUP BY
+  mode
+ORDER BY
+  mode;
+
 .print -- restore DELETE so later lessons start from the default mode
-PRAGMA journal_mode=DELETE;
+PRAGMA journal_mode = DELETE;
+
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'after_reset exists bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'after_reset absent'; fi
 ```
 

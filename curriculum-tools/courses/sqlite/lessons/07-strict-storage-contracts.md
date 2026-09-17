@@ -42,26 +42,87 @@ Constraint wording can vary by build. Classify each error by the violated rule a
 ```sql
 .bail off
 DROP TABLE IF EXISTS flexible;
+
 DROP TABLE IF EXISTS strict_numbers;
+
 DROP TABLE IF EXISTS bounded;
-CREATE TABLE flexible(value INTEGER);
-CREATE TABLE strict_numbers(value INTEGER) STRICT;
-CREATE TABLE bounded(value INTEGER CHECK (value BETWEEN 0 AND 100)) STRICT;
+
+CREATE TABLE flexible (value INTEGER);
+
+CREATE TABLE strict_numbers (value INTEGER) STRICT;
+
+CREATE TABLE bounded (value INTEGER CHECK (value BETWEEN 0 AND 100)) STRICT;
 ```
 
 ## Run
 ```sql
 .headers on
 .mode box
-INSERT INTO flexible VALUES ('not-an-integer');
-SELECT 'flexible text accepted' AS case_name, value, typeof(value) AS stored_type FROM flexible;
-INSERT INTO strict_numbers VALUES ('not-an-integer');
-INSERT INTO strict_numbers VALUES (42.0);
-SELECT 'strict lossless number accepted' AS case_name, value, typeof(value) AS stored_type FROM strict_numbers;
-INSERT INTO bounded VALUES (-1);
-INSERT INTO bounded VALUES (50);
-SELECT 'domain-valid row' AS case_name, value, typeof(value) AS stored_type FROM bounded;
-SELECT (SELECT count(*) FROM flexible) AS flexible_rows, (SELECT count(*) FROM strict_numbers) AS strict_rows, (SELECT count(*) FROM bounded) AS bounded_rows;
+INSERT INTO
+  flexible
+VALUES
+  ('not-an-integer');
+
+SELECT
+  'flexible text accepted' AS case_name,
+  value,
+  typeof(value) AS stored_type
+FROM
+  flexible;
+
+INSERT INTO
+  strict_numbers
+VALUES
+  ('not-an-integer');
+
+INSERT INTO
+  strict_numbers
+VALUES
+  (42.0);
+
+SELECT
+  'strict lossless number accepted' AS case_name,
+  value,
+  typeof(value) AS stored_type
+FROM
+  strict_numbers;
+
+INSERT INTO
+  bounded
+VALUES
+  (-1);
+
+INSERT INTO
+  bounded
+VALUES
+  (50);
+
+SELECT
+  'domain-valid row' AS case_name,
+  value,
+  typeof(value) AS stored_type
+FROM
+  bounded;
+
+SELECT
+  (
+    SELECT
+      count(*)
+    FROM
+      flexible
+  ) AS flexible_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      strict_numbers
+  ) AS strict_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      bounded
+  ) AS bounded_rows;
 ```
 
 ## Expected result

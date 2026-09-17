@@ -38,32 +38,141 @@ The same composite primary key can be represented two ways. A normal rowid table
 
 ## Setup
 ```sql
-PRAGMA journal_mode=DELETE;
-PRAGMA page_size=1024;
+PRAGMA journal_mode = DELETE;
+
+PRAGMA page_size = 1024;
+
 VACUUM;
+
 DROP TABLE IF EXISTS with_rowid;
+
 DROP TABLE IF EXISTS without_rowid;
-CREATE TABLE with_rowid(a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY(a,b));
-CREATE TABLE without_rowid(a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY(a,b)) WITHOUT ROWID;
+
+CREATE TABLE with_rowid (a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY (a, b));
+
+CREATE TABLE without_rowid (a INTEGER, b INTEGER, payload TEXT, PRIMARY KEY (a, b)) WITHOUT ROWID;
 ```
 
 ## Run
 ```sql
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000)
-INSERT INTO with_rowid SELECT x / 100, x % 100, printf('payload-%05d', x) FROM n;
-WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM n WHERE x < 2000)
-INSERT INTO without_rowid SELECT x / 100, x % 100, printf('payload-%05d', x) FROM n;
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 2000
+  )
+INSERT INTO
+  with_rowid
+SELECT
+  x / 100,
+  x % 100,
+  printf('payload-%05d', x)
+FROM
+  n;
+
+WITH RECURSIVE
+  n (x) AS (
+    VALUES
+      (1)
+    UNION ALL
+    SELECT
+      x + 1
+    FROM
+      n
+    WHERE
+      x < 2000
+  )
+INSERT INTO
+  without_rowid
+SELECT
+  x / 100,
+  x % 100,
+  printf('payload-%05d', x)
+FROM
+  n;
+
 .headers on
 .mode box
-SELECT name, count(*) AS pages, sum(pgsize) AS bytes FROM dbstat WHERE name IN ('with_rowid', 'without_rowid', 'sqlite_autoindex_with_rowid_1') GROUP BY name ORDER BY name;
-EXPLAIN QUERY PLAN SELECT payload FROM with_rowid WHERE a=12 AND b=34;
-EXPLAIN QUERY PLAN SELECT payload FROM without_rowid WHERE a=12 AND b=34;
-SELECT (SELECT count(*) FROM with_rowid) AS ordinary_rows, (SELECT count(*) FROM without_rowid) AS clustered_rows;
-CREATE INDEX rowid_payload_idx ON with_rowid(payload);
-CREATE INDEX clustered_payload_idx ON without_rowid(payload);
-SELECT 'rowid secondary locator', cid, name, key FROM pragma_index_xinfo('rowid_payload_idx');
-SELECT 'clustered secondary locator', cid, name, key FROM pragma_index_xinfo('clustered_payload_idx');
-SELECT name, count(*) AS pages FROM dbstat WHERE name IN ('rowid_payload_idx', 'clustered_payload_idx') GROUP BY name;
+SELECT
+  name,
+  count(*) AS pages,
+  sum(pgsize) AS bytes
+FROM
+  dbstat
+WHERE
+  name IN ('with_rowid', 'without_rowid', 'sqlite_autoindex_with_rowid_1')
+GROUP BY
+  name
+ORDER BY
+  name;
+
+EXPLAIN QUERY PLAN
+SELECT
+  payload
+FROM
+  with_rowid
+WHERE
+  a = 12
+  AND b = 34;
+
+EXPLAIN QUERY PLAN
+SELECT
+  payload
+FROM
+  without_rowid
+WHERE
+  a = 12
+  AND b = 34;
+
+SELECT
+  (
+    SELECT
+      count(*)
+    FROM
+      with_rowid
+  ) AS ordinary_rows,
+  (
+    SELECT
+      count(*)
+    FROM
+      without_rowid
+  ) AS clustered_rows;
+
+CREATE INDEX rowid_payload_idx ON with_rowid (payload);
+
+CREATE INDEX clustered_payload_idx ON without_rowid (payload);
+
+SELECT
+  'rowid secondary locator',
+  cid,
+  name,
+  key
+FROM
+  pragma_index_xinfo ('rowid_payload_idx');
+
+SELECT
+  'clustered secondary locator',
+  cid,
+  name,
+  key
+FROM
+  pragma_index_xinfo ('clustered_payload_idx');
+
+SELECT
+  name,
+  count(*) AS pages
+FROM
+  dbstat
+WHERE
+  name IN ('rowid_payload_idx', 'clustered_payload_idx')
+GROUP BY
+  name;
 ```
 
 ## Expected result
