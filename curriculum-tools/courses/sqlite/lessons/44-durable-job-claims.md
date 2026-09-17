@@ -103,6 +103,7 @@ BEGIN IMMEDIATE;
 COMMIT;
 
 .print A is doing slow work with no open write transaction
+
 -- Session B
 BEGIN IMMEDIATE;
 

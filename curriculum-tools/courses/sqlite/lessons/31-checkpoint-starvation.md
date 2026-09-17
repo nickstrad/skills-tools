@@ -105,6 +105,7 @@ VALUES
 PRAGMA wal_checkpoint (PASSIVE);
 
 .shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
+
 -- Session B
 COMMIT;
 

@@ -81,12 +81,14 @@ WHERE
 -- Session B
 .shell ls -l "$TUTOR_SQLITE_DB" "$TUTOR_SQLITE_DB-journal"
 .shell sqlite3 "$TUTOR_SQLITE_DB" "SELECT 'b_visible_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';"
+
 -- Session A
 ROLLBACK;
 
 -- Session B
 .shell if [ -e "$TUTOR_SQLITE_DB-journal" ]; then stat -c 'after_rollback journal_bytes=%s' "$TUTOR_SQLITE_DB-journal"; else echo 'after_rollback journal_absent'; fi
 .shell sqlite3 "$TUTOR_SQLITE_DB" "SELECT 'b_after_rollback_uncommitted=' || count(*) FROM journal_rows WHERE payload='uncommitted-update';"
+
 -- Session A
 BEGIN IMMEDIATE;
 

@@ -92,6 +92,7 @@ PRAGMA wal_checkpoint (RESTART);
 PRAGMA wal_checkpoint (TRUNCATE);
 
 .shell stat -c '%n %s bytes' "$TUTOR_SQLITE_DB-wal"
+
 -- Session B
 COMMIT;
 

@@ -162,6 +162,7 @@ FROM
   incident_events;
 
 .print Observation boundary: compare the old reader, committed rows, and checkpoint progress
+
 -- Session A
 COMMIT;
 
