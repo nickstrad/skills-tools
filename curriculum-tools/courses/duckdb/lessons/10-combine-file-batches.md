@@ -52,7 +52,7 @@ batch-v2.csv: event_id duration_ms region /               --> NULL for old regio
   the earlier output so the display label cannot erase the distinction between known and absent.
 - **count(*)** counts all rows; **count(region)** counts non-NULL regions. Their difference
   counts missing regions. **sum(duration_ms)** reconciles the four source durations.
-- **duck :memory: -bail -csv < "$DUCK_LAB/query.sql"** executes saved edits in a fresh
+- **duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"** executes saved edits in a fresh
   connection and prints CSV. **duck_check_source** checks both input files, and **duck_cleanup**
   removes the owned lab. Absolute filenames will differ between attempts.
 
@@ -111,14 +111,14 @@ connection. Run starts another connection and rereads both files with your chose
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 10 manual
 cat "$DUCK_LAB/batch-v1.csv" "$DUCK_LAB/batch-v2.csv"
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/batch-v1.csv');
 DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/batch-v2.csv');"
 ```
 
 ## Run
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 duck_check_source
 ```
 

@@ -35,10 +35,10 @@ count is not proof that a learner has solved the tasks.
 
 Repeated shell preparation belongs in reusable helpers, leaving DuckDB decisions and observations
 in the lesson. Lessons 1–5 source `lab/session.sh N` to select a fresh owned fixture, create
-editable SQL starters, print initial source evidence, export the session variables, define
-the pinned `duck` wrapper, save file fingerprints where applicable, and arrange cleanup.
+editable SQL starters, print initial source evidence, export session variables, save file
+fingerprints where applicable, and arrange cleanup. The one-time installer provides `duckdb`.
 The Run blocks expose the CLI invocation for repeated practice: lessons 1–4 pipe `session.sql`
-then `query.sql` into one `duck` process; lesson 5 redirects `query.sql` directly with `<`.
+then `query.sql` into one `duckdb` process; lesson 5 redirects `query.sql` directly with `<`.
 Only lesson 2 names a persistent `local.duckdb`; other lessons explicitly select `:memory:`.
 The files execute in order in one connection, so attachment/raw-stage state exists when the
 learner's query runs. `-bail` stops on SQL errors and `-csv` prints CSV; lesson 2 also uses
@@ -50,8 +50,8 @@ in Bash; executing it in a child process cannot configure the learner's shell. I
 own location, leaves cwd/options alone, refuses to replace a selected lab, and preserves existing
 EXIT handlers. With a pre-existing EXIT trap, explicit cleanup is required. Keep attachment,
 conversion, catalog inspection and learner-written query logic visible in lesson explanations
-and SQL. The learner explicitly requested CLI muscle memory while keeping recurring setup
-hidden; the course's wrapper handles version/settings only. The all-course contract is in
+and SQL. The learner explicitly requested full CLI muscle memory with bare native `duckdb`
+commands while helpers keep recurring fixture setup hidden. The all-course contract is in
 [the learner-work norm](learner-work.md#simple-lab-lifecycle).
 
 Each lesson now offers **Setup - script** and **Setup - manual**. Script performs the DuckDB
@@ -59,8 +59,8 @@ preparation/inspection. Manual uses `source .../session.sh N manual` for infrast
 then exposes LOAD/ATTACH, catalog queries (1/3), the source count check (2), scanner error and
 text setting/raw stage (4), or CSV DESCRIBE (5) as executable CLI calls. Both feed the same Run.
 Their inspection connections close, so Run repeats connection/staging SQL from session.sql in
-its own process. The wrapper still selects extension location, installation policy and resource
-caps. Temporary directories, fixture servers, shell variables and cleanup remain supplied.
+its own process. The one-time installer provides the extension location. Temporary directories,
+fixture servers, shell variables and cleanup remain supplied.
 
 The generic lesson Setup field can contain two Markdown subsections, `### Setup - script`
 and `### Setup - manual`, without a progress schema change. Parser/writer/renderer preserve
@@ -123,9 +123,9 @@ Do not change SQL or weaken outcome checks to accommodate a terminal capability 
 Pinned observations useful for later batches:
 
 - `default_null_order` is GLOBAL in the running instance; NULLS_FIRST changes implicit sorting,
-  explicit query null placement overrides it, RESET returns NULLS_LAST, and a fresh wrapper
+  explicit query null placement overrides it, RESET returns NULLS_LAST, and a fresh CLI
   process also uses NULLS_LAST. GLOBAL does not mean a property saved into the database file.
-  The wrapper's 256 MB memory_limit displays as 244.1 MiB; it is not total process RSS.
+  Threads and memory are inspected as the learner's machine provides them.
 - CSV inference already retains this fixture's leading-zero IDs as VARCHAR. An explicit BIGINT
   cast would discard zeros. Do not manufacture an inference failure from the general warning
   that numeric-looking identifiers need a text contract. Decimal amount conversion plus a

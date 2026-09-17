@@ -37,8 +37,8 @@ the next planned lesson tackles messy input and explicit type contracts.
 - In Bash, **source .../session.sh 5** supplies a fresh orders.csv, **DUCK_LAB**,
   **DUCK_COURSE**, your starter and the helpers. No PostgreSQL or earlier lab is required.
   The course CLI must be installed.
-- **duck :memory: -bail -csv < "$DUCK_LAB/query.sql"** runs your saved SQL file through
-  the CLI. **duck** forwards arguments to the pinned DuckDB CLI with course settings;
+- **duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"** runs your saved SQL file through
+  the normal user-installed CLI;
   **:memory:** starts a fresh temporary database, **-bail** stops on SQL errors, and
   **-csv** prints CSV results. Bash's **<** feeds the file to DuckDB's standard input.
   This lesson reads CSV directly, so no attachment SQL needs to precede your query.
@@ -106,7 +106,7 @@ Expect BIGINT, DATE, VARCHAR and BIGINT for the four columns.
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 5 manual
 cat "$DUCK_LAB/orders.csv"
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
 ```
 
@@ -115,7 +115,7 @@ neither path needs an attachment or a persistent DuckDB database.
 
 ## Run
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 duck_check_source
 ```
 

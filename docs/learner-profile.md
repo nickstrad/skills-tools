@@ -66,6 +66,14 @@ this roadmap at the learner's request.
 
 ## Preferences
 
+- CLI learning visibility (2026-09-17): when learning a tool, Nick wants the full native CLI
+  executable, flags, database/connection arguments, SQL, and relevant settings spelled out in
+  manual setup and Run commands. Do not replace those calls with a course-specific function or
+  generic runner; repeated copy/paste is useful practice. Helpers should remain for fixtures,
+  folders, environment variables, and cleanup. Show related native CLIs, such as `psql` beside
+  DuckDB or `sqlite3` beside a DuckDB/SQLite boundary, when that exposes a useful integration.
+  Global installation and PATH setup happen once; a lesson may still repeat native CLI setup or
+  SQL when that repetition teaches the lesson's particular mechanism.
 - Setup choices across courses (2026-09-14): offer **Setup - script** to bypass familiar
   software preparation and **Setup - manual** to practice the target tool's commands and SQL.
   Both should keep lab folders, fixture provisioning, shell variables and cleanup in helpers.

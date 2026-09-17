@@ -38,9 +38,9 @@ synthetic file at setup, then uses a read-only attachment.
   sets **DUCK_LAB** and **DUCK_COURSE**, creates your starter, and supplies the helpers.
   Use source with the course CLI already installed. Script setup prints the catalog inventory;
   **manual** leaves that DuckDB inspection to you while still preparing the lab and shell variables.
-  **duck** forwards your arguments to the pinned DuckDB CLI with course settings.
+  **duckdb** is the normal user-installed CLI.
   **-bail** stops on SQL errors, **-csv** prints CSV; **:memory:** creates a temporary database.
-- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck :memory: -bail -csv**
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duckdb :memory: -bail -csv**
   feeds the supplied connection/local-table SQL, then your edited query, to one CLI process.
   Both files execute in the same connection. A new invocation starts a fresh in-memory database.
 - The helper saves the source file's byte fingerprint; **duck_check_source** verifies it.
@@ -97,7 +97,7 @@ query should show both memory.main.customers and source.main.customers.
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 3 manual
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD sqlite;
 
 ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
@@ -126,7 +126,7 @@ CREATE TABLE from session.sql in the same fresh connection as your edited query.
 ## Run
 ```bash
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 sqlite3 -readonly -header -csv "$DUCK_LAB/source.sqlite" "
 SELECT
   customer_id,

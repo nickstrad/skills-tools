@@ -79,9 +79,12 @@ mechanism, and one cleanup command retires owned resources. Put repeated exports
 plumbing, file-writing scaffolding and teardown behind reusable helpers. Keep the relevant SQL,
 commands and evidence visible and the learner's meaningful decisions unfinished. Apply this to
 new lessons and revisions; do not require learners to rebuild the same shell setup each time.
-For an unfamiliar tool, executing its CLI is part of the learner work: show the database/input
-arguments and relevant flags, with a short explanation. In DuckDB, keep `duck` calls visible
-instead of replacing them with `duck_run`; the thin version/settings wrapper is sufficient.
+For an unfamiliar tool, executing its CLI is part of the learner work: show the real executable,
+database/input and connection arguments, relevant flags, SQL, and settings with a short
+explanation. Do not replace the command with a course-specific function or generic runner. In
+DuckDB, use visible `duckdb` calls instead of `duck_run`; show the pinned version/settings
+arguments when the lab requires them. Supporting native CLIs such as `psql` and `sqlite3` belong
+in the lesson when they clarify an integration boundary.
 Setup should create a populated starter and explicitly tell the learner to edit and save it.
 Offer **Setup - script** and **Setup - manual** when the software's preparation is useful practice.
 Both may use infrastructure helpers; manual exposes native commands, SQL, connections and settings.

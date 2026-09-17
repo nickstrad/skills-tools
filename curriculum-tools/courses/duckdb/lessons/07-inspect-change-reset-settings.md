@@ -32,7 +32,7 @@ quit --> saved rows survive; fresh CLI applies its startup settings
 
 - **source .../session.sh 7** prepares the database and three rows in script mode. Manual
   creates the same table with native SQL. No previous lesson's database is used.
-- **duck "$DUCK_LAB/local.duckdb"** opens a live prompt on that file. SQL ends in a semicolon;
+- **duckdb "$DUCK_LAB/local.duckdb"** opens a live prompt on that file. SQL ends in a semicolon;
   **.mode csv** and **.quit** are single-line CLI commands without semicolons.
 - **PRAGMA database_list** reports database names and paths; **PRAGMA table_info('priorities')**
   reports column metadata. These pragmas inspect metadata rather than changing configuration.
@@ -45,8 +45,7 @@ quit --> saved rows survive; fresh CLI applies its startup settings
   puts missing scores first, then known scores high to low. Adapt the column, direction and
   placement for the required priority report; **ASC** sorts known numbers low to high.
 - **RESET default_null_order** returns the setting to its default, not to an arbitrary previous
-  SET value. A fresh wrapper process applies startup configuration again. Our wrapper ignores
-  personal startup files and sets threads=2 and memory_limit=256MB; it does not set null ordering.
+  SET value. A fresh CLI process begins with its normal startup settings.
 - **threads** and **memory_limit** are resource settings to inspect only here. More threads do
   not guarantee a speedup, and memory_limit does not cap all process memory. Leave both unchanged.
 
@@ -71,7 +70,7 @@ exits; **-bail -csv** stops on error and prints CSV. The rows persist after this
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 7 manual
-duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
+duckdb "$DUCK_LAB/local.duckdb" -bail -csv -c "
 CREATE OR REPLACE TABLE priorities AS
 SELECT
   *
@@ -94,7 +93,7 @@ ORDER BY
 ## Run
 ```bash
 # Bash
-duck "$DUCK_LAB/local.duckdb"
+duckdb "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt
 .mode csv
 PRAGMA database_list;
@@ -167,7 +166,7 @@ SET default_null_order = 'NULLS_FIRST';
 
 .quit
 # Bash: reopen saved rows in a fresh process.
-duck "$DUCK_LAB/local.duckdb"
+duckdb "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt
 .mode csv
 SELECT
@@ -187,8 +186,8 @@ ORDER BY
 ## Expected result
 
 Metadata names the local file and job/priority columns. On the pinned runtime initial, reset
-and fresh values are NULLS_LAST; changed is NULLS_FIRST. The wrapper reports threads=2 and
-memory_limit about 244.1 MiB (256 decimal MB). The unqualified order changes from gamma/alpha/beta
+and fresh values are NULLS_LAST; changed is NULLS_FIRST. The CLI reports its normal resource settings.
+The unqualified order changes from gamma/alpha/beta
 to beta/gamma/alpha. Both completed report queries must produce gamma/alpha/beta. The untouched
 starter's first report puts beta first; explicit NULLS FIRST would violate the requirement too.
 
@@ -205,7 +204,7 @@ ORDER BY
 ```
 
 The table survives exit, but the final SET does not become a saved property of the file.
-Run's fresh connection is a new process with the wrapper's startup settings. RESET alone would
+Run's fresh connection is a new process with its normal startup settings. RESET alone would
 not establish that distinction. After `.quit`, clean up in Bash:
 ```bash
 duck_cleanup

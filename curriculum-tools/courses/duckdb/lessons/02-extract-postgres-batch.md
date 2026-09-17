@@ -42,7 +42,7 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 - In Bash, **source .../session.sh 2** prepares a fresh private PostgreSQL fixture, sets
   **DUCK_COURSE** and **DUCK_LAB**, creates your starter, and defines the helpers. Use source so
   these stay available in your shell. No earlier lab is needed; the CLI must already be installed.
-  **duck** forwards your arguments to the pinned DuckDB CLI with course settings;
+  **duckdb** is the normal user-installed CLI;
   **-bail** stops on SQL errors and **-csv** prints CSV results.
   Run **duck_cleanup** when finished; normal shell
   exit also cleans up unless your shell already had an EXIT trap.
@@ -62,10 +62,10 @@ from becoming the local extract. It does not mean PostgreSQL performs zero scann
 - **psql ... -U postgres** performs the supplied source insert only in this owned fixture.
   The attachment still uses the SELECT-only reader. Each CLI invocation closes before the next opens.
 - Rerunning query.sql performs an explicit replacement; it does not append another copy.
-- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck "$DUCK_LAB/local.duckdb" -bail -csv**
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duckdb "$DUCK_LAB/local.duckdb" -bail -csv**
   feeds the supplied PostgreSQL attachment SQL followed by your edited query into one CLI process.
   The database-file argument makes the local batch persist when that process exits.
-- **duck ... -c "SELECT ... FROM batch;"** executes the SQL string directly against the saved
+- **duckdb ... -c "SELECT ... FROM batch;"** executes the SQL string directly against the saved
   local file. It does not run query.sql or refresh the batch. The first file-based invocation
   creates the extract; the final one rebuilds it after the two clients reveal different totals.
 
@@ -136,7 +136,7 @@ yourself, then check that the source has five orders. Bash substitutes **$DUCK_L
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 manual
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD postgres;
 
 ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
@@ -153,13 +153,13 @@ LOAD/ATTACH from session.sql in a new connection to local.duckdb, then executes 
 ## Run
 ```bash
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 psql -X -h "$DUCK_LAB" -p 55439 -U postgres -d postgres -v ON_ERROR_STOP=1 -c "
 INSERT INTO
   sales.orders
 VALUES
   (106, '2026-09-14', 'paid', 600, 'new@example.invalid');"
-duck "$DUCK_LAB/local.duckdb" -bail -csv -c "
+duckdb "$DUCK_LAB/local.duckdb" -bail -csv -c "
 SELECT
   'local_before_refresh' AS stage,
   count(*) AS orders,
@@ -177,7 +177,7 @@ WHERE
   AND ordered_on < DATE '2026-09-15'
   AND status = 'paid';"
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 ```
 
 ## Expected result

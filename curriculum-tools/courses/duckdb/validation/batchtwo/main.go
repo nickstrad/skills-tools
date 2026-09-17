@@ -40,12 +40,12 @@ func replaceQuery(sql string) string {
 }
 
 // Only automate the prompt boundaries. The learner sees and enters the original live transcript.
-// Each .quit ends one actual CLI process; the next duck invocation reopens the same file.
+// Each .quit ends one actual CLI process; the next duckdb invocation reopens the same file.
 func automate(code string) string {
 	var b strings.Builder
 	inside := false
 	for _, line := range strings.Split(code, "\n") {
-		if line == `duck "$DUCK_LAB/local.duckdb"` {
+		if line == `duckdb "$DUCK_LAB/local.duckdb"` {
 			if inside {
 				panic("nested prompt")
 			}
@@ -112,7 +112,7 @@ func main() {
 		},
 		7: {
 			"starter": {"initial\nNULLS_LAST", "changed\nNULLS_FIRST", "report,beta,NULL\nreport,gamma,1\nreport,alpha,2", "reset_value\nNULLS_LAST", "fresh_value\nNULLS_LAST"},
-			"answer":  {"threads,2,GLOBAL", "initial\nNULLS_LAST", "changed\nNULLS_FIRST", "report,gamma,1\nreport,alpha,2\nreport,beta,NULL", "reset_value\nNULLS_LAST", "fresh_value\nNULLS_LAST"},
+			"answer":  {"initial\nNULLS_LAST", "changed\nNULLS_FIRST", "report,gamma,1\nreport,alpha,2\nreport,beta,NULL", "reset_value\nNULLS_LAST", "fresh_value\nNULLS_LAST"},
 			"wrong":   {"report,beta,NULL\nreport,gamma,1\nreport,alpha,2"},
 		},
 		8: {
@@ -223,14 +223,14 @@ func main() {
 	// Extra failure boundaries claimed in lesson text: schema loss before projection, and
 	// loss of identifier representation when choosing an inappropriate numeric conversion.
 	extra := "set -euo pipefail\nsource " + dir + "/lab/session.sh 10 manual\n" + `
-duck :memory: -bail -csv -c "SELECT * FROM read_csv('$DUCK_LAB/batch-v*.csv', header=true, filename=true);"
-if duck :memory: -bail -csv -c "SELECT region FROM read_csv('$DUCK_LAB/batch-v*.csv', header=true, filename=true);" > "$DUCK_LAB/failure.txt" 2>&1; then
+duckdb :memory: -bail -csv -c "SELECT * FROM read_csv('$DUCK_LAB/batch-v*.csv', header=true, filename=true);"
+if duckdb :memory: -bail -csv -c "SELECT region FROM read_csv('$DUCK_LAB/batch-v*.csv', header=true, filename=true);" > "$DUCK_LAB/failure.txt" 2>&1; then
   echo 'Unexpected region without schema union'; exit 1
 fi
 cat "$DUCK_LAB/failure.txt"
 duck_cleanup
 ` + "source " + dir + "/lab/session.sh 8 manual\n" + `
-duck :memory: -bail -csv -c "SELECT account_id, TRY_CAST(account_id AS BIGINT) AS numeric_id FROM read_csv('$DUCK_LAB/messy.csv', header=true) ORDER BY account_id;"
+duckdb :memory: -bail -csv -c "SELECT account_id, TRY_CAST(account_id AS BIGINT) AS numeric_id FROM read_csv('$DUCK_LAB/messy.csv', header=true) ORDER BY account_id;"
 duck_cleanup
 `
 	write(filepath.Join(work, "extra.sh"), extra)

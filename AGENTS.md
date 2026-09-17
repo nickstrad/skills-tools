@@ -71,6 +71,14 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
 
 ## Course editing rules
 
+- Install each course's required native CLI once at user scope, and add its executable directory
+  to the learner's `~/.bashrc` PATH when it is not already global. Lessons assume the native CLI
+  is available; they must not re-download it, alter PATH, or recreate an installation per lesson.
+  Setup helpers create only the disposable fixture, starter files, variables, and cleanup needed
+  for that attempt. Verify the installed executable by name in an interactive Bash session.
+  A lesson may deliberately repeat native CLI configuration, connection setup, or SQL when doing
+  so teaches that specific mechanism; keep that repetition visible rather than moving it into a
+  helper.
 - Across all courses, use a simple setup command, focused learner work, and simple cleanup.
   Put repeated environment setup, fixtures, starter-file creation, connection plumbing and
   process teardown behind reusable helpers. Keep the mechanism and learner decisions visible;
@@ -83,6 +91,12 @@ less clear in Go. Lesson experiments keep using each tool's native commands, inc
   the target tool's commands and SQL/settings. They must reach equivalent starting state and
   feed the same visible Run/cleanup. Apply across courses when authoring or revising; validate
   both choices. See the shared norm and authoring grammar for the section format.
+- When a course teaches a CLI, spell out the real CLI executable, flags, connection arguments,
+  SQL, and relevant settings in both manual setup and the learner's Run commands. Do not replace
+  them with a course-specific function or a generic runner. Repetition is useful practice. A
+  helper may still create fixtures, folders, environment variables, and cleanup, and may run
+  supporting tools such as `psql` or `sqlite3`; expose those native commands when they clarify a
+  boundary with the tool being learned.
 - Define a future course first as an inexpensive Markdown route under [`future-courses/`](future-courses/),
   using its [template](future-courses/TEMPLATE.md). That guide owns research, discussion, and
   final-outline sign-off; a route does not authorize scaffolding, progress changes, or validation

@@ -47,7 +47,7 @@ r3 [e1]     -- unnest --> r3 e1
 - **CREATE OR REPLACE TEMP TABLE** keeps an intermediate result in this process. Retain the
   separate runs table to observe runs without events; they are not failures just because this
   particular event-grain output has no row for them.
-- **duck :memory: -bail -csv < "$DUCK_LAB/query.sql"** runs saved edits in a fresh temporary
+- **duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"** runs saved edits in a fresh temporary
   database and closes afterward. **duck_check_source** verifies the file fingerprint;
   **duck_cleanup** removes the lab.
 
@@ -110,12 +110,12 @@ inspection connection. Run rereads the file in your query's connection.
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 9 manual
 cat "$DUCK_LAB/runs.jsonl"
-duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_json('$DUCK_LAB/runs.jsonl', format='newline_delimited');"
+duckdb :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_json('$DUCK_LAB/runs.jsonl', format='newline_delimited');"
 ```
 
 ## Run
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 duck_check_source
 ```
 

@@ -57,6 +57,13 @@ Run and cleanup. Both may use helpers for lab folders, fixtures, environment var
 teardown: manual is not a shell-scaffolding exercise. Apply to new and revised lessons; this
 does not claim every existing course has been retrofitted.
 
+On 2026-09-17, Nick clarified that CLI learning should retain the full native command in the
+manual setup and Run sections: executable name, flags, database or connection arguments, SQL,
+and relevant settings. Do not hide those pieces behind a course function or runner, even when
+they repeat. Helpers still own recurring fixture, folder, environment-variable, and cleanup
+work. Show adjacent native tools such as `psql` in a SQLite course or `sqlite3` in a DuckDB
+course when their commands make an integration boundary easier to learn.
+
 Supply equivalent starting state and evidence for both choices. Explain temporary connections
 and preparation that must repeat in Run. Keep the experiment and learner decisions visible
 even with script setup. Validate both paths, including intentional errors, reruns and cleanup.
@@ -92,9 +99,10 @@ This is the learner's explicit calibration, not an inference from his broader sy
 DuckDB lessons 1–5 offer both choices: `source .../lab/session.sh N` performs script setup;
 adding `manual` prepares infrastructure and leaves the native setup commands to the learner.
 Both supply a populated editable `query.sql`, explicit
-`duck` CLI invocations and `duck_cleanup`. Lessons 1–4 feed session.sql then query.sql to one
+`duckdb` CLI invocations and `duck_cleanup`. Lessons 1–4 feed session.sql then query.sql to one
 process; lesson 2 names its persistent local database and lesson 5 reads query.sql directly.
-The thin `duck` wrapper only selects the pinned CLI and settings. The
+The one-time course installer provides the pinned real `duckdb` executable, and lessons use it
+by its normal name. The
 [course README](../../curriculum-tools/courses/duckdb/README.md) documents the commands.
 
 The installed [tutor skill](../../curriculum-tools/skills/tutor/SKILL.md), local AGENTS guidance,

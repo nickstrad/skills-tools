@@ -45,10 +45,9 @@ which paid orders belong to September 14, 2026, and what is their total?
   attachment and catalog inventory in script mode. Adding **manual** prepares only the lab;
   you run the DuckDB setup commands below. **DUCK_LAB** is your unique directory, never /labs/pglab.
   Finish with **duck_cleanup**; normal shell exit also cleans up unless an EXIT trap already exists.
-- **duck** is a thin shell wrapper around the course's pinned DuckDB CLI; it forwards your
-  arguments and supplies the installed version and extension settings. **-bail** stops on SQL errors.
+- **duckdb** is the normal user-installed CLI. **-bail** stops on SQL errors.
   **-csv** prints compact comma-separated results. **:memory:** keeps this DuckDB session temporary.
-- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck :memory: -bail -csv**
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duckdb :memory: -bail -csv**
   sends the two SQL files, in that order, to one DuckDB process through standard input.
   **session.sql** supplies the attachment; **query.sql** contains the query you edit.
   Each invocation starts a fresh in-memory database, so attach and query must run together.
@@ -120,7 +119,7 @@ Bash fills in **$DUCK_LAB** inside the double quotes. Expect app.public.orders a
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 1 manual
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD postgres;
 
 ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
@@ -145,7 +144,7 @@ query gets its own attachment; it contains the same LOAD/ATTACH statements shown
 ## Run
 ```bash
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 psql -X -h "$DUCK_LAB" -p 55439 -U reader -d postgres -v ON_ERROR_STOP=1 -c "
 SELECT
   order_id,

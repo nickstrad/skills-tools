@@ -42,9 +42,9 @@ the ability to reconcile the report with its input.
   your starter and the helpers; it needs the installed CLI but no earlier fixture. Add **manual**
   to perform the native source inspection and DuckDB setup yourself, using the supplied lab paths.
   **duck_check_source** checks the source fingerprint
-  saved by the helper. **duck** forwards arguments to the pinned CLI with course settings;
+  saved by the helper. **duckdb** is the normal user-installed CLI;
   **:memory:** selects a temporary database, **-bail** stops on SQL errors, and **-csv** prints CSV.
-- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duck :memory: -bail -csv**
+- **cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" | duckdb :memory: -bail -csv**
   sends the connection/raw-stage SQL followed by your edited query to one DuckDB process.
   Each invocation starts fresh, so the raw stage and your query must execute together.
 - **sqlite3 typeof(amount_cents)** reports each stored SQLite value's type, independently of
@@ -175,7 +175,7 @@ FROM
   invoices
 ORDER BY
   invoice_id;"
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD sqlite;
 
 ATTACH '$DUCK_LAB/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
@@ -190,7 +190,7 @@ Now open a fresh connection with the text-scanner setting, create the raw stage 
 and inspect it. Apply the setting before ATTACH. Expect all five IDs and raw values to survive.
 
 ```bash
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD sqlite;
 
 SET sqlite_all_varchar = true;
@@ -218,7 +218,7 @@ from session.sql in a new connection before executing the conversion rule you ed
 ## Run
 ```bash
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 duck_check_source
 ```
 

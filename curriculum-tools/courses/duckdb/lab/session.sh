@@ -47,7 +47,6 @@ _duck_session_start() {
   export DUCK_DB=:memory:
   if [[ $lesson == 2 || $lesson == 6 || $lesson == 7 ]]; then DUCK_DB="$lab/local.duckdb"; fi
 
-  duck() { bash "$DUCK_COURSE/lab/duckdb.sh" "$@"; }
   duck_run() {
     if [[ -z ${DUCK_LAB:-} || ! -f $DUCK_LAB/query.sql || ! -f $DUCK_LAB/session.sql ]]; then
       echo 'No complete lab is selected. Source session.sh with the lesson number first.' >&2
@@ -58,7 +57,7 @@ _duck_session_start() {
     local connection query
     connection=$(cat "$DUCK_LAB/session.sql") || return
     query=$(cat "$DUCK_LAB/query.sql") || return
-    duck "$DUCK_DB" -bail -csv <<< "$connection
+    duckdb "$DUCK_DB" -bail -csv <<< "$connection
 $query"
   }
   duck_check_source() {
@@ -93,18 +92,18 @@ $query"
     echo 'Fixture ready. Run the lesson’s manual DuckDB setup commands next.'
   fi
   if [[ $lesson == 6 || $lesson == 7 ]]; then
-    printf 'Lesson %s ready. Practice at the live prompt using the lesson task.\nLab path: %s\nOpen: duck "$DUCK_LAB/local.duckdb"\nCleanup after .quit: duck_cleanup\n' "$lesson" "$DUCK_LAB"
+    printf 'Lesson %s ready. Practice at the live prompt using the lesson task.\nLab path: %s\nOpen: duckdb "$DUCK_LAB/local.duckdb"\nCleanup after .quit: duck_cleanup\n' "$lesson" "$DUCK_LAB"
     return 0
   fi
   printf 'Lesson %s ready. Edit the supplied starter: %s/query.sql\nRun:\n' "$lesson" "$DUCK_LAB"
   if (( lesson >= 5 )); then
-    printf '%s\n' 'duck :memory: -bail -csv < "$DUCK_LAB/query.sql"'
+    printf '%s\n' 'duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"'
   elif [[ $lesson == 2 ]]; then
     printf '%s\n' 'cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |' \
-      '  duck "$DUCK_LAB/local.duckdb" -bail -csv'
+      '  duckdb "$DUCK_LAB/local.duckdb" -bail -csv'
   else
     printf '%s\n' 'cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |' \
-      '  duck :memory: -bail -csv'
+      '  duckdb :memory: -bail -csv'
   fi
   printf 'Cleanup: duck_cleanup\n'
 }

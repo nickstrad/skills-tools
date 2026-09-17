@@ -37,7 +37,7 @@ close CLI --> reopen same file --> both objects still exist
 
 - **source .../session.sh 6** supplies the CSV, lab path and cleanup. The script option
   inspects CSV types; manual lets you do that yourself. Neither creates your base table.
-- **duck "$DUCK_LAB/local.duckdb"** opens a file, creating it if absent. Bash expands the
+- **duckdb "$DUCK_LAB/local.duckdb"** opens a file, creating it if absent. Bash expands the
   variable in this command. At the **D** prompt, SQL does **not** expand shell variables:
   replace **LAB_PATH** below with the absolute directory printed by setup.
 - SQL ends in **;** and can span lines. Dot commands such as **.tables**, **.help tables**,
@@ -79,13 +79,13 @@ Inspect the reader yourself in a temporary connection. Expect BIGINT, DATE, VARC
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 6 manual
-duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
+duckdb :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/orders.csv', header=true);"
 ```
 
 ## Run
 ```bash
 # Bash: open the persistent file.
-duck "$DUCK_LAB/local.duckdb"
+duckdb "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt: substitute LAB_PATH and add your day predicate to this starter.
 .help tables
 .mode csv
@@ -148,7 +148,7 @@ FROM
 
 .quit
 # Bash: launch a fresh process against the same file.
-duck "$DUCK_LAB/local.duckdb"
+duckdb "$DUCK_LAB/local.duckdb"
 -- DuckDB prompt: inspect what survived.
 .mode csv
 .tables

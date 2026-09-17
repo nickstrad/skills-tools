@@ -52,7 +52,7 @@ CSV -- all_varchar --> raw text -- TRY_CAST --> decimal or NULL
 - **CREATE OR REPLACE TEMP TABLE** stores intermediate rows only in this CLI process.
   **TEMP VIEW** keeps a classification query over them. **raw_amount** retains the source text.
   **GROUP BY accepted** reconciles the two populations, and **sum(amount)** ignores NULLs.
-- **duck :memory: -bail -csv < "$DUCK_LAB/query.sql"** executes saved edits in a fresh process,
+- **duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"** executes saved edits in a fresh process,
   stops on SQL errors, prints CSV and discards temporary tables on exit. **duck_check_source**
   verifies the input file stayed unchanged; **duck_cleanup** removes only your owned fixture.
 
@@ -116,12 +116,12 @@ Run starts a new connection with your saved conversion query.
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 8 manual
 cat "$DUCK_LAB/messy.csv"
-duck :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/messy.csv', header=true);"
+duckdb :memory: -bail -csv -c "DESCRIBE SELECT * FROM read_csv('$DUCK_LAB/messy.csv', header=true);"
 ```
 
 ## Run
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 duck_check_source
 ```
 

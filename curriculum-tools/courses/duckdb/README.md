@@ -17,9 +17,9 @@ bin/tutor duckdb 1 lesson
 The installer is already run on this VM. It pins **DuckDB 1.5.5**, official CLI release
 `d8cdaa33fd`, postgres_scanner `41223e5`, and sqlite_scanner `f79b1db` in the ignored
 `curriculum-tools/.cache/duckdb-1.5.5/` directory. Download hashes are checked and both extensions
-must load. No machine-wide DuckDB binary or personal startup file is changed. Reinstalling needs
-network access; the ten lessons then work offline. The wrapper caps DuckDB at two threads and
-256 MB memory. Installation and fixture helpers are Bash process/bootstrap glue; the validator
+must load. Installation copies `duckdb` to `~/.local/bin` and the extensions to DuckDB's normal
+user directory; `~/.bashrc` puts `~/.local/bin` on PATH. Reinstalling needs network access; the
+ten lessons then work offline. Installation and fixture helpers are Bash process/bootstrap glue; the validator
 is Go. Native SQL supplies the actual experiments.
 
 Prerequisites already present here: Linux amd64, Bash, curl, gzip, coreutils, Go 1.26+, sqlite3,
@@ -56,7 +56,7 @@ DuckDB commands to execute. For lesson 2:
 
 ```bash
 source /root/Software/skills-tools/curriculum-tools/courses/duckdb/lab/session.sh 2 manual
-duck :memory: -bail -csv -c "
+duckdb :memory: -bail -csv -c "
 LOAD postgres;
 ATTACH 'host=$DUCK_LAB port=55439 dbname=postgres user=reader'
   AS app (TYPE postgres, READ_ONLY);
@@ -77,24 +77,24 @@ fingerprints where applicable. It prints the full work-file path and the run/cle
 
 ```bash
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 # Inspect the results and any additional source comparison in the lesson.
 duck_cleanup
 ```
 
 The pipeline sends the supplied `session.sql` followed by your edited `query.sql` to one
-DuckDB process. `duck` is a thin wrapper around the pinned DuckDB CLI: it forwards arguments
-and supplies version/extension/resource settings. `-bail` stops on SQL errors; `-csv` prints CSV.
+DuckDB process. `duckdb` is the normal user-installed CLI. `-bail` stops on SQL errors; `-csv`
+prints CSV.
 Lesson 2 reuses `local.duckdb`; lessons 1, 3 and 4 use the same pipeline with `:memory:` instead.
 Lessons 5 and 8–10 need no attachment, so their command is simply:
 
 ```bash
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 ```
 
 Bash's `<` feeds the SQL file to the CLI's standard input. Each invocation rereads saved edits.
 In lesson 2, `CREATE OR REPLACE TABLE batch` refreshes the local extract; opening the file with
-`duck "$DUCK_LAB/local.duckdb" -bail -csv -c "SELECT * FROM batch;"` only reads the saved table.
+`duckdb "$DUCK_LAB/local.duckdb" -bail -csv -c "SELECT * FROM batch;"` only reads the saved table.
 The source insert remains an explicit separate step in the lesson's Run block.
 
 Nick is brand new to DuckDB and requested this level of CLI practice on 2026-09-14. Keep
@@ -108,7 +108,7 @@ Use `duck_check_source` for the unchanged-file check in lessons 3–6 and 8–10
 Source `lab/session.sh 6` or `7` (optionally adding `manual`), then open the named file:
 
 ```bash
-duck "$DUCK_LAB/local.duckdb"
+duckdb "$DUCK_LAB/local.duckdb"
 ```
 
 Follow the lesson's labelled transcript at the live DuckDB prompt. SQL ends in a semicolon;
@@ -123,7 +123,7 @@ is not a Bash script. Use `.quit` before another CLI process or `duck_cleanup`. 
 removes the disposable database file too, so complete both sessions before invoking it.
 
 The supplied validation PTY does not answer background-color queries. If a terminal prints a
-background-color detection timeout, adding `-dark-mode` or `-light-mode` to the `duck` invocation
+background-color detection timeout, adding `-dark-mode` or `-light-mode` to the `duckdb` invocation
 avoids that probe. This affects CLI presentation, not SQL settings or persisted data.
 
 After a lesson-source update, run `tutor duckdb init` once to refresh the catalog shown by
@@ -137,8 +137,7 @@ because variables and functions must remain in the current shell. The helper lea
 options unchanged. It installs an EXIT cleanup trap when none exists; if your shell already has
 one, it retains that handler and asks you to run `duck_cleanup` explicitly.
 
-The shell helpers also expose `DUCK_COURSE`, `DUCK_LAB`, `DUCK_DB`, and the pinned `duck` CLI
-for the lesson's specific observation commands. `lab/prepare.sh` copies the numbered SQL
+The shell helpers expose `DUCK_COURSE`, `DUCK_LAB`, and `DUCK_DB`. `lab/prepare.sh` copies the numbered SQL
 templates; `lab/inspect.sh` prints source evidence and accepts only the intended lesson-4
 scanner failure. Neither helper fills in the learner's answer.
 

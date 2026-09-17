@@ -4,7 +4,7 @@ set -euo pipefail
 lesson=${1:?lesson number 1..10}
 [[ "$lesson" =~ ^([1-9]|10)$ ]] || exit 1
 course=$(cd -- "$(dirname -- "$0")/.." && pwd)
-bash "$course/lab/duckdb.sh" -c 'SELECT 1;' >/dev/null
+duckdb -c 'SELECT 1;' >/dev/null
 lab=$(mktemp -d /tmp/duckdb-lesson.XXXXXX)
 touch "$lab/.duckdb-owned"
 trap 'bash "$course/lab/cleanup.sh" "$lab"' EXIT

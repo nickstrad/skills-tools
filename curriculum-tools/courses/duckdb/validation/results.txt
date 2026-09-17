@@ -2,16 +2,16 @@
 === 01-script-starter ===
 LOAD postgres;
 
-ATTACH 'host=/tmp/duckdb-lesson.jSsxuI port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+ATTACH 'host=/tmp/duckdb-lesson.zHNhlC port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.jSsxuI/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.zHNhlC/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.jSsxuI
+fixture=/tmp/duckdb-lesson.zHNhlC
 order_id,amount_cents
 999,99900
 orders,total_cents
@@ -27,23 +27,23 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.jSsxuI
+39500	/tmp/duckdb-lesson.zHNhlC
 waiting for server to shut down.... done
 server stopped
 
 === 01-script-answer ===
 LOAD postgres;
 
-ATTACH 'host=/tmp/duckdb-lesson.8jNbTy port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+ATTACH 'host=/tmp/duckdb-lesson.izcjNI port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.8jNbTy/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.izcjNI/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.8jNbTy
+fixture=/tmp/duckdb-lesson.izcjNI
 order_id,amount_cents
 102,2300
 104,1700
@@ -60,23 +60,23 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.8jNbTy
+39500	/tmp/duckdb-lesson.izcjNI
 waiting for server to shut down.... done
 server stopped
 
 === 01-script-wrong ===
 LOAD postgres;
 
-ATTACH 'host=/tmp/duckdb-lesson.JOfQgU port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+ATTACH 'host=/tmp/duckdb-lesson.kWrdAJ port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.JOfQgU/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.kWrdAJ/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.JOfQgU
+fixture=/tmp/duckdb-lesson.kWrdAJ
 order_id,amount_cents
 102,2300
 103,800
@@ -94,21 +94,21 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.JOfQgU
+39500	/tmp/duckdb-lesson.kWrdAJ
 waiting for server to shut down.... done
 server stopped
 
 === 01-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.1z0zEV/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.pcwvri/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-fixture=/tmp/duckdb-lesson.1z0zEV
+fixture=/tmp/duckdb-lesson.pcwvri
 order_id,amount_cents
 999,99900
 orders,total_cents
@@ -124,21 +124,21 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.1z0zEV
+39500	/tmp/duckdb-lesson.pcwvri
 waiting for server to shut down.... done
 server stopped
 
 === 01-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.FL5ID2/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.C0m8fI/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-fixture=/tmp/duckdb-lesson.FL5ID2
+fixture=/tmp/duckdb-lesson.C0m8fI
 order_id,amount_cents
 102,2300
 104,1700
@@ -155,21 +155,21 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.FL5ID2
+39500	/tmp/duckdb-lesson.C0m8fI
 waiting for server to shut down.... done
 server stopped
 
 === 01-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.7zmPJJ/query.sql
+Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.tAjmRg/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 app,public,orders
 app,sales,orders
-fixture=/tmp/duckdb-lesson.7zmPJJ
+fixture=/tmp/duckdb-lesson.tAjmRg
 order_id,amount_cents
 102,2300
 103,800
@@ -187,19 +187,19 @@ orders,total_cents
       2 |        4000
 (1 row)
 
-39500	/tmp/duckdb-lesson.7zmPJJ
+39500	/tmp/duckdb-lesson.tAjmRg
 waiting for server to shut down.... done
 server stopped
 
 === 02-script-starter ===
 source_orders
 5
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.cs51Q0/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.W6vThE/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.cs51Q0
+fixture=/tmp/duckdb-lesson.W6vThE
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
@@ -237,19 +237,19 @@ order_id,ordered_on,status,amount_cents,customer_email
 106,2026-09-14,paid,600,new@example.invalid
 orders,total_cents
 6,7500
-40280	/tmp/duckdb-lesson.cs51Q0
+40280	/tmp/duckdb-lesson.W6vThE
 waiting for server to shut down.... done
 server stopped
 
 === 02-script-answer ===
 source_orders
 5
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.yIisGY/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.hx1Cty/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.yIisGY
+fixture=/tmp/duckdb-lesson.hx1Cty
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 amount_cents,INTEGER,YES,NULL,NULL,NULL
@@ -275,19 +275,19 @@ order_id,amount_cents
 106,600
 orders,total_cents
 3,4600
-40280	/tmp/duckdb-lesson.yIisGY
+40280	/tmp/duckdb-lesson.hx1Cty
 waiting for server to shut down.... done
 server stopped
 
 === 02-script-wrong ===
 source_orders
 5
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.IRiieq/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.s6zSQo/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.IRiieq
+fixture=/tmp/duckdb-lesson.s6zSQo
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 amount_cents,INTEGER,YES,NULL,NULL,NULL
@@ -315,20 +315,20 @@ order_id,amount_cents
 106,600
 orders,total_cents
 4,5500
-40280	/tmp/duckdb-lesson.IRiieq
+40280	/tmp/duckdb-lesson.s6zSQo
 waiting for server to shut down.... done
 server stopped
 
 === 02-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.KZJioi/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.bhNUUg/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
 source_orders
 5
-fixture=/tmp/duckdb-lesson.KZJioi
+fixture=/tmp/duckdb-lesson.bhNUUg
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
@@ -366,20 +366,20 @@ order_id,ordered_on,status,amount_cents,customer_email
 106,2026-09-14,paid,600,new@example.invalid
 orders,total_cents
 6,7500
-40280	/tmp/duckdb-lesson.KZJioi
+40280	/tmp/duckdb-lesson.bhNUUg
 waiting for server to shut down.... done
 server stopped
 
 === 02-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.NX4ujV/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.O5XMFw/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
 source_orders
 5
-fixture=/tmp/duckdb-lesson.NX4ujV
+fixture=/tmp/duckdb-lesson.O5XMFw
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 amount_cents,INTEGER,YES,NULL,NULL,NULL
@@ -405,20 +405,20 @@ order_id,amount_cents
 106,600
 orders,total_cents
 3,4600
-40280	/tmp/duckdb-lesson.NX4ujV
+40280	/tmp/duckdb-lesson.O5XMFw
 waiting for server to shut down.... done
 server stopped
 
 === 02-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.9IYMJ5/query.sql
+Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.bMimO5/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck "$DUCK_LAB/local.duckdb" -bail -csv
+  duckdb "$DUCK_LAB/local.duckdb" -bail -csv
 Cleanup: duck_cleanup
 source_orders
 5
-fixture=/tmp/duckdb-lesson.9IYMJ5
+fixture=/tmp/duckdb-lesson.bMimO5
 column_name,column_type,null,key,default,extra
 order_id,INTEGER,YES,NULL,NULL,NULL
 amount_cents,INTEGER,YES,NULL,NULL,NULL
@@ -446,7 +446,7 @@ order_id,amount_cents
 106,600
 orders,total_cents
 4,5500
-40280	/tmp/duckdb-lesson.9IYMJ5
+40280	/tmp/duckdb-lesson.bMimO5
 waiting for server to shut down.... done
 server stopped
 
@@ -454,112 +454,112 @@ server stopped
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.zpRzKV/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.iCZldr/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.zpRzKV
+fixture=/tmp/duckdb-lesson.iCZldr
 customer_id,name
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.zpRzKV/source.sqlite: OK
-40	/tmp/duckdb-lesson.zpRzKV
+/tmp/duckdb-lesson.iCZldr/source.sqlite: OK
+40	/tmp/duckdb-lesson.iCZldr
 
 === 03-script-answer ===
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.HJtK7G/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.MyQPcE/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.HJtK7G
+fixture=/tmp/duckdb-lesson.MyQPcE
 customer_id,name
 1,Ada
 3,Sam
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.HJtK7G/source.sqlite: OK
-40	/tmp/duckdb-lesson.HJtK7G
+/tmp/duckdb-lesson.MyQPcE/source.sqlite: OK
+40	/tmp/duckdb-lesson.MyQPcE
 
 === 03-script-wrong ===
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.lphezD/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.9T0ppB/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.lphezD
+fixture=/tmp/duckdb-lesson.9T0ppB
 customer_id,name
 999,Decoy
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.lphezD/source.sqlite: OK
-40	/tmp/duckdb-lesson.lphezD
+/tmp/duckdb-lesson.9T0ppB/source.sqlite: OK
+40	/tmp/duckdb-lesson.9T0ppB
 
 === 03-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.lMeBds/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.bHwkgX/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-fixture=/tmp/duckdb-lesson.lMeBds
+fixture=/tmp/duckdb-lesson.bHwkgX
 customer_id,name
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.lMeBds/source.sqlite: OK
-40	/tmp/duckdb-lesson.lMeBds
+/tmp/duckdb-lesson.bHwkgX/source.sqlite: OK
+40	/tmp/duckdb-lesson.bHwkgX
 
 === 03-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.Zl9afd/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.9sTimX/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-fixture=/tmp/duckdb-lesson.Zl9afd
+fixture=/tmp/duckdb-lesson.9sTimX
 customer_id,name
 1,Ada
 3,Sam
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.Zl9afd/source.sqlite: OK
-40	/tmp/duckdb-lesson.Zl9afd
+/tmp/duckdb-lesson.9sTimX/source.sqlite: OK
+40	/tmp/duckdb-lesson.9sTimX
 
 === 03-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.SUPyXg/query.sql
+Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.aj0h6L/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 table_catalog,table_schema,table_name
 memory,main,customers
 source,main,customers
-fixture=/tmp/duckdb-lesson.SUPyXg
+fixture=/tmp/duckdb-lesson.aj0h6L
 customer_id,name
 999,Decoy
 customer_id,name
 1,Ada
 3,Sam
-/tmp/duckdb-lesson.SUPyXg/source.sqlite: OK
-40	/tmp/duckdb-lesson.SUPyXg
+/tmp/duckdb-lesson.aj0h6L/source.sqlite: OK
+40	/tmp/duckdb-lesson.aj0h6L
 
 === 04-script-starter ===
 invoice_id,amount_cents,stored_type
@@ -574,7 +574,7 @@ LOAD sqlite;
 
 SET sqlite_all_varchar = true;
 
-ATTACH '/tmp/duckdb-lesson.pX0KSa/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+ATTACH '/tmp/duckdb-lesson.EIwNly/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 
 CREATE TABLE raw AS
 SELECT
@@ -588,12 +588,12 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.pX0KSa/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.EIwNly/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.pX0KSa
+fixture=/tmp/duckdb-lesson.EIwNly
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,NULL,rejected
 2,2300,NULL,rejected
@@ -604,8 +604,8 @@ disposition,records,total_cents
 rejected,5,NULL
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.pX0KSa/source.sqlite: OK
-44	/tmp/duckdb-lesson.pX0KSa
+/tmp/duckdb-lesson.EIwNly/source.sqlite: OK
+44	/tmp/duckdb-lesson.EIwNly
 
 === 04-script-answer ===
 invoice_id,amount_cents,stored_type
@@ -620,7 +620,7 @@ LOAD sqlite;
 
 SET sqlite_all_varchar = true;
 
-ATTACH '/tmp/duckdb-lesson.hMi0mt/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+ATTACH '/tmp/duckdb-lesson.WIftHI/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 
 CREATE TABLE raw AS
 SELECT
@@ -634,12 +634,12 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.hMi0mt/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.WIftHI/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.hMi0mt
+fixture=/tmp/duckdb-lesson.WIftHI
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,1200,accepted
 2,2300,2300,accepted
@@ -651,8 +651,8 @@ accepted,2,3500
 rejected,3,-50
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.hMi0mt/source.sqlite: OK
-44	/tmp/duckdb-lesson.hMi0mt
+/tmp/duckdb-lesson.WIftHI/source.sqlite: OK
+44	/tmp/duckdb-lesson.WIftHI
 
 === 04-script-wrong ===
 invoice_id,amount_cents,stored_type
@@ -667,7 +667,7 @@ LOAD sqlite;
 
 SET sqlite_all_varchar = true;
 
-ATTACH '/tmp/duckdb-lesson.AQIdGo/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+ATTACH '/tmp/duckdb-lesson.EGKY0g/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
 
 CREATE TABLE raw AS
 SELECT
@@ -681,12 +681,12 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.AQIdGo/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.EGKY0g/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.AQIdGo
+fixture=/tmp/duckdb-lesson.EGKY0g
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,1200,accepted
 2,2300,2300,accepted
@@ -698,15 +698,15 @@ accepted,3,3450
 rejected,2,NULL
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.AQIdGo/source.sqlite: OK
-44	/tmp/duckdb-lesson.AQIdGo
+/tmp/duckdb-lesson.EGKY0g/source.sqlite: OK
+44	/tmp/duckdb-lesson.EGKY0g
 
 === 04-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.OLAXzb/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.IdjUsW/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 invoice_id,amount_cents,stored_type
 1,1200,integer
@@ -722,7 +722,7 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-fixture=/tmp/duckdb-lesson.OLAXzb
+fixture=/tmp/duckdb-lesson.IdjUsW
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,NULL,rejected
 2,2300,NULL,rejected
@@ -733,15 +733,15 @@ disposition,records,total_cents
 rejected,5,NULL
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.OLAXzb/source.sqlite: OK
-40	/tmp/duckdb-lesson.OLAXzb
+/tmp/duckdb-lesson.IdjUsW/source.sqlite: OK
+40	/tmp/duckdb-lesson.IdjUsW
 
 === 04-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.tYZCwa/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.KtAOoz/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 invoice_id,amount_cents,stored_type
 1,1200,integer
@@ -757,7 +757,7 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-fixture=/tmp/duckdb-lesson.tYZCwa
+fixture=/tmp/duckdb-lesson.KtAOoz
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,1200,accepted
 2,2300,2300,accepted
@@ -769,15 +769,15 @@ accepted,2,3500
 rejected,3,-50
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.tYZCwa/source.sqlite: OK
-40	/tmp/duckdb-lesson.tYZCwa
+/tmp/duckdb-lesson.KtAOoz/source.sqlite: OK
+40	/tmp/duckdb-lesson.KtAOoz
 
 === 04-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.qHJKjl/query.sql
+Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.LamWU8/query.sql
 Run:
 cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  duck :memory: -bail -csv
+  duckdb :memory: -bail -csv
 Cleanup: duck_cleanup
 invoice_id,amount_cents,stored_type
 1,1200,integer
@@ -793,7 +793,7 @@ invoice_id,raw_amount
 3,oops
 4,NULL
 5,-50
-fixture=/tmp/duckdb-lesson.qHJKjl
+fixture=/tmp/duckdb-lesson.LamWU8
 invoice_id,raw_amount,amount_cents,disposition
 1,1200,1200,accepted
 2,2300,2300,accepted
@@ -805,8 +805,8 @@ accepted,3,3450
 rejected,2,NULL
 source_rows,classified_rows
 5,5
-/tmp/duckdb-lesson.qHJKjl/source.sqlite: OK
-40	/tmp/duckdb-lesson.qHJKjl
+/tmp/duckdb-lesson.LamWU8/source.sqlite: OK
+40	/tmp/duckdb-lesson.LamWU8
 
 === 05-script-starter ===
 order_id,ordered_on,status,amount_cents
@@ -820,11 +820,11 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.UlPEdo/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.uG9jEM/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.UlPEdo
+fixture=/tmp/duckdb-lesson.uG9jEM
 order_id,amount_cents
 101,1200
 102,2300
@@ -832,8 +832,8 @@ order_id,amount_cents
 105,900
 orders,total_cents
 4,6100
-/tmp/duckdb-lesson.UlPEdo/orders.csv: OK
-32	/tmp/duckdb-lesson.UlPEdo
+/tmp/duckdb-lesson.uG9jEM/orders.csv: OK
+32	/tmp/duckdb-lesson.uG9jEM
 
 === 05-script-answer ===
 order_id,ordered_on,status,amount_cents
@@ -847,18 +847,18 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.ehqFDT/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.YYnM0A/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.ehqFDT
+fixture=/tmp/duckdb-lesson.YYnM0A
 order_id,amount_cents
 102,2300
 104,1700
 orders,total_cents
 2,4000
-/tmp/duckdb-lesson.ehqFDT/orders.csv: OK
-32	/tmp/duckdb-lesson.ehqFDT
+/tmp/duckdb-lesson.YYnM0A/orders.csv: OK
+32	/tmp/duckdb-lesson.YYnM0A
 
 === 05-script-wrong ===
 order_id,ordered_on,status,amount_cents
@@ -872,25 +872,25 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.F4EmA2/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.UUFZlr/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
-fixture=/tmp/duckdb-lesson.F4EmA2
+fixture=/tmp/duckdb-lesson.UUFZlr
 order_id,amount_cents
 102,2300
 103,800
 104,1700
 orders,total_cents
 3,4800
-/tmp/duckdb-lesson.F4EmA2/orders.csv: OK
-32	/tmp/duckdb-lesson.F4EmA2
+/tmp/duckdb-lesson.UUFZlr/orders.csv: OK
+32	/tmp/duckdb-lesson.UUFZlr
 
 === 05-manual-starter ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.ABg9aS/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.979lwD/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
 order_id,ordered_on,status,amount_cents
 101,2026-09-13,paid,1200
@@ -903,7 +903,7 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.ABg9aS
+fixture=/tmp/duckdb-lesson.979lwD
 order_id,amount_cents
 101,1200
 102,2300
@@ -911,14 +911,14 @@ order_id,amount_cents
 105,900
 orders,total_cents
 4,6100
-/tmp/duckdb-lesson.ABg9aS/orders.csv: OK
-32	/tmp/duckdb-lesson.ABg9aS
+/tmp/duckdb-lesson.979lwD/orders.csv: OK
+32	/tmp/duckdb-lesson.979lwD
 
 === 05-manual-answer ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.xjY2Pd/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.jxAwjH/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
 order_id,ordered_on,status,amount_cents
 101,2026-09-13,paid,1200
@@ -931,20 +931,20 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.xjY2Pd
+fixture=/tmp/duckdb-lesson.jxAwjH
 order_id,amount_cents
 102,2300
 104,1700
 orders,total_cents
 2,4000
-/tmp/duckdb-lesson.xjY2Pd/orders.csv: OK
-32	/tmp/duckdb-lesson.xjY2Pd
+/tmp/duckdb-lesson.jxAwjH/orders.csv: OK
+32	/tmp/duckdb-lesson.jxAwjH
 
 === 05-manual-wrong ===
 Fixture ready. Run the lesson’s manual DuckDB setup commands next.
-Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.jfKlQQ/query.sql
+Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.2rMuL4/query.sql
 Run:
-duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
 Cleanup: duck_cleanup
 order_id,ordered_on,status,amount_cents
 101,2026-09-13,paid,1200
@@ -957,30 +957,30 @@ order_id,BIGINT,YES,NULL,NULL,NULL
 ordered_on,DATE,YES,NULL,NULL,NULL
 status,VARCHAR,YES,NULL,NULL,NULL
 amount_cents,BIGINT,YES,NULL,NULL,NULL
-fixture=/tmp/duckdb-lesson.jfKlQQ
+fixture=/tmp/duckdb-lesson.2rMuL4
 order_id,amount_cents
 102,2300
 103,800
 104,1700
 orders,total_cents
 3,4800
-/tmp/duckdb-lesson.jfKlQQ/orders.csv: OK
-32	/tmp/duckdb-lesson.jfKlQQ
+/tmp/duckdb-lesson.2rMuL4/orders.csv: OK
+32	/tmp/duckdb-lesson.2rMuL4
 
 === shared-starters ===
-Evidence: /tmp/tutor-validation-2790311611
+Evidence: /tmp/tutor-validation-3582270196
 
 === #1 attach-postgres-source [shell, 1 session(s)] ===
   -- setup --
   [A] LOAD postgres;
-  [A] ATTACH 'host=/tmp/duckdb-lesson.RYjY8C port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+  [A] ATTACH 'host=/tmp/duckdb-lesson.dYSx2W port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
   [A] table_catalog,table_schema,table_name
   [A] app,public,orders
   [A] app,sales,orders
-  [A] Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.RYjY8C/query.sql
+  [A] Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.dYSx2W/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] order_id,amount_cents
@@ -1004,10 +1004,10 @@ Evidence: /tmp/tutor-validation-2790311611
   -- setup --
   [A] source_orders
   [A] 5
-  [A] Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.ziJwvn/query.sql
+  [A] Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.rLZH06/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck "$DUCK_LAB/local.duckdb" -bail -csv
+  [A]   duckdb "$DUCK_LAB/local.duckdb" -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] column_name,column_type,null,key,default,extra
@@ -1055,17 +1055,17 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] table_catalog,table_schema,table_name
   [A] memory,main,customers
   [A] source,main,customers
-  [A] Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.VOn7du/query.sql
+  [A] Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.VH3nC8/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] customer_id,name
   [A] customer_id,name
   [A] 1,Ada
   [A] 3,Sam
-  [A] /tmp/duckdb-lesson.VOn7du/source.sqlite: OK
+  [A] /tmp/duckdb-lesson.VH3nC8/source.sqlite: OK
 
 === #4 repair-sqlite-types [shell, 1 session(s)] ===
   -- setup --
@@ -1079,7 +1079,7 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] * SET sqlite_all_varchar=true to load all columns as VARCHAR and skip type conversions
   [A] LOAD sqlite;
   [A] SET sqlite_all_varchar = true;
-  [A] ATTACH '/tmp/duckdb-lesson.DAvFgU/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+  [A] ATTACH '/tmp/duckdb-lesson.g1SIoi/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
   [A] CREATE TABLE raw AS
   [A] SELECT
   [A]   invoice_id,
@@ -1092,10 +1092,10 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] 3,oops
   [A] 4,NULL
   [A] 5,-50
-  [A] Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.DAvFgU/query.sql
+  [A] Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.g1SIoi/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] invoice_id,raw_amount,amount_cents,disposition
@@ -1108,7 +1108,7 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] rejected,5,NULL
   [A] source_rows,classified_rows
   [A] 5,5
-  [A] /tmp/duckdb-lesson.DAvFgU/source.sqlite: OK
+  [A] /tmp/duckdb-lesson.g1SIoi/source.sqlite: OK
 
 === #5 query-a-file [shell, 1 session(s)] ===
   -- setup --
@@ -1123,9 +1123,9 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] ordered_on,DATE,YES,NULL,NULL,NULL
   [A] status,VARCHAR,YES,NULL,NULL,NULL
   [A] amount_cents,BIGINT,YES,NULL,NULL,NULL
-  [A] Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.Qj5bhn/query.sql
+  [A] Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.s24V5c/query.sql
   [A] Run:
-  [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+  [A] duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] order_id,amount_cents
@@ -1135,24 +1135,24 @@ Evidence: /tmp/tutor-validation-2790311611
   [A] 105,900
   [A] orders,total_cents
   [A] 4,6100
-  [A] /tmp/duckdb-lesson.Qj5bhn/orders.csv: OK
+  [A] /tmp/duckdb-lesson.s24V5c/orders.csv: OK
 
 5/5 lessons completed without timeout
 
 === shared-worked-sequence ===
-Evidence: /tmp/tutor-validation-2184471898
+Evidence: /tmp/tutor-validation-765943695
 
 === #1 attach-postgres-source [shell, 1 session(s)] ===
   -- setup --
   [A] LOAD postgres;
-  [A] ATTACH 'host=/tmp/duckdb-lesson.bhPQtu port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
+  [A] ATTACH 'host=/tmp/duckdb-lesson.7kHKw9 port=55439 dbname=postgres user=reader' AS app (TYPE postgres, READ_ONLY);
   [A] table_catalog,table_schema,table_name
   [A] app,public,orders
   [A] app,sales,orders
-  [A] Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.bhPQtu/query.sql
+  [A] Lesson 1 ready. Edit the supplied starter: /tmp/duckdb-lesson.7kHKw9/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] order_id,amount_cents
@@ -1177,10 +1177,10 @@ Evidence: /tmp/tutor-validation-2184471898
   -- setup --
   [A] source_orders
   [A] 5
-  [A] Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.Znb1uK/query.sql
+  [A] Lesson 2 ready. Edit the supplied starter: /tmp/duckdb-lesson.q0pMcY/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck "$DUCK_LAB/local.duckdb" -bail -csv
+  [A]   duckdb "$DUCK_LAB/local.duckdb" -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] column_name,column_type,null,key,default,extra
@@ -1216,10 +1216,10 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] table_catalog,table_schema,table_name
   [A] memory,main,customers
   [A] source,main,customers
-  [A] Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.qKDt6D/query.sql
+  [A] Lesson 3 ready. Edit the supplied starter: /tmp/duckdb-lesson.Efcttc/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] customer_id,name
@@ -1228,7 +1228,7 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] customer_id,name
   [A] 1,Ada
   [A] 3,Sam
-  [A] /tmp/duckdb-lesson.qKDt6D/source.sqlite: OK
+  [A] /tmp/duckdb-lesson.Efcttc/source.sqlite: OK
 
 === #4 repair-sqlite-types [shell, 1 session(s)] ===
   -- setup --
@@ -1242,7 +1242,7 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] * SET sqlite_all_varchar=true to load all columns as VARCHAR and skip type conversions
   [A] LOAD sqlite;
   [A] SET sqlite_all_varchar = true;
-  [A] ATTACH '/tmp/duckdb-lesson.K9HDZF/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
+  [A] ATTACH '/tmp/duckdb-lesson.djDMWi/source.sqlite' AS source (TYPE sqlite, READ_ONLY);
   [A] CREATE TABLE raw AS
   [A] SELECT
   [A]   invoice_id,
@@ -1255,10 +1255,10 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] 3,oops
   [A] 4,NULL
   [A] 5,-50
-  [A] Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.K9HDZF/query.sql
+  [A] Lesson 4 ready. Edit the supplied starter: /tmp/duckdb-lesson.djDMWi/query.sql
   [A] Run:
   [A] cat "$DUCK_LAB/session.sql" "$DUCK_LAB/query.sql" |
-  [A]   duck :memory: -bail -csv
+  [A]   duckdb :memory: -bail -csv
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] invoice_id,raw_amount,amount_cents,disposition
@@ -1272,7 +1272,7 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] rejected,3,-50
   [A] source_rows,classified_rows
   [A] 5,5
-  [A] /tmp/duckdb-lesson.K9HDZF/source.sqlite: OK
+  [A] /tmp/duckdb-lesson.djDMWi/source.sqlite: OK
 
 === #5 query-a-file [shell, 1 session(s)] ===
   -- setup --
@@ -1287,9 +1287,9 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] ordered_on,DATE,YES,NULL,NULL,NULL
   [A] status,VARCHAR,YES,NULL,NULL,NULL
   [A] amount_cents,BIGINT,YES,NULL,NULL,NULL
-  [A] Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.lg2bgK/query.sql
+  [A] Lesson 5 ready. Edit the supplied starter: /tmp/duckdb-lesson.Q2vEbq/query.sql
   [A] Run:
-  [A] duck :memory: -bail -csv < "$DUCK_LAB/query.sql"
+  [A] duckdb :memory: -bail -csv < "$DUCK_LAB/query.sql"
   [A] Cleanup: duck_cleanup
   -- Session A --
   [A] order_id,amount_cents
@@ -1297,6 +1297,6 @@ Evidence: /tmp/tutor-validation-2184471898
   [A] 104,1700
   [A] orders,total_cents
   [A] 2,4000
-  [A] /tmp/duckdb-lesson.lg2bgK/orders.csv: OK
+  [A] /tmp/duckdb-lesson.Q2vEbq/orders.csv: OK
 
 5/5 lessons completed without timeout
