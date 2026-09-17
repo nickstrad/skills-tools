@@ -80,46 +80,95 @@ Use the supplied learner lab only. Autovacuum is disabled only on pe_plan_stats 
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '15s';
+
 drop table if exists pe_plan_stats;
+
 create table pe_plan_stats (id int not null, kind text not null, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_plan_stats
-select g,
-       case when g <= 9000 then 'common' else 'rare' end,
-       repeat('s', 32)
-from generate_series(1, 10000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_plan_stats
+select
+  g,
+  case
+    when g <= 9000 then 'common'
+    else 'rare'
+  end,
+  repeat('s', 32)
+from
+  generate_series(1, 10000) g;
+
 analyze pe_plan_stats;
 ```
 
 ## Run
 ```sql
 -- Session A: record the statistics for the original 9,000/1,000 distribution.
-select most_common_vals, most_common_freqs
-from pg_stats
-where schemaname = current_schema()
+select
+  most_common_vals,
+  most_common_freqs
+from
+  pg_stats
+where
+  schemaname = current_schema()
   and tablename = 'pe_plan_stats'
   and attname = 'kind';
 
 -- Session A: change the live distribution without refreshing its planner statistics.
-update pe_plan_stats set kind = 'rare' where id <= 8000;
-select kind, count(*) from pe_plan_stats group by kind order by kind;
+update pe_plan_stats
+set
+  kind = 'rare'
+where
+  id <= 8000;
+
+select
+  kind,
+  count(*)
+from
+  pe_plan_stats
+group by
+  kind
+order by
+  kind;
+
 \echo stale_statistics
 explain (analyze, buffers, timing off)
-select * from pe_plan_stats where kind = 'rare';
+select
+  *
+from
+  pe_plan_stats
+where
+  kind = 'rare';
 
 -- Session A: repair only the statistics, then execute the identical predicate.
 analyze pe_plan_stats;
-select most_common_vals, most_common_freqs
-from pg_stats
-where schemaname = current_schema()
+
+select
+  most_common_vals,
+  most_common_freqs
+from
+  pg_stats
+where
+  schemaname = current_schema()
   and tablename = 'pe_plan_stats'
   and attname = 'kind';
+
 \echo refreshed_statistics
 explain (analyze, buffers, timing off)
-select * from pe_plan_stats where kind = 'rare';
+select
+  *
+from
+  pe_plan_stats
+where
+  kind = 'rare';
+
 drop table pe_plan_stats;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -147,25 +196,68 @@ Reverse the direction of drift and check whether the estimate gap follows the st
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '15s';
+
 drop table if exists pe_plan_stats_variation;
+
 create table pe_plan_stats_variation (id int not null, kind text not null)
-  with (autovacuum_enabled = false);
-insert into pe_plan_stats_variation
-select g, case when g <= 9000 then 'rare' else 'common' end
-from generate_series(1, 10000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_plan_stats_variation
+select
+  g,
+  case
+    when g <= 9000 then 'rare'
+    else 'common'
+  end
+from
+  generate_series(1, 10000) g;
+
 analyze pe_plan_stats_variation;
-update pe_plan_stats_variation set kind = 'common' where id <= 8000;
-select kind, count(*) from pe_plan_stats_variation group by kind order by kind;
+
+update pe_plan_stats_variation
+set
+  kind = 'common'
+where
+  id <= 8000;
+
+select
+  kind,
+  count(*)
+from
+  pe_plan_stats_variation
+group by
+  kind
+order by
+  kind;
+
 \echo variation_stale_statistics
 explain (analyze, buffers, timing off)
-select * from pe_plan_stats_variation where kind = 'rare';
+select
+  *
+from
+  pe_plan_stats_variation
+where
+  kind = 'rare';
+
 analyze pe_plan_stats_variation;
+
 \echo variation_refreshed_statistics
 explain (analyze, buffers, timing off)
-select * from pe_plan_stats_variation where kind = 'rare';
+select
+  *
+from
+  pe_plan_stats_variation
+where
+  kind = 'rare';
+
 drop table pe_plan_stats_variation;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

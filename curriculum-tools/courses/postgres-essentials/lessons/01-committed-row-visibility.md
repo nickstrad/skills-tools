@@ -65,38 +65,86 @@ the lesson's exact cleanup command so its named pe_* table and session settings 
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set default_transaction_isolation = 'read committed';
+
 drop table if exists pe_visibility;
+
 create table pe_visibility (id int primary key, balance int not null);
-insert into pe_visibility values (1, 100);
+
+insert into
+  pe_visibility
+values
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A: write, then inspect your own uncommitted version. Leave A open.
 begin;
-update pe_visibility set balance = 120 where id = 1;
-select balance as a_private from pe_visibility where id = 1;
+
+update pe_visibility
+set
+  balance = 120
+where
+  id = 1;
+
+select
+  balance as a_private
+from
+  pe_visibility
+where
+  id = 1;
 
 -- Session B: read from a separate connection while A is still open.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '3s';
-select balance as b_before_commit from pe_visibility where id = 1;
+
+select
+  balance as b_before_commit
+from
+  pe_visibility
+where
+  id = 1;
 
 -- Session A: make the first change committed.
 commit;
 
 -- Session B: take a fresh statement view after A's commit.
-select balance as b_after_commit from pe_visibility where id = 1;
+select
+  balance as b_after_commit
+from
+  pe_visibility
+where
+  id = 1;
 
 -- Session A: try a different value, but abandon this transaction.
 begin;
-update pe_visibility set balance = 999 where id = 1;
-select balance as a_aborted from pe_visibility where id = 1;
+
+update pe_visibility
+set
+  balance = 999
+where
+  id = 1;
+
+select
+  balance as a_aborted
+from
+  pe_visibility
+where
+  id = 1;
+
 rollback;
 
 -- Session B: check which value survived, then remove this lesson's table.
-select balance as b_after_rollback from pe_visibility where id = 1;
+select
+  balance as b_after_rollback
+from
+  pe_visibility
+where
+  id = 1;
+
 drop table pe_visibility;
 ```
 

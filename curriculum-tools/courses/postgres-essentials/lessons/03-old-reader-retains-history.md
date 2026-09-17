@@ -74,12 +74,25 @@ Use the supplied disposable learner lab and its postgres role. This experiment d
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set default_transaction_isolation = 'read committed';
+
 create extension if not exists pgstattuple;
+
 drop table if exists pe_history;
+
 create table pe_history (id int primary key, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_history select g, repeat('x', 100) from generate_series(1, 1000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_history
+select
+  g,
+  repeat('x', 100)
+from
+  generate_series(1, 1000) g;
+
 vacuum pe_history;
 ```
 
@@ -87,30 +100,67 @@ vacuum pe_history;
 ```sql
 -- Session A: establish the reader that still needs the original rows. Leave it open.
 set application_name = 'pe-history-reader';
+
 begin isolation level repeatable read;
-select count(*) as reader_before from pe_history;
+
+select
+  count(*) as reader_before
+from
+  pe_history;
 
 -- Session B: delete in a committed statement, then try to reclaim the old versions.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '3s';
+
 delete from pe_history;
-select count(*) as fresh_rows from pe_history;
-select state, backend_xmin from pg_stat_activity
-where application_name = 'pe-history-reader' and datname = current_database();
+
+select
+  count(*) as fresh_rows
+from
+  pe_history;
+
+select
+  state,
+  backend_xmin
+from
+  pg_stat_activity
+where
+  application_name = 'pe-history-reader'
+  and datname = current_database();
+
 vacuum (truncate false) pe_history;
-select dead_tuple_count as retained_dead, free_percent as retained_free
-from pgstattuple('pe_history');
+
+select
+  dead_tuple_count as retained_dead,
+  free_percent as retained_free
+from
+  pgstattuple ('pe_history');
 
 -- Session A: prove the retained versions are still readable, then release the snapshot.
-select count(*) as reader_after_delete from pe_history;
+select
+  count(*) as reader_after_delete
+from
+  pe_history;
+
 commit;
+
 reset application_name;
 
 -- Session B: repeat the same vacuum with that reader gone, then clean up.
 vacuum (truncate false) pe_history;
-select dead_tuple_count as released_dead, free_percent as released_free
-from pgstattuple('pe_history');
-select count(*) as final_rows from pe_history;
+
+select
+  dead_tuple_count as released_dead,
+  free_percent as released_free
+from
+  pgstattuple ('pe_history');
+
+select
+  count(*) as final_rows
+from
+  pe_history;
+
 drop table pe_history;
 ```
 

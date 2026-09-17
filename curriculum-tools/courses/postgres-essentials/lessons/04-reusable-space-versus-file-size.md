@@ -85,48 +85,100 @@ Use the supplied disposable learner lab and its postgres role. This experiment d
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 create extension if not exists pgstattuple;
+
 drop table if exists pe_reuse;
+
 create table pe_reuse (id int primary key, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_reuse
-select g, repeat('x', 400) from generate_series(1, 4000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_reuse
+select
+  g,
+  repeat('x', 400)
+from
+  generate_series(1, 4000) g;
+
 vacuum pe_reuse;
 ```
 
 ## Run
 ```sql
 -- Session A: record the clean, populated baseline.
-select 'loaded' as phase,
-       (select count(*) from pe_reuse) as visible_rows,
-       pg_relation_size('pe_reuse') as heap_bytes,
-       dead_tuple_count, free_space
-from pgstattuple('pe_reuse');
+select
+  'loaded' as phase,
+  (
+    select
+      count(*)
+    from
+      pe_reuse
+  ) as visible_rows,
+  pg_relation_size('pe_reuse') as heap_bytes,
+  dead_tuple_count,
+  free_space
+from
+  pgstattuple ('pe_reuse');
 
 -- Session A: make every row logically absent, then inspect the still-dead versions.
 delete from pe_reuse;
-select 'deleted' as phase,
-       (select count(*) from pe_reuse) as visible_rows,
-       pg_relation_size('pe_reuse') as heap_bytes,
-       dead_tuple_count, free_space
-from pgstattuple('pe_reuse');
+
+select
+  'deleted' as phase,
+  (
+    select
+      count(*)
+    from
+      pe_reuse
+  ) as visible_rows,
+  pg_relation_size('pe_reuse') as heap_bytes,
+  dead_tuple_count,
+  free_space
+from
+  pgstattuple ('pe_reuse');
 
 -- Session A: reclaim in place while explicitly keeping the heap allocation.
 vacuum (truncate false) pe_reuse;
-select 'vacuumed' as phase,
-       (select count(*) from pe_reuse) as visible_rows,
-       pg_relation_size('pe_reuse') as heap_bytes,
-       dead_tuple_count, free_space
-from pgstattuple('pe_reuse');
+
+select
+  'vacuumed' as phase,
+  (
+    select
+      count(*)
+    from
+      pe_reuse
+  ) as visible_rows,
+  pg_relation_size('pe_reuse') as heap_bytes,
+  dead_tuple_count,
+  free_space
+from
+  pgstattuple ('pe_reuse');
 
 -- Session A: refill with the same row shape, inspect reuse, then clean up.
-insert into pe_reuse
-select g, repeat('x', 400) from generate_series(1, 4000) g;
-select 'refilled' as phase,
-       (select count(*) from pe_reuse) as visible_rows,
-       pg_relation_size('pe_reuse') as heap_bytes,
-       dead_tuple_count, free_space
-from pgstattuple('pe_reuse');
+insert into
+  pe_reuse
+select
+  g,
+  repeat('x', 400)
+from
+  generate_series(1, 4000) g;
+
+select
+  'refilled' as phase,
+  (
+    select
+      count(*)
+    from
+      pe_reuse
+  ) as visible_rows,
+  pg_relation_size('pe_reuse') as heap_bytes,
+  dead_tuple_count,
+  free_space
+from
+  pgstattuple ('pe_reuse');
+
 drop table pe_reuse;
 ```
 

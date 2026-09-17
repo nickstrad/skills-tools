@@ -87,58 +87,95 @@ Follow the terminal order exactly: both reads, both updates, A COMMIT, then B CO
 ## Setup
 ```sql
 set default_transaction_isolation = 'repeatable read';
+
 drop table if exists pe_on_call_rr;
-create table pe_on_call_rr (
-  doctor text primary key,
-  on_call boolean not null
-);
-insert into pe_on_call_rr values ('Alice', true), ('Bob', true);
+
+create table pe_on_call_rr (doctor text primary key, on_call boolean not null);
+
+insert into
+  pe_on_call_rr
+values
+  ('Alice', true),
+  ('Bob', true);
 ```
 
 ## Run
 ```sql
 -- Session A: begin and decide from a snapshot containing both doctors.
 begin;
-select count(*) filter (where on_call) as count,
-       count(*) filter (where on_call) > 1 as can_leave
-from pe_on_call_rr
+
+select
+  count(*) filter (where on_call) as count,
+  count(*) filter (where on_call) > 1 as can_leave
+from
+  pe_on_call_rr
 \gset a_
+
 \echo A read :a_count doctors; can Alice leave? :a_can_leave
 
 -- Session B: establish its snapshot before either doctor changes a row.
 set default_transaction_isolation = 'repeatable read';
+
 begin;
-select count(*) filter (where on_call) as count,
-       count(*) filter (where on_call) > 1 as can_leave
-from pe_on_call_rr
+
+select
+  count(*) filter (where on_call) as count,
+  count(*) filter (where on_call) > 1 as can_leave
+from
+  pe_on_call_rr
 \gset b_
+
 \echo B read :b_count doctors; can Bob leave? :b_can_leave
 
 -- Session A: carry out A's decision, but do not commit yet.
 \if :a_can_leave
-update pe_on_call_rr set on_call = false where doctor = 'Alice';
+update pe_on_call_rr
+set
+  on_call = false
+where
+  doctor = 'Alice';
+
 \echo A UPDATE ROW_COUNT :ROW_COUNT
 \endif
 
 -- Session B: carry out B's decision on the different row before A commits.
 \if :b_can_leave
-update pe_on_call_rr set on_call = false where doctor = 'Bob';
+update pe_on_call_rr
+set
+  on_call = false
+where
+  doctor = 'Bob';
+
 \echo B UPDATE ROW_COUNT :ROW_COUNT
 \endif
 
 -- Session A: publish Alice's change first.
 commit;
+
 \echo A COMMIT SQLSTATE :SQLSTATE
 
 -- Session B: Repeatable Read permits this disjoint write to commit too.
 commit;
+
 \echo B COMMIT SQLSTATE :SQLSTATE
 reset default_transaction_isolation;
 
 -- Session A: observe both surviving writes and the broken rule, then clean up.
-select doctor, on_call from pe_on_call_rr order by doctor;
-select count(*) filter (where on_call) as rr_final_on_call from pe_on_call_rr;
+select
+  doctor,
+  on_call
+from
+  pe_on_call_rr
+order by
+  doctor;
+
+select
+  count(*) filter (where on_call) as rr_final_on_call
+from
+  pe_on_call_rr;
+
 reset default_transaction_isolation;
+
 drop table pe_on_call_rr;
 ```
 
@@ -159,17 +196,33 @@ Run the serial schedule and compare B's decision. Run this complete block in Ses
 
     -- Session A
     set default_transaction_isolation = 'repeatable read';
+
     drop table if exists pe_on_call_rr;
+
     create table pe_on_call_rr (doctor text primary key, on_call boolean not null);
-    insert into pe_on_call_rr values ('Alice', true), ('Bob', true);
+
+    insert into
+      pe_on_call_rr
+    values
+      ('Alice', true),
+      ('Bob', true);
+
     begin;
-    select count(*) filter (where on_call) as count,
-           count(*) filter (where on_call) > 1 as can_leave
-    from pe_on_call_rr
+
+    select
+      count(*) filter (where on_call) as count,
+      count(*) filter (where on_call) > 1 as can_leave
+    from
+      pe_on_call_rr
     \gset a_serial_
+
     \echo A read :a_serial_count doctors; can Alice leave? :a_serial_can_leave
     \if :a_serial_can_leave
-    update pe_on_call_rr set on_call = false where doctor = 'Alice';
+    update pe_on_call_rr
+    set
+      on_call = false
+    where
+      doctor = 'Alice';
     \endif
     commit;
 
@@ -177,21 +230,36 @@ Only after A finishes, run this complete transaction in Session B:
 
     -- Session B
     set default_transaction_isolation = 'repeatable read';
+
     begin;
-    select count(*) filter (where on_call) as count,
-           count(*) filter (where on_call) > 1 as can_leave
-    from pe_on_call_rr
+
+    select
+      count(*) filter (where on_call) as count,
+      count(*) filter (where on_call) > 1 as can_leave
+    from
+      pe_on_call_rr
     \gset b_serial_
+
     \echo B read :b_serial_count doctors; can Bob leave? :b_serial_can_leave
     \if :b_serial_can_leave
-    update pe_on_call_rr set on_call = false where doctor = 'Bob';
+    update pe_on_call_rr
+    set
+      on_call = false
+    where
+      doctor = 'Bob';
     \endif
     commit;
-    select count(*) filter (where on_call) as rr_serial_final_on_call from pe_on_call_rr;
+
+    select
+      count(*) filter (where on_call) as rr_serial_final_on_call
+    from
+      pe_on_call_rr;
+
     reset default_transaction_isolation;
 
     -- Session A: clean up after B has observed the result.
     reset default_transaction_isolation;
+
     drop table pe_on_call_rr;
 
 B should read 1, print f and decline, leaving rr_serial_final_on_call = 1. The final Session A

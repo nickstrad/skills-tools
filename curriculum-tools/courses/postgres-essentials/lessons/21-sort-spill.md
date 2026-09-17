@@ -84,13 +84,24 @@ The table is about 17 MB and both plans really execute the full sort. Keep the s
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 set max_parallel_workers_per_gather = 0;
+
 drop table if exists pe_sort_budget;
+
 create table pe_sort_budget (id integer primary key, sort_key text not null, payload text not null);
-insert into pe_sort_budget
-select g, lpad((20001 - g)::text, 6, '0'), repeat(md5(g::text), 24)
-from generate_series(1, 20000) as g;
+
+insert into
+  pe_sort_budget
+select
+  g,
+  lpad((20001 - g)::text, 6, '0'),
+  repeat(md5(g::text), 24)
+from
+  generate_series(1, 20000) as g;
+
 analyze pe_sort_budget;
 ```
 
@@ -98,23 +109,46 @@ analyze pe_sort_budget;
 ```sql
 -- Session A: constrain this Sort node enough to force temporary I/O.
 begin;
+
 set local work_mem = '64kB';
+
 \echo phase=small_work_mem
 explain (analyze, buffers, timing off, summary off)
-select id, sort_key, payload from pe_sort_budget order by sort_key;
+select
+  id,
+  sort_key,
+  payload
+from
+  pe_sort_budget
+order by
+  sort_key;
+
 commit;
 
 -- Session A: repeat identical work with a bounded in-memory allowance.
 begin;
+
 set local work_mem = '32MB';
+
 \echo phase=larger_work_mem
 explain (analyze, buffers, timing off, summary off)
-select id, sort_key, payload from pe_sort_budget order by sort_key;
+select
+  id,
+  sort_key,
+  payload
+from
+  pe_sort_budget
+order by
+  sort_key;
+
 commit;
 
 drop table pe_sort_budget;
+
 reset max_parallel_workers_per_gather;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -136,23 +170,51 @@ Optional bounded-LIMIT variation, independently runnable. If interrupted, ROLLBA
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 set max_parallel_workers_per_gather = 0;
+
 drop table if exists pe_sort_variation;
+
 create table pe_sort_variation (id int primary key, sort_key text not null, payload text not null);
-insert into pe_sort_variation
-select g, lpad((20001 - g)::text, 6, '0'), repeat(md5(g::text), 24)
-from generate_series(1, 20000) g;
+
+insert into
+  pe_sort_variation
+select
+  g,
+  lpad((20001 - g)::text, 6, '0'),
+  repeat(md5(g::text), 24)
+from
+  generate_series(1, 20000) g;
+
 analyze pe_sort_variation;
+
 begin;
+
 set local work_mem = '64kB';
+
 \echo phase=variation_top_n
 explain (analyze, buffers, timing off, summary off)
-select id, sort_key, payload from pe_sort_variation order by sort_key limit 20;
+select
+  id,
+  sort_key,
+  payload
+from
+  pe_sort_variation
+order by
+  sort_key
+limit
+  20;
+
 commit;
+
 drop table pe_sort_variation;
+
 reset max_parallel_workers_per_gather;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

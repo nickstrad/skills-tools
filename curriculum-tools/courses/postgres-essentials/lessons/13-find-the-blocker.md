@@ -80,57 +80,97 @@ B is meant to pause at its UPDATE. Switch promptly to A for the diagnostic and C
 ## Setup
 ```sql
 set application_name = 'pe_blocker_a';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_blocker_account;
+
 create table pe_blocker_account (id int primary key, balance int not null);
-insert into pe_blocker_account values (1, 100);
+
+insert into
+  pe_blocker_account
+values
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A: change the row and deliberately leave the transaction open.
-select pg_backend_pid() as a_pid;
+select
+  pg_backend_pid() as a_pid;
+
 begin;
-update pe_blocker_account set balance = balance + 10 where id = 1;
+
+update pe_blocker_account
+set
+  balance = balance + 10
+where
+  id = 1;
 
 -- Session B (blocks): label this connection, then request the same row.
 set application_name = 'pe_blocker_b';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
-select pg_backend_pid() as b_pid;
+
+select
+  pg_backend_pid() as b_pid;
+
 begin;
-update pe_blocker_account set balance = balance + 20 where id = 1;
+
+update pe_blocker_account
+set
+  balance = balance + 20
+where
+  id = 1;
 
 -- Session A: while B waits, follow B's actual blocker PID edge.
-select waiting.application_name as waiting_name,
-       waiting.pid as waiting_pid,
-       waiting.wait_event_type,
-       waiting.wait_event,
-       blocker.application_name as blocker_name,
-       blocker.pid as blocker_pid,
-       blocker.state as blocker_state,
-       blocker.xact_start,
-       clock_timestamp() - blocker.xact_start as blocker_xact_age
-from pg_stat_activity as waiting
-cross join lateral unnest(pg_blocking_pids(waiting.pid)) as edge(blocker_pid)
-join pg_stat_activity as blocker on blocker.pid = edge.blocker_pid
-where waiting.application_name = 'pe_blocker_b';
+select
+  waiting.application_name as waiting_name,
+  waiting.pid as waiting_pid,
+  waiting.wait_event_type,
+  waiting.wait_event,
+  blocker.application_name as blocker_name,
+  blocker.pid as blocker_pid,
+  blocker.state as blocker_state,
+  blocker.xact_start,
+  clock_timestamp() - blocker.xact_start as blocker_xact_age
+from
+  pg_stat_activity as waiting
+  cross join lateral unnest(pg_blocking_pids(waiting.pid)) as edge (blocker_pid)
+  join pg_stat_activity as blocker on blocker.pid = edge.blocker_pid
+where
+  waiting.application_name = 'pe_blocker_b';
 
 -- Session A: finish the controlling transaction and release B.
 commit;
 
 -- Session B: the UPDATE has now completed. Commit its change.
 commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
 
 -- Session A: verify both committed changes, then clean up.
-select balance as final_balance from pe_blocker_account where id = 1;
+select
+  balance as final_balance
+from
+  pe_blocker_account
+where
+  id = 1;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
+
 drop table pe_blocker_account;
 ```
 
@@ -153,54 +193,94 @@ Optional, after the core time budget: compare the surviving balance when the hol
 ```sql
 -- Session A: recreate the independent fixture.
 set application_name = 'pe_blocker_a';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_blocker_account;
+
 create table pe_blocker_account (id int primary key, balance int not null);
-insert into pe_blocker_account values (1, 100);
+
+insert into
+  pe_blocker_account
+values
+  (1, 100);
 
 -- Session A: change the row and deliberately leave the transaction open.
-select pg_backend_pid() as a_pid;
+select
+  pg_backend_pid() as a_pid;
+
 begin;
-update pe_blocker_account set balance = balance + 10 where id = 1;
+
+update pe_blocker_account
+set
+  balance = balance + 10
+where
+  id = 1;
 
 -- Session B (blocks): label this connection, then request the same row.
 set application_name = 'pe_blocker_b';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
-select pg_backend_pid() as b_pid;
+
+select
+  pg_backend_pid() as b_pid;
+
 begin;
-update pe_blocker_account set balance = balance + 20 where id = 1;
+
+update pe_blocker_account
+set
+  balance = balance + 20
+where
+  id = 1;
 
 -- Session A: while B waits, follow B's actual blocker PID edge.
-select waiting.application_name as waiting_name,
-       waiting.pid as waiting_pid,
-       waiting.wait_event_type,
-       waiting.wait_event,
-       blocker.application_name as blocker_name,
-       blocker.pid as blocker_pid,
-       blocker.state as blocker_state,
-       blocker.xact_start,
-       clock_timestamp() - blocker.xact_start as blocker_xact_age
-from pg_stat_activity as waiting
-cross join lateral unnest(pg_blocking_pids(waiting.pid)) as edge(blocker_pid)
-join pg_stat_activity as blocker on blocker.pid = edge.blocker_pid
-where waiting.application_name = 'pe_blocker_b';
+select
+  waiting.application_name as waiting_name,
+  waiting.pid as waiting_pid,
+  waiting.wait_event_type,
+  waiting.wait_event,
+  blocker.application_name as blocker_name,
+  blocker.pid as blocker_pid,
+  blocker.state as blocker_state,
+  blocker.xact_start,
+  clock_timestamp() - blocker.xact_start as blocker_xact_age
+from
+  pg_stat_activity as waiting
+  cross join lateral unnest(pg_blocking_pids(waiting.pid)) as edge (blocker_pid)
+  join pg_stat_activity as blocker on blocker.pid = edge.blocker_pid
+where
+  waiting.application_name = 'pe_blocker_b';
 
 -- Session A: roll back the controlling transaction and release B.
 rollback;
 
 -- Session B: the UPDATE has now completed. Commit its change.
 commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
 
 -- Session A: verify only B committed, then clean up.
-select balance as rollback_holder_balance from pe_blocker_account where id = 1;
+select
+  balance as rollback_holder_balance
+from
+  pe_blocker_account
+where
+  id = 1;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
+
 drop table pe_blocker_account;
 ```
 

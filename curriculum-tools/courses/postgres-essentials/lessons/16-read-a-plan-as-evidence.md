@@ -92,12 +92,23 @@ Use the supplied learner lab only. The experiment creates and drops pe_plan_read
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '15s';
+
 drop table if exists pe_plan_read;
+
 create table pe_plan_read (id int not null, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_plan_read
-select g, repeat('p', 32) from generate_series(1, 10000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_plan_read
+select
+  g,
+  repeat('p', 32)
+from
+  generate_series(1, 10000) g;
+
 analyze pe_plan_read;
 ```
 
@@ -106,19 +117,37 @@ analyze pe_plan_read;
 -- Session A: inspect the planner's prediction without executing the SELECT.
 \echo plan_prediction
 explain
-select count(*) from pe_plan_read where id % 100 = 0;
+select
+  count(*)
+from
+  pe_plan_read
+where
+  id % 100 = 0;
 
 -- Session A: execute the identical SELECT and add row-flow and buffer evidence.
 \echo measured_execution
 explain (analyze, buffers, timing off)
-select count(*) from pe_plan_read where id % 100 = 0;
+select
+  count(*)
+from
+  pe_plan_read
+where
+  id % 100 = 0;
 
 -- Session A: repeat once to expose cache sensitivity, then clean up.
 \echo repeated_execution
 explain (analyze, buffers, timing off)
-select count(*) from pe_plan_read where id % 100 = 0;
+select
+  count(*)
+from
+  pe_plan_read
+where
+  id % 100 = 0;
+
 drop table pe_plan_read;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -145,18 +174,38 @@ Change only predicate selectivity and compare the row counters with the core que
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '15s';
+
 drop table if exists pe_plan_read_variation;
+
 create table pe_plan_read_variation (id int not null, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_plan_read_variation
-select g, repeat('v', 32) from generate_series(1, 10000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_plan_read_variation
+select
+  g,
+  repeat('v', 32)
+from
+  generate_series(1, 10000) g;
+
 analyze pe_plan_read_variation;
+
 \echo variation_broader_predicate
 explain (analyze, buffers, timing off)
-select count(*) from pe_plan_read_variation where id % 10 = 0;
+select
+  count(*)
+from
+  pe_plan_read_variation
+where
+  id % 10 = 0;
+
 drop table pe_plan_read_variation;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

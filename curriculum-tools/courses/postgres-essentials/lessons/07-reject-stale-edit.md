@@ -99,52 +99,105 @@ the lesson's exact cleanup command so its named pe_* table and session settings 
 ## Setup
 ```sql
 set default_transaction_isolation = 'read committed';
+
 drop table if exists pe_edit;
-create table pe_edit (
-  id int primary key,
-  body text not null,
-  version bigint not null
-);
-insert into pe_edit values (1, 'Draft', 1);
+
+create table pe_edit (id int primary key, body text not null, version bigint not null);
+
+insert into
+  pe_edit
+values
+  (1, 'Draft', 1);
 ```
 
 ## Run
 ```sql
 -- Session A: read the document into A's psql variables. This statement finishes immediately.
-select body, version from pe_edit where id = 1 \gset a_
-select :'a_body' as a_original_body, :a_version as a_original_version;
+select
+  body,
+  version
+from
+  pe_edit
+where
+  id = 1 \gset a_
+
+select
+  :'a_body' as a_original_body,
+  :a_version as a_original_version;
 
 -- Session B: independently read the same revision into B's psql variables.
 set default_transaction_isolation = 'read committed';
-select body, version from pe_edit where id = 1 \gset b_
-select :'b_body' as b_original_body, :b_version as b_original_version;
+
+select
+  body,
+  version
+from
+  pe_edit
+where
+  id = 1 \gset b_
+
+select
+  :'b_body' as b_original_body,
+  :b_version as b_original_version;
 
 -- Session A: save only if version 1 is still current, and advance the token with the edit.
 update pe_edit
-set body = 'A: corrected title', version = version + 1
-where id = 1 and version = :'a_version';
+set
+  body = 'A: corrected title',
+  version = version + 1
+where
+  id = 1
+  and version = :'a_version';
+
 \echo a_save_rows=:ROW_COUNT
 
 -- Session B: submit B's edit with its original token. Do not refresh only the token.
 update pe_edit
-set body = 'B: standalone rewrite', version = version + 1
-where id = 1 and version = :'b_version';
+set
+  body = 'B: standalone rewrite',
+  version = version + 1
+where
+  id = 1
+  and version = :'b_version';
+
 \echo b_stale_save_rows=:ROW_COUNT
 
 -- Session B: zero rows means reread before deciding whether and how to save.
-select body, version from pe_edit where id = 1 \gset b_current_
-select :'b_current_body' as b_current_body, :b_current_version as b_current_version;
-select 'preserve the current body and append the reviewed B note' as b_merge_decision;
+select
+  body,
+  version
+from
+  pe_edit
+where
+  id = 1 \gset b_current_
+
+select
+  :'b_current_body' as b_current_body,
+  :b_current_version as b_current_version;
+
+select
+  'preserve the current body and append the reviewed B note' as b_merge_decision;
 
 -- Session B: save that explicit merge only if the revision just reviewed is still current.
 update pe_edit
-set body = :'b_current_body' || ' + B: reviewed note',
-    version = version + 1
-where id = 1 and version = :'b_current_version';
+set
+  body = :'b_current_body' || ' + B: reviewed note',
+  version = version + 1
+where
+  id = 1
+  and version = :'b_current_version';
+
 \echo b_merged_save_rows=:ROW_COUNT
 
 -- Session A: inspect the shared final result, then remove the fixture.
-select body as final_body, version as final_version from pe_edit where id = 1;
+select
+  body as final_body,
+  version as final_version
+from
+  pe_edit
+where
+  id = 1;
+
 drop table pe_edit;
 ```
 
@@ -167,15 +220,32 @@ Run this in either session after the core cleanup:
 
     -- Session A
     drop table if exists pe_edit;
+
     create table pe_edit (id int primary key, body text not null, version bigint not null);
-    insert into pe_edit values
+
+    insert into
+      pe_edit
+    values
       (1, 'A: corrected title + B: reviewed note', 3);
+
     \set original_version 1
     update pe_edit
-    set body = 'stale retry', version = version + 1
-    where id = 1 and version = :original_version;
+    set
+      body = 'stale retry',
+      version = version + 1
+    where
+      id = 1
+      and version = :original_version;
+
     \echo variation_stale_rows=:ROW_COUNT
-    select body as variation_body, version as variation_version from pe_edit where id = 1;
+    select
+      body as variation_body,
+      version as variation_version
+    from
+      pe_edit
+    where
+      id = 1;
+
     drop table pe_edit;
 
 Expect variation_stale_rows=0 and the preserved version 3

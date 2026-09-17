@@ -80,61 +80,99 @@ The 40001 is deliberate only at B's final COMMIT in this supplied schedule. Run 
 ## Setup
 ```sql
 set default_transaction_isolation = 'serializable';
+
 drop table if exists pe_on_call_serial;
-create table pe_on_call_serial (
-  doctor text primary key,
-  on_call boolean not null
-);
-insert into pe_on_call_serial values ('Alice', true), ('Bob', true);
+
+create table pe_on_call_serial (doctor text primary key, on_call boolean not null);
+
+insert into
+  pe_on_call_serial
+values
+  ('Alice', true),
+  ('Bob', true);
 ```
 
 ## Run
 ```sql
 -- Session A: begin and decide from a Serializable snapshot containing both doctors.
 begin;
-select count(*) filter (where on_call) as count,
-       count(*) filter (where on_call) > 1 as can_leave
-from pe_on_call_serial
+
+select
+  count(*) filter (where on_call) as count,
+  count(*) filter (where on_call) > 1 as can_leave
+from
+  pe_on_call_serial
 \gset a_
+
 \echo A read :a_count doctors; can Alice leave? :a_can_leave
 
 -- Session B: establish its snapshot before either transaction writes.
 set default_transaction_isolation = 'serializable';
+
 begin;
-select count(*) filter (where on_call) as count,
-       count(*) filter (where on_call) > 1 as can_leave
-from pe_on_call_serial
+
+select
+  count(*) filter (where on_call) as count,
+  count(*) filter (where on_call) > 1 as can_leave
+from
+  pe_on_call_serial
 \gset b_
+
 \echo B read :b_count doctors; can Bob leave? :b_can_leave
 
 -- Session A: make A's disjoint write but keep A open.
 \if :a_can_leave
-update pe_on_call_serial set on_call = false where doctor = 'Alice';
+update pe_on_call_serial
+set
+  on_call = false
+where
+  doctor = 'Alice';
+
 \echo A UPDATE ROW_COUNT :ROW_COUNT
 \endif
 
 -- Session B: make B's disjoint write before A commits.
 \if :b_can_leave
-update pe_on_call_serial set on_call = false where doctor = 'Bob';
+update pe_on_call_serial
+set
+  on_call = false
+where
+  doctor = 'Bob';
+
 \echo B UPDATE ROW_COUNT :ROW_COUNT
 \endif
 
 -- Session A: commit first; this supplied schedule makes A the survivor.
 commit;
+
 \echo A COMMIT SQLSTATE :SQLSTATE
 
 -- Session B: capture the deliberate serialization failure before SQLSTATE changes.
 \set VERBOSITY sqlstate
 commit;
+
 \echo B COMMIT SQLSTATE :SQLSTATE
 rollback;
+
 \set VERBOSITY default
 reset default_transaction_isolation;
 
 -- Session A: observe the surviving row and invariant, then clean up.
-select doctor, on_call from pe_on_call_serial order by doctor;
-select count(*) filter (where on_call) as serializable_final_on_call from pe_on_call_serial;
+select
+  doctor,
+  on_call
+from
+  pe_on_call_serial
+order by
+  doctor;
+
+select
+  count(*) filter (where on_call) as serializable_final_on_call
+from
+  pe_on_call_serial;
+
 reset default_transaction_isolation;
+
 drop table pe_on_call_serial;
 ```
 
@@ -161,17 +199,33 @@ call by running this complete block in Session A:
 
     -- Session A
     set default_transaction_isolation = 'serializable';
+
     drop table if exists pe_on_call_serial;
+
     create table pe_on_call_serial (doctor text primary key, on_call boolean not null);
-    insert into pe_on_call_serial values ('Alice', true), ('Bob', true);
+
+    insert into
+      pe_on_call_serial
+    values
+      ('Alice', true),
+      ('Bob', true);
+
     begin;
-    select count(*) filter (where on_call) as count,
-           count(*) filter (where on_call) > 1 as can_leave
-    from pe_on_call_serial
+
+    select
+      count(*) filter (where on_call) as count,
+      count(*) filter (where on_call) > 1 as can_leave
+    from
+      pe_on_call_serial
     \gset a_serial_
+
     \echo A read :a_serial_count doctors; can Alice leave? :a_serial_can_leave
     \if :a_serial_can_leave
-    update pe_on_call_serial set on_call = false where doctor = 'Alice';
+    update pe_on_call_serial
+    set
+      on_call = false
+    where
+      doctor = 'Alice';
     \endif
     commit;
 
@@ -179,22 +233,36 @@ Only after A finishes, run this complete transaction in Session B:
 
     -- Session B
     set default_transaction_isolation = 'serializable';
+
     begin;
-    select count(*) filter (where on_call) as count,
-           count(*) filter (where on_call) > 1 as can_leave
-    from pe_on_call_serial
+
+    select
+      count(*) filter (where on_call) as count,
+      count(*) filter (where on_call) > 1 as can_leave
+    from
+      pe_on_call_serial
     \gset b_serial_
+
     \echo B read :b_serial_count doctors; can Bob leave? :b_serial_can_leave
     \if :b_serial_can_leave
-    update pe_on_call_serial set on_call = false where doctor = 'Bob';
+    update pe_on_call_serial
+    set
+      on_call = false
+    where
+      doctor = 'Bob';
     \endif
     commit;
-    select count(*) filter (where on_call) as serializable_serial_final_on_call
-    from pe_on_call_serial;
+
+    select
+      count(*) filter (where on_call) as serializable_serial_final_on_call
+    from
+      pe_on_call_serial;
+
     reset default_transaction_isolation;
 
     -- Session A: clean up after B has observed the result.
     reset default_transaction_isolation;
+
     drop table pe_on_call_serial;
 
 B should read 1, print f, decline the update, and commit normally. The final count stays 1 with no

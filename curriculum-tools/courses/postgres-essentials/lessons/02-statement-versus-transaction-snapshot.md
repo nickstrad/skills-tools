@@ -63,41 +63,93 @@ the lesson's exact cleanup command so its named pe_* table and session settings 
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set default_transaction_isolation = 'read committed';
+
 drop table if exists pe_snapshot;
+
 create table pe_snapshot (id int primary key, balance int not null);
-insert into pe_snapshot values (1, 100);
+
+insert into
+  pe_snapshot
+values
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A: first round, Read Committed. Leave the reader transaction open.
 begin isolation level read committed;
-select balance as rc_before from pe_snapshot where id = 1;
+
+select
+  balance as rc_before
+from
+  pe_snapshot
+where
+  id = 1;
 
 -- Session B: commit a change between A's reads.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '3s';
-update pe_snapshot set balance = 120 where id = 1;
+
+update pe_snapshot
+set
+  balance = 120
+where
+  id = 1;
 
 -- Session A: read again inside the SAME transaction, then end it.
-select balance as rc_after from pe_snapshot where id = 1;
+select
+  balance as rc_after
+from
+  pe_snapshot
+where
+  id = 1;
+
 commit;
 
 -- Session B: restore the starting value before the second round.
-update pe_snapshot set balance = 100 where id = 1;
+update pe_snapshot
+set
+  balance = 100
+where
+  id = 1;
 
 -- Session A: second round, Repeatable Read. The SELECT establishes its snapshot.
 begin isolation level repeatable read;
-select balance as rr_before from pe_snapshot where id = 1;
+
+select
+  balance as rr_before
+from
+  pe_snapshot
+where
+  id = 1;
 
 -- Session B: make the same committed change.
-update pe_snapshot set balance = 120 where id = 1;
+update pe_snapshot
+set
+  balance = 120
+where
+  id = 1;
 
 -- Session A: read in the stable view, then finish and take a fresh view.
-select balance as rr_after from pe_snapshot where id = 1;
+select
+  balance as rr_after
+from
+  pe_snapshot
+where
+  id = 1;
+
 commit;
-select balance as fresh_after_end from pe_snapshot where id = 1;
+
+select
+  balance as fresh_after_end
+from
+  pe_snapshot
+where
+  id = 1;
+
 drop table pe_snapshot;
 ```
 

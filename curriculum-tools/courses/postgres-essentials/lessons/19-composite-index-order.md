@@ -90,21 +90,32 @@ This experiment creates and replaces indexes on a disposable 100,000-row pe_even
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
+
 drop table if exists pe_event;
+
 create table pe_event (
   event_id int primary key,
   tenant_id int not null,
   event_time timestamptz not null,
   payload text not null
-) with (autovacuum_enabled = false);
-insert into pe_event
-select g,
-       ((g - 1) / 1000) + 1,
-       timestamptz '2026-01-01 00:00:00+00' + g * interval '1 second',
-       repeat('e', 120)
-from generate_series(1, 100000) g;
+)
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_event
+select
+  g,
+  ((g - 1) / 1000) + 1,
+  timestamptz '2026-01-01 00:00:00+00' + g * interval '1 second',
+  repeat('e', 120)
+from
+  generate_series(1, 100000) g;
+
 analyze pe_event;
+
 create index pe_event_time_tenant_idx on pe_event (event_time, tenant_id);
 ```
 
@@ -113,27 +124,44 @@ create index pe_event_time_tenant_idx on pe_event (event_time, tenant_id);
 -- Session A: time first supplies order but examines entries beyond the requested tenant.
 \echo phase_time_first
 explain (analyze, buffers, timing off)
-select event_id, event_time
-from pe_event
-where tenant_id = 1
-order by event_time desc
-limit 10;
+select
+  event_id,
+  event_time
+from
+  pe_event
+where
+  tenant_id = 1
+order by
+  event_time desc
+limit
+  10;
 
 -- Session A: replace it with tenant first and run the identical workload.
 drop index pe_event_time_tenant_idx;
+
 create index pe_event_tenant_time_idx on pe_event (tenant_id, event_time);
+
 analyze pe_event;
+
 \echo phase_tenant_first
 explain (analyze, buffers, timing off)
-select event_id, event_time
-from pe_event
-where tenant_id = 1
-order by event_time desc
-limit 10;
+select
+  event_id,
+  event_time
+from
+  pe_event
+where
+  tenant_id = 1
+order by
+  event_time desc
+limit
+  10;
 
 -- Session A: remove the fixture while the timeout guards still apply, then restore the session.
 drop table pe_event;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -159,23 +187,72 @@ Optional reverse-order variation, independently runnable. Request tenant 100's o
 ```sql
 -- Session A: recreate the fixture and compare forward scans.
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
+
 drop table if exists pe_event;
-create table pe_event (event_id int primary key, tenant_id int not null, event_time timestamptz not null, payload text not null) with (autovacuum_enabled = false);
-insert into pe_event
-select g, ((g - 1) / 1000) + 1, timestamptz '2026-01-01 00:00:00+00' + g * interval '1 second', repeat('e', 120)
-from generate_series(1, 100000) g;
+
+create table pe_event (
+  event_id int primary key,
+  tenant_id int not null,
+  event_time timestamptz not null,
+  payload text not null
+)
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_event
+select
+  g,
+  ((g - 1) / 1000) + 1,
+  timestamptz '2026-01-01 00:00:00+00' + g * interval '1 second',
+  repeat('e', 120)
+from
+  generate_series(1, 100000) g;
+
 analyze pe_event;
+
 create index pe_event_time_tenant_idx on pe_event (event_time, tenant_id);
+
 \echo phase_time_first_ascending
-explain (analyze, buffers, timing off) select event_id, event_time from pe_event where tenant_id = 100 order by event_time asc limit 10;
+explain (analyze, buffers, timing off)
+select
+  event_id,
+  event_time
+from
+  pe_event
+where
+  tenant_id = 100
+order by
+  event_time asc
+limit
+  10;
+
 drop index pe_event_time_tenant_idx;
+
 create index pe_event_tenant_time_idx on pe_event (tenant_id, event_time);
+
 analyze pe_event;
+
 \echo phase_tenant_first_ascending
-explain (analyze, buffers, timing off) select event_id, event_time from pe_event where tenant_id = 100 order by event_time asc limit 10;
+explain (analyze, buffers, timing off)
+select
+  event_id,
+  event_time
+from
+  pe_event
+where
+  tenant_id = 100
+order by
+  event_time asc
+limit
+  10;
+
 drop table pe_event;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

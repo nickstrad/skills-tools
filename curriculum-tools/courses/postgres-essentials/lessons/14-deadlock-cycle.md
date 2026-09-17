@@ -75,56 +75,98 @@ The deadlock error is expected only on one of the two second UPDATE statements. 
 ## Setup
 ```sql
 set application_name = 'pe_deadlock_a';
+
 set lock_timeout = '30s';
+
 set statement_timeout = '45s';
+
 \set VERBOSITY terse
 drop table if exists pe_deadlock_item;
+
 create table pe_deadlock_item (id int primary key, value int not null);
-insert into pe_deadlock_item values (1, 0), (2, 0);
+
+insert into
+  pe_deadlock_item
+values
+  (1, 0),
+  (2, 0);
 ```
 
 ## Run
 ```sql
 -- Session A: attempt A locks row 1 first.
 begin;
-update pe_deadlock_item set value = value + 10 where id = 1;
+
+update pe_deadlock_item
+set
+  value = value + 10
+where
+  id = 1;
 
 -- Session B: attempt B locks row 2 first.
 set application_name = 'pe_deadlock_b';
+
 set lock_timeout = '30s';
+
 set statement_timeout = '45s';
+
 \set VERBOSITY terse
 begin;
-update pe_deadlock_item set value = value + 1 where id = 2;
+
+update pe_deadlock_item
+set
+  value = value + 1
+where
+  id = 2;
 
 -- Session B (blocks): request A's row. Switch to A without waiting for output.
-update pe_deadlock_item set value = value + 1 where id = 1;
+update pe_deadlock_item
+set
+  value = value + 1
+where
+  id = 1;
+
 \echo b_second_update_sqlstate :SQLSTATE
 
 -- Session A: request B's row, closing the cycle. Capture its result immediately.
-update pe_deadlock_item set value = value + 10 where id = 2;
+update pe_deadlock_item
+set
+  value = value + 10
+where
+  id = 2;
+
 \echo a_second_update_sqlstate :SQLSTATE
 
 -- Session A: finish. This commits the survivor or ends the already-aborted attempt.
 commit;
+
 \echo a_finish_sqlstate :SQLSTATE
 \set VERBOSITY default
 
 -- Session B: its blocked command has now returned. Finish it too.
 commit;
+
 \echo b_finish_sqlstate :SQLSTATE
 \set VERBOSITY default
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
 
 -- Session A: prove one complete attempt survived, then clean up.
-select array_agg(value order by id) as final_values,
-       sum(value) as total_committed_increment
-from pe_deadlock_item;
+select
+  array_agg(value order by id) as final_values,
+  sum(value) as total_committed_increment
+from
+  pe_deadlock_item;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
+
 drop table pe_deadlock_item;
 ```
 
@@ -148,39 +190,83 @@ Optional consistent-order comparison. Run these labelled blocks with the same te
 ```sql
 -- Session A: create the independent fixture and lock row 1.
 set application_name = 'pe_deadlock_a';
+
 set lock_timeout = '30s';
+
 set statement_timeout = '45s';
+
 drop table if exists pe_deadlock_item;
+
 create table pe_deadlock_item (id int primary key, value int not null);
-insert into pe_deadlock_item values (1, 0), (2, 0);
+
+insert into
+  pe_deadlock_item
+values
+  (1, 0),
+  (2, 0);
+
 begin;
-update pe_deadlock_item set value = value + 10 where id = 1;
+
+update pe_deadlock_item
+set
+  value = value + 10
+where
+  id = 1;
 
 -- Session B (blocks): request row 1 first.
 set application_name = 'pe_deadlock_b';
+
 set lock_timeout = '30s';
+
 set statement_timeout = '45s';
+
 begin;
-update pe_deadlock_item set value = value + 1 where id = 1;
+
+update pe_deadlock_item
+set
+  value = value + 1
+where
+  id = 1;
+
 \echo b_first_sqlstate :SQLSTATE
 
 -- Session A: take row 2 in the same order and commit, releasing B.
-update pe_deadlock_item set value = value + 10 where id = 2;
+update pe_deadlock_item
+set
+  value = value + 10
+where
+  id = 2;
+
 commit;
 
 -- Session B: after its first UPDATE returns, take row 2 and finish.
-update pe_deadlock_item set value = value + 1 where id = 2;
+update pe_deadlock_item
+set
+  value = value + 1
+where
+  id = 2;
+
 \echo b_second_sqlstate :SQLSTATE
 commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
 
 -- Session A: verify and clean up.
-select array_agg(value order by id) as ordered_final_values from pe_deadlock_item;
+select
+  array_agg(value order by id) as ordered_final_values
+from
+  pe_deadlock_item;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
+
 drop table pe_deadlock_item;
 ```
 

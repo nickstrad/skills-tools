@@ -99,9 +99,13 @@ Session B is meant to wait at its labelled INSERT. Switch promptly to session A 
 ## Setup
 ```sql
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_credit_ledger;
+
 create table pe_credit_ledger (
   request_id text primary key,
   account_id text not null,
@@ -114,72 +118,127 @@ create table pe_credit_ledger (
 ```sql
 -- Session A: accept the request, but keep its unique-key decision uncommitted.
 begin;
-insert into pe_credit_ledger (request_id, account_id, amount, receipt)
-values ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
+
+insert into
+  pe_credit_ledger (request_id, account_id, amount, receipt)
+values
+  ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
 on conflict (request_id) do nothing
-returning request_id, account_id, amount, receipt;
+returning
+  request_id,
+  account_id,
+  amount,
+  receipt;
+
 \echo a_inserted=:ROW_COUNT
 
 -- Session B (blocks until A commits): race the same key and same payload.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 begin;
-insert into pe_credit_ledger (request_id, account_id, amount, receipt)
-values ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
+
+insert into
+  pe_credit_ledger (request_id, account_id, amount, receipt)
+values
+  ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
 on conflict (request_id) do nothing
-returning request_id, account_id, amount, receipt;
+returning
+  request_id,
+  account_id,
+  amount,
+  receipt;
+
 \echo b_inserted=:ROW_COUNT
 
 -- Session A: publish the ledger row and release B's unique-key wait.
 commit;
 
 -- Session B: its INSERT returned no row. Reconcile in a fresh Read Committed statement.
-select request_id, account_id, amount, receipt,
-       case when account_id = 'acct-7' and amount = 40
-            then 'MATCH: return stored receipt'
-            else 'REJECT: request key reused with different payload'
-       end as reconciliation
-from pe_credit_ledger
-where request_id = 'request-12';
+select
+  request_id,
+  account_id,
+  amount,
+  receipt,
+  case
+    when account_id = 'acct-7'
+    and amount = 40 then 'MATCH: return stored receipt'
+    else 'REJECT: request key reused with different payload'
+  end as reconciliation
+from
+  pe_credit_ledger
+where
+  request_id = 'request-12';
+
 commit;
 
 -- Session A: reconnect with inherited parameters, as after an unknown response, and replay.
 \connect - - - -
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
-insert into pe_credit_ledger (request_id, account_id, amount, receipt)
-values ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
+
+insert into
+  pe_credit_ledger (request_id, account_id, amount, receipt)
+values
+  ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
 on conflict (request_id) do nothing
-returning request_id, account_id, amount, receipt;
+returning
+  request_id,
+  account_id,
+  amount,
+  receipt;
+
 \echo replay_inserted=:ROW_COUNT
-select receipt as replay_receipt,
-       case when account_id = 'acct-7' and amount = 40
-            then 'MATCH: return stored receipt'
-            else 'REJECT: request key reused with different payload'
-       end as replay_decision
-from pe_credit_ledger where request_id = 'request-12';
+select
+  receipt as replay_receipt,
+  case
+    when account_id = 'acct-7'
+    and amount = 40 then 'MATCH: return stored receipt'
+    else 'REJECT: request key reused with different payload'
+  end as replay_decision
+from
+  pe_credit_ledger
+where
+  request_id = 'request-12';
 
 -- Session A: test a conflicting payload without applying another effect.
-select account_id as stored_account, amount as stored_amount,
-       'acct-7' as supplied_account, 55 as supplied_amount,
-       case when account_id = 'acct-7' and amount = 55
-            then 'MATCH: return stored receipt'
-            else 'REJECT: request key reused with different payload'
-       end as payload_decision
-from pe_credit_ledger where request_id = 'request-12';
+select
+  account_id as stored_account,
+  amount as stored_amount,
+  'acct-7' as supplied_account,
+  55 as supplied_amount,
+  case
+    when account_id = 'acct-7'
+    and amount = 55 then 'MATCH: return stored receipt'
+    else 'REJECT: request key reused with different payload'
+  end as payload_decision
+from
+  pe_credit_ledger
+where
+  request_id = 'request-12';
 
 -- Session A: prove one ledger effect and one credited amount, then clean up.
-select count(*) filter (where request_id = 'request-12') as request_rows,
-       sum(amount) filter (where account_id = 'acct-7') as credited_total
-from pe_credit_ledger;
+select
+  count(*) filter (where request_id = 'request-12') as request_rows,
+  sum(amount) filter (where account_id = 'acct-7') as credited_total
+from
+  pe_credit_ledger;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 drop table pe_credit_ledger;
 
 -- Session B: restore this connection's settings after A has removed the fixture.
 reset default_transaction_isolation;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -209,31 +268,55 @@ Optional, after the core time budget: run this self-contained reset and test the
 ```sql
 -- Session A: reset the fixture, then hold an uncommitted candidate row.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_credit_ledger;
+
 create table pe_credit_ledger (
   request_id text primary key,
   account_id text not null,
   amount integer not null check (amount > 0),
   receipt text not null
 );
+
 begin;
-insert into pe_credit_ledger values
+
+insert into
+  pe_credit_ledger
+values
   ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
 on conflict (request_id) do nothing
-returning request_id, account_id, amount, receipt;
+returning
+  request_id,
+  account_id,
+  amount,
+  receipt;
+
 \echo a_inserted=:ROW_COUNT
 
 -- Session B (blocks until A rolls back): use the same guards and payload.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 begin;
-insert into pe_credit_ledger values
+
+insert into
+  pe_credit_ledger
+values
   ('request-12', 'acct-7', 40, 'credit accepted: acct-7 +40')
 on conflict (request_id) do nothing
-returning request_id, account_id, amount, receipt;
+returning
+  request_id,
+  account_id,
+  amount,
+  receipt;
+
 \echo b_inserted=:ROW_COUNT
 
 -- Session A: remove A's candidate and release B.
@@ -241,16 +324,28 @@ rollback;
 
 -- Session B: B is now the sole accepted insert.
 commit;
-select count(*) as request_rows, sum(amount) as credited_total
-from pe_credit_ledger where request_id = 'request-12';
+
+select
+  count(*) as request_rows,
+  sum(amount) as credited_total
+from
+  pe_credit_ledger
+where
+  request_id = 'request-12';
+
 reset default_transaction_isolation;
+
 reset lock_timeout;
+
 reset statement_timeout;
 
 -- Session A: restore settings and remove the fixture.
 reset default_transaction_isolation;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 drop table pe_credit_ledger;
 ```
 

@@ -236,9 +236,14 @@ the same style (one clause per line, two-space indentation, a blank line between
 - `CREATE TRIGGER ... BEGIN ... END;` comes out flattened (and `AFTER UPDATE` is split). Keep the
   header on one line (`WHEN` on the next), then indent the formatted body statements between
   `BEGIN` and `END;`.
-- Tidy these layouts after formatting: a standalone `SET\n  name = value;` becomes one line
-  (not `UPDATE ... SET`); `GRANT\nSELECT\n  ON ...` becomes `GRANT SELECT ON ...;`; the DuckDB
-  dialect's `TRY_CAST (` becomes `TRY_CAST(`.
+- Tidy these layouts after formatting: a standalone `SET\n  name = value;` (including `set local`)
+  becomes one line (not `UPDATE ... SET`); `GRANT\nSELECT\n  ON ...` becomes `GRANT SELECT ON ...;`;
+  the DuckDB dialect's `TRY_CAST (` becomes `TRY_CAST(`; `explain (...)` and `vacuum (...)` options,
+  `filter (where x)`, `drop table a, b;` and short function calls such as
+  `md5(string_agg(x, ',' order by id))` go back on one line. Scalar subqueries stay expanded.
+- psql: keep a trailing `\gset`/`\gexec` attached to the query it runs (end of its last line, or
+  the next line when the author put it there), and keep each `-- Session` header directly above
+  its step. Format the SQL inside indented Optional-variation code blocks too, keeping the indent.
 - Leave one-line SQL inside shell plumbing (`test "$(sqlite3 ...)"`, FIFO `echo ... >&3`, `strace`
   wrappers) as it is; format `<<'SQL'` heredoc bodies instead.
 

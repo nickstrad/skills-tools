@@ -83,28 +83,52 @@ the lesson's exact cleanup command so its named pe_* table and session settings 
 ## Setup
 ```sql
 set application_name = 'pe_timeout_a';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_timeout_account;
+
 create table pe_timeout_account (id int primary key, balance int not null);
-insert into pe_timeout_account values (1, 100);
+
+insert into
+  pe_timeout_account
+values
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A: hold the row only for B's lock-timeout round.
 begin;
-update pe_timeout_account set balance = balance + 10 where id = 1;
+
+update pe_timeout_account
+set
+  balance = balance + 10
+where
+  id = 1;
 
 -- Session B: use transaction-local bounds; the blocked UPDATE fails after about 500 ms.
 set application_name = 'pe_timeout_b';
+
 \set VERBOSITY terse
 begin;
+
 set local lock_timeout = '500ms';
+
 set local statement_timeout = '3s';
-update pe_timeout_account set balance = balance + 20 where id = 1;
+
+update pe_timeout_account
+set
+  balance = balance + 20
+where
+  id = 1;
+
 \echo lock_update_sqlstate :SQLSTATE
-select current_setting('transaction_isolation') as should_not_run;
+select
+  current_setting('transaction_isolation') as should_not_run;
+
 \echo after_lock_timeout_sqlstate :SQLSTATE
 rollback;
 
@@ -113,25 +137,47 @@ rollback;
 
 -- Session B: make a tentative write, then cancel a later statement by its runtime.
 begin;
-update pe_timeout_account set balance = balance + 30 where id = 1;
+
+update pe_timeout_account
+set
+  balance = balance + 30
+where
+  id = 1;
+
 set local statement_timeout = '500ms';
-select pg_sleep(2);
+
+select
+  pg_sleep(2);
+
 \echo sleep_sqlstate :SQLSTATE
-select current_setting('transaction_isolation') as should_not_run;
+select
+  current_setting('transaction_isolation') as should_not_run;
+
 \echo after_statement_timeout_sqlstate :SQLSTATE
 rollback;
 
 -- Session B: prove rollback cleared the failure and discarded the tentative +30.
-select balance as final_balance from pe_timeout_account where id = 1;
+select
+  balance as final_balance
+from
+  pe_timeout_account
+where
+  id = 1;
+
 \set VERBOSITY default
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
 
 -- Session A: restore settings and remove the fixture.
 reset lock_timeout;
+
 reset statement_timeout;
+
 reset application_name;
+
 drop table pe_timeout_account;
 ```
 
@@ -155,14 +201,22 @@ Optional autocommit contrast, independent of the fixture. Run the labelled block
 ```sql
 -- Session A: autocommit timeout and immediate reuse.
 set application_name = 'pe_timeout_a';
+
 \set VERBOSITY terse
 set statement_timeout = '500ms';
-select pg_sleep(2);
+
+select
+  pg_sleep(2);
+
 \echo autocommit_sleep_sqlstate :SQLSTATE
-select 1 as connection_reusable;
+select
+  1 as connection_reusable;
+
 \echo autocommit_next_sqlstate :SQLSTATE
 reset statement_timeout;
+
 reset application_name;
+
 \set VERBOSITY default
 ```
 

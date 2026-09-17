@@ -88,14 +88,19 @@ Run this on a PostgreSQL instance where fsync is on, as the setup verifies. The 
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
-select current_setting('fsync') = 'on' as fsync_is_on \gset
+
+select
+  current_setting('fsync') = 'on' as fsync_is_on \gset
+
 \if :fsync_is_on
 \else
   \echo 'This experiment requires fsync=on.'
   \quit
 \endif
 drop table if exists pe_commit_wal;
+
 create table pe_commit_wal (id integer primary key, label text not null);
 ```
 
@@ -103,35 +108,60 @@ create table pe_commit_wal (id integer primary key, label text not null);
 ```sql
 -- Session A: save WAL inserted by the row, then require a synchronous commit.
 begin;
+
 set local synchronous_commit = on;
-insert into pe_commit_wal values (1, 'synchronous');
-select pg_current_wal_insert_lsn() as write_lsn \gset on_
+
+insert into
+  pe_commit_wal
+values
+  (1, 'synchronous');
+
+select
+  pg_current_wal_insert_lsn() as write_lsn \gset on_
+
 commit;
-select :'on_write_lsn'::pg_lsn as saved_write_lsn,
-       pg_current_wal_lsn() as current_write_lsn,
-       pg_current_wal_flush_lsn() as current_flush_lsn,
-       pg_current_wal_flush_lsn() >= :'on_write_lsn'::pg_lsn as flush_reached_saved_write;
+
+select
+  :'on_write_lsn'::pg_lsn as saved_write_lsn,
+  pg_current_wal_lsn() as current_write_lsn,
+  pg_current_wal_flush_lsn() as current_flush_lsn,
+  pg_current_wal_flush_lsn() >= :'on_write_lsn'::pg_lsn as flush_reached_saved_write;
 
 -- Session A: permit early acknowledgement, then report the gap actually sampled.
 begin;
-set local synchronous_commit = off;
-select pg_current_wal_flush_lsn() as before_flush_lsn \gset off_
-insert into pe_commit_wal values (2, 'asynchronous');
-select pg_current_wal_insert_lsn() as write_lsn \gset off_
-commit;
-select :'off_write_lsn'::pg_lsn as saved_write_lsn,
-       :'off_before_flush_lsn'::pg_lsn as flush_before_insert,
-       pg_current_wal_lsn() as sampled_write_lsn,
-       pg_current_wal_flush_lsn() as sampled_flush_lsn,
-       greatest(pg_wal_lsn_diff(:'off_write_lsn'::pg_lsn, pg_current_wal_flush_lsn()), 0)
-         as sampled_unflushed_bytes;
 
-select count(*) filter (where label = 'synchronous') as synchronous_rows,
-       count(*) filter (where label = 'asynchronous') as asynchronous_rows
-from pe_commit_wal;
+set local synchronous_commit = off;
+
+select
+  pg_current_wal_flush_lsn() as before_flush_lsn \gset off_
+
+insert into
+  pe_commit_wal
+values
+  (2, 'asynchronous');
+
+select
+  pg_current_wal_insert_lsn() as write_lsn \gset off_
+
+commit;
+
+select
+  :'off_write_lsn'::pg_lsn as saved_write_lsn,
+  :'off_before_flush_lsn'::pg_lsn as flush_before_insert,
+  pg_current_wal_lsn() as sampled_write_lsn,
+  pg_current_wal_flush_lsn() as sampled_flush_lsn,
+  greatest(pg_wal_lsn_diff(:'off_write_lsn'::pg_lsn, pg_current_wal_flush_lsn()), 0) as sampled_unflushed_bytes;
+
+select
+  count(*) filter (where label = 'synchronous') as synchronous_rows,
+  count(*) filter (where label = 'asynchronous') as asynchronous_rows
+from
+  pe_commit_wal;
 
 drop table pe_commit_wal;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -157,17 +187,38 @@ Optional rollback variation, independently runnable. Observe the WAL position al
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
+
 drop table if exists pe_wal_rollback;
+
 create table pe_wal_rollback (id integer primary key, payload text not null);
-select pg_current_wal_insert_lsn() as before_lsn \gset
+
+select
+  pg_current_wal_insert_lsn() as before_lsn \gset
+
 begin;
-insert into pe_wal_rollback values (1, repeat('r', 1000));
+
+insert into
+  pe_wal_rollback
+values
+  (1, repeat('r', 1000));
+
 rollback;
-select pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'before_lsn'::pg_lsn) as wal_bytes_generated,
-       (select count(*) from pe_wal_rollback) as visible_rows;
+
+select
+  pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'before_lsn'::pg_lsn) as wal_bytes_generated,
+  (
+    select
+      count(*)
+    from
+      pe_wal_rollback
+  ) as visible_rows;
+
 drop table pe_wal_rollback;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

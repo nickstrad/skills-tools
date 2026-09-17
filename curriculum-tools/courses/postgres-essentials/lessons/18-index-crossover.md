@@ -87,16 +87,31 @@ This fixture creates about 100,000 rows and disables autovacuum only on pe_index
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
+
 drop table if exists pe_index_crossover;
+
 create table pe_index_crossover (id int not null, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_index_crossover
-select g, repeat('x', 500) from generate_series(1, 100000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_index_crossover
+select
+  g,
+  repeat('x', 500)
+from
+  generate_series(1, 100000) g;
+
 create index pe_index_crossover_id_idx on pe_index_crossover (id);
+
 analyze pe_index_crossover;
+
 set random_page_cost = 4;
+
 set seq_page_cost = 1;
+
 set effective_cache_size = '128MB';
 ```
 
@@ -105,18 +120,33 @@ set effective_cache_size = '128MB';
 -- Session A: compare two ranges without disabling any scan type.
 \echo phase_narrow_range
 explain (analyze, buffers, timing off)
-select payload from pe_index_crossover where id between 50000 and 50009;
+select
+  payload
+from
+  pe_index_crossover
+where
+  id between 50000 and 50009;
 
 \echo phase_broad_range
 explain (analyze, buffers, timing off)
-select payload from pe_index_crossover where id <= 95000;
+select
+  payload
+from
+  pe_index_crossover
+where
+  id <= 95000;
 
 -- Session A: remove the fixture while the timeout guards still apply, then restore the session.
 drop table pe_index_crossover;
+
 reset random_page_cost;
+
 reset seq_page_cost;
+
 reset effective_cache_size;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -141,25 +171,52 @@ Optional medium-range variation, independently runnable. Run the whole block and
 ```sql
 -- Session A: recreate the fixture and inspect an intermediate selectivity.
 set lock_timeout = '3s';
+
 set statement_timeout = '30s';
+
 drop table if exists pe_index_crossover;
+
 create table pe_index_crossover (id int not null, payload text not null)
-  with (autovacuum_enabled = false);
-insert into pe_index_crossover
-select g, repeat('x', 500) from generate_series(1, 100000) g;
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_index_crossover
+select
+  g,
+  repeat('x', 500)
+from
+  generate_series(1, 100000) g;
+
 create index pe_index_crossover_id_idx on pe_index_crossover (id);
+
 analyze pe_index_crossover;
+
 set random_page_cost = 4;
+
 set seq_page_cost = 1;
+
 set effective_cache_size = '128MB';
+
 \echo phase_medium_range
 explain (analyze, buffers, timing off)
-select payload from pe_index_crossover where id <= 20000;
+select
+  payload
+from
+  pe_index_crossover
+where
+  id <= 20000;
+
 drop table pe_index_crossover;
+
 reset random_page_cost;
+
 reset seq_page_cost;
+
 reset effective_cache_size;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

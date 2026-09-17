@@ -91,62 +91,130 @@ The second atomic UPDATE is supposed to wait briefly. Run its whole Session B bl
 ## Setup
 ```sql
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_atomic_write;
+
 create table pe_atomic_write (id int primary key, balance int not null);
-insert into pe_atomic_write values (1, 100);
+
+insert into
+  pe_atomic_write
+values
+  (1, 100);
 ```
 
 ## Run
 ```sql
 -- Session A: read 100 and prepare the supplied replacement 110. Leave A open.
 begin isolation level read committed;
-select balance as a_read, balance + 10 as a_replacement
-from pe_atomic_write where id = 1 \gset
+
+select
+  balance as a_read,
+  balance + 10 as a_replacement
+from
+  pe_atomic_write
+where
+  id = 1 \gset
+
 \echo A read :a_read and computed replacement :a_replacement
 
 -- Session B: read the same 100 and prepare the supplied replacement 120. Leave B open.
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 begin isolation level read committed;
-select balance as b_read, balance + 20 as b_replacement
-from pe_atomic_write where id = 1 \gset
+
+select
+  balance as b_read,
+  balance + 20 as b_replacement
+from
+  pe_atomic_write
+where
+  id = 1 \gset
+
 \echo B read :b_read and computed replacement :b_replacement
 
 -- Session A: write the replacement calculated from A's earlier read, then commit.
-update pe_atomic_write set balance = :a_replacement where id = 1
-returning balance as a_replacement_written;
+update pe_atomic_write
+set
+  balance = :a_replacement
+where
+  id = 1
+returning
+  balance as a_replacement_written;
+
 commit;
 
 -- Session B: write B's stale replacement after A commits, then commit.
-update pe_atomic_write set balance = :b_replacement where id = 1
-returning balance as b_replacement_written;
+update pe_atomic_write
+set
+  balance = :b_replacement
+where
+  id = 1
+returning
+  balance as b_replacement_written;
+
 commit;
 
 -- Session A: observe the lost increment, then reset for atomic arithmetic.
-select balance as after_stale_replacement from pe_atomic_write where id = 1;
-update pe_atomic_write set balance = 100 where id = 1;
+select
+  balance as after_stale_replacement
+from
+  pe_atomic_write
+where
+  id = 1;
+
+update pe_atomic_write
+set
+  balance = 100
+where
+  id = 1;
+
 begin isolation level read committed;
-update pe_atomic_write set balance = balance + 10 where id = 1
-returning balance as a_atomic_written;
+
+update pe_atomic_write
+set
+  balance = balance + 10
+where
+  id = 1
+returning
+  balance as a_atomic_written;
 
 -- Session B (blocks until A commits; switch to A while this waits)
 begin isolation level read committed;
-update pe_atomic_write set balance = balance + 20 where id = 1
-returning balance as b_atomic_written;
+
+update pe_atomic_write
+set
+  balance = balance + 20
+where
+  id = 1
+returning
+  balance as b_atomic_written;
 
 -- Session A: release the row after B has started waiting.
 commit;
 
 -- Session B: the UPDATE has resumed with A's committed row. Finish B.
 commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
 
 -- Session A: inspect the combined arithmetic, restore settings and clean up.
-select balance as after_atomic_arithmetic from pe_atomic_write where id = 1;
+select
+  balance as after_atomic_arithmetic
+from
+  pe_atomic_write
+where
+  id = 1;
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 drop table pe_atomic_write;
 ```
 

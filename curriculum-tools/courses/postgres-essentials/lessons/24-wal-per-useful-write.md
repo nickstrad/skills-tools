@@ -84,47 +84,89 @@ LSNs and WAL generation are cluster-wide. Run the two phases together on a quiet
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 set synchronous_commit = on;
+
 drop table if exists pe_wal_single, pe_wal_batch;
+
 create table pe_wal_single (id integer primary key, payload text not null);
+
 create table pe_wal_batch (like pe_wal_single including all);
 ```
 
 ## Run
 ```sql
 -- Session A: 200 generated INSERT commands, each committed by autocommit.
-select pg_current_wal_insert_lsn() as start_lsn \gset single_
-select format('insert into pe_wal_single values (%s, %L);', g, repeat(md5(g::text), 4))
-from generate_series(1, 200) as g
+select
+  pg_current_wal_insert_lsn() as start_lsn \gset single_
+
+select
+  format('insert into pe_wal_single values (%s, %L);', g, repeat(md5(g::text), 4))
+from
+  generate_series(1, 200) as g
 \gexec
-select pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'single_start_lsn'::pg_lsn) as wal_bytes
+
+select
+  pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'single_start_lsn'::pg_lsn) as wal_bytes
 \gset single_
 
 -- Session A: the same 200 commands inside one transaction; no checkpoint separates the phases.
-select pg_current_wal_insert_lsn() as start_lsn \gset batch_
+select
+  pg_current_wal_insert_lsn() as start_lsn \gset batch_
+
 begin;
-select format('insert into pe_wal_batch values (%s, %L);', g, repeat(md5(g::text), 4))
-from generate_series(1, 200) as g
+
+select
+  format('insert into pe_wal_batch values (%s, %L);', g, repeat(md5(g::text), 4))
+from
+  generate_series(1, 200) as g
 \gexec
+
 commit;
-select pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'batch_start_lsn'::pg_lsn) as wal_bytes
+
+select
+  pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'batch_start_lsn'::pg_lsn) as wal_bytes
 \gset batch_
 
-select :single_wal_bytes::numeric as autocommit_wal_bytes,
-       round(:single_wal_bytes::numeric / 200, 2) as autocommit_bytes_per_row,
-       :batch_wal_bytes::numeric as batched_wal_bytes,
-       round(:batch_wal_bytes::numeric / 200, 2) as batched_bytes_per_row;
-select (select count(*) from pe_wal_single) as autocommit_rows,
-       (select count(*) from pe_wal_batch) as batched_rows,
-       (select md5(string_agg(id::text || ':' || payload, ',' order by id)) from pe_wal_single)
-         =
-       (select md5(string_agg(id::text || ':' || payload, ',' order by id)) from pe_wal_batch)
-         as checksums_equal;
+select
+  :single_wal_bytes::numeric as autocommit_wal_bytes,
+  round(:single_wal_bytes::numeric / 200, 2) as autocommit_bytes_per_row,
+  :batch_wal_bytes::numeric as batched_wal_bytes,
+  round(:batch_wal_bytes::numeric / 200, 2) as batched_bytes_per_row;
+
+select
+  (
+    select
+      count(*)
+    from
+      pe_wal_single
+  ) as autocommit_rows,
+  (
+    select
+      count(*)
+    from
+      pe_wal_batch
+  ) as batched_rows,
+  (
+    select
+      md5(string_agg(id::text || ':' || payload, ',' order by id))
+    from
+      pe_wal_single
+  ) = (
+    select
+      md5(string_agg(id::text || ':' || payload, ',' order by id))
+    from
+      pe_wal_batch
+  ) as checksums_equal;
 
 drop table pe_wal_single, pe_wal_batch;
+
 reset synchronous_commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -150,27 +192,60 @@ Optional intermediate-batch variation, independently runnable. This groups the s
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 set synchronous_commit = on;
+
 drop table if exists pe_wal_twenty;
+
 create table pe_wal_twenty (id integer primary key, payload text not null);
-select pg_current_wal_insert_lsn() as start_lsn \gset twenty_
-select command
-from generate_series(1, 200) as g
-cross join lateral (values
-  (1, case when g % 20 = 1 then 'begin;' end),
-  (2, format('insert into pe_wal_twenty values (%s, %L);', g, repeat(md5(g::text), 4))),
-  (3, case when g % 20 = 0 then 'commit;' end)
-) as commands(sequence, command)
-where command is not null
-order by g, sequence
+
+select
+  pg_current_wal_insert_lsn() as start_lsn \gset twenty_
+
+select
+  command
+from
+  generate_series(1, 200) as g
+  cross join lateral (
+    values
+      (
+        1,
+        case
+          when g % 20 = 1 then 'begin;'
+        end
+      ),
+      (
+        2,
+        format('insert into pe_wal_twenty values (%s, %L);', g, repeat(md5(g::text), 4))
+      ),
+      (
+        3,
+        case
+          when g % 20 = 0 then 'commit;'
+        end
+      )
+  ) as commands (sequence, command)
+where
+  command is not null
+order by
+  g,
+  sequence
 \gexec
-select pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'twenty_start_lsn'::pg_lsn) as ten_transaction_wal_bytes,
-       count(*) as useful_rows
-from pe_wal_twenty;
+
+select
+  pg_wal_lsn_diff(pg_current_wal_insert_lsn(), :'twenty_start_lsn'::pg_lsn) as ten_transaction_wal_bytes,
+  count(*) as useful_rows
+from
+  pe_wal_twenty;
+
 drop table pe_wal_twenty;
+
 reset synchronous_commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

@@ -97,85 +97,160 @@ Keep each locking transaction open only for the supplied decision and write. In 
 ## Setup
 ```sql
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 drop table if exists pe_stock;
+
 create table pe_stock (
   sku text primary key,
   remaining int not null,
   accepted_reservations int not null
 );
-insert into pe_stock values ('widget', 1, 0);
+
+insert into
+  pe_stock
+values
+  ('widget', 1, 0);
 ```
 
 ## Run
 ```sql
 -- Session A: stale-decision round. Read the last unit and leave this transaction open.
 begin;
-select remaining as a_stale_read,
-       case when remaining > 0 then 'accept' else 'decline' end as a_stale_decision
-from pe_stock where sku = 'widget';
+
+select
+  remaining as a_stale_read,
+  case
+    when remaining > 0 then 'accept'
+    else 'decline'
+  end as a_stale_decision
+from
+  pe_stock
+where
+  sku = 'widget';
 
 -- Session B: read the same last unit before A changes it. Leave B open too.
 set default_transaction_isolation = 'read committed';
+
 set lock_timeout = '60s';
+
 set statement_timeout = '90s';
+
 begin;
-select remaining as b_stale_read,
-       case when remaining > 0 then 'accept' else 'decline' end as b_stale_decision
-from pe_stock where sku = 'widget';
+
+select
+  remaining as b_stale_read,
+  case
+    when remaining > 0 then 'accept'
+    else 'decline'
+  end as b_stale_decision
+from
+  pe_stock
+where
+  sku = 'widget';
 
 -- Session A: follow A's accept decision, then commit.
 update pe_stock
-set remaining = remaining - 1,
-    accepted_reservations = accepted_reservations + 1
-where sku = 'widget';
+set
+  remaining = remaining - 1,
+  accepted_reservations = accepted_reservations + 1
+where
+  sku = 'widget';
+
 commit;
 
 -- Session B: follow B's earlier accept decision without reading again, then commit.
 update pe_stock
-set remaining = remaining - 1,
-    accepted_reservations = accepted_reservations + 1
-where sku = 'widget';
+set
+  remaining = remaining - 1,
+  accepted_reservations = accepted_reservations + 1
+where
+  sku = 'widget';
+
 commit;
 
 -- Session A: observe the invalid result, then reset the same row for the locking round.
-select remaining as stale_remaining,
-       accepted_reservations as stale_accepted
-from pe_stock where sku = 'widget';
-update pe_stock set remaining = 1, accepted_reservations = 0 where sku = 'widget';
+select
+  remaining as stale_remaining,
+  accepted_reservations as stale_accepted
+from
+  pe_stock
+where
+  sku = 'widget';
+
+update pe_stock
+set
+  remaining = 1,
+  accepted_reservations = 0
+where
+  sku = 'widget';
 
 -- Session A: locking round. Lock the row, decide from 1, and leave A open.
 begin;
-select remaining as a_locked_read,
-       case when remaining > 0 then 'accept' else 'decline' end as a_locked_decision
-from pe_stock where sku = 'widget' for update;
+
+select
+  remaining as a_locked_read,
+  case
+    when remaining > 0 then 'accept'
+    else 'decline'
+  end as a_locked_decision
+from
+  pe_stock
+where
+  sku = 'widget'
+for update;
 
 -- Session B (blocks until A commits): try to lock the row before making B's decision.
 begin;
-select remaining as b_locked_read,
-       case when remaining > 0 then 'accept' else 'decline' end as b_locked_decision
-from pe_stock where sku = 'widget' for update;
+
+select
+  remaining as b_locked_read,
+  case
+    when remaining > 0 then 'accept'
+    else 'decline'
+  end as b_locked_decision
+from
+  pe_stock
+where
+  sku = 'widget'
+for update;
 
 -- Session A: follow A's accept decision and commit, which releases the row lock.
 update pe_stock
-set remaining = remaining - 1,
-    accepted_reservations = accepted_reservations + 1
-where sku = 'widget';
+set
+  remaining = remaining - 1,
+  accepted_reservations = accepted_reservations + 1
+where
+  sku = 'widget';
+
 commit;
 
 -- Session B: the blocked SELECT has now returned 0 and decline. Record no write, then finish.
-select 'no write: stock is exhausted' as b_locked_action;
+select
+  'no write: stock is exhausted' as b_locked_action;
+
 commit;
+
 reset lock_timeout;
+
 reset statement_timeout;
 
 -- Session A: compare the protected result, then remove this lesson's table.
-select remaining as locked_remaining,
-       accepted_reservations as locked_accepted
-from pe_stock where sku = 'widget';
+select
+  remaining as locked_remaining,
+  accepted_reservations as locked_accepted
+from
+  pe_stock
+where
+  sku = 'widget';
+
 reset lock_timeout;
+
 reset statement_timeout;
+
 drop table pe_stock;
 ```
 

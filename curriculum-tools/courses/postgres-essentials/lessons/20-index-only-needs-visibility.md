@@ -82,19 +82,32 @@ This experiment disables autovacuum only on pe_visibility_cover so a background 
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 drop table if exists pe_visibility_cover;
+
 create table pe_visibility_cover (
   id integer primary key,
   account_id integer not null,
   status text not null,
   payload text not null
-) with (autovacuum_enabled = false);
-insert into pe_visibility_cover
-select g, g % 100, 'ready', repeat(md5(g::text), 4)
-from generate_series(1, 20000) as g;
-create index pe_visibility_cover_lookup
-  on pe_visibility_cover (account_id, id) include (status, payload);
+)
+with
+  (autovacuum_enabled = false);
+
+insert into
+  pe_visibility_cover
+select
+  g,
+  g % 100,
+  'ready',
+  repeat(md5(g::text), 4)
+from
+  generate_series(1, 20000) as g;
+
+create index pe_visibility_cover_lookup on pe_visibility_cover (account_id, id) include (status, payload);
+
 vacuum (analyze) pe_visibility_cover;
 ```
 
@@ -103,32 +116,59 @@ vacuum (analyze) pe_visibility_cover;
 -- Session A: coverage plus all-visible pages avoids heap checks.
 \echo phase=vacuumed_baseline
 explain (analyze, buffers, timing off, summary off)
-select id, status, payload
-from pe_visibility_cover
-where account_id = 7 and id between 1 and 10000;
+select
+  id,
+  status,
+  payload
+from
+  pe_visibility_cover
+where
+  account_id = 7
+  and id between 1 and 10000;
 
 -- Session A: commit new versions on pages used by the same query.
 begin;
+
 update pe_visibility_cover
-set status = status || '-changed'
-where account_id = 7 and id between 1 and 10000;
+set
+  status = status || '-changed'
+where
+  account_id = 7
+  and id between 1 and 10000;
+
 commit;
+
 \echo phase=after_update
 explain (analyze, buffers, timing off, summary off)
-select id, status, payload
-from pe_visibility_cover
-where account_id = 7 and id between 1 and 10000;
+select
+  id,
+  status,
+  payload
+from
+  pe_visibility_cover
+where
+  account_id = 7
+  and id between 1 and 10000;
 
 -- Session A: restore visibility-map evidence and repeat unchanged SQL.
 vacuum pe_visibility_cover;
+
 \echo phase=after_vacuum
 explain (analyze, buffers, timing off, summary off)
-select id, status, payload
-from pe_visibility_cover
-where account_id = 7 and id between 1 and 10000;
+select
+  id,
+  status,
+  payload
+from
+  pe_visibility_cover
+where
+  account_id = 7
+  and id between 1 and 10000;
 
 drop table pe_visibility_cover;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -150,19 +190,41 @@ Optional non-covering variation, independently runnable. If interrupted, ROLLBAC
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 drop table if exists pe_visibility_variation;
+
 create table pe_visibility_variation (id int primary key, account_id int not null, payload text not null);
-insert into pe_visibility_variation
-select g, g % 100, repeat(md5(g::text), 4) from generate_series(1, 20000) g;
+
+insert into
+  pe_visibility_variation
+select
+  g,
+  g % 100,
+  repeat(md5(g::text), 4)
+from
+  generate_series(1, 20000) g;
+
 create index pe_visibility_variation_lookup on pe_visibility_variation (account_id, id);
+
 vacuum (analyze) pe_visibility_variation;
+
 \echo phase=variation_noncovering
 explain (analyze, buffers, timing off, summary off)
-select id, payload from pe_visibility_variation
-where account_id = 7 and id between 1 and 10000;
+select
+  id,
+  payload
+from
+  pe_visibility_variation
+where
+  account_id = 7
+  and id between 1 and 10000;
+
 drop table pe_visibility_variation;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 

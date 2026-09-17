@@ -87,17 +87,38 @@ The fixture creates 100,000 rows across two disposable tables and executes the f
 ## Setup
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 drop table if exists pe_join_orders, pe_join_accounts;
+
 create table pe_join_accounts (account_id integer primary key, profile text not null);
-create table pe_join_orders (order_id integer primary key, account_id integer not null, amount integer not null);
-insert into pe_join_accounts
-select g, left(repeat(md5(g::text), 7), 200)
-from generate_series(1, 50000) as g;
-insert into pe_join_orders
-select g, g, g % 100
-from generate_series(1, 50000) as g;
+
+create table pe_join_orders (
+  order_id integer primary key,
+  account_id integer not null,
+  amount integer not null
+);
+
+insert into
+  pe_join_accounts
+select
+  g,
+  left(repeat(md5(g::text), 7), 200)
+from
+  generate_series(1, 50000) as g;
+
+insert into
+  pe_join_orders
+select
+  g,
+  g,
+  g % 100
+from
+  generate_series(1, 50000) as g;
+
 analyze pe_join_accounts;
+
 analyze pe_join_orders;
 ```
 
@@ -105,34 +126,54 @@ analyze pe_join_orders;
 ```sql
 -- Session A: force the build-side hash table to use multiple batches.
 begin;
+
 set local work_mem = '64kB';
+
 set local hash_mem_multiplier = 1;
+
 set local max_parallel_workers_per_gather = 0;
+
 set local enable_nestloop = off;
+
 set local enable_mergejoin = off;
+
 \echo phase=small_hash_allowance
 explain (analyze, buffers, timing off, summary off)
-select sum(length(a.profile) + o.amount)
-from pe_join_orders as o
-join pe_join_accounts as a using (account_id);
+select
+  sum(length(a.profile) + o.amount)
+from
+  pe_join_orders as o
+  join pe_join_accounts as a using (account_id);
+
 commit;
 
 -- Session A: repeat identical work with enough allowance for one batch.
 begin;
+
 set local work_mem = '16MB';
+
 set local hash_mem_multiplier = 1;
+
 set local max_parallel_workers_per_gather = 0;
+
 set local enable_nestloop = off;
+
 set local enable_mergejoin = off;
+
 \echo phase=larger_hash_allowance
 explain (analyze, buffers, timing off, summary off)
-select sum(length(a.profile) + o.amount)
-from pe_join_orders as o
-join pe_join_accounts as a using (account_id);
+select
+  sum(length(a.profile) + o.amount)
+from
+  pe_join_orders as o
+  join pe_join_accounts as a using (account_id);
+
 commit;
 
 drop table pe_join_orders, pe_join_accounts;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
@@ -154,30 +195,62 @@ Optional multiplier variation, independently runnable. Hold work_mem at 64kB and
 
 ```sql
 set lock_timeout = '3s';
+
 set statement_timeout = '60s';
+
 drop table if exists pe_join_variation_orders, pe_join_variation_accounts;
+
 create table pe_join_variation_accounts (account_id int primary key, profile text not null);
+
 create table pe_join_variation_orders (order_id int primary key, account_id int not null, amount int not null);
-insert into pe_join_variation_accounts
-select g, left(repeat(md5(g::text), 7), 200) from generate_series(1, 50000) g;
-insert into pe_join_variation_orders
-select g, g, g % 100 from generate_series(1, 50000) g;
+
+insert into
+  pe_join_variation_accounts
+select
+  g,
+  left(repeat(md5(g::text), 7), 200)
+from
+  generate_series(1, 50000) g;
+
+insert into
+  pe_join_variation_orders
+select
+  g,
+  g,
+  g % 100
+from
+  generate_series(1, 50000) g;
+
 analyze pe_join_variation_accounts;
+
 analyze pe_join_variation_orders;
+
 begin;
+
 set local work_mem = '64kB';
+
 set local hash_mem_multiplier = 8;
+
 set local max_parallel_workers_per_gather = 0;
+
 set local enable_nestloop = off;
+
 set local enable_mergejoin = off;
+
 \echo phase=variation_hash_multiplier
 explain (analyze, buffers, timing off, summary off)
-select sum(length(a.profile) + o.amount)
-from pe_join_variation_orders o
-join pe_join_variation_accounts a using (account_id);
+select
+  sum(length(a.profile) + o.amount)
+from
+  pe_join_variation_orders o
+  join pe_join_variation_accounts a using (account_id);
+
 commit;
+
 drop table pe_join_variation_orders, pe_join_variation_accounts;
+
 reset lock_timeout;
+
 reset statement_timeout;
 ```
 
